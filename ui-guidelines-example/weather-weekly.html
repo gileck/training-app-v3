@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Weekly Forecast - Weather App</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/weather.css">
+    <!-- Simulate safe area insets for demo -->
+    <style>
+        :root {
+            --safe-area-inset-top: 44px;
+            --safe-area-inset-bottom: 34px;
+        }
+    </style>
+</head>
+
+<body class="weather-app">
+    <!-- Fixed Header with Back Button -->
+    <header role="banner" class="weather-header">
+        <nav role="navigation" class="weather-nav">
+            <button class="nav-btn" aria-label="Go back" onclick="window.location.href='weather.html'">
+                <span class="icon">←</span>
+            </button>
+            <h1 class="nav-title">10-Day Forecast</h1>
+            <button class="nav-btn" aria-label="Search locations">
+                <span class="icon">🔍</span>
+            </button>
+        </nav>
+    </header>
+
+    <main role="main" class="weather-main">
+        <!-- Location Info -->
+        <section class="location-info">
+            <div class="location-name">San Francisco</div>
+            <div class="location-subtitle">Extended forecast</div>
+        </section>
+
+        <!-- Weekly Forecast List -->
+        <section class="weekly-forecast">
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Today</div>
+                    <div class="day-date">Dec 15</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">☀️</div>
+                    <div class="day-desc">Sunny</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">75°</span>
+                    <span class="low">65°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">0%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">8 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Tomorrow</div>
+                    <div class="day-date">Dec 16</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">⛅</div>
+                    <div class="day-desc">Partly Cloudy</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">73°</span>
+                    <span class="low">62°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">10%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">12 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Thursday</div>
+                    <div class="day-date">Dec 17</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">🌧️</div>
+                    <div class="day-desc">Rain</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">68°</span>
+                    <span class="low">58°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">85%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">18 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Friday</div>
+                    <div class="day-date">Dec 18</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">🌦️</div>
+                    <div class="day-desc">Showers</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">70°</span>
+                    <span class="low">60°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">60%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">15 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Saturday</div>
+                    <div class="day-date">Dec 19</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">⛅</div>
+                    <div class="day-desc">Partly Cloudy</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">72°</span>
+                    <span class="low">63°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">20%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">10 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Sunday</div>
+                    <div class="day-date">Dec 20</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">☀️</div>
+                    <div class="day-desc">Sunny</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">74°</span>
+                    <span class="low">64°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">5%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">8 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Monday</div>
+                    <div class="day-date">Dec 21</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">☀️</div>
+                    <div class="day-desc">Sunny</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">76°</span>
+                    <span class="low">66°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">0%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">6 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Tuesday</div>
+                    <div class="day-date">Dec 22</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">🌤️</div>
+                    <div class="day-desc">Mostly Sunny</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">75°</span>
+                    <span class="low">65°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">10%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">9 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Wednesday</div>
+                    <div class="day-date">Dec 23</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">⛅</div>
+                    <div class="day-desc">Partly Cloudy</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">73°</span>
+                    <span class="low">63°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">15%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">11 mph</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-item-detailed">
+                <div class="day-info">
+                    <div class="day-name">Thursday</div>
+                    <div class="day-date">Dec 24</div>
+                </div>
+                <div class="day-weather">
+                    <div class="day-icon-large">☁️</div>
+                    <div class="day-desc">Cloudy</div>
+                </div>
+                <div class="day-temps-large">
+                    <span class="high">71°</span>
+                    <span class="low">61°</span>
+                </div>
+                <div class="day-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rain</span>
+                        <span class="detail-value">30%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">13 mph</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav role="navigation" class="bottom-nav">
+        <button class="nav-tab" aria-label="Current weather" onclick="window.location.href='weather.html'">
+            <span class="tab-icon">🏠</span>
+            <span class="tab-label">Today</span>
+        </button>
+        <button class="nav-tab" aria-label="Hourly forecast" onclick="window.location.href='weather-hourly.html'">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label">Hourly</span>
+        </button>
+        <button class="nav-tab active" aria-label="Weekly forecast" aria-current="page">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Weekly</span>
+        </button>
+        <button class="nav-tab" aria-label="Locations" onclick="window.location.href='weather-locations.html'">
+            <span class="tab-icon">🌍</span>
+            <span class="tab-label">Locations</span>
+        </button>
+    </nav>
+</body>
+
+</html>

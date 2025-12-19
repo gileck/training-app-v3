@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forms - iOS UI Guidelines</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/forms.css">
+</head>
+
+<body>
+    <header role="banner" class="nav-header">
+        <nav role="navigation" class="nav-content">
+            <a href="index.html" class="nav-back" aria-label="Back to main page">← Back</a>
+            <h1 class="nav-title">Forms</h1>
+        </nav>
+    </header>
+
+    <main role="main" id="content" class="main-container">
+        <section class="section">
+            <h1 class="section-title">Form Components</h1>
+            <p class="type-caption">iOS-inspired form elements with enhanced accessibility, proper spacing, validation,
+                and interactions</p>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Basic Form</h2>
+            <div class="form-container">
+                <form class="form">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Full Name</label>
+                        <input class="form-input" type="text" id="name" placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input class="form-input" type="email" id="email" placeholder="your@email.com"
+                            aria-describedby="email-hint">
+                        <span class="form-hint" id="email-hint">We'll never share your email with anyone else</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number</label>
+                        <input class="form-input" type="tel" id="phone" placeholder="+1 (555) 123-4567">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="message">Message</label>
+                        <textarea class="form-input form-textarea" id="message" rows="4"
+                            placeholder="Tell us about yourself..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="country">Country</label>
+                        <select class="form-input form-select" id="country">
+                            <option value="">Select your country</option>
+                            <option value="us">United States</option>
+                            <option value="ca">Canada</option>
+                            <option value="uk">United Kingdom</option>
+                            <option value="de">Germany</option>
+                            <option value="fr">France</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="checkbox-input">
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">I agree to the Terms of Service and Privacy Policy</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary btn-lg">Create Account</button>
+                        <button type="button" class="btn-text">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Validation States</h2>
+            <div class="form-container">
+                <form class="form">
+                    <div class="form-group">
+                        <label class="form-label" for="valid-input">Valid Input</label>
+                        <input class="form-input form-input-valid" type="text" id="valid-input" value="john@example.com"
+                            aria-describedby="valid-message" aria-invalid="false">
+                        <span class="form-message form-message-success" id="valid-message" role="status">✓ Looks
+                            good!</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="invalid-input">Invalid Input</label>
+                        <input class="form-input form-input-invalid" type="email" id="invalid-input"
+                            value="invalid-email" aria-describedby="invalid-message" aria-invalid="true">
+                        <span class="form-message form-message-error" id="invalid-message" role="alert">✗ Please enter a
+                            valid email address</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="warning-input">Warning Input</label>
+                        <input class="form-input form-input-warning" type="password" id="warning-input" value="weak"
+                            aria-describedby="warning-message" aria-invalid="false">
+                        <span class="form-message form-message-warning" id="warning-message" role="status">⚠ Password is
+                            too weak</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="disabled-input">Disabled Input</label>
+                        <input class="form-input" type="text" id="disabled-input" value="Cannot edit this" disabled>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Input Variations</h2>
+            <div class="form-container">
+                <form class="form">
+                    <div class="form-group">
+                        <label class="form-label">Radio Buttons</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="plan" value="basic" class="radio-input">
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">
+                                    <strong>Basic Plan</strong>
+                                    <small>$9/month - Perfect for individuals</small>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="plan" value="pro" class="radio-input" checked>
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">
+                                    <strong>Pro Plan</strong>
+                                    <small>$19/month - Great for teams</small>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="plan" value="enterprise" class="radio-input">
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">
+                                    <strong>Enterprise</strong>
+                                    <small>Custom pricing - For large organizations</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">File Upload</label>
+                        <div class="file-upload">
+                            <input type="file" id="file-input" class="file-input" multiple>
+                            <label for="file-input" class="file-label">
+                                <span class="file-icon">📁</span>
+                                <span class="file-text">
+                                    <strong>Choose files</strong> or drag them here
+                                    <small>PNG, JPG, PDF up to 10MB each</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="range-input">Range Slider</label>
+                        <div class="range-container">
+                            <input type="range" id="range-input" class="range-input" min="0" max="100" value="50">
+                            <div class="range-labels">
+                                <span>0</span>
+                                <span id="range-value">50</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Toggle Switches</label>
+                        <div class="toggle-group">
+                            <div class="toggle-item">
+                                <span class="toggle-text">Email Notifications</span>
+                                <label class="toggle">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span class="toggle-text">Push Notifications</span>
+                                <label class="toggle">
+                                    <input type="checkbox">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span class="toggle-text">SMS Notifications</span>
+                                <label class="toggle">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Search & Filters</h2>
+            <div class="search-container">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="search" class="search-input" placeholder="Search for anything...">
+                    <button class="search-clear">✕</button>
+                </div>
+
+                <div class="filter-chips">
+                    <button class="chip chip-active">All</button>
+                    <button class="chip">Recent</button>
+                    <button class="chip">Images</button>
+                    <button class="chip">Documents</button>
+                    <button class="chip">Videos</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Range slider value display
+        const rangeInput = document.getElementById('range-input');
+        const rangeValue = document.getElementById('range-value');
+
+        rangeInput.addEventListener('input', function () {
+            rangeValue.textContent = this.value;
+        });
+
+        // Search clear functionality
+        const searchInput = document.querySelector('.search-input');
+        const searchClear = document.querySelector('.search-clear');
+
+        searchClear.addEventListener('click', function () {
+            searchInput.value = '';
+            searchInput.focus();
+        });
+
+        searchInput.addEventListener('input', function () {
+            searchClear.style.display = this.value ? 'block' : 'none';
+        });
+    </script>
+</body>
+
+</html>

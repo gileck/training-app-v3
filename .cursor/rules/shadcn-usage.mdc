@@ -1,0 +1,404 @@
+---
+description: when building UI components - MUST use shadcn/ui
+globs: .tsx,.jsx
+alwaysApply: false
+---
+# shadcn/ui Component Usage Guidelines
+
+**CRITICAL**: This project uses shadcn/ui as its ONLY component library. Do NOT use any other component libraries (Material-UI, Ant Design, Chakra, etc.).
+
+## Core Rules
+
+### 1. Use shadcn/ui Components Only
+
+All UI components MUST come from shadcn/ui:
+
+```tsx
+// ✅ CORRECT - shadcn/ui components
+import { Button } from '@/client/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/ui/card';
+import { Input } from '@/client/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/client/components/ui/dialog';
+
+// ❌ WRONG - DO NOT use other libraries
+import { Button } from '@mui/material';
+import { Button } from 'antd';
+import { Button } from '@chakra-ui/react';
+```
+
+### 2. Use Semantic Color Tokens
+
+NEVER use hardcoded colors or raw Tailwind color names. Always use semantic tokens:
+
+```tsx
+// ✅ CORRECT - Semantic tokens
+<div className="bg-background text-foreground">
+  <Card className="bg-card text-card-foreground border-border">
+    <Button className="bg-primary text-primary-foreground">
+      Action
+    </Button>
+  </Card>
+</div>
+
+// ❌ WRONG - Hardcoded colors
+<div className="bg-white text-black dark:bg-gray-900">
+  <div className="bg-blue-500 text-white">
+    <button>Action</button>
+  </div>
+</div>
+
+// ❌ WRONG - Raw Tailwind colors
+<div className="bg-slate-100 text-gray-900">
+```
+
+### 3. Available Semantic Tokens
+
+| Token | Usage |
+|-------|-------|
+| `bg-background` / `text-foreground` | Page background and main text |
+| `bg-card` / `text-card-foreground` | Card backgrounds |
+| `bg-popover` / `text-popover-foreground` | Popovers, dropdowns |
+| `bg-primary` / `text-primary-foreground` | Primary actions |
+| `bg-secondary` / `text-secondary-foreground` | Secondary actions |
+| `bg-muted` / `text-muted-foreground` | Muted/disabled states |
+| `bg-accent` / `text-accent-foreground` | Accent/hover states |
+| `bg-destructive` / `text-destructive-foreground` | Errors, delete actions |
+| `border-border` | All borders |
+| `ring-ring` | Focus rings |
+
+### 4. Component Variants and Sizes
+
+Use built-in variants instead of custom styling:
+
+```tsx
+// ✅ CORRECT - Use variants
+<Button variant="default">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="outline">Outlined</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="destructive">Delete</Button>
+
+<Button size="default">Default</Button>
+<Button size="sm">Small</Button>
+<Button size="lg">Large</Button>
+<Button size="icon"><Icon /></Button>
+
+// ❌ WRONG - Custom styling instead of variants
+<button className="bg-blue-500 text-white px-4 py-2 rounded">
+  Primary
+</button>
+```
+
+### 5. Proper Composition with asChild
+
+Use `asChild` for proper component composition:
+
+```tsx
+// ✅ CORRECT
+<Dialog>
+  <DialogTrigger asChild>
+    <Button variant="outline">Open</Button>
+  </DialogTrigger>
+</Dialog>
+
+// ❌ WRONG - Creates nested buttons
+<Dialog>
+  <DialogTrigger>
+    <Button>Open</Button>
+  </DialogTrigger>
+</Dialog>
+```
+
+### 6. Accessibility: Labels and ARIA
+
+Always provide proper labels and ARIA attributes:
+
+```tsx
+// ✅ CORRECT - Proper label association
+<div className="grid gap-2">
+  <Label htmlFor="email">Email</Label>
+  <Input id="email" type="email" />
+</div>
+
+// ❌ WRONG - No label association
+<div>
+  <span>Email</span>
+  <Input type="email" />
+</div>
+```
+
+### 7. Icon Usage with lucide-react
+
+Use `lucide-react` for all icons:
+
+```tsx
+// ✅ CORRECT
+import { Plus, Edit, Trash, Menu } from 'lucide-react';
+
+<Button>
+  <Plus className="mr-2 h-4 w-4" />
+  Add Item
+</Button>
+
+// ❌ WRONG - Other icon libraries
+import AddIcon from '@mui/icons-material/Add';
+import { PlusOutlined } from '@ant-design/icons';
+```
+
+### 8. Mobile-First Responsive Design
+
+Build for mobile first, enhance for desktop:
+
+```tsx
+// ✅ CORRECT - Mobile first
+<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+
+// Sheet for mobile, different UI for desktop
+<Sheet>
+  <SheetTrigger asChild className="md:hidden">
+    <Button variant="ghost" size="icon">
+      <Menu className="h-5 w-5" />
+    </Button>
+  </SheetTrigger>
+</Sheet>
+
+<nav className="hidden md:flex md:gap-2">
+  {/* Desktop nav */}
+</nav>
+```
+
+### 9. Loading States
+
+Always show loading feedback:
+
+```tsx
+// ✅ CORRECT - Loading state
+<Button disabled={isLoading}>
+  {isLoading ? 'Saving...' : 'Save'}
+</Button>
+
+// Or use skeleton
+import { Skeleton } from '@/client/components/ui/skeleton';
+
+{isLoading ? (
+  <Skeleton className="h-4 w-full" />
+) : (
+  <p>{data}</p>
+)}
+```
+
+### 10. Controlled Components
+
+Prefer controlled components for better state management:
+
+```tsx
+// ✅ CORRECT - Controlled
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+<Select value={value} onValueChange={setValue}>
+<Switch checked={checked} onCheckedChange={setChecked}>
+
+// ❌ WRONG - Uncontrolled (harder to manage)
+<Dialog>
+<Select>
+```
+
+## Common Component Patterns
+
+### Form Pattern
+
+```tsx
+import { Button } from '@/client/components/ui/button';
+import { Input } from '@/client/components/ui/input';
+import { Label } from '@/client/components/ui/label';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/client/components/ui/card';
+
+function MyForm() {
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Form Title</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="field">Field Label</Label>
+            <Input id="field" type="text" placeholder="Enter value" />
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full">Submit</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+```
+
+### List with Actions Pattern
+
+```tsx
+import { Card } from '@/client/components/ui/card';
+import { Button } from '@/client/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/client/components/ui/dropdown-menu';
+import { MoreVertical, Edit, Trash } from 'lucide-react';
+
+function ItemList({ items }) {
+  return (
+    <div className="grid gap-2">
+      {items.map((item) => (
+        <Card key={item.id} className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="font-medium">{item.title}</h3>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleEdit(item.id)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDelete(item.id)}>
+                  <Trash className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+```
+
+### Confirm Dialog Pattern
+
+```tsx
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/client/components/ui/dialog';
+import { Button } from '@/client/components/ui/button';
+
+function ConfirmDeleteDialog({ isOpen, onOpenChange, onConfirm, itemName }) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete "{itemName}". This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### Empty State Pattern
+
+```tsx
+import { Card, CardContent } from '@/client/components/ui/card';
+import { Button } from '@/client/components/ui/button';
+import { Inbox, Plus } from 'lucide-react';
+
+function EmptyState() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-12">
+        <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No items yet</h3>
+        <p className="text-sm text-muted-foreground mb-4 text-center">
+          Get started by creating your first item
+        </p>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Item
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Adding New shadcn Components
+
+When you need a component that doesn't exist in the project:
+
+```bash
+# Use the shadcn CLI to add components
+npx shadcn@latest add button
+npx shadcn@latest add card
+npx shadcn@latest add dialog
+npx shadcn@latest add dropdown-menu
+
+# Components are added to:
+# src/client/components/ui/
+```
+
+## Component Locations
+
+- **All shadcn components**: `src/client/components/ui/*`
+- **Theme configuration**: `src/client/styles/globals.css`
+- **Theme provider**: `src/pages/_app.tsx` (using next-themes)
+
+## Related Documentation
+
+- **Full Component Guide**: [docs/shadcn-component-library.md](mdc:docs/shadcn-component-library.md)
+- **Mobile-first Patterns**: [.cursor/rules/ui-mobile-first-shadcn.mdc](mdc:.cursor/rules/ui-mobile-first-shadcn.mdc)
+- **UI Design Guidelines**: [.cursor/rules/ui-design-guidelines.mdc](mdc:.cursor/rules/ui-design-guidelines.mdc)
+- **Component Organization**: [.cursor/rules/react-component-organization.mdc](mdc:.cursor/rules/react-component-organization.mdc)
+
+## Quick Reference
+
+### Common Components
+
+```tsx
+// Buttons
+import { Button } from '@/client/components/ui/button';
+
+// Forms
+import { Input } from '@/client/components/ui/input';
+import { Label } from '@/client/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select';
+import { Switch } from '@/client/components/ui/switch';
+
+// Layout
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/client/components/ui/card';
+import { Separator } from '@/client/components/ui/separator';
+
+// Overlays
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/client/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/client/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/client/components/ui/dropdown-menu';
+
+// Feedback
+import { Alert, AlertTitle, AlertDescription } from '@/client/components/ui/alert';
+import { Badge } from '@/client/components/ui/badge';
+import { Skeleton } from '@/client/components/ui/skeleton';
+
+// Icons
+import { Plus, Edit, Trash, Menu, X, Search, MoreVertical } from 'lucide-react';
+```
+
+## Enforcement
+
+- ESLint rules will warn when importing from other component libraries
+- Code reviews should check for hardcoded colors
+- Always refer to this guide when building new UI components
+- See the full component library documentation for detailed examples and patterns
+
+**Remember**: shadcn/ui is the ONLY approved component library for this project. All UI must be built using shadcn components and semantic color tokens.

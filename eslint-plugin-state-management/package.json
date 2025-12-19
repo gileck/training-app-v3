@@ -1,0 +1,14 @@
+{
+    "name": "eslint-plugin-state-management",
+    "version": "1.0.0",
+    "description": "ESLint rules for enforcing proper state management patterns",
+    "main": "index.js",
+    "keywords": [
+        "eslint",
+        "eslintplugin",
+        "state-management",
+        "react-query",
+        "zustand"
+    ]
+}
+

@@ -1,0 +1,109 @@
+---
+globs: .tsx,.css
+alwaysApply: false
+---
+# Mobile-first UI rules (shadcn + Tailwind)
+
+These rules standardize design across the app using shadcn UI primitives and Tailwind v4 semantic tokens. Dark mode uses the HTML `.dark` class via `next-themes`. Color tokens live in [globals.css](mdc:src/client/styles/globals.css).
+
+## Colors and theming
+- Always use semantic tokens instead of hard-coded colors:
+  - `bg-background`, `text-foreground`, `border-border`, `ring-ring`
+  - `bg-card`/`text-card-foreground`, `bg-popover`/`text-popover-foreground`
+  - `bg-primary text-primary-foreground`, `bg-secondary text-secondary-foreground`, `bg-accent text-accent-foreground`
+  - `text-muted-foreground`, `bg-muted`
+- Do not use hex values in components. If a new color is needed, add/adjust HSL tokens in [globals.css](mdc:src/client/styles/globals.css).
+- Use shadcn variants for state colors: `destructive`, `success`, `warning` (see `Alert`, `Badge`, `Button`).
+- Respect dark mode automatically by relying on tokens; never conditionalize class strings on theme.
+
+## Layout
+- Default page scaffold:
+```tsx
+export default function Page() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-screen-lg items-center px-3 sm:px-4" />
+      </header>
+      <main className="mx-auto w-full max-w-screen-lg flex-1 px-2 py-3 pb-20 sm:px-4 sm:pb-4">
+        {/* content */}
+      </main>
+      <footer className="hidden border-t bg-muted/30 sm:block">
+        <div className="mx-auto max-w-screen-lg px-4 py-3" />
+      </footer>
+    </div>
+  );
+}
+```
+- Mobile-first: build for small screens, enhance with `sm:`/`md:` modifiers.
+- Ensure content clears fixed bottom navigation:
+  - Use `pb-20` on mobile main; reduce to `sm:pb-4` on larger screens.
+- iOS safe areas when in standalone/PWA:
+  - When applicable, add `pt-[env(safe-area-inset-top)]` and `pb-[env(safe-area-inset-bottom)]` to root containers.
+
+## Navigation (Top bar, Drawer, Bottom bar)
+- Top bar
+  - Height `h-14`, container `max-w-screen-lg`, `backdrop-blur` with `bg-background/80`.
+  - Action buttons: `variant="ghost" size="icon"`.
+- Drawer (Sheet) item spacing
+  - Use a dense rhythm for mobile lists:
+    - Container: `grid gap-0.5 px-2 pb-2`
+    - Item button: `flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm`
+    - Icon wrapper: `h-4 w-4`
+    - States: selected → `bg-accent text-foreground`; idle → `text-muted-foreground hover:bg-accent hover:text-foreground`
+- Bottom nav
+  - Fixed bar: `fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 sm:hidden`
+  - Buttons: `variant={active ? 'secondary' : 'ghost'} className="flex-1"`
+
+## Components (shadcn usage)
+- Prefer shadcn primitives and variants:
+  - `Button`, `Input`, `Label`, `Select`, `Switch`, `Card`, `Badge`, `Alert`, `Avatar`, `DropdownMenu`, `Dialog`, `Sheet`, `Separator`
+  - Keep props minimal; avoid inline styles.
+- Focus states: include `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` on interactive elements (built into `Button`, `Input`, etc.).
+- Replace elevation with borders + subtle shadows: `border shadow-sm` for cards/popovers.
+
+### Loading indicators
+- Always use a linear progress bar for loading states (no circular spinners):
+  - Shared component: `LinearProgress` in `src/client/components/ui/linear-progress.tsx`
+  - Indeterminate: `<LinearProgress />`
+  - Determinate: `<LinearProgress value={percent} />` (0–100)
+  - Place directly below the triggering button or at the top of the container; for full-page loads, add within the content area with `py-2`.
+
+## Radix UI conventions
+- shadcn components are Radix-wrapped. When a component is missing, build it on Radix primitives and place it in `src/client/components/ui/*` with shadcn-style API.
+- Always use controlled open state when the parent needs to drive UI: `open` + `onOpenChange`. Otherwise, let Radix manage it.
+- Portals/overlays
+  - Use provided `*Portal`, `*Overlay`, `*Content`. Ensure `z-50` for overlays and avoid custom z-indexes.
+  - Scroll locking and focus trapping are handled by Radix—do not add custom body scroll code.
+- Accessibility
+  - Provide `aria-label` or visible labels; connect `Label` and inputs via `htmlFor`/`id`.
+  - Respect keyboard navigation; do not remove outline. Use `focus-visible` utilities.
+- Styling hooks
+  - Prefer data attributes: e.g., `[data-state=open]`, `[data-disabled]` for styling interactive states.
+- SSR/hydration
+  - Components using portals may render after mount; avoid measuring sizes during SSR without guards.
+
+## Spacing and typography
+- Spacing scale
+  - Page padding: `px-2 sm:px-4`, vertical rhythm: `py-3` sections.
+  - Lists: `gap-2` by default, dense lists `gap-1` or `gap-0.5`.
+- Type scale
+  - Page titles: `text-2xl font-semibold`
+  - Section titles: `text-lg font-medium`
+  - Body: default text; use `text-muted-foreground` for secondary copy.
+
+## Icons
+- Use `lucide-react`; size 16–20px on dense UI:
+  - Icon-only buttons: `size="icon"` with `h-4 w-4` icons.
+
+## Performance and accessibility
+- Avoid conditional render for light/dark classes; rely on tokens for contrast.
+- Ensure touch targets ≥ `h-9` with left/right padding ≥ `px-3`.
+- Respect reduced motion for potential animations; keep durations at 150–200ms where used.
+
+## Do/Don't
+- Do: `bg-primary text-primary-foreground` for primary actions; `variant="outline"` for secondary.
+- Do: Use `text-muted-foreground` for less important text.
+- Don't: Use raw hex or Tailwind raw color names in components.
+- Don't: Add arbitrary margins to fight layout—fix parent spacing instead.
+

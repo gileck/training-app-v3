@@ -1,0 +1,75 @@
+---
+description: when implementing a logged-in user feature in the client and server
+globs: 
+alwaysApply: false
+---
+# How to Access User ID
+
+This document explains how to access the authenticated user in both client-side components and server-side API handlers.
+
+## Client-Side Access
+
+On the client-side, you can access the user's information, including their ID, through the `useAuth` hook provided by the `AuthContext`.
+
+```tsx
+import { useAuth } from '../context/AuthContext'; // Adjust path as needed
+
+const MyComponent = () => {
+    const { user } = useAuth();
+
+    // Assuming the user object has an 'id' property
+    const userId = user?.id; 
+
+    if (userId) {
+        console.log("Current User ID:", userId);
+        // You can now use the userId in your component
+    }
+
+    // ... rest of your component logic
+};
+```
+The `user` object within the `AuthContext` contains the authenticated user's details. You would typically access a property like `user.id` or `user._id` to get the user's unique identifier. Refer to the `User` type definition for the exact property name.
+
+## Server-Side Access (API Handlers)
+
+In server-side API handlers, the `userId` of the authenticated user is passed via the `ApiHandlerContext`. This context is automatically populated by the middleware in `processApiCall.ts` (see [docs/authentication.md](mdc:docs/authentication.md) for details on `processApiCall.ts`).
+
+When defining an API handler, the second parameter is the `context` object, which contains the `userId`.
+
+```typescript
+// Example API handler in src/apis/someApi/server.ts
+
+import { ApiHandlerContext } from 'path/to/your/ApiHandlerContext/type'; // Adjust path as needed
+
+// Define your request and response types
+interface MyApiRequest {
+    // ... request parameters
+}
+
+interface MyApiResponse {
+    // ... response data
+    message?: string;
+    error?: string;
+}
+
+export const handleMyApiRequest = async (
+    request: MyApiRequest,
+    context: ApiHandlerContext 
+): Promise<MyApiResponse> => {
+    const userId = context.userId;
+
+    if (!userId) {
+        // Handle cases where the user is not authenticated or userId is not available
+        return { error: "User not authenticated." };
+    }
+
+    console.log("Authenticated User ID in API handler:", userId);
+
+    // Implement your API logic using the userId
+    // For example, fetch user-specific data from a database
+
+    return { message: `Successfully processed request for user ${userId}` };
+};
+```
+
+The `userId` in the `ApiHandlerContext` is derived from the JWT token sent with the request. If the token is invalid or missing, `userId` will be `undefined`. Always check for its existence before using it.

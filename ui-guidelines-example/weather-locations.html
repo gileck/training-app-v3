@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Locations - Weather App</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/weather.css">
+    <!-- Simulate safe area insets for demo -->
+    <style>
+        :root {
+            --safe-area-inset-top: 44px;
+            --safe-area-inset-bottom: 34px;
+        }
+    </style>
+</head>
+
+<body class="weather-app">
+    <!-- Fixed Header with Search -->
+    <header role="banner" class="weather-header">
+        <nav role="navigation" class="weather-nav">
+            <button class="nav-btn" aria-label="Go back" onclick="window.location.href='weather.html'">
+                <span class="icon">←</span>
+            </button>
+            <h1 class="nav-title">Locations</h1>
+            <button class="nav-btn" aria-label="Add location">
+                <span class="icon">➕</span>
+            </button>
+        </nav>
+    </header>
+
+    <main role="main" class="weather-main">
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-container">
+                <div class="search-input-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" placeholder="Search for a city"
+                        aria-label="Search for a city">
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Location -->
+        <section class="current-location-section">
+            <div class="section-header">
+                <h2>Current Location</h2>
+            </div>
+            <div class="location-card current">
+                <div class="location-info">
+                    <div class="location-primary">
+                        <div class="location-name">San Francisco</div>
+                        <div class="location-icon">📍</div>
+                    </div>
+                    <div class="location-subtitle">Your current location</div>
+                </div>
+                <div class="location-weather">
+                    <div class="weather-icon-small">☀️</div>
+                    <div class="temp-display">72°</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Saved Locations -->
+        <section class="saved-locations-section">
+            <div class="section-header">
+                <h2>My Locations</h2>
+                <button class="btn-text btn-sm">Edit</button>
+            </div>
+
+            <div class="locations-list">
+                <div class="location-item">
+                    <div class="location-info">
+                        <div class="location-primary">
+                            <div class="location-name">New York</div>
+                            <div class="location-region">NY, USA</div>
+                        </div>
+                        <div class="location-time">9:42 PM</div>
+                    </div>
+                    <div class="location-weather">
+                        <div class="weather-icon-small">🌙</div>
+                        <div class="temp-display">58°</div>
+                    </div>
+                    <button class="location-action" aria-label="More options">
+                        <span class="icon">⋯</span>
+                    </button>
+                </div>
+
+                <div class="location-item">
+                    <div class="location-info">
+                        <div class="location-primary">
+                            <div class="location-name">London</div>
+                            <div class="location-region">England, UK</div>
+                        </div>
+                        <div class="location-time">2:42 AM</div>
+                    </div>
+                    <div class="location-weather">
+                        <div class="weather-icon-small">☁️</div>
+                        <div class="temp-display">45°</div>
+                    </div>
+                    <button class="location-action" aria-label="More options">
+                        <span class="icon">⋯</span>
+                    </button>
+                </div>
+
+                <div class="location-item">
+                    <div class="location-info">
+                        <div class="location-primary">
+                            <div class="location-name">Tokyo</div>
+                            <div class="location-region">Japan</div>
+                        </div>
+                        <div class="location-time">11:42 AM</div>
+                    </div>
+                    <div class="location-weather">
+                        <div class="weather-icon-small">🌤️</div>
+                        <div class="temp-display">68°</div>
+                    </div>
+                    <button class="location-action" aria-label="More options">
+                        <span class="icon">⋯</span>
+                    </button>
+                </div>
+
+                <div class="location-item">
+                    <div class="location-info">
+                        <div class="location-primary">
+                            <div class="location-name">Sydney</div>
+                            <div class="location-region">Australia</div>
+                        </div>
+                        <div class="location-time">1:42 PM</div>
+                    </div>
+                    <div class="location-weather">
+                        <div class="weather-icon-small">⛅</div>
+                        <div class="temp-display">75°</div>
+                    </div>
+                    <button class="location-action" aria-label="More options">
+                        <span class="icon">⋯</span>
+                    </button>
+                </div>
+
+                <div class="location-item">
+                    <div class="location-info">
+                        <div class="location-primary">
+                            <div class="location-name">Paris</div>
+                            <div class="location-region">France</div>
+                        </div>
+                        <div class="location-time">3:42 AM</div>
+                    </div>
+                    <div class="location-weather">
+                        <div class="weather-icon-small">🌧️</div>
+                        <div class="temp-display">52°</div>
+                    </div>
+                    <button class="location-action" aria-label="More options">
+                        <span class="icon">⋯</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add Location CTA -->
+        <section class="add-location-section">
+            <button class="add-location-btn">
+                <span class="add-icon">➕</span>
+                <span class="add-text">Add New Location</span>
+            </button>
+        </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav role="navigation" class="bottom-nav">
+        <button class="nav-tab" aria-label="Current weather" onclick="window.location.href='weather.html'">
+            <span class="tab-icon">🏠</span>
+            <span class="tab-label">Today</span>
+        </button>
+        <button class="nav-tab" aria-label="Hourly forecast" onclick="window.location.href='weather-hourly.html'">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label">Hourly</span>
+        </button>
+        <button class="nav-tab" aria-label="Weekly forecast" onclick="window.location.href='weather-weekly.html'">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Weekly</span>
+        </button>
+        <button class="nav-tab active" aria-label="Locations" aria-current="page">
+            <span class="tab-icon">🌍</span>
+            <span class="tab-label">Locations</span>
+        </button>
+    </nav>
+</body>
+
+</html>

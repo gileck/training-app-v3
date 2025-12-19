@@ -1,0 +1,117 @@
+---
+description: when managing state in the application (client state, server state, offline support)
+globs: 
+alwaysApply: true
+---
+# State Management Guidelines
+
+📚 **Full Documentation**: [docs/state-management.md](mdc:docs/state-management.md)
+📚 **Store Factory**: [docs/zustand-stores.md](mdc:docs/zustand-stores.md)
+
+## Quick Decision
+
+| State Type | Solution |
+|------------|----------|
+| API data (todos, users, etc.) | **React Query** |
+| User preferences (theme, offline) | **Zustand** (`features/settings`) |
+| Auth hints | **Zustand** (`features/auth`) |
+| Route persistence | **Zustand** (`features/router`) |
+| Ephemeral UI (modal, form input) | **useState** |
+
+```
+API data? → React Query
+Persist across restarts? → Zustand (createStore)
+Otherwise → useState
+```
+
+## Zustand Store Factory (REQUIRED)
+
+All Zustand stores MUST use `createStore` from `@/client/stores`:
+
+```typescript
+import { createStore } from '@/client/stores';
+
+// PERSISTED store (default) - persistOptions REQUIRED
+const useMyStore = createStore<MyState>({
+    key: 'my-storage',
+    label: 'My Store',
+    creator: (set) => ({ ... }),
+    persistOptions: { partialize: (state) => ({ ... }) },
+});
+
+// IN-MEMORY store (explicit opt-out) - inMemoryOnly REQUIRED
+const useModalStore = createStore<ModalState>({
+    key: 'modal',
+    label: 'Modal',
+    inMemoryOnly: true,
+    creator: (set) => ({ ... }),
+});
+```
+
+**Direct zustand imports are BLOCKED by ESLint** outside `src/client/stores/`.
+
+## Zustand Imports
+
+```typescript
+import { useUser, useIsProbablyLoggedIn } from '@/client/features/auth';
+import { useSettingsStore, useEffectiveOffline } from '@/client/features/settings';
+import { useRouteStore } from '@/client/features/router';
+```
+
+## React Query Hooks
+
+```typescript
+// Query: always use useQueryDefaults()
+export function useTodos() {
+    const queryDefaults = useQueryDefaults();
+    return useQuery({
+        queryKey: ['todos'],
+        queryFn: () => fetchTodos(),
+        ...queryDefaults,
+    });
+}
+
+// Mutation: always guard onSuccess for offline
+onSuccess: (data) => {
+    if (data && data._id) { /* update cache */ }
+    queryClient.invalidateQueries({ queryKey: ['todos'] });
+},
+```
+
+## ⚠️ Offline Mode Critical
+
+When offline, `apiClient.post` returns `{ data: {} }`. **Always guard**:
+
+```typescript
+// ✅ CORRECT
+if (data && data.item) { /* use data */ }
+
+// ❌ WRONG - crashes offline
+data.item._id  // undefined!
+```
+
+## Config Defaults
+
+All TTL/cache values in `src/client/config/defaults.ts`:
+
+```typescript
+import { TIME, STORE_DEFAULTS, QUERY_DEFAULTS } from '@/client/config';
+```
+
+## New Store Checklist
+
+1. Create `src/client/features/{name}/store.ts` using `createStore`
+2. Choose: `persistOptions` (persisted) OR `inMemoryOnly: true` (in-memory)
+3. Create `src/client/features/{name}/index.ts`
+4. Export from `src/client/features/index.ts`
+5. For TTL validation: use `createTTLValidator(STORE_DEFAULTS.TTL)`
+
+## Registry Utilities
+
+```typescript
+import { 
+    getAllStores, 
+    getTotalCacheSize, 
+    clearAllPersistedStores 
+} from '@/client/stores';
+```

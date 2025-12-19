@@ -1,0 +1,13 @@
+{
+  "data": {
+    "result": "Hey there!  How can I help you?\n",
+    "cost": {
+      "totalCost": 0.0000018749999999999996
+    }
+  },
+  "metadata": {
+    "createdAt": "2025-03-31T08:59:39.879Z",
+    "key": "1cd1c37329669da6f03272a7e6e170b0",
+    "provider": "fs"
+  }
+}

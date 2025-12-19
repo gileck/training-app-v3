@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/weather.css">
+    <!-- Simulate safe area insets for demo -->
+    <style>
+        :root {
+            --safe-area-inset-top: 44px;
+            --safe-area-inset-bottom: 34px;
+        }
+    </style>
+</head>
+
+<body class="weather-app">
+    <!-- Fixed Header with Safe Area -->
+    <header role="banner" class="weather-header">
+        <nav role="navigation" class="weather-nav">
+            <button class="nav-btn" aria-label="Settings">
+                <span class="icon">⚙️</span>
+            </button>
+            <button class="location-btn" aria-label="Current location">
+                <span class="location-text">San Francisco</span>
+                <span class="icon">📍</span>
+            </button>
+            <button class="nav-btn" aria-label="Search locations">
+                <span class="icon">🔍</span>
+            </button>
+        </nav>
+    </header>
+
+    <main role="main" class="weather-main">
+        <!-- Current Weather Hero -->
+        <section class="current-weather">
+            <div class="weather-icon">
+                <span class="weather-emoji">☀️</span>
+            </div>
+            <div class="current-temp">72°</div>
+            <div class="weather-description">Sunny</div>
+            <div class="temp-range">
+                <span class="high">H:75°</span>
+                <span class="low">L:65°</span>
+            </div>
+        </section>
+
+        <!-- Hourly Forecast Card -->
+        <section class="forecast-card">
+            <div class="card-header">
+                <h2>Hourly Forecast</h2>
+                <button class="btn-text btn-sm" onclick="window.location.href='weather-hourly.html'">
+                    See all
+                </button>
+            </div>
+            <div class="hourly-scroll">
+                <div class="hourly-item">
+                    <div class="hour">Now</div>
+                    <div class="hour-icon">☀️</div>
+                    <div class="hour-temp">72°</div>
+                </div>
+                <div class="hourly-item">
+                    <div class="hour">1 PM</div>
+                    <div class="hour-icon">☀️</div>
+                    <div class="hour-temp">74°</div>
+                </div>
+                <div class="hourly-item">
+                    <div class="hour">2 PM</div>
+                    <div class="hour-icon">⛅</div>
+                    <div class="hour-temp">75°</div>
+                </div>
+                <div class="hourly-item">
+                    <div class="hour">3 PM</div>
+                    <div class="hour-icon">⛅</div>
+                    <div class="hour-temp">73°</div>
+                </div>
+                <div class="hourly-item">
+                    <div class="hour">4 PM</div>
+                    <div class="hour-icon">🌤️</div>
+                    <div class="hour-temp">71°</div>
+                </div>
+                <div class="hourly-item">
+                    <div class="hour">5 PM</div>
+                    <div class="hour-icon">🌤️</div>
+                    <div class="hour-temp">69°</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10-Day Forecast -->
+        <section class="forecast-card">
+            <div class="card-header">
+                <h2>10-Day Forecast</h2>
+                <button class="btn-text btn-sm" onclick="window.location.href='weather-weekly.html'">
+                    See all
+                </button>
+            </div>
+            <div class="daily-list">
+                <div class="daily-item">
+                    <div class="day">Today</div>
+                    <div class="day-icon">☀️</div>
+                    <div class="day-temps">
+                        <span class="high">75°</span>
+                        <span class="low">65°</span>
+                    </div>
+                </div>
+                <div class="daily-item">
+                    <div class="day">Tomorrow</div>
+                    <div class="day-icon">⛅</div>
+                    <div class="day-temps">
+                        <span class="high">73°</span>
+                        <span class="low">62°</span>
+                    </div>
+                </div>
+                <div class="daily-item">
+                    <div class="day">Thursday</div>
+                    <div class="day-icon">🌧️</div>
+                    <div class="day-temps">
+                        <span class="high">68°</span>
+                        <span class="low">58°</span>
+                    </div>
+                </div>
+                <div class="daily-item">
+                    <div class="day">Friday</div>
+                    <div class="day-icon">🌦️</div>
+                    <div class="day-temps">
+                        <span class="high">70°</span>
+                        <span class="low">60°</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weather Details Cards -->
+        <section class="details-grid">
+            <div class="detail-card">
+                <div class="detail-header">
+                    <span class="detail-icon">💨</span>
+                    <span class="detail-label">Wind</span>
+                </div>
+                <div class="detail-value">8 mph</div>
+                <div class="detail-subtitle">From SW</div>
+            </div>
+
+            <div class="detail-card">
+                <div class="detail-header">
+                    <span class="detail-icon">💧</span>
+                    <span class="detail-label">Humidity</span>
+                </div>
+                <div class="detail-value">45%</div>
+                <div class="detail-subtitle">Comfortable</div>
+            </div>
+
+            <div class="detail-card">
+                <div class="detail-header">
+                    <span class="detail-icon">👁️</span>
+                    <span class="detail-label">Visibility</span>
+                </div>
+                <div class="detail-value">10 mi</div>
+                <div class="detail-subtitle">Clear</div>
+            </div>
+
+            <div class="detail-card">
+                <div class="detail-header">
+                    <span class="detail-icon">☀️</span>
+                    <span class="detail-label">UV Index</span>
+                </div>
+                <div class="detail-value">4</div>
+                <div class="detail-subtitle">Moderate</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav role="navigation" class="bottom-nav">
+        <button class="nav-tab active" aria-label="Current weather" aria-current="page">
+            <span class="tab-icon">🏠</span>
+            <span class="tab-label">Today</span>
+        </button>
+        <button class="nav-tab" aria-label="Hourly forecast" onclick="window.location.href='weather-hourly.html'">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label">Hourly</span>
+        </button>
+        <button class="nav-tab" aria-label="Weekly forecast" onclick="window.location.href='weather-weekly.html'">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Weekly</span>
+        </button>
+        <button class="nav-tab" aria-label="Locations" onclick="window.location.href='weather-locations.html'">
+            <span class="tab-icon">🌍</span>
+            <span class="tab-label">Locations</span>
+        </button>
+    </nav>
+</body>
+
+</html>

@@ -1,0 +1,219 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI Models API Usage Guidelines
+
+## Core Principles
+
+**NEVER use AI models directly** - Always use the adapter pattern defined in [src/server/ai/baseModelAdapter.ts](mdc:src/server/ai/baseModelAdapter.ts).
+
+### ✅ Required Practices
+
+1. **Server-Side Only**: All AI calls must be server-side only - never call AI APIs from client-side code
+2. **Use Adapter Pattern**: Always use `AIModelAdapter` from [src/server/ai/baseModelAdapter.ts](mdc:src/server/ai/baseModelAdapter.ts)
+3. **Include Caching**: All AI calls must include caching to reduce costs and improve performance
+4. **Proper Error Handling**: Always return 200 status codes with error fields, never throw uncaught errors
+5. **Cost Tracking**: Always track and return the cost of each AI call
+
+### Directory Structure
+
+AI-related code should follow this structure:
+```
+src/server/ai/
+  adapters/
+    openai.ts       - OpenAI-specific implementation
+    anthropic.ts    - Anthropic-specific implementation
+    index.ts        - Exports all adapters
+  baseModelAdapter.ts - Base adapter class/interface
+  models.ts         - Shared model definitions and helper functions
+  types.ts          - Shared types for AI models
+```
+
+### Model ID Handling Pattern
+
+Use [src/server/ai/models.ts](mdc:src/server/ai/models.ts) for consistent model definitions across client and server.
+
+#### Client-Side Model Selection
+```typescript
+// ✅ Import model definitions on client-side
+import { getAllModels, getModelById } from "../../server/ai/models";
+
+// ✅ Use in React components for model selection
+const AvailableModels = () => {
+  const models = getAllModels();
+  
+  return (
+    <select onChange={(e) => setSelectedModelId(e.target.value)}>
+      {models.map(model => (
+        <option key={model.id} value={model.id}>
+          {model.name} ({model.provider})
+        </option>
+      ))}
+    </select>
+  );
+};
+```
+
+#### API Request with Model ID
+```typescript
+// ✅ Include modelId in API request types
+interface ChatRequest {
+  message: string;
+  modelId: string; // Always include model ID
+}
+
+// ✅ Client-side API call
+const response = await apiClient.chat({
+  message: userInput,
+  modelId: selectedModelId // Pass selected model ID
+});
+```
+
+#### Server-Side Model ID Usage
+```typescript
+// ✅ Server-side API handler
+import { isModelExists } from "../ai/models";
+import { AIModelAdapter } from "../ai/baseModelAdapter";
+
+async function handleChatRequest(request: ChatRequest) {
+  try {
+    // ✅ Validate model ID exists first
+    if (!isModelExists(request.modelId)) {
+      return {
+        result: "",
+        cost: { totalCost: 0 },
+        error: `Invalid model ID: ${request.modelId}`
+      };
+    }
+    
+    // ✅ Initialize adapter with validated model ID
+    const adapter = new AIModelAdapter(request.modelId);
+    
+    // ✅ Use adapter with the specified model
+    const response = await adapter.processPromptToText(request.message);
+    
+    return {
+      result: response.result,
+      cost: response.cost,
+      modelUsed: request.modelId
+    };
+  } catch (error) {
+    // ✅ Handle any unexpected errors
+    console.error("Error with AI adapter:", error);
+    return {
+      result: "",
+      cost: { totalCost: 0 },
+      error: `AI service error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+```
+
+### Correct Usage Pattern
+
+```typescript
+import { AIModelAdapter } from "../ai/baseModelAdapter";
+
+async function generateAIResponse(userInput: string) {
+  try {
+    // ✅ Initialize with model ID
+    const adapter = new AIModelAdapter("model-id-here");
+    
+    // ✅ Use adapter methods
+    const response = await adapter.processPromptToText(prompt);
+    
+    // ✅ Return result with cost tracking
+    return {
+      result: response.result,
+      cost: response.cost
+    };
+  } catch (error) {
+    // ✅ Proper error handling
+    console.error("Error with AI adapter:", error);
+    return {
+      result: "",
+      cost: { totalCost: 0 },
+      error: `AI service error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+```
+
+### ❌ What NOT to Do
+
+1. **Never call AI APIs directly**:
+   ```typescript
+   // ❌ DON'T DO THIS
+   import OpenAI from 'openai';
+   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+   const response = await openai.chat.completions.create({...});
+   ```
+
+2. **Never call AI APIs from client-side**:
+   ```typescript
+   // ❌ DON'T DO THIS in React components
+   const callAI = async () => {
+     const response = await fetch('https://api.openai.com/v1/chat/completions', {
+       headers: { 'Authorization': `Bearer ${apiKey}` }, // NEVER expose API keys
+     });
+   };
+   ```
+
+3. **Never hardcode model IDs**:
+   ```typescript
+   // ❌ DON'T DO THIS
+   const adapter = new AIModelAdapter("gpt-4"); // Use dynamic model IDs from request
+   ```
+
+4. **Never ignore costs**:
+   ```typescript
+   // ❌ DON'T DO THIS
+   const response = await adapter.processPromptToText(prompt);
+   return { result: response.result }; // Missing cost tracking
+   ```
+
+5. **Never skip model ID validation**:
+   ```typescript
+   // ❌ DON'T DO THIS - No validation
+   async function handleRequest(request: { modelId: string }) {
+     const adapter = new AIModelAdapter(request.modelId); // Could fail
+   }
+   
+   // ✅ DO THIS - Use isModelExists() for validation
+   async function handleRequest(request: { modelId: string }) {
+     if (!isModelExists(request.modelId)) {
+       return { error: `Invalid model ID: ${request.modelId}` };
+     }
+     const adapter = new AIModelAdapter(request.modelId);
+   }
+   ```
+
+6. **Never define models in multiple places**:
+   ```typescript
+   // ❌ DON'T DO THIS - duplicating model definitions
+   const CLIENT_MODELS = ["gpt-4", "gpt-3.5"]; // Should use models.ts instead
+   ```
+
+### Security Requirements
+
+- Never expose API keys in client-side code
+- Sanitize all user input before sending to AI models
+- Implement content filtering for both input and output
+- Consider implementing rate limiting and budget controls
+- Always use environment variables for API keys and model configurations
+
+### Implementation Checklist
+
+- [ ] Using `AIModelAdapter` from [src/server/ai/baseModelAdapter.ts](mdc:src/server/ai/baseModelAdapter.ts)
+- [ ] Model definitions imported from [src/server/ai/models.ts](mdc:src/server/ai/models.ts)
+- [ ] Model ID validation using `isModelExists()` before adapter initialization
+- [ ] Model ID passed dynamically from API request, not hardcoded
+- [ ] Client-side model selection using shared model definitions
+- [ ] Proper try/catch error handling with model validation errors
+- [ ] Cost tracking included in response
+- [ ] Server-side implementation only
+- [ ] Environment variables for configuration
+- [ ] Input sanitization implemented
+- [ ] Caching enabled for identical prompts

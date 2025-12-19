@@ -1,0 +1,116 @@
+---
+description: when accessing the databse or a collection in the db
+globs: 
+alwaysApply: false
+---
+# MongoDB Usage Guidelines
+
+## Core Principles
+
+1. **Encapsulation**: All MongoDB operations MUST be encapsulated within the `src/server/database` folder.
+2. **No Direct MongoDB Imports**: Direct imports of `mongodb` libraries outside the database layer are STRICTLY PROHIBITED.
+3. **Clean API Layer**: The API layer (`src/apis`) must ONLY interact with the database through functions exported from the database layer.
+4. **Type Safety**: All database operations should use TypeScript interfaces for type safety.
+
+## Required Structure
+
+Database operations must follow this structure:
+```
+/src
+  /server
+    /database
+      /index.ts             - Exports shared utilities and collection modules
+      /collections
+        /<collection-name>  - One folder per MongoDB collection
+          /types.ts         - TypeScript interfaces for the collection
+          /<collection-name>.ts - Database operations for the collection
+```
+
+## Correct Usage Examples
+
+### 1. Defining collection types:
+```typescript
+// src/server/database/collections/exercises/types.ts
+import { ObjectId } from 'mongodb';
+
+export interface Exercise {
+  _id: ObjectId;
+  userId: ObjectId;
+  // Other properties...
+}
+
+export type ExerciseCreate = Omit<Exercise, '_id'>;
+export type ExerciseUpdate = Partial<Omit<Exercise, '_id' | 'userId'>>;
+```
+
+### 2. Implementing collection operations:
+```typescript
+// src/server/database/collections/exercises/exercises.ts
+import { Collection, ObjectId } from 'mongodb';
+import { getDb } from '@/server/database';
+import { Exercise } from './types';
+
+// Private function to get collection reference
+const getExercisesCollection = async (): Promise<Collection<Exercise>> => {
+  const db = await getDb();
+  return db.collection<Exercise>('exercises');
+};
+
+// Public functions for database operations
+export const findExercisesForPlan = async (
+  planId: ObjectId | string, 
+  userId: ObjectId | string
+): Promise<Exercise[]> => {
+  const collection = await getExercisesCollection();
+  // Implementation...
+};
+```
+
+### 3. Using in API layer:
+```typescript
+// src/apis/exercises/server.ts
+import { ObjectId } from 'mongodb'; // Only import types, not functionality
+import { exercises } from '@/server/database';
+import { GetExercisesRequest, GetExercisesResponse } from './types';
+
+export const getExercisesForPlan = async (
+  params: GetExercisesRequest
+): Promise<GetExercisesResponse> => {
+  try {
+    // Use the database layer to get exercises
+    const exercisesList = await exercises.findExercisesForPlan(params.planId, context.userId);
+    return { exercises: exercisesList };
+  } catch (error) {
+    return { error: "Failed to fetch exercises" };
+  }
+};
+```
+
+## What NOT To Do
+
+### ❌ NEVER import MongoDB directly in API layer:
+```typescript
+// WRONG - This is forbidden
+import { MongoClient, Collection } from 'mongodb';
+
+const getExercises = async () => {
+  const client = new MongoClient(process.env.MONGODB_URI!);
+  const db = client.db('training_app');
+  const collection = db.collection('exercises');
+  
+  return collection.find().toArray();
+};
+```
+
+### ❌ NEVER access collections directly from API layer:
+```typescript
+// WRONG - This is forbidden
+import { getDb } from '@/server/database';
+
+const getExercises = async () => {
+  const db = await getDb();
+  const collection = db.collection('exercises');
+  
+  return collection.find().toArray();
+};
+```

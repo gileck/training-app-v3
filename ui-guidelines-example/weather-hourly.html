@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hourly Forecast - Weather App</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/weather.css">
+    <!-- Simulate safe area insets for demo -->
+    <style>
+        :root {
+            --safe-area-inset-top: 44px;
+            --safe-area-inset-bottom: 34px;
+        }
+    </style>
+</head>
+
+<body class="weather-app">
+    <!-- Fixed Header with Back Button -->
+    <header role="banner" class="weather-header">
+        <nav role="navigation" class="weather-nav">
+            <button class="nav-btn" aria-label="Go back" onclick="window.location.href='weather.html'">
+                <span class="icon">←</span>
+            </button>
+            <h1 class="nav-title">Hourly Forecast</h1>
+            <button class="nav-btn" aria-label="Search locations">
+                <span class="icon">🔍</span>
+            </button>
+        </nav>
+    </header>
+
+    <main role="main" class="weather-main">
+        <!-- Location Info -->
+        <section class="location-info">
+            <div class="location-name">San Francisco</div>
+            <div class="location-subtitle">Today's hourly forecast</div>
+        </section>
+
+        <!-- Hourly Forecast List -->
+        <section class="hourly-detailed">
+            <div class="hourly-item-detailed">
+                <div class="hour-time">Now</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">☀️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">72°</div>
+                        <div class="hour-desc">Sunny</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">75°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">8 mph SW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">1 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">☀️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">74°</div>
+                        <div class="hour-desc">Sunny</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">77°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">9 mph SW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">2 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">⛅</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">75°</div>
+                        <div class="hour-desc">Partly Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">78°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">10 mph SW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">3 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">⛅</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">73°</div>
+                        <div class="hour-desc">Partly Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">75°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">12 mph SW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">4 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">🌤️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">71°</div>
+                        <div class="hour-desc">Mostly Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">73°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">14 mph W</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">5 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">🌤️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">69°</div>
+                        <div class="hour-desc">Mostly Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">71°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">15 mph W</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">6 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">☁️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">67°</div>
+                        <div class="hour-desc">Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">68°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">16 mph W</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hourly-item-detailed">
+                <div class="hour-time">7 PM</div>
+                <div class="hour-weather">
+                    <div class="hour-icon-large">☁️</div>
+                    <div class="hour-info">
+                        <div class="hour-temp-large">65°</div>
+                        <div class="hour-desc">Cloudy</div>
+                    </div>
+                </div>
+                <div class="hour-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Feels like</span>
+                        <span class="detail-value">66°</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Wind</span>
+                        <span class="detail-value">18 mph W</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav role="navigation" class="bottom-nav">
+        <button class="nav-tab" aria-label="Current weather" onclick="window.location.href='weather.html'">
+            <span class="tab-icon">🏠</span>
+            <span class="tab-label">Today</span>
+        </button>
+        <button class="nav-tab active" aria-label="Hourly forecast" aria-current="page">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label">Hourly</span>
+        </button>
+        <button class="nav-tab" aria-label="Weekly forecast" onclick="window.location.href='weather-weekly.html'">
+            <span class="tab-icon">📅</span>
+            <span class="tab-label">Weekly</span>
+        </button>
+        <button class="nav-tab" aria-label="Locations" onclick="window.location.href='weather-locations.html'">
+            <span class="tab-icon">🌍</span>
+            <span class="tab-label">Locations</span>
+        </button>
+    </nav>
+</body>
+
+</html>

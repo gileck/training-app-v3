@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS-Inspired UI Guidelines Examples</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+</head>
+
+<body>
+    <header role="banner" class="nav-header">
+        <nav role="navigation" class="nav-content">
+            <h1 class="nav-title">UI Guidelines</h1>
+            <div class="nav-actions">
+                <button class="btn-secondary btn-sm" aria-label="Open settings">Settings</button>
+                <button class="btn-primary btn-sm" aria-label="View profile">Profile</button>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" id="content" class="main-container">
+        <section class="hero-section">
+            <h1 class="hero-title">iOS-Inspired Design System</h1>
+            <p class="hero-subtitle">Beautiful, modern UI components following iOS design principles with enhanced
+                accessibility and performance</p>
+            <div class="hero-actions">
+                <button class="btn-primary btn-lg" aria-describedby="get-started-description">Get Started</button>
+                <button class="btn-outline btn-lg" aria-describedby="learn-more-description">Learn More</button>
+            </div>
+            <div class="sr-only">
+                <span id="get-started-description">Begin using the design system components</span>
+                <span id="learn-more-description">Explore documentation and examples</span>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Color Palette</h2>
+            <div class="color-grid">
+                <div class="color-card color-primary">
+                    <div class="color-swatch"></div>
+                    <div class="color-info">
+                        <h3>Primary</h3>
+                        <span>#007AFF</span>
+                    </div>
+                </div>
+                <div class="color-card color-secondary">
+                    <div class="color-swatch"></div>
+                    <div class="color-info">
+                        <h3>Secondary</h3>
+                        <span>#5856D6</span>
+                    </div>
+                </div>
+                <div class="color-card color-success">
+                    <div class="color-swatch"></div>
+                    <div class="color-info">
+                        <h3>Success</h3>
+                        <span>#34C759</span>
+                    </div>
+                </div>
+                <div class="color-card color-warning">
+                    <div class="color-swatch"></div>
+                    <div class="color-info">
+                        <h3>Warning</h3>
+                        <span>#FF9500</span>
+                    </div>
+                </div>
+                <div class="color-card color-error">
+                    <div class="color-swatch"></div>
+                    <div class="color-info">
+                        <h3>Error</h3>
+                        <span>#FF3B30</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Typography Scale</h2>
+            <div class="typography-showcase">
+                <h1 class="type-h1">Heading 1 - 32px</h1>
+                <h2 class="type-h2">Heading 2 - 24px</h2>
+                <h3 class="type-h3">Heading 3 - 20px</h3>
+                <p class="type-body">Body text - 16px. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                <p class="type-caption">Caption text - 14px. Secondary information and metadata.</p>
+                <p class="type-small">Small text - 12px. Labels and fine print.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Buttons</h2>
+            <div class="button-showcase">
+                <div class="button-group">
+                    <h3>Primary Buttons</h3>
+                    <button class="btn-primary btn-lg">Large Primary</button>
+                    <button class="btn-primary">Regular Primary</button>
+                    <button class="btn-primary btn-sm">Small Primary</button>
+                </div>
+                <div class="button-group">
+                    <h3>Secondary Buttons</h3>
+                    <button class="btn-secondary btn-lg">Large Secondary</button>
+                    <button class="btn-secondary">Regular Secondary</button>
+                    <button class="btn-secondary btn-sm">Small Secondary</button>
+                </div>
+                <div class="button-group">
+                    <h3>Outline Buttons</h3>
+                    <button class="btn-outline btn-lg">Large Outline</button>
+                    <button class="btn-outline">Regular Outline</button>
+                    <button class="btn-outline btn-sm">Small Outline</button>
+                </div>
+                <div class="button-group">
+                    <h3>States</h3>
+                    <button class="btn-primary">Normal</button>
+                    <button class="btn-primary is-disabled" disabled aria-disabled="true">Disabled</button>
+                    <button class="btn-primary is-loading" aria-busy="true">Loading...</button>
+                </div>
+                <div class="button-group">
+                    <h3>Text Buttons</h3>
+                    <button class="btn-text">Text Button</button>
+                    <button class="btn-text">❤️ With Icon</button>
+                    <button class="btn-text">📤 Share</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Cards & Containers</h2>
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Basic Card</h3>
+                        <span class="badge">New</span>
+                    </div>
+                    <div class="card-content">
+                        <p>This is a basic card with standard padding and rounded corners.</p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn-primary btn-sm">Action</button>
+                        <button class="btn-text btn-sm">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <h3>Elevated Card</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>This card has enhanced shadow for more prominence.</p>
+                    </div>
+                </div>
+
+                <div class="card card-gradient">
+                    <div class="card-header">
+                        <h3>Gradient Card</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>This card features a beautiful gradient background.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Cards with Images & Actions</h2>
+            <div class="cards-grid">
+                <div class="card card-image">
+                    <div class="card-image-container">
+                        <div class="card-image-placeholder">🏔️</div>
+                        <div class="card-image-overlay">
+                            <span class="badge badge-overlay">Featured</span>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <h3>Mountain Adventure</h3>
+                        <p>Discover breathtaking mountain trails and scenic viewpoints perfect for hiking enthusiasts.
+                        </p>
+                        <div class="card-meta">
+                            <span class="card-price">$129</span>
+                            <span class="card-rating">⭐ 4.8</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-primary">Book Now</button>
+                        <button class="btn-text">❤️ Save</button>
+                        <button class="btn-text">📤 Share</button>
+                    </div>
+                </div>
+
+                <div class="card card-image">
+                    <div class="card-image-container">
+                        <div class="card-image-placeholder">🏖️</div>
+                    </div>
+                    <div class="card-content">
+                        <h3>Beach Resort</h3>
+                        <p>Relax on pristine beaches with crystal clear waters and luxury amenities.</p>
+                        <div class="card-meta">
+                            <span class="card-price">$299</span>
+                            <span class="card-rating">⭐ 4.9</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-primary">Book Now</button>
+                        <button class="btn-text">❤️ Save</button>
+                        <button class="btn-text">📤 Share</button>
+                    </div>
+                </div>
+
+                <div class="card card-image card-horizontal">
+                    <div class="card-image-container">
+                        <div class="card-image-placeholder">🌆</div>
+                    </div>
+                    <div class="card-content">
+                        <h3>City Skyline</h3>
+                        <p>Experience urban adventures in the heart of the city.</p>
+                        <div class="card-meta">
+                            <span class="card-price">$199</span>
+                            <span class="card-rating">⭐ 4.6</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-primary btn-sm">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Lists & Data Display</h2>
+            <div class="list-container">
+                <div class="list">
+                    <div class="list-header">
+                        <h3>Settings</h3>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-item-icon">👤</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Profile Settings</div>
+                            <div class="list-item-subtitle">Manage your personal information</div>
+                        </div>
+                        <div class="list-item-action">
+                            <span class="chevron">→</span>
+                        </div>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-item-icon">🔔</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Notifications</div>
+                            <div class="list-item-subtitle">Configure alert preferences</div>
+                        </div>
+                        <div class="list-item-action">
+                            <label class="toggle">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-item-icon">🔒</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Privacy & Security</div>
+                            <div class="list-item-subtitle">Control your data and privacy</div>
+                        </div>
+                        <div class="list-item-action">
+                            <span class="chevron">→</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Enhanced Lists with Images & Actions</h2>
+            <div class="list-container">
+                <div class="list">
+                    <div class="list-header">
+                        <h3>Recent Activity</h3>
+                        <button class="btn-text btn-sm">View All</button>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="avatar avatar-image">🧑‍💻</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">John Smith</div>
+                            <div class="list-item-subtitle">Updated project documentation</div>
+                            <div class="list-item-meta">2 minutes ago</div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-secondary btn-sm">View</button>
+                            <button class="list-action-btn">⋯</button>
+                        </div>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="avatar avatar-image">👩‍🎨</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Sarah Wilson</div>
+                            <div class="list-item-subtitle">Shared new design mockups</div>
+                            <div class="list-item-meta">15 minutes ago</div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-secondary btn-sm">Review</button>
+                            <button class="list-action-btn">⋯</button>
+                        </div>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="avatar avatar-initials">MJ</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Mike Johnson</div>
+                            <div class="list-item-subtitle">Completed code review</div>
+                            <div class="list-item-meta">1 hour ago</div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-secondary btn-sm">Merge</button>
+                            <button class="list-action-btn">⋯</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list">
+                    <div class="list-header">
+                        <h3>Recommendations</h3>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="content-thumbnail">🎵</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Chill Vibes Playlist</div>
+                            <div class="list-item-subtitle">Perfect for relaxation and focus</div>
+                            <div class="list-item-meta">
+                                <span class="badge badge-sm">Music</span>
+                                <span>42 songs</span>
+                            </div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-primary btn-sm">▶️ Play</button>
+                            <button class="list-action-btn">❤️</button>
+                        </div>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="content-thumbnail">📚</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">iOS Design Guidelines</div>
+                            <div class="list-item-subtitle">Complete guide to iOS UI/UX design</div>
+                            <div class="list-item-meta">
+                                <span class="badge badge-sm">Article</span>
+                                <span>15 min read</span>
+                            </div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-primary btn-sm">Read</button>
+                            <button class="list-action-btn">🔖</button>
+                        </div>
+                    </div>
+                    <div class="list-item list-item-enhanced">
+                        <div class="list-item-avatar">
+                            <div class="content-thumbnail">🎬</div>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">Design System Tutorial</div>
+                            <div class="list-item-subtitle">Learn to build scalable design systems</div>
+                            <div class="list-item-meta">
+                                <span class="badge badge-sm">Video</span>
+                                <span>24 min</span>
+                            </div>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-primary btn-sm">▶️ Watch</button>
+                            <button class="list-action-btn">💾</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Grid Layout</h2>
+            <div class="grid-showcase">
+                <div class="grid-item">Item 1</div>
+                <div class="grid-item">Item 2</div>
+                <div class="grid-item">Item 3</div>
+                <div class="grid-item">Item 4</div>
+                <div class="grid-item">Item 5</div>
+                <div class="grid-item">Item 6</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Enhanced Accessibility Features</h2>
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Keyboard Navigation</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Tab through elements to test keyboard navigation. Focus indicators are clearly visible.</p>
+                        <div style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                            <button class="btn-primary btn-sm" tabindex="0">Focusable 1</button>
+                            <button class="btn-secondary btn-sm" tabindex="0">Focusable 2</button>
+                            <button class="btn-outline btn-sm" tabindex="0">Focusable 3</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>State Utilities Demo</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Utility classes for consistent state management:</p>
+                        <div
+                            style="display: flex; flex-direction: column; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                            <button class="btn-primary btn-sm">Normal State</button>
+                            <button class="btn-primary btn-sm is-hover">Hover State</button>
+                            <button class="btn-primary btn-sm is-active">Active State</button>
+                            <button class="btn-primary btn-sm is-loading" aria-busy="true">Loading State</button>
+                            <button class="btn-primary btn-sm is-disabled" disabled>Disabled State</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Dark Mode Images</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Images adapt to dark mode automatically:</p>
+                        <div style="margin-top: var(--spacing-md);">
+                            <div class="image-adaptive image-photo"
+                                style="width: 100%; height: 80px; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); border-radius: var(--border-radius-sm);">
+                            </div>
+                            <p class="type-caption" style="margin-top: var(--spacing-xs);">Photo example with brightness
+                                filter</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">RTL Support Demo</h2>
+            <div class="card" dir="rtl">
+                <div class="card-header">
+                    <h3>النص العربي (Arabic Text)</h3>
+                    <span class="chevron-right">←</span>
+                </div>
+                <div class="card-content">
+                    <p>هذا مثال على النص العربي لإظهار دعم الكتابة من اليمين إلى اليسار. الأيقونات والعناصر تنقلب
+                        تلقائياً.</p>
+                    <div class="price" style="margin-top: var(--spacing-md);">$99.99</div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-primary btn-sm">اشتري الآن</button>
+                    <button class="btn-text btn-sm">إلغاء</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Performance Features</h2>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Content Visibility Demo</h3>
+                </div>
+                <div class="card-content">
+                    <p>Heavy components below use <code>content-visibility: auto</code> for better performance:</p>
+                    <div class="expensive-component"
+                        style="margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--color-background); border-radius: var(--border-radius-sm);">
+                        <h4>Performance Optimized Section</h4>
+                        <p>This content is rendered only when needed, improving initial page load performance.</p>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                            <div
+                                style="background: var(--color-primary); height: 40px; border-radius: var(--border-radius-sm); opacity: 0.3;">
+                            </div>
+                            <div
+                                style="background: var(--color-secondary); height: 40px; border-radius: var(--border-radius-sm); opacity: 0.3;">
+                            </div>
+                            <div
+                                style="background: var(--color-success); height: 40px; border-radius: var(--border-radius-sm); opacity: 0.3;">
+                            </div>
+                            <div
+                                style="background: var(--color-warning); height: 40px; border-radius: var(--border-radius-sm); opacity: 0.3;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer role="contentinfo" class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 iOS-Inspired UI Guidelines. Built with modern web standards, enhanced accessibility, and
+                performance optimizations.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

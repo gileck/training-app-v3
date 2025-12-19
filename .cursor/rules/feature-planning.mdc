@@ -1,0 +1,78 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Feature Planning Guidelines
+Generate a comprehensive plan following this four-section structure:
+
+## 1. **High-Level Solution**
+Provide a brief (2–4 sentences) overview of the approach. This should capture:
+- The core strategy for implementing the feature
+- The main components or systems that will be involved
+- The overall user experience or functionality being delivered
+- descibe the user flow end to end (if its a user facing feature)
+
+## 2. **Implementation Details**
+For each required change, list:
+- **Target file(s)** by name and path (e.g., `src/apis/newFeature/index.ts`)
+- **Description** of what to modify/add/remove
+- **Code snippets or examples** showing the exact edits needed
+- **Numbered, step-by-step sequence** for applying the changes
+
+Reference existing patterns from the codebase:
+- API structure should follow patterns in [src/apis/apis.ts](mdc:src/apis/apis.ts)
+- React components should follow patterns in [src/client/components/](mdc:src/client/components)
+- Routes should follow patterns in [src/client/routes/](mdc:src/client/routes)
+- Database collections should follow patterns in [src/server/database/collections/](mdc:src/server/database/collections)
+
+## 3. **Implementation Phases**
+Break the work into logical phases.
+
+For each phase, include:
+- Clear objectives
+
+## 4. **Potential Issues & Open Questions**
+Document any:
+- **Risks** that could complicate implementation
+- **Dependencies** on other systems or features
+- **Unclear requirements** that need clarification
+- **Technical challenges** that may require research or experimentation
+- **Questions** that must be resolved before or during implementation
+
+## 5. **Task List**
+Create a high-level checklist of implementation tasks based on the phases and implementation details above. Format each task as a checkbox that can be marked as completed.
+
+Example format:
+```
+- [ ] Task 1: Set up API structure
+- [ ] Task 2: Implement database collections
+- [ ] Task 3: Create React components
+- [ ] Task 4: Add routing
+- [ ] Task 5: Implement business logic
+- [ ] Task 6: Add error handling
+- [ ] Task 7: Write tests
+- [ ] Task 8: Update documentation
+```
+
+**Instructions for Implementation:**
+- The plan should include an instcution to Mark tasks as `[✅]` when completed during implementation
+- Update the task list in the feature plan file as progress is made
+- Use this checklist to track overall progress and ensure nothing is missed
+- Each task should represent a meaningful unit of work that can be completed independently
+
+## Additional Considerations
+- Ensure the plan follows all application guidelines (reference app-guidelines-checklist)
+- Consider impact on existing features and user workflows
+- Plan for error handling and edge cases
+- Think about performance implications
+- Consider accessibility and responsive design requirements
+- Always prefer simplicity over complexity
+- Production ready - the feature should be production ready
+
+## IMPORTANT
+- if the instructions are not clear, or lack important details - Ask the user for more details with specific clear questions. Once the user answer the questions, you can ask more questions or start writing the plan.
+
+This planning structure ensures thorough preparation before implementation begins and helps identify potential blockers early in the process.
+
+When the plan is ready - Write an md file with the full plan in the "feature-plans" folder in the root of the project (create the folder if does not exists already).

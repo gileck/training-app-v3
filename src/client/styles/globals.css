@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+@theme {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+}
+
+@layer base {
+    :root {
+        --background: 210 20% 98%;
+        /* Soft gray/white */
+        --foreground: 222 47% 11%;
+        /* Slate-900 */
+
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 221 83% 53%;
+        /* Blue ring */
+
+        --primary: 221 83% 53%;
+        /* Modern blue */
+        --primary-foreground: 210 40% 98%;
+
+        --secondary: 262 83% 58%;
+        /* Violet */
+        --secondary-foreground: 210 40% 98%;
+
+        --accent: 210 40% 96%;
+        --accent-foreground: 222 47% 11%;
+
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 210 40% 98%;
+
+        --success: 142 71% 45%;
+        --warning: 48 96% 53%;
+    }
+
+    .dark {
+        --background: 222 47% 6%;
+        /* Slate-950 */
+        --foreground: 210 40% 96%;
+
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
+
+        --popover: 222 47% 6%;
+        --popover-foreground: 210 40% 98%;
+
+        --card: 222 47% 6%;
+        --card-foreground: 210 40% 98%;
+
+        --border: 217 33% 17%;
+        --input: 217 33% 17%;
+        --ring: 217 91% 60%;
+
+        --primary: 217 91% 60%;
+        /* Bright blue */
+        --primary-foreground: 222 84% 5%;
+
+        --secondary: 263 89% 67%;
+        /* Bright violet */
+        --secondary-foreground: 222 84% 5%;
+
+        --accent: 217 33% 17%;
+        --accent-foreground: 210 40% 98%;
+
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 210 40% 98%;
+
+        --success: 142 71% 45%;
+        --warning: 48 96% 53%;
+    }
+
+    * {
+        @apply border-border;
+    }
+
+    /* Disable iOS Safari rubber band / overscroll bounce effect */
+    html, body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide scrollbar while keeping scroll functionality */
+    html {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    
+    html::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        background-image:
+            radial-gradient(600px circle at 0% -10%, hsl(var(--primary) / 0.08), transparent 40%),
+            radial-gradient(800px circle at 100% 0%, hsl(var(--secondary) / 0.06), transparent 45%);
+    }
+}
+
+@keyframes linear-progress {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    50% {
+        transform: translateX(20%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Drawer (sheet) animations */
+@keyframes sheet-in-left {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes sheet-out-left {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes sheet-in-right {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes sheet-out-right {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes sheet-in-top {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes sheet-out-top {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-100%);
+    }
+}
+
+@keyframes sheet-in-bottom {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes sheet-out-bottom {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes overlay-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes overlay-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* iOS-style shake animation for errors */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(4px);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* iOS-style input focus glow */
+.ios-input-glow {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
+}
+
+/* iOS grouped input styles */
+.ios-input-group {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.ios-input-group .ios-input-item:not(:last-child) {
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+}
+
+.dark .ios-input-group {
+    background: hsl(var(--muted) / 0.2);
+}
+
+/* iOS-style button press effect */
+.ios-button-press:active {
+    transform: scale(0.98);
+}
+
+/* Shimmer animation for loading states */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+/* Progress bar animation */
+@keyframes progress {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(300%);
+    }
+}

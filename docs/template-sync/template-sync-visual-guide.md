@@ -1,0 +1,453 @@
+# Template Sync Visual Workflow
+
+## The Complete Journey
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 1: Create Project from Template (GitHub)             │
+└─────────────────────────────────────────────────────────────┘
+
+    GitHub Template Repo              Click "Use this template"
+    ┌──────────────────┐              ┌──────────────────┐
+    │  app-template-ai │─────────────>│  my-awesome-app  │
+    │  (Template)      │              │  (Your Project)  │
+    └──────────────────┘              └──────────────────┘
+           📦                                  📦
+    Template continues                  Independent repo
+    to evolve...                        with your code...
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 2: Initialize Template Tracking (One Time)           │
+└─────────────────────────────────────────────────────────────┘
+
+    $ cd my-awesome-app
+    $ yarn init-template https://github.com/you/app-template-ai.git
+
+    Creates:
+    ┌────────────────────────┐
+    │  .template-sync.json   │  ← Configuration
+    │  {                     │
+    │    templateRepo: "...", │
+    │    lastSyncCommit: "...",│
+    │    ignoredFiles: [...] │
+    │  }                     │
+    └────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 3: Build Your App (Months of Work)                   │
+└─────────────────────────────────────────────────────────────┘
+
+    Your Project                    Template
+    ┌──────────────────┐           ┌──────────────────┐
+    │  Add features    │           │  Bug fixes       │
+    │  Customize UI    │           │  New components  │
+    │  Build business  │           │  Improvements    │
+    │  logic           │           │  Updates         │
+    └──────────────────┘           └──────────────────┘
+         🚀                              🔧
+    Your app grows              Template improves
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 4: Sync Template Updates (Anytime)                   │
+└─────────────────────────────────────────────────────────────┘
+
+    $ yarn sync-template --dry-run    # Preview first
+
+    ┌────────────────────────────────────────────┐
+    │  Sync Process                              │
+    ├────────────────────────────────────────────┤
+    │                                            │
+    │  1. Clone template ──────────┐            │
+    │     to temp folder           │            │
+    │                              ↓            │
+    │  2. Compare ALL files ───────┐            │
+    │     (your project vs         │            │
+    │      template)               ↓            │
+    │                                            │
+    │  3. For each file, check:                 │
+    │                                            │
+    │     ┌──────────────────────────┐          │
+    │     │ Did template change it?  │          │
+    │     └──────────┬───────────────┘          │
+    │                │                           │
+    │         YES ───┴──> Did project change?   │
+    │                      │                     │
+    │              YES ────┴──> ⚠️ CONFLICT      │
+    │                           (need manual)   │
+    │                                            │
+    │              NO ─────────> ✅ AUTO-MERGE   │
+    │                            (safe to copy) │
+    │                                            │
+    │         NO ────────> Did project change?  │
+    │                      │                     │
+    │              YES ────┴──> ✅ PROJECT ONLY  │
+    │                           (keep as-is)    │
+    │                                            │
+    │  4. Apply changes & report                │
+    │                                            │
+    └────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 5: Handle Conflicts Interactively                    │
+└─────────────────────────────────────────────────────────────┘
+
+    $ yarn sync-template    # Choose [2] All changes
+
+    When conflicts exist:
+    ┌────────────────────────────────────────────┐
+    │  📋 FILES WITH POTENTIAL CONFLICTS         │
+    ├────────────────────────────────────────────┤
+    │                                            │
+    │  1. src/server/index.ts                   │
+    │  2. src/client/routes/Home/page.tsx       │
+    │                                            │
+    │  How to handle conflicts?                 │
+    │                                            │
+    │  [1] Same action for all                  │
+    │  [2] Choose per file                      │
+    │                                            │
+    └────────────────────────────────────────────┘
+              │
+              ↓
+    ┌────────────────────────────────────────────┐
+    │  For each conflict, choose:               │
+    ├────────────────────────────────────────────┤
+    │                                            │
+    │  [1] Override - Use template version      │
+    │  [2] Skip     - Keep your version         │
+    │  [3] Merge    - Create .template file     │
+    │  [4] Nothing  - Leave unchanged           │
+    │                                            │
+    └────────────────────────────────────────────┘
+              │
+              ↓
+    ┌────────────────────────────────────────────┐
+    │  📊 CONFLICT RESOLUTION SUMMARY            │
+    ├────────────────────────────────────────────┤
+    │                                            │
+    │  🔄 Override (1 file):                     │
+    │     • src/client/routes/Home/page.tsx     │
+    │                                            │
+    │  🔀 Merge (1 file):                        │
+    │     • src/server/index.ts                 │
+    │                                            │
+    │  Proceed? (y/n): y                        │
+    │                                            │
+    └────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 6: Review Results                                     │
+└─────────────────────────────────────────────────────────────┘
+
+    Output:
+    ┌────────────────────────────────────────────┐
+    │  📊 SYNC RESULTS                           │
+    ├────────────────────────────────────────────┤
+    │                                            │
+    │  ✅ Applied successfully (13 files):       │
+    │     • src/client/components/ui/button.tsx │
+    │     • src/server/middleware/auth.ts       │
+    │     • src/client/routes/Home/page.tsx     │
+    │     • ... (10 more)                       │
+    │                                            │
+    │  🔀 Needs manual merge (1 file):           │
+    │     • src/server/index.ts                 │
+    │       → .template version saved           │
+    │                                            │
+    │  ✅ Project customizations kept (2 files): │
+    │     • src/client/components/ui/badge.tsx  │
+    │     • src/client/features/auth/store.ts   │
+    │                                            │
+    │  ⏭️  Skipped (1 file):                     │
+    │     • src/client/features/myCustom.ts     │
+    │                                            │
+    └────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 7: Resolve Manual Merges (If Any)                    │
+└─────────────────────────────────────────────────────────────┘
+
+    For files where you chose "Merge":
+
+    Your Version                Template Version
+    ┌──────────────────┐       ┌──────────────────┐
+    │  index.ts        │       │  index.ts        │
+    │                  │       │  .template       │
+    │  // Your code    │       │                  │
+    │  app.use(        │       │  // Template     │
+    │    myFeature     │       │  app.use(        │
+    │  );              │       │    errorHandler  │
+    │                  │       │  );              │
+    │  app.listen(     │       │                  │
+    │    PORT          │       │  const server =  │
+    │  );              │       │    app.listen()  │
+    │                  │       │                  │
+    │                  │       │  // Graceful     │
+    │                  │       │  // shutdown     │
+    └──────────────────┘       └──────────────────┘
+            │                           │
+            └────────┬──────────────────┘
+                     ↓
+              Manual Merge
+         ┌──────────────────────┐
+         │  index.ts (merged)   │
+         │                      │
+         │  // Your code        │
+         │  app.use(myFeature); │
+         │                      │
+         │  // Template update  │
+         │  app.use(            │
+         │    errorHandler      │
+         │  );                  │
+         │                      │
+         │  // Template update  │
+         │  const server =      │
+         │    app.listen(PORT); │
+         │                      │
+         │  // Graceful         │
+         │  // shutdown         │
+         └──────────────────────┘
+                   │
+                   ↓
+         Delete .template file
+         $ rm index.ts.template
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 8: Auto-Commit & Test                                │
+└─────────────────────────────────────────────────────────────┘
+
+    Sync automatically commits applied changes:
+    ┌────────────────────────────────────────────┐
+    │  📦 Committing synced files...             │
+    │     ✅ Committed as abc1234                │
+    └────────────────────────────────────────────┘
+
+    $ yarn checks          # Verify no errors
+    $ yarn dev             # Test locally
+
+    ┌────────────────────────────────────────────┐
+    │  ✅ Everything works!                      │
+    └────────────────────────────────────────────┘
+
+    $ git push             # Push the sync commit
+
+    ┌────────────────────────────────────────────┐
+    │  🎉 Your project now has:                  │
+    │     • Template improvements                │
+    │     • Your customizations                  │
+    │     • Clean history                        │
+    └────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────┐
+│  REPEAT: Keep Syncing as Template Evolves                  │
+└─────────────────────────────────────────────────────────────┘
+
+    Month 1         Month 2         Month 3
+    ┌─────┐        ┌─────┐        ┌─────┐
+    │ Dev │        │ Dev │        │ Dev │
+    └──┬──┘        └──┬──┘        └──┬──┘
+       │              │              │
+       │              │              └──> $ yarn sync-template
+       │              └──> $ yarn sync-template
+       └──> $ yarn sync-template
+
+    Your project continuously benefits from template! 🚀
+```
+
+## File States During Sync
+
+```
+BEFORE SYNC:
+
+Your Project               Template
+┌─────────────┐           ┌─────────────┐
+│ file-a.ts   │           │ file-a.ts   │  Same content
+│ file-b.ts   │           │ file-b.ts   │  Template changed only
+│ file-c.ts   │           │ file-c.ts   │  Both changed (TRUE conflict)
+│ file-d.ts   │           │ file-d.ts   │  Project changed only (customization)
+│ file-e.ts   │           │             │  Only in project
+│             │           │ file-f.ts   │  Only in template
+└─────────────┘           └─────────────┘
+
+
+AFTER SYNC:
+
+Your Project
+┌─────────────────────┐
+│ file-a.ts           │  Unchanged
+│ file-b.ts           │  ✅ Updated (auto-merged)
+│ file-c.ts           │  ⚠️ Kept your version
+│ file-c.ts.template  │  ⚠️ Template version for review
+│ file-d.ts           │  ✅ Kept (project customization)
+│ file-e.ts           │  Kept (project-only file)
+│ file-f.ts           │  ✅ Added (from template)
+└─────────────────────┘
+```
+
+## Decision Tree
+
+```
+                    Start Sync
+                        │
+                        ↓
+              ┌─────────────────┐
+              │  File exists in │
+              │  both?          │
+              └────┬────────┬───┘
+                   │        │
+            NO ────┘        └──── YES
+            │                     │
+            ↓                     ↓
+    ┌──────────────┐      ┌─────────────┐
+    │ Only in      │      │ Check if    │
+    │ template?    │      │ content     │
+    └──┬───────┬───┘      │ changed?    │
+       │       │          └──┬───────┬──┘
+    YES│       │NO           │       │
+       │       │          NO─┘       └─YES
+       ↓       ↓             │           │
+    ✅ ADD   ⏭️ KEEP         ↓           ↓
+    (new)   (yours)      ⏭️ SKIP   Check BOTH
+                         (same)    sides
+                                      │
+                                      ↓
+                      ┌───────────────────────────┐
+                      │ Template changed file?    │
+                      └────┬──────────────────┬───┘
+                           │                  │
+                       YES─┘                  └─NO
+                           │                     │
+                           ↓                     ↓
+               ┌──────────────────┐    ┌──────────────────┐
+               │ Project changed? │    │ Project changed? │
+               └───┬──────────┬───┘    └───┬──────────┬───┘
+                   │          │            │          │
+               NO──┘          └──YES   YES─┘          └──NO
+                   │              │        │              │
+                   ↓              ↓        ↓              ↓
+               ✅ AUTO-      ⚠️ CONFLICT  ✅ PROJECT   ⏭️ SKIP
+               MERGE         (manual)     ONLY         (same)
+               (safe)        (.template)  (keep)
+```
+
+### Smart Conflict Detection
+
+The key insight: **conflicts only happen when BOTH sides changed the file**.
+
+| Template Changed | Project Changed | Result |
+|-----------------|-----------------|--------|
+| ✅ Yes | ✅ Yes | ⚠️ **True Conflict** - you choose how to handle |
+| ✅ Yes | ❌ No | ✅ **Safe** - auto-apply template changes |
+| ❌ No | ✅ Yes | ✅ **Project Only** - kept as-is (NOT a conflict!) |
+| ❌ No | ❌ No | Files identical (skipped) |
+
+### Conflict Resolution Flow
+
+```
+        ⚠️ True Conflict Detected
+                  │
+                  ↓
+        ┌─────────────────┐
+        │ How to handle?  │
+        │ [1] Bulk        │
+        │ [2] Per-file    │
+        └────────┬────────┘
+                 │
+    ┌────────────┴────────────┐
+    │                         │
+    ↓                         ↓
+  BULK                    PER-FILE
+  (same action            (choose for
+   for all)                each file)
+    │                         │
+    └────────────┬────────────┘
+                 ↓
+        ┌─────────────────┐
+        │ Choose action:  │
+        │ [1] Override    │──→ Use template version
+        │ [2] Skip        │──→ Keep your version
+        │ [3] Merge       │──→ Create .template file
+        │ [4] Nothing     │──→ Leave unchanged
+        └─────────────────┘
+                 │
+                 ↓
+        ┌─────────────────┐
+        │ Confirm & Apply │
+        └─────────────────┘
+```
+
+## Commands Reference
+
+```
+╔══════════════════════════════════════════════════════════╗
+║  Quick Command Reference                                 ║
+╠══════════════════════════════════════════════════════════╣
+║                                                          ║
+║  Initialize (once):                                      ║
+║  $ yarn init-template <template-url>                     ║
+║                                                          ║
+║  Preview updates:                                        ║
+║  $ yarn sync-template --dry-run                          ║
+║                                                          ║
+║  Apply updates (interactive):                            ║
+║  $ yarn sync-template                                    ║
+║                                                          ║
+║  Generate diff report:                                   ║
+║  $ yarn sync-template --diff-summary                     ║
+║                                                          ║
+║  Force sync (skip git check):                            ║
+║  $ yarn sync-template --force                            ║
+║                                                          ║
+║  View files:                                             ║
+║  $ cat some-file.ts              # Your version          ║
+║  $ cat some-file.ts.template     # Template version      ║
+║                                                          ║
+║  After merging:                                          ║
+║  $ rm *.template                 # Clean up              ║
+║  $ yarn checks                   # Verify                ║
+║  $ git commit -am "Merge updates"                        ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════╗
+║  Auto Mode Flags (Non-Interactive)                       ║
+╠══════════════════════════════════════════════════════════╣
+║                                                          ║
+║  --auto-safe-only         Safe ✅ | Conflicts ⏭️ Skip    ║
+║  --auto-merge-conflicts   Safe ✅ | Conflicts 🔀 .template║
+║  --auto-override-conflicts Safe ✅ | Conflicts 🔄 Override║
+║  --auto-skip-conflicts    Safe ✅ | Conflicts ⏭️ Skip    ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════╗
+║  Interactive Conflict Resolution Options                 ║
+╠══════════════════════════════════════════════════════════╣
+║                                                          ║
+║  When prompted for conflicts:                            ║
+║                                                          ║
+║  [1] Override  → Use template (discard your changes)     ║
+║  [2] Skip      → Keep yours (ignore template)            ║
+║  [3] Merge     → Create .template for manual merge       ║
+║  [4] Nothing   → Leave unchanged for now                 ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+```
+
+---
+
+**See also:**
+- [Template Sync Guide](template-sync.md) - Complete documentation
+- [Quick Start](template-sync-quick-start.md) - Step-by-step tutorial
+- [Comparison](template-sync-comparison.md) - vs. other approaches
+
+
+
