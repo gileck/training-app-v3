@@ -44,7 +44,7 @@ With instant boot:
 App Start → App renders immediately → Background validation
 ```
 
-## Auth Flow: First Time User
+## Auth Flow: First Time User (No Hint, No Cookie)
 
 ```
 App Start
@@ -65,8 +65,16 @@ App Start
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  AuthWrapper renders                                         │
-│  isProbablyLoggedIn = false                                  │
-│  → Shows Login Dialog immediately                            │
+│  isProbablyLoggedIn = false, isValidating = true             │
+│  → Shows Loading spinner (checking for cookie session)       │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  useAuthValidation() calls /me endpoint                      │
+│  Server returns: { error: "Not authenticated" }              │
+│  → isValidating = false                                      │
+│  → Shows Login Dialog                                        │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -82,6 +90,44 @@ App Start
 │  On success:                                                 │
 │  - Zustand: isProbablyLoggedIn=true, userPublicHint={...}   │
 │  - React Query: caches /me response to localStorage          │
+│  - App renders authenticated UI                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Auth Flow: Cookie Session (No Hint, Valid Cookie)
+
+This flow supports users who have a valid session cookie but no localStorage hint
+(e.g., cleared localStorage, different tab, SSO scenarios):
+
+```
+App Start
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  BootGate waits for local rehydration                        │
+│  isProbablyLoggedIn = false (no hint stored)                 │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  AuthWrapper renders                                         │
+│  isProbablyLoggedIn = false, isValidating = true             │
+│  → Shows Loading spinner (checking for cookie session)       │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  useAuthValidation() calls /me endpoint                      │
+│  Cookie is sent automatically with request                   │
+│  Server returns: { user: { ... } }                           │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  On success:                                                 │
+│  - setValidatedUser() updates Zustand                        │
+│  - isProbablyLoggedIn = true (saved for next boot)           │
+│  - userPublicHint = { name, email, avatar }                  │
 │  - App renders authenticated UI                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -166,8 +212,9 @@ All auth-related hooks in one file:
 ### AuthWrapper (`src/client/features/auth/AuthWrapper.tsx`)
 
 Guards the app based on auth state:
-- If `isProbablyLoggedIn` → render app immediately (instant boot)
+- If `isProbablyLoggedIn && !isValidated` → render app immediately (instant boot with loading bar)
 - If `isAuthenticated` (validated) → render app
+- If `isValidating && !isProbablyLoggedIn` → show loading spinner (checking cookie session)
 - Otherwise → show login dialog
 
 ## Admin Flag (`isAdmin`)
@@ -275,8 +322,11 @@ function LogoutButton() {
 
 ## Troubleshooting
 
-### User sees login briefly then app loads
-This is normal when the session was valid. The `isProbablyLoggedIn` hint enables showing the app shell while validation runs in background.
+### User sees brief loading spinner then app loads
+This is expected for users with a valid cookie but no localStorage hint (e.g., cleared localStorage). The `/me` check detects the valid session and logs them in.
+
+### User sees app briefly then login dialog
+This happens when the localStorage hint exists but the session has expired server-side. The instant boot shows the app, then validation fails and login is shown.
 
 ### User stuck on loading
 Check if localStorage restore is blocked by the browser or storage access is denied. React Query restore is non-blocking, and BootGate should only be a brief local step.
@@ -287,4 +337,4 @@ Check if localStorage restore is blocked by the browser or storage access is den
 - Verify `hintTimestamp` hasn't expired (7 days)
 
 ### 401 errors after app restart
-Session may have expired server-side. This is handled gracefully - user sees app briefly, then login dialog.
+Session may have expired server-side. This is handled gracefully - user sees app briefly (instant boot), then login dialog after validation fails.

@@ -64,9 +64,9 @@ export function useInvalidateCurrentUser() {
 /**
  * Implements the instant-boot auth pattern:
  * 1. Zustand hydrates `isProbablyLoggedIn` from localStorage
- * 2. App shows authenticated shell immediately
- * 3. Background validation via React Query
- * 4. On success: update user state; on error: clear auth
+ * 2. If hint exists: show app immediately (instant boot)
+ * 3. Always validate with /me on first load (supports cookie-only sessions)
+ * 4. On success: update user state; on error: clear auth and show login
  */
 export function useAuthValidation() {
     const {
@@ -92,12 +92,15 @@ export function useAuthValidation() {
             }
             return response.data;
         },
-        enabled: isProbablyLoggedIn && !hasValidated.current,
+        // Always validate on first load - supports cookie-only sessions
+        enabled: !hasValidated.current,
         retry: (failureCount, error) => {
+            // Don't retry auth errors
             if (error instanceof Error &&
                 (error.message.includes('401') ||
                     error.message.includes('unauthorized') ||
-                    error.message.includes('Unauthorized'))) {
+                    error.message.includes('Unauthorized') ||
+                    error.message.includes('Not authenticated'))) {
                 return false;
             }
             return failureCount < 2;
@@ -120,9 +123,12 @@ export function useAuthValidation() {
 
         if (isError || (data && !data.user)) {
             hasValidated.current = true;
+            // Clear auth hint if it was set (stale session)
             if (isProbablyLoggedIn) {
                 clearAuth();
             }
+            // Mark validation as complete (not validating anymore)
+            setValidating(false);
             if (error instanceof Error) {
                 setError(error.message);
             }

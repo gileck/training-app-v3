@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": null,
-  "lastProjectCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncDate": null,
+  "lastSyncCommit": "797abb81881268b28d38fee1be53513b872128ba",
+  "lastProjectCommit": "dd04af3182b6ea6d541dc79c7f104fdfbb550125",
+  "lastSyncDate": "2025-12-20T10:36:40.235Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -38,5 +38,16 @@
     "src/server/database/collections/todos",
     "src/server/database/collections/reports"
   ],
-  "projectSpecificFiles": []
+  "projectSpecificFiles": [],
+  "syncHistory": [
+    {
+      "date": "2025-12-20T10:36:40.234Z",
+      "templateCommit": "797abb81881268b28d38fee1be53513b872128ba",
+      "projectCommit": "dd04af3182b6ea6d541dc79c7f104fdfbb550125",
+      "filesApplied": 4,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": []
+    }
+  ]
 }

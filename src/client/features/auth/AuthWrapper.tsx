@@ -10,12 +10,12 @@ interface AuthWrapperProps {
 }
 
 /**
- * AuthWrapper - Instant-boot auth pattern:
+ * AuthWrapper - Instant-boot auth pattern with cookie session support:
  * 
  * 1. Zustand hydrates `isProbablyLoggedIn` from localStorage
- * 2. If logged in, show app immediately (no blocking)
- * 3. Background validation via useAuthValidation
- * 4. If validation fails, show login dialog
+ * 2. If hint exists: show app immediately (instant boot), validate in background
+ * 3. If no hint: show loading, call /me to check for cookie session
+ * 4. On validation success: show app; on failure: show login dialog
  */
 const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
     const isProbablyLoggedIn = useIsProbablyLoggedIn();
