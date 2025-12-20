@@ -12,10 +12,31 @@ export const useWorkoutStore = createStore<WorkoutState>({
         activePlanId: null,
         viewMode: 'grid',
         activeTab: 'exercises',
+        // Selection mode state (not persisted)
+        selectedExerciseIds: [],
+        isSelectionMode: false,
         setWeek: (week) => set({ currentWeek: week }),
         setActivePlan: (id) => set({ activePlanId: id }),
         setViewMode: (mode) => set({ viewMode: mode }),
         setActiveTab: (tab) => set({ activeTab: tab }),
+        // Selection mode actions
+        toggleSelection: (exerciseId) =>
+            set((state) => {
+                const isSelected = state.selectedExerciseIds.includes(exerciseId);
+                const newSelectedIds = isSelected
+                    ? state.selectedExerciseIds.filter((id) => id !== exerciseId)
+                    : [...state.selectedExerciseIds, exerciseId];
+                return {
+                    selectedExerciseIds: newSelectedIds,
+                    isSelectionMode: newSelectedIds.length > 0,
+                };
+            }),
+        clearSelection: () => set({ selectedExerciseIds: [], isSelectionMode: false }),
+        setSelectionMode: (enabled) =>
+            set((state) => ({
+                isSelectionMode: enabled,
+                selectedExerciseIds: enabled ? state.selectedExerciseIds : [],
+            })),
     }),
     persistOptions: {
         partialize: (state) => ({
@@ -23,6 +44,7 @@ export const useWorkoutStore = createStore<WorkoutState>({
             activePlanId: state.activePlanId,
             viewMode: state.viewMode,
             activeTab: state.activeTab,
+            // Don't persist selection - it's ephemeral
         }),
     },
 });
@@ -34,5 +56,10 @@ export const useCurrentWeek = () => useWorkoutStore((state) => state.currentWeek
 export const useActivePlanId = () => useWorkoutStore((state) => state.activePlanId);
 export const useViewMode = () => useWorkoutStore((state) => state.viewMode);
 export const useActiveTab = () => useWorkoutStore((state) => state.activeTab);
+export const useSelectedExerciseIds = () => useWorkoutStore((state) => state.selectedExerciseIds);
+export const useIsSelectionMode = () => useWorkoutStore((state) => state.isSelectionMode);
+export const useToggleSelection = () => useWorkoutStore((state) => state.toggleSelection);
+export const useClearSelection = () => useWorkoutStore((state) => state.clearSelection);
+export const useSetSelectionMode = () => useWorkoutStore((state) => state.setSelectionMode);
 
 

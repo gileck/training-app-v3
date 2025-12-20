@@ -1,5 +1,7 @@
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 
+export type SessionSource = 'plan' | 'saved-workout';
+
 export interface WorkoutSession {
     isActive: boolean;
     startedAt: number | null;
@@ -8,11 +10,13 @@ export interface WorkoutSession {
     restTimerEndAt: number | null;
     restTimerDuration: number; // in seconds
     completedSetsThisSession: number;
+    /** Tracks where the session originated from - affects whether sets sync to backend */
+    sessionSource: SessionSource | null;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
     // Actions
-    startSession: (exercises: ExerciseWeekProgress[]) => void;
+    startSession: (exercises: ExerciseWeekProgress[], source?: SessionSource) => void;
     endSession: () => void;
     setCurrentExercise: (index: number) => void;
     startRestTimer: (durationSeconds?: number) => void;

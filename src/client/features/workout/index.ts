@@ -5,6 +5,12 @@ export {
     useActivePlanId,
     useViewMode,
     useActiveTab,
+    // Selection mode exports
+    useSelectedExerciseIds,
+    useIsSelectionMode,
+    useToggleSelection,
+    useClearSelection,
+    useSetSelectionMode,
 } from './store';
 
 // Export query/mutation hooks
@@ -28,6 +34,7 @@ export {
     useRestTimerDuration,
     useCompletedSetsThisSession,
     useSessionStartedAt,
+    useSessionSource,
     useStartSession,
     useEndSession,
     useSetCurrentExercise,
@@ -41,7 +48,7 @@ export {
 export { useRestTimer, formatTime } from './use-rest-timer';
 
 // Export session types and utilities
-export type { WorkoutSession, WorkoutSessionState } from './session-types';
+export type { WorkoutSession, WorkoutSessionState, SessionSource } from './session-types';
 export { DEFAULT_REST_TIMES, getRecommendedRestTime } from './session-types';
 
 // Export types

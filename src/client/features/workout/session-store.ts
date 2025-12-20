@@ -10,6 +10,7 @@ const initialSessionState: WorkoutSession = {
     restTimerEndAt: null,
     restTimerDuration: 90,
     completedSetsThisSession: 0,
+    sessionSource: null,
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -19,7 +20,7 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
     creator: (set) => ({
         ...initialSessionState,
 
-        startSession: (exercises: ExerciseWeekProgress[]) => {
+        startSession: (exercises: ExerciseWeekProgress[], source: 'plan' | 'saved-workout' = 'plan') => {
             set({
                 isActive: true,
                 startedAt: Date.now(),
@@ -27,6 +28,7 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
                 exercises,
                 restTimerEndAt: null,
                 completedSetsThisSession: 0,
+                sessionSource: source,
             });
         },
 
@@ -74,6 +76,7 @@ export const useRestTimerEndAt = () => useWorkoutSessionStore((state) => state.r
 export const useRestTimerDuration = () => useWorkoutSessionStore((state) => state.restTimerDuration);
 export const useCompletedSetsThisSession = () => useWorkoutSessionStore((state) => state.completedSetsThisSession);
 export const useSessionStartedAt = () => useWorkoutSessionStore((state) => state.startedAt);
+export const useSessionSource = () => useWorkoutSessionStore((state) => state.sessionSource);
 
 // Get current exercise
 export const useCurrentExercise = () => {

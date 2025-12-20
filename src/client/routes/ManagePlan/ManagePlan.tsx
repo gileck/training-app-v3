@@ -432,17 +432,19 @@ export function ManagePlan() {
                                 />
                             </div>
 
-                            <div className="h-[55vh] overflow-y-auto space-y-2">
+                            <div className="h-[55vh] overflow-y-auto -mx-1">
                                 {libraryLoading ? (
-                                    [1, 2, 3, 4, 5].map((i) => (
-                                        <div key={i} className="flex items-center gap-3 p-2">
-                                            <Skeleton className="h-12 w-12 rounded-lg" />
-                                            <div className="space-y-2">
-                                                <Skeleton className="h-4 w-32" />
-                                                <Skeleton className="h-3 w-24" />
+                                    <div className="divide-y divide-border">
+                                        {[1, 2, 3, 4, 5].map((i) => (
+                                            <div key={i} className="flex items-center gap-4 px-1 py-3">
+                                                <Skeleton className="h-14 w-14 rounded-lg" />
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-4 w-32" />
+                                                    <Skeleton className="h-3 w-24" />
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 ) : filteredLibrary.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">
                                         {searchQuery
@@ -450,33 +452,35 @@ export function ManagePlan() {
                                             : 'All exercises are already in your plan'}
                                     </div>
                                 ) : (
-                                    filteredLibrary.map((exercise) => (
-                                        <button
-                                            key={exercise._id}
-                                            onClick={() => handleSelectExercise(exercise)}
-                                            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 active:scale-[0.98] transition-all text-left"
-                                        >
-                                            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                                                {exercise.imageUrl ? (
-                                                    <img
-                                                        src={exercise.imageUrl}
-                                                        alt={exercise.name}
-                                                        className="w-full h-full object-contain"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium truncate">{exercise.name}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {exercise.primaryMuscle} • {exercise.type}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    ))
+                                    <div className="divide-y divide-border/50">
+                                        {filteredLibrary.map((exercise) => (
+                                            <button
+                                                key={exercise._id}
+                                                onClick={() => handleSelectExercise(exercise)}
+                                                className="w-full flex items-center gap-4 px-1 py-3 hover:bg-muted/50 active:scale-[0.99] transition-all text-left"
+                                            >
+                                                <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                                    {exercise.imageUrl ? (
+                                                        <img
+                                                            src={exercise.imageUrl}
+                                                            alt={exercise.name}
+                                                            className="w-full h-full object-contain"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Dumbbell className="h-6 w-6 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0 py-0.5">
+                                                    <p className="font-medium text-[15px] truncate">{exercise.name}</p>
+                                                    <p className="text-sm text-muted-foreground mt-0.5">
+                                                        {exercise.primaryMuscle} • {exercise.type}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>
