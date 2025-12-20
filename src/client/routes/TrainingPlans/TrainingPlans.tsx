@@ -23,7 +23,7 @@ export function TrainingPlans() {
     const { navigate } = useRouter();
 
     // Queries and mutations
-    const { data, isLoading, error } = usePlans();
+    const { data, error } = usePlans();
     const createPlanMutation = useCreatePlan();
     const deletePlanMutation = useDeletePlan();
     const setActivePlanMutation = useSetActivePlan();
@@ -44,6 +44,7 @@ export function TrainingPlans() {
     const [planToDelete, setPlanToDelete] = useState<TrainingPlanClient | null>(null);
 
     const plans = data?.plans || [];
+    const hasData = data !== undefined;
 
     const handleCreatePlan = async () => {
         if (!newPlanName.trim()) return;
@@ -98,8 +99,8 @@ export function TrainingPlans() {
         navigate(`/training-plans/${plan._id}`);
     };
 
-    // Loading state
-    if (isLoading && !data) {
+    // Loading state - show skeleton when loading without cached data
+    if (!hasData) {
         return (
             <div className="p-4 pb-20 space-y-4">
                 <div className="flex items-center justify-between mb-6">
@@ -326,4 +327,5 @@ export function TrainingPlans() {
         </div>
     );
 }
+
 

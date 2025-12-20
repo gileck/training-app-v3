@@ -4,6 +4,7 @@ export {
     useCurrentWeek,
     useActivePlanId,
     useViewMode,
+    useActiveTab,
 } from './store';
 
 // Export query/mutation hooks
@@ -16,6 +17,33 @@ export {
     weekProgressQueryKey,
 } from './hooks';
 
+// Export session store (active workout)
+export {
+    useWorkoutSessionStore,
+    useIsSessionActive,
+    useSessionExercises,
+    useCurrentExerciseIndex,
+    useCurrentExercise,
+    useRestTimerEndAt,
+    useRestTimerDuration,
+    useCompletedSetsThisSession,
+    useSessionStartedAt,
+    useStartSession,
+    useEndSession,
+    useSetCurrentExercise,
+    useStartRestTimer,
+    useCancelRestTimer,
+    useIncrementCompletedSets,
+    useUpdateSessionExercises,
+} from './session-store';
+
+// Export rest timer hook
+export { useRestTimer, formatTime } from './use-rest-timer';
+
+// Export session types and utilities
+export type { WorkoutSession, WorkoutSessionState } from './session-types';
+export { DEFAULT_REST_TIMES, getRecommendedRestTime } from './session-types';
+
 // Export types
-export type { WorkoutState } from './types';
+export type { WorkoutState, WorkoutTab } from './types';
 

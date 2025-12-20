@@ -1,5 +1,28 @@
 /**
  * Training Plans route hooks
+ * 
+ * ============================================================================
+ * OPTIMISTIC-ONLY UI PATTERN (CRITICAL - READ CAREFULLY)
+ * ============================================================================
+ * 
+ * All mutations use OPTIMISTIC UPDATES for instant UI feedback.
+ * 
+ * **RULE: NEVER update UI from server responses on SUCCESS.**
+ * 
+ * Why? Race conditions:
+ *   1. User creates plan → UI shows new plan (optimistic)
+ *   2. User deletes it quickly → UI removes plan (optimistic)
+ *   3. Server response for create arrives → UI would re-add deleted plan (WRONG!)
+ * 
+ * Solution:
+ *   - `onMutate`: Update UI immediately (this IS the source of truth)
+ *   - `onSuccess`: Do NOT call invalidateQueries or setQueryData
+ *   - `onError`: ONLY on error - rollback to previous state
+ *   - `onSettled`: NEVER refetch - optimistic state is already correct
+ * 
+ * The app works offline - mutations are queued and synced when online.
+ * Server responses are only used to detect errors, not to update UI.
+ * ============================================================================
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +40,7 @@ import type {
     DeletePlanRequest,
     SetActivePlanRequest,
 } from '@/apis/training-plans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
 
 // ============================================================================
@@ -77,6 +101,15 @@ export function usePlanExercises(planId: string, options?: { enabled?: boolean }
 
 /**
  * Hook for creating a new training plan
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates immediately with temp ID in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ * 
+ * Note: The temp ID stays in UI - this is fine because:
+ * - Next page load will fetch fresh data with real IDs
+ * - User can still interact with the plan normally
  */
 export function useCreatePlan() {
     const queryClient = useQueryClient();
@@ -89,20 +122,47 @@ export function useCreatePlan() {
             }
             return response.data?.plan;
         },
-        onSuccess: (newPlan) => {
-            if (newPlan) {
-                queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
-                    if (!old?.plans) return { plans: [newPlan] };
-                    return { plans: [...old.plans, newPlan] };
-                });
-            }
-            queryClient.invalidateQueries({ queryKey: plansQueryKey });
+        // OPTIMISTIC UPDATE: Add plan to list immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: plansQueryKey });
+            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
+
+            // Create optimistic plan with temporary ID
+            const optimisticPlan: TrainingPlanClient = {
+                _id: `temp-${Date.now()}`,
+                userId: '',
+                name: variables.name,
+                durationWeeks: variables.durationWeeks,
+                isActive: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+
+            queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                if (!old?.plans) return { plans: [optimisticPlan] };
+                return { plans: [...old.plans, optimisticPlan] };
+            });
+
+            return { previousPlans, optimisticPlan };
         },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousPlans) {
+                queryClient.setQueryData(plansQueryKey, context.previousPlans);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 
 /**
  * Hook for deleting a training plan
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI removes item immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
  */
 export function useDeletePlan() {
     const queryClient = useQueryClient();
@@ -115,11 +175,11 @@ export function useDeletePlan() {
             }
             return data.planId;
         },
+        // OPTIMISTIC UPDATE: Remove plan immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: plansQueryKey });
             const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
 
-            // Optimistic update
             queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
                 if (!old?.plans) return old;
                 return {
@@ -127,24 +187,30 @@ export function useDeletePlan() {
                 };
             });
 
+            // Also clear related queries (these won't cause race conditions)
+            queryClient.removeQueries({ queryKey: planQueryKey(variables.planId) });
+            queryClient.removeQueries({ queryKey: planExercisesQueryKey(variables.planId) });
+
             return { previousPlans };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousPlans) {
                 queryClient.setQueryData(plansQueryKey, context.previousPlans);
             }
         },
-        onSuccess: (deletedPlanId) => {
-            if (deletedPlanId) {
-                queryClient.removeQueries({ queryKey: planQueryKey(deletedPlanId) });
-                queryClient.removeQueries({ queryKey: planExercisesQueryKey(deletedPlanId) });
-            }
-        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 
 /**
  * Hook for setting a plan as active
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates active state immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
  */
 export function useSetActivePlan() {
     const queryClient = useQueryClient();
@@ -157,11 +223,11 @@ export function useSetActivePlan() {
             }
             return response.data?.plan;
         },
+        // OPTIMISTIC UPDATE: Set active immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: plansQueryKey });
             const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
 
-            // Optimistic update - set only this plan as active
             queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
                 if (!old?.plans) return old;
                 return {
@@ -174,11 +240,14 @@ export function useSetActivePlan() {
 
             return { previousPlans };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousPlans) {
                 queryClient.setQueryData(plansQueryKey, context.previousPlans);
             }
         },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 

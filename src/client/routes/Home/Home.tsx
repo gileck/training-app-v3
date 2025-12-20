@@ -2,12 +2,14 @@ import { Card, CardContent } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
 import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import {
     ChevronLeft,
     ChevronRight,
     Plus,
     Minus,
     CheckCheck,
+    Check,
     Info,
     Dumbbell,
     Calendar,
@@ -16,6 +18,8 @@ import {
     Settings2,
     ChevronDown,
     ChevronUp,
+    Play,
+    Bookmark,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from '../../router';
@@ -24,10 +28,12 @@ import {
     useCurrentWeek,
     useActivePlanId,
     useViewMode,
+    useActiveTab,
     useSyncActivePlan,
     useWeekProgress,
     useUpdateSets,
 } from '@/client/features/workout';
+import type { WorkoutTab } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 
 export function Home() {
@@ -37,8 +43,10 @@ export function Home() {
     const currentWeek = useCurrentWeek();
     const activePlanId = useActivePlanId();
     const viewMode = useViewMode();
+    const activeTab = useActiveTab();
     const setWeek = useWorkoutStore((state) => state.setWeek);
     const setViewMode = useWorkoutStore((state) => state.setViewMode);
+    const setActiveTab = useWorkoutStore((state) => state.setActiveTab);
 
     // Sync active plan from server
     const { activePlan, plans } = useSyncActivePlan();
@@ -102,14 +110,14 @@ export function Home() {
     const handleCompleteAll = (exercise: ExerciseWeekProgress) => {
         if (!activePlanId) return;
 
-        // Add remaining sets one by one (or could do batch API)
         const remaining = exercise.targetSets - exercise.setsCompleted;
         if (remaining > 0) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
                 planExerciseId: exercise.planExerciseId,
                 weekNumber: currentWeek,
-                action: 'add',
+                action: 'complete-all',
+                targetSets: exercise.targetSets,
             });
         }
     };
@@ -254,101 +262,72 @@ export function Home() {
                 </CardContent>
             </Card>
 
-            {/* View Toggle */}
-            <div className="flex justify-end">
-                <div className="bg-muted rounded-lg p-1 flex gap-1">
-                    <Button
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('grid')}
-                        className="h-8 w-8 p-0 rounded-md"
-                    >
-                        <LayoutGrid className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('list')}
-                        className="h-8 w-8 p-0 rounded-md"
-                    >
-                        <List className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-
-            {/* No exercises */}
-            {exercises.length === 0 && (
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No exercises in this plan</h3>
-                        <p className="text-sm text-muted-foreground mb-4 text-center">
-                            Add exercises to start tracking your workouts
-                        </p>
-                        <Button onClick={() => navigate(`/training-plans/${activePlanId}`)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Exercises
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as WorkoutTab)} className="w-full">
+                <div className="flex items-center justify-between gap-2">
+                    <TabsList className="bg-muted p-1 rounded-xl flex-1">
+                        <TabsTrigger value="exercises" className="flex-1 rounded-lg text-sm font-medium">
+                            Exercises
+                        </TabsTrigger>
+                        <TabsTrigger value="workouts" className="flex-1 rounded-lg text-sm font-medium">
+                            Workouts
+                        </TabsTrigger>
+                        <TabsTrigger value="active" className="flex-1 rounded-lg text-sm font-medium">
+                            Active
+                        </TabsTrigger>
+                    </TabsList>
+                    
+                    {/* View Toggle */}
+                    <div className="bg-muted rounded-lg p-1 flex gap-1">
+                        <Button
+                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                            className="h-8 w-8 p-0 rounded-md"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
                         </Button>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Incomplete Exercises */}
-            {incompleteExercises.length > 0 && (
-                <div className="space-y-3">
-                    {incompleteExercises.map((exercise) =>
-                        viewMode === 'grid' ? (
-                            <ExerciseCardGrid
-                                key={exercise.planExerciseId}
-                                exercise={exercise}
-                                onAddSet={() => handleAddSet(exercise)}
-                                onRemoveSet={() => handleRemoveSet(exercise)}
-                                onCompleteAll={() => handleCompleteAll(exercise)}
-                                isUpdating={updateSetsMutation.isPending}
-                            />
-                        ) : (
-                            <ExerciseCardList
-                                key={exercise.planExerciseId}
-                                exercise={exercise}
-                                onAddSet={() => handleAddSet(exercise)}
-                                onRemoveSet={() => handleRemoveSet(exercise)}
-                                onCompleteAll={() => handleCompleteAll(exercise)}
-                                isUpdating={updateSetsMutation.isPending}
-                            />
-                        )
-                    )}
+                        <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('list')}
+                            className="h-8 w-8 p-0 rounded-md"
+                        >
+                            <List className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
-            )}
 
-            {/* Completed Exercises Section */}
-            {completedExercises.length > 0 && (
-                <div className="space-y-3">
-                    <button
-                        onClick={() => setCompletedExpanded(!completedExpanded)}
-                        className="flex items-center justify-between w-full py-2 text-left"
-                    >
-                        <span className="text-sm font-medium text-muted-foreground">
-                            Completed Exercises ({completedExercises.length})
-                        </span>
-                        {completedExpanded ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                    </button>
+                {/* Exercises Tab Content */}
+                <TabsContent value="exercises" className="mt-4 space-y-4">
+                    {/* No exercises */}
+                    {exercises.length === 0 && (
+                        <Card className="rounded-2xl border-0 shadow-sm">
+                            <CardContent className="flex flex-col items-center justify-center py-12">
+                                <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No exercises in this plan</h3>
+                                <p className="text-sm text-muted-foreground mb-4 text-center">
+                                    Add exercises to start tracking your workouts
+                                </p>
+                                <Button onClick={() => navigate(`/training-plans/${activePlanId}`)}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Exercises
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                    {completedExpanded && (
+                    {/* Incomplete Exercises */}
+                    {incompleteExercises.length > 0 && (
                         <div className="space-y-3">
-                            {completedExercises.map((exercise) =>
+                            {incompleteExercises.map((exercise) =>
                                 viewMode === 'grid' ? (
                                     <ExerciseCardGrid
                                         key={exercise.planExerciseId}
                                         exercise={exercise}
                                         onAddSet={() => handleAddSet(exercise)}
                                         onRemoveSet={() => handleRemoveSet(exercise)}
-                                        onCompleteAll={() => {}}
-                                        isUpdating={updateSetsMutation.isPending}
-                                        isComplete
+                                        onCompleteAll={() => handleCompleteAll(exercise)}
                                     />
                                 ) : (
                                     <ExerciseCardList
@@ -356,16 +335,93 @@ export function Home() {
                                         exercise={exercise}
                                         onAddSet={() => handleAddSet(exercise)}
                                         onRemoveSet={() => handleRemoveSet(exercise)}
-                                        onCompleteAll={() => {}}
-                                        isUpdating={updateSetsMutation.isPending}
-                                        isComplete
+                                        onCompleteAll={() => handleCompleteAll(exercise)}
                                     />
                                 )
                             )}
                         </div>
                     )}
-                </div>
-            )}
+
+                    {/* Completed Exercises Section */}
+                    {completedExercises.length > 0 && (
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => setCompletedExpanded(!completedExpanded)}
+                                className="flex items-center justify-between w-full py-2 text-left"
+                            >
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    Completed Exercises ({completedExercises.length})
+                                </span>
+                                {completedExpanded ? (
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                )}
+                            </button>
+
+                            {completedExpanded && (
+                                <div className="space-y-3">
+                                    {completedExercises.map((exercise) =>
+                                        viewMode === 'grid' ? (
+                                            <ExerciseCardGrid
+                                                key={exercise.planExerciseId}
+                                                exercise={exercise}
+                                                onAddSet={() => handleAddSet(exercise)}
+                                                onRemoveSet={() => handleRemoveSet(exercise)}
+                                                onCompleteAll={() => {}}
+                                                isComplete
+                                            />
+                                        ) : (
+                                            <ExerciseCardList
+                                                key={exercise.planExerciseId}
+                                                exercise={exercise}
+                                                onAddSet={() => handleAddSet(exercise)}
+                                                onRemoveSet={() => handleRemoveSet(exercise)}
+                                                onCompleteAll={() => {}}
+                                                isComplete
+                                            />
+                                        )
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </TabsContent>
+
+                {/* Workouts Tab Content */}
+                <TabsContent value="workouts" className="mt-4">
+                    <Card className="rounded-2xl border-0 shadow-sm">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                            <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">Saved Workouts</h3>
+                            <p className="text-sm text-muted-foreground mb-4 text-center">
+                                Save combinations of exercises as reusable workouts
+                            </p>
+                            <Button variant="secondary">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create Workout
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Active Workout Tab Content */}
+                <TabsContent value="active" className="mt-4">
+                    <Card className="rounded-2xl border-0 shadow-sm">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                            <Play className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No Active Workout</h3>
+                            <p className="text-sm text-muted-foreground mb-4 text-center">
+                                Start a workout session to track your exercises with rest timers
+                            </p>
+                            <Button>
+                                <Play className="mr-2 h-4 w-4" />
+                                Start Workout
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
     </div>
   );
 }
@@ -376,7 +432,6 @@ interface ExerciseCardProps {
     onAddSet: () => void;
     onRemoveSet: () => void;
     onCompleteAll: () => void;
-    isUpdating: boolean;
     isComplete?: boolean;
 }
 
@@ -385,7 +440,6 @@ function ExerciseCardGrid({
     onAddSet,
     onRemoveSet,
     onCompleteAll,
-    isUpdating,
     isComplete,
 }: ExerciseCardProps) {
     const progress = (exercise.setsCompleted / exercise.targetSets) * 100;
@@ -398,16 +452,26 @@ function ExerciseCardGrid({
         >
             <CardContent className="p-4">
                 <div className="flex gap-4 mb-3">
-                    <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden flex-shrink-0">
-                        {exercise.exerciseDef.imageUrl ? (
-                            <img
-                                src={exercise.exerciseDef.imageUrl}
-                                alt={exercise.exerciseDef.name}
-                                className="w-full h-full object-contain"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <Dumbbell className="h-8 w-8 text-muted-foreground" />
+                    {/* Image with completion badge */}
+                    <div className="relative flex-shrink-0">
+                        <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden">
+                            {exercise.exerciseDef.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    src={exercise.exerciseDef.imageUrl}
+                                    alt={exercise.exerciseDef.name}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <Dumbbell className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                            )}
+                        </div>
+                        {/* Completion badge */}
+                        {isComplete && (
+                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
+                                <Check className="h-4 w-4 text-white" strokeWidth={3} />
                             </div>
                         )}
                     </div>
@@ -422,7 +486,7 @@ function ExerciseCardGrid({
                             {exercise.planExercise.reps} reps
                             {exercise.planExercise.weight > 0 && ` • ${exercise.planExercise.weight}kg`}
                         </p>
-                        <p className="text-base font-semibold mt-1">
+                        <p className={`text-base font-semibold mt-1 ${isComplete ? 'text-green-500' : ''}`}>
                             Sets: {exercise.setsCompleted}/{exercise.targetSets}
                             {isComplete && ' ✓'}
                         </p>
@@ -454,16 +518,16 @@ function ExerciseCardGrid({
                             variant="outline"
                             size="icon"
                             onClick={onRemoveSet}
-                            disabled={isUpdating || exercise.setsCompleted <= 0}
-                            className="h-11 w-11 rounded-full border-2"
+                            disabled={exercise.setsCompleted <= 0}
+                            className="h-11 w-11 rounded-full border-2 active:scale-95 transition-transform"
                         >
                             <Minus className="h-5 w-5" />
                         </Button>
                         <Button
                             size="icon"
                             onClick={onAddSet}
-                            disabled={isUpdating || exercise.setsCompleted >= exercise.targetSets}
-                            className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25"
+                            disabled={exercise.setsCompleted >= exercise.targetSets}
+                            className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25 active:scale-95 transition-transform"
                         >
                             <Plus className="h-6 w-6" />
                         </Button>
@@ -471,8 +535,7 @@ function ExerciseCardGrid({
                             <Button
                                 size="icon"
                                 onClick={onCompleteAll}
-                                disabled={isUpdating}
-                                className="h-11 w-11 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30"
+                                className="h-11 w-11 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30 active:scale-95 transition-transform"
                             >
                                 <CheckCheck className="h-6 w-6" />
                             </Button>
@@ -499,7 +562,6 @@ function ExerciseCardList({
     onAddSet,
     onRemoveSet,
     onCompleteAll,
-    isUpdating,
     isComplete,
 }: ExerciseCardProps) {
     const progress = (exercise.setsCompleted / exercise.targetSets) * 100;
@@ -512,23 +574,33 @@ function ExerciseCardList({
         >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                        {exercise.exerciseDef.imageUrl ? (
-                            <img
-                                src={exercise.exerciseDef.imageUrl}
-                                alt={exercise.exerciseDef.name}
-                                className="w-full h-full object-contain"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                    {/* Image with completion badge */}
+                    <div className="relative flex-shrink-0">
+                        <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden">
+                            {exercise.exerciseDef.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    src={exercise.exerciseDef.imageUrl}
+                                    alt={exercise.exerciseDef.name}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                            )}
+                        </div>
+                        {/* Completion badge */}
+                        {isComplete && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
+                                <Check className="h-3 w-3 text-white" strokeWidth={3} />
                             </div>
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-semibold truncate">{exercise.exerciseDef.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {exercise.setsCompleted}/{exercise.targetSets} sets
+                        <p className={`text-sm ${isComplete ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {exercise.setsCompleted}/{exercise.targetSets} sets{isComplete && ' ✓'}
                         </p>
                     </div>
                     <div className="flex gap-1">
@@ -536,16 +608,16 @@ function ExerciseCardList({
                             variant="outline"
                             size="icon"
                             onClick={onRemoveSet}
-                            disabled={isUpdating || exercise.setsCompleted <= 0}
-                            className="h-9 w-9 rounded-full"
+                            disabled={exercise.setsCompleted <= 0}
+                            className="h-9 w-9 rounded-full active:scale-95 transition-transform"
                         >
                             <Minus className="h-4 w-4" />
                         </Button>
                         <Button
                             size="icon"
                             onClick={onAddSet}
-                            disabled={isUpdating || exercise.setsCompleted >= exercise.targetSets}
-                            className="h-9 w-9 rounded-full"
+                            disabled={exercise.setsCompleted >= exercise.targetSets}
+                            className="h-9 w-9 rounded-full active:scale-95 transition-transform"
                         >
                             <Plus className="h-4 w-4" />
                         </Button>
@@ -553,8 +625,7 @@ function ExerciseCardList({
                             <Button
                                 size="icon"
                                 onClick={onCompleteAll}
-                                disabled={isUpdating}
-                                className="h-9 w-9 rounded-full bg-green-500 hover:bg-green-600"
+                                className="h-9 w-9 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 transition-transform"
                             >
                                 <CheckCheck className="h-4 w-4" />
                             </Button>
@@ -564,7 +635,7 @@ function ExerciseCardList({
                                 variant="outline"
                                 size="icon"
                                 onClick={onRemoveSet}
-                                className="h-9 w-9 rounded-full text-red-500 border-red-500/50 hover:bg-red-500/10"
+                                className="h-9 w-9 rounded-full text-red-500 border-red-500/50 hover:bg-red-500/10 active:scale-95 transition-transform"
                             >
                                 <Minus className="h-4 w-4" />
                             </Button>

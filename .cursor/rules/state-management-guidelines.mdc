@@ -70,25 +70,54 @@ export function useTodos() {
         ...queryDefaults,
     });
 }
+```
 
-// Mutation: always guard onSuccess for offline
+## 🚨 CRITICAL: Optimistic-Only Mutation Pattern
+
+**NEVER update UI from server responses on SUCCESS. Only rollback on ERROR.**
+
+This prevents race conditions when user clicks faster than server responds.
+
+```typescript
+// ✅ CORRECT: Optimistic-only pattern
+useMutation({
+    mutationFn: async (data) => {
+        const response = await apiClient.post('entity/update', data);
+        if (response.data?.error) throw new Error(response.data.error);
+        return response.data;
+    },
+    
+    // UPDATE UI IMMEDIATELY - this is the source of truth
+    onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: ['entity'] });
+        const previous = queryClient.getQueryData(['entity']);
+        queryClient.setQueryData(['entity'], (old) => ({ ...old, ...variables }));
+        return { previous };
+    },
+    
+    // ONLY on error: rollback
+    onError: (_error, _variables, context) => {
+        if (context?.previous) {
+            queryClient.setQueryData(['entity'], context.previous);
+        }
+    },
+    
+    // onSuccess: EMPTY - never update from server response
+    // onSettled: EMPTY - never invalidateQueries (causes race conditions)
+});
+```
+
+```typescript
+// ❌ WRONG: These cause race conditions!
 onSuccess: (data) => {
-    if (data && data._id) { /* update cache */ }
-    queryClient.invalidateQueries({ queryKey: ['todos'] });
+    queryClient.setQueryData(['entity'], data); // Updates from stale server response
+},
+onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['entity'] }); // Triggers refetch, overwrites optimistic
 },
 ```
 
-## ⚠️ Offline Mode Critical
-
-When offline, `apiClient.post` returns `{ data: {} }`. **Always guard**:
-
-```typescript
-// ✅ CORRECT
-if (data && data.item) { /* use data */ }
-
-// ❌ WRONG - crashes offline
-data.item._id  // undefined!
-```
+📚 **Full Documentation**: [docs/offline-pwa-support.md](mdc:docs/offline-pwa-support.md)
 
 ## Config Defaults
 

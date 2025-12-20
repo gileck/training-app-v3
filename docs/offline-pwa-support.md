@@ -55,33 +55,106 @@ When offline:
 - Request is enqueued in localStorage queue for batch sync later
 - Returns: `{ data: {}, isFromCache: false }` (empty object, NOT an error)
 
-⚠️ **CRITICAL: Mutation Callers Must Handle Empty Data**
+⚠️ **CRITICAL: OPTIMISTIC-ONLY UI PATTERN**
+
+## The Golden Rule: NEVER Update UI from Server Responses on Success
+
+This is the most important pattern in the entire application for offline support.
+
+### Why Server Responses Cause Race Conditions
+
+```
+❌ WRONG: Updating UI from server response
+
+User clicks [+]     → UI: 1 (optimistic)
+User clicks [+]     → UI: 2 (optimistic)
+Server response #1  → UI: 1 (RACE CONDITION! Reverts to stale state)
+Server response #2  → UI: 2 (finally correct, but user saw flicker)
+```
+
+### The Correct Pattern
+
+```typescript
+// ✅ CORRECT: Optimistic-only pattern
+useMutation({
+    mutationFn: async (data) => {
+        const response = await apiClient.post('entity/update', data);
+        if (response.data?.error) throw new Error(response.data.error);
+        return response.data;
+    },
+    
+    // THIS IS THE SOURCE OF TRUTH - update UI immediately
+    onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: ['entity'] });
+        const previous = queryClient.getQueryData(['entity']);
+        
+        // Optimistically update
+        queryClient.setQueryData(['entity'], (old) => ({
+            ...old,
+            value: variables.newValue,
+        }));
+        
+        return { previous }; // For rollback on error
+    },
+    
+    // ONLY on error: rollback to previous state
+    onError: (_error, _variables, context) => {
+        if (context?.previous) {
+            queryClient.setQueryData(['entity'], context.previous);
+        }
+    },
+    
+    // onSuccess: intentionally empty - NEVER update UI from server response
+    // onSettled: intentionally empty - NEVER refetch after mutation
+});
+```
+
+### Why This Works
+
+1. **`onMutate`**: Updates UI immediately (this IS the source of truth)
+2. **`mutationFn`**: Sends request to server (queued if offline)
+3. **`onSuccess`**: EMPTY - server response is ignored on success
+4. **`onError`**: ONLY on error - rollback to previous state
+5. **`onSettled`**: EMPTY - never invalidateQueries (causes race conditions)
+
+### Temporary IDs for Create Operations
+
+When creating items, use temporary IDs that stay in the UI:
+
+```typescript
+onMutate: async (variables) => {
+    // Create with temp ID - will be replaced on next page load
+    const optimisticItem = {
+        _id: `temp-${Date.now()}`,
+        ...variables,
+    };
+    queryClient.setQueryData(['items'], (old) => [...old, optimisticItem]);
+    return { previous };
+},
+```
+
+The temp ID stays until the next page load fetches fresh data with real IDs.
+This is intentional and correct - the user can still interact with the item.
+
+### What About Data Freshness?
+
+- **Page Load**: Queries fetch fresh data from server
+- **Navigation**: Queries refetch if stale (React Query handles this)
+- **Manual Refresh**: Pull-to-refresh or refresh button refetches
+- **Mutations**: UI updates optimistically, no refetch needed
+
+### Files Following This Pattern
+
+All mutation hooks in the application follow this pattern:
+- `src/client/features/workout/hooks.ts` - Set tracking mutations
+- `src/client/routes/TrainingPlans/hooks.ts` - Plan CRUD mutations
+- `src/client/routes/ManagePlan/hooks.ts` - Exercise CRUD mutations
+
+---
 
 When offline, `apiClient.post` returns an empty object `{}` instead of actual response data.
 This is intentional - it allows optimistic updates to persist without triggering rollbacks.
 
-**All mutation `onSuccess` callbacks MUST guard against empty/undefined data:**
-
-```typescript
-// ✅ CORRECT: Guard against empty data
-onSuccess: (data) => {
-    if (data && data.todo) {
-        queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo });
-    }
-    queryClient.invalidateQueries({ queryKey: ['todos'] });
-},
-
-// ❌ WRONG: Will crash when offline
-onSuccess: (data) => {
-    queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo }); // data.todo is undefined!
-},
-```
-
-**Why this design?**
-1. Optimistic updates (in `onMutate`) already update the UI immediately
-2. Returning `{}` prevents the mutation from "failing" (no rollback)
-3. The request is queued and will sync via batch-updates when online
-4. After sync, React Query caches are invalidated to fetch fresh data
 - Queue automatically flushes when connection is restored
 - User sees: Confirmation that action will complete when online
 
