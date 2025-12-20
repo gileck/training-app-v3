@@ -71,7 +71,12 @@ export const useAuthStore = createStore<AuthState>({
         },
 
         setValidating: (validating) => {
-            set({ isValidating: validating });
+            // When starting validation, reset isValidated so effect can process new data
+            // When stopping validation, mark as validated (regardless of success/failure)
+            set({ 
+                isValidating: validating,
+                isValidated: !validating,  // false when starting, true when stopping
+            });
         },
 
         setError: (error) => {
@@ -84,7 +89,7 @@ export const useAuthStore = createStore<AuthState>({
                 userPublicHint: null,
                 hintTimestamp: null,
                 user: null,
-                isValidated: false,
+                isValidated: true,  // Keep true so login dialog shows
                 isValidating: false,
                 error: null,
             });
@@ -97,6 +102,7 @@ export const useAuthStore = createStore<AuthState>({
             hintTimestamp: state.hintTimestamp,
         }),
         onRehydrateStorage: () => (state) => {
+            // Clear stale hints on hydration
             if (state && !isHintValid(state.hintTimestamp)) {
                 state.isProbablyLoggedIn = false;
                 state.userPublicHint = null;

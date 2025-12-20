@@ -58,22 +58,22 @@ App Start
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  BootGate waits for local rehydration                        │
-│  - auth/settings/router stores rehydrate from localStorage    │
+│  - auth/settings/router stores rehydrate from localStorage   │
 │  - isProbablyLoggedIn = false (no hint stored)               │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  AuthWrapper renders                                         │
-│  isProbablyLoggedIn = false, isValidating = true             │
-│  → Shows Loading spinner (checking for cookie session)       │
+│  isProbablyLoggedIn = false, isValidated = false             │
+│  → Shows nothing (brief blank screen during /me check)       │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  useAuthValidation() calls /me endpoint                      │
 │  Server returns: { error: "Not authenticated" }              │
-│  → isValidating = false                                      │
+│  → isValidated = true, user = null                           │
 │  → Shows Login Dialog                                        │
 └─────────────────────────────────────────────────────────────┘
     │
@@ -111,8 +111,8 @@ App Start
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  AuthWrapper renders                                         │
-│  isProbablyLoggedIn = false, isValidating = true             │
-│  → Shows Loading spinner (checking for cookie session)       │
+│  isProbablyLoggedIn = false, isValidated = false             │
+│  → Shows nothing (brief blank screen during /me check)       │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -128,6 +128,7 @@ App Start
 │  - setValidatedUser() updates Zustand                        │
 │  - isProbablyLoggedIn = true (saved for next boot)           │
 │  - userPublicHint = { name, email, avatar }                  │
+│  - isValidated = true, isAuthenticated = true                │
 │  - App renders authenticated UI                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -211,11 +212,18 @@ All auth-related hooks in one file:
 
 ### AuthWrapper (`src/client/features/auth/AuthWrapper.tsx`)
 
-Guards the app based on auth state:
-- If `isProbablyLoggedIn && !isValidated` → render app immediately (instant boot with loading bar)
-- If `isAuthenticated` (validated) → render app
-- If `isValidating && !isProbablyLoggedIn` → show loading spinner (checking cookie session)
-- Otherwise → show login dialog
+Guards the app based on auth state with simple logic:
+
+```typescript
+const showApp = isAuthenticated || isProbablyLoggedIn;
+const showLogin = isValidated && !isAuthenticated && !isProbablyLoggedIn;
+```
+
+- `showApp`: If authenticated OR have localStorage hint → render app immediately
+- `showLogin`: Only shown AFTER validation explicitly confirms no user
+- No loaders: Brief blank screen during validation (~100ms) is better than flickering loaders
+
+**Key insight**: Using `isValidated` (not `!isValidating`) prevents login dialog flickering during Zustand hydration race conditions.
 
 ## Admin Flag (`isAdmin`)
 
@@ -322,14 +330,16 @@ function LogoutButton() {
 
 ## Troubleshooting
 
-### User sees brief loading spinner then app loads
-This is expected for users with a valid cookie but no localStorage hint (e.g., cleared localStorage). The `/me` check detects the valid session and logs them in.
+### User sees brief blank screen then app loads
+This is expected for users with a valid cookie but no localStorage hint (e.g., cleared localStorage). The `/me` check (~100ms) detects the valid session and logs them in. No loader is shown to avoid HMR/hydration flickering issues.
 
 ### User sees app briefly then login dialog
 This happens when the localStorage hint exists but the session has expired server-side. The instant boot shows the app, then validation fails and login is shown.
 
-### User stuck on loading
-Check if localStorage restore is blocked by the browser or storage access is denied. React Query restore is non-blocking, and BootGate should only be a brief local step.
+### Login dialog flickers briefly
+This should not happen with the current implementation. If it does:
+- Ensure AuthWrapper uses `isValidated` (not `!isValidating`) in the `showLogin` condition
+- Check for race conditions between Zustand hydration and React Query
 
 ### Auth state not persisting
 - Check localStorage for `auth-storage` key (Zustand)

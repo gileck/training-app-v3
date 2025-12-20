@@ -110,6 +110,9 @@ export function useAuthValidation() {
     });
 
     useEffect(() => {
+        // Skip if already validated (e.g., user logged in via form)
+        if (isValidated) return;
+
         if (isLoading) {
             setValidating(true);
             return;
@@ -123,17 +126,16 @@ export function useAuthValidation() {
 
         if (isError || (data && !data.user)) {
             hasValidated.current = true;
-            // Clear auth hint if it was set (stale session)
+            // Clear stale hint if session was invalid
             if (isProbablyLoggedIn) {
                 clearAuth();
             }
-            // Mark validation as complete (not validating anymore)
             setValidating(false);
             if (error instanceof Error) {
                 setError(error.message);
             }
         }
-    }, [data, isLoading, isError, error, isProbablyLoggedIn, setValidatedUser, setValidating, clearAuth, setError]);
+    }, [data, isLoading, isError, error, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth, setError]);
 
     const revalidate = async () => {
         hasValidated.current = false;
@@ -141,12 +143,15 @@ export function useAuthValidation() {
         await refetch();
     };
 
+    // Don't show as validating if already authenticated
+    const effectiveIsValidating = isValidated ? false : (isLoading || isValidating);
+
     return {
         isAuthenticated: isValidated && !!user,
         isProbablyLoggedIn,
         user,
         userHint: userPublicHint,
-        isValidating: isLoading || isValidating,
+        isValidating: effectiveIsValidating,
         isValidated,
         error: error instanceof Error ? error.message : null,
         revalidate,
@@ -158,7 +163,6 @@ export function useAuthValidation() {
 // ============================================================================
 
 export function useLogin() {
-    const queryClient = useQueryClient();
     const { setValidatedUser, setUserHint, setError } = useAuthStore();
 
     return useMutation({
@@ -175,7 +179,6 @@ export function useLogin() {
         onSuccess: (user) => {
             setValidatedUser(user);
             setUserHint(userToHint(user));
-            queryClient.invalidateQueries({ queryKey: currentUserQueryKey });
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Login failed');
@@ -184,7 +187,6 @@ export function useLogin() {
 }
 
 export function useRegister() {
-    const queryClient = useQueryClient();
     const { setValidatedUser, setUserHint, setError } = useAuthStore();
 
     return useMutation({
@@ -201,7 +203,7 @@ export function useRegister() {
         onSuccess: (user) => {
             setValidatedUser(user);
             setUserHint(userToHint(user));
-            queryClient.invalidateQueries({ queryKey: currentUserQueryKey });
+            // No need to invalidate /me query - user is already authenticated
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Registration failed');

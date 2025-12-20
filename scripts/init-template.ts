@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env tsx
 
 /**
  * Initialize Template Tracking
@@ -104,13 +104,15 @@ function initTemplate(templateRepo: string): void {
   const currentCommit = exec('git rev-parse HEAD');
 
   // Create config
+  // Note: lastSyncCommit is null for first sync - this tells sync-template
+  // to compare the entire template against the project
   const config: TemplateSyncConfig = {
     templateRepo,
     templateBranch: 'main',
-    baseCommit: currentCommit || null,
-    lastSyncCommit: currentCommit || null,
+    baseCommit: currentCommit || null,  // Project commit when initialized
+    lastSyncCommit: null,               // null = first sync, will compare everything
     lastProjectCommit: currentCommit || null,
-    lastSyncDate: currentCommit ? new Date().toISOString() : null,
+    lastSyncDate: null,
     ignoredFiles: DEFAULT_IGNORED_FILES,
     projectSpecificFiles: [],
   };

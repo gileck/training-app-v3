@@ -97,7 +97,7 @@ User Opens App
 ┌─────────────────────────────────────────────────────────────────┐
 │  3. AuthWrapper Renders                                         │
 │     - If isProbablyLoggedIn: Show app immediately (instant boot) │
-│     - If not: Show loading, call /me to check cookie session    │
+│     - If not: Brief blank screen, /me checks for cookie session │
 │     - If /me succeeds: Show app; If /me fails: Show login       │
 └─────────────────────────────────────────────────────────────────┘
       │
@@ -132,9 +132,9 @@ The app uses a **hint-based instant boot** pattern for authentication, with supp
 
 1. **On Login**: Server sets HttpOnly JWT cookie + client stores hint in Zustand
 2. **On App Open (with hint)**: Zustand hydrates hint → show app immediately → validate in background
-3. **On App Open (no hint)**: Show loading → call `/me` to check for cookie session
+3. **On App Open (no hint)**: Brief blank screen → call `/me` to check for cookie session
 4. **If `/me` succeeds**: Store hint + show app (supports SSO, cleared localStorage)
-5. **If `/me` fails**: Show login dialog
+5. **If `/me` fails**: Show login dialog (only after `isValidated=true`)
 6. **On 401**: Clear hints, show login dialog
 
 📚 **Detailed Documentation**: [authentication.md](./authentication.md)
