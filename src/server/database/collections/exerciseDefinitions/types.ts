@@ -51,3 +51,4 @@ export interface ExerciseDefinitionClient {
     updatedAt: string;
 }
 
+

@@ -29,8 +29,8 @@ export const updateSets = async (
             return { error: 'Week number must be at least 1' };
         }
 
-        if (!request.action || !['add', 'remove'].includes(request.action)) {
-            return { error: 'Action must be "add" or "remove"' };
+        if (!request.action || !['add', 'remove', 'complete-all'].includes(request.action)) {
+            return { error: 'Action must be "add", "remove", or "complete-all"' };
         }
 
         // Verify plan belongs to user
@@ -78,6 +78,27 @@ export const updateSets = async (
                     setNumber: setsCompleted,
                     completedAt: new Date(),
                 });
+            }
+        } else if (request.action === 'complete-all') {
+            // Complete all remaining sets at once
+            const remaining = exercise.sets - setsCompleted;
+            if (remaining > 0) {
+                // Create set log entries for all remaining sets
+                const setLogPromises = [];
+                for (let i = 1; i <= remaining; i++) {
+                    setLogPromises.push(
+                        setLogs.createSetLog({
+                            userId: new ObjectId(context.userId),
+                            planExerciseId: new ObjectId(request.planExerciseId),
+                            planId: new ObjectId(request.planId),
+                            weekNumber: request.weekNumber,
+                            setNumber: setsCompleted + i,
+                            completedAt: new Date(),
+                        })
+                    );
+                }
+                await Promise.all(setLogPromises);
+                setsCompleted = exercise.sets;
             }
         } else {
             // Remove action

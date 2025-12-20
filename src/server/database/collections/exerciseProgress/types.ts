@@ -36,3 +36,4 @@ export interface ExerciseProgressClient {
     updatedAt: string;
 }
 
+

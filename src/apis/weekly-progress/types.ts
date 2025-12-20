@@ -31,12 +31,13 @@ export interface GetWeekProgressResponse {
     error?: string;
 }
 
-// Update sets (add or remove a set)
+// Update sets (add, remove, or complete all remaining sets)
 export interface UpdateSetsRequest {
     planId: string;
     planExerciseId: string;
     weekNumber: number;
-    action: 'add' | 'remove';
+    action: 'add' | 'remove' | 'complete-all';
+    targetSets?: number; // Required for complete-all to know how many sets to add
 }
 
 export interface UpdateSetsResponse {

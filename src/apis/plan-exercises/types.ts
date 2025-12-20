@@ -62,3 +62,14 @@ export interface DeletePlanExerciseResponse {
     error?: string;
 }
 
+// Reorder plan exercises
+export interface ReorderPlanExercisesRequest {
+    planId: string;
+    exerciseIds: string[]; // Ordered array of plan exercise IDs
+}
+
+export interface ReorderPlanExercisesResponse {
+    success?: boolean;
+    error?: string;
+}
+

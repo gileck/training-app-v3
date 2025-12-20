@@ -27,3 +27,4 @@ export interface WeeklyProgressClient {
     updatedAt: string;
 }
 
+

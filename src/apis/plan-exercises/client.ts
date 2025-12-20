@@ -5,6 +5,7 @@ import {
     API_ADD_PLAN_EXERCISE,
     API_UPDATE_PLAN_EXERCISE,
     API_DELETE_PLAN_EXERCISE,
+    API_REORDER_PLAN_EXERCISES,
 } from './index';
 import {
     ListPlanExercisesRequest,
@@ -15,6 +16,8 @@ import {
     UpdatePlanExerciseResponse,
     DeletePlanExerciseRequest,
     DeletePlanExerciseResponse,
+    ReorderPlanExercisesRequest,
+    ReorderPlanExercisesResponse,
 } from './types';
 
 /**
@@ -51,5 +54,14 @@ export const deletePlanExercise = async (
     params: DeletePlanExerciseRequest
 ): Promise<CacheResult<DeletePlanExerciseResponse>> => {
     return apiClient.post(API_DELETE_PLAN_EXERCISE, params);
+};
+
+/**
+ * Reorder exercises in a training plan
+ */
+export const reorderPlanExercises = async (
+    params: ReorderPlanExercisesRequest
+): Promise<CacheResult<ReorderPlanExercisesResponse>> => {
+    return apiClient.post(API_REORDER_PLAN_EXERCISES, params);
 };
 

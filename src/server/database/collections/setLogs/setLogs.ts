@@ -153,6 +153,25 @@ export const deleteSetLogsByPlanId = async (planId: ObjectId | string): Promise<
 };
 
 /**
+ * Find set logs by arbitrary filter
+ */
+export const findSetLogsByFilter = async (
+    filter: Record<string, unknown>,
+    limit = 100
+): Promise<SetLog[]> => {
+    const collection = await getCollection();
+    return collection.find(filter).sort({ completedAt: -1 }).limit(limit).toArray();
+};
+
+/**
+ * Count set logs by arbitrary filter
+ */
+export const countSetLogsByFilter = async (filter: Record<string, unknown>): Promise<number> => {
+    const collection = await getCollection();
+    return collection.countDocuments(filter);
+};
+
+/**
  * Get aggregated stats per day (for charts)
  */
 export const getSetStatsPerDay = async (

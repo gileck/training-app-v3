@@ -153,3 +153,16 @@ export const countExercisesByPlanId = async (
     return collection.countDocuments({ planId: planIdObj });
 };
 
+/**
+ * Find all plan exercises using a specific exercise definition
+ * Used to check if an exercise can be deleted
+ */
+export const findPlanExercisesByExerciseDefId = async (
+    exerciseDefId: ObjectId | string
+): Promise<PlanExercise[]> => {
+    const collection = await getCollection();
+    const exerciseDefIdObj =
+        typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
+    return collection.find({ exerciseDefId: exerciseDefIdObj }).toArray();
+};
+

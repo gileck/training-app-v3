@@ -41,8 +41,8 @@ export function ManagePlan() {
     const { data: exercisesData, isLoading: exercisesLoading } = usePlanExercises(planId);
     const { data: libraryData, isLoading: libraryLoading } = useExerciseLibrary();
 
-    // Mutations
-    const addExerciseMutation = useAddPlanExercise();
+    // Mutations - pass libraryData for optimistic updates
+    const addExerciseMutation = useAddPlanExercise(libraryData);
     const updateExerciseMutation = useUpdatePlanExercise(planId);
     const deleteExerciseMutation = useDeletePlanExercise(planId);
 

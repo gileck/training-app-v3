@@ -14,3 +14,4 @@ export const weeklyProgressApiHandlers = {
     [API_UPDATE_SETS]: { process: updateSets },
 };
 
+

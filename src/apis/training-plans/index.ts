@@ -8,3 +8,4 @@ export const API_CREATE_PLAN = 'training-plans/create';
 export const API_DELETE_PLAN = 'training-plans/delete';
 export const API_SET_ACTIVE_PLAN = 'training-plans/set-active';
 
+

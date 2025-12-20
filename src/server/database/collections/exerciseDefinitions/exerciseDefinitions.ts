@@ -137,3 +137,4 @@ export const deleteExercise = async (
     return result.deletedCount === 1;
 };
 
+

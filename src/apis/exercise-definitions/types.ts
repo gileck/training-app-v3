@@ -25,3 +25,46 @@ export interface GetExerciseResponse {
     error?: string;
 }
 
+// Create custom exercise
+export interface CreateExerciseRequest {
+    name: string;
+    imageBase64?: string; // Base64 encoded image data
+    primaryMuscle: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+export interface CreateExerciseResponse {
+    exercise?: ExerciseDefinitionClient;
+    error?: string;
+}
+
+// Update custom exercise
+export interface UpdateExerciseRequest {
+    exerciseId: string;
+    name?: string;
+    imageBase64?: string; // Base64 encoded image data
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+export interface UpdateExerciseResponse {
+    exercise?: ExerciseDefinitionClient;
+    error?: string;
+}
+
+// Delete custom exercise
+export interface DeleteExerciseRequest {
+    exerciseId: string;
+}
+
+export interface DeleteExerciseResponse {
+    success?: boolean;
+    error?: string;
+}
+

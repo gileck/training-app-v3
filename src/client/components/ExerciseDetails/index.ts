@@ -1,0 +1,3 @@
+export { ExerciseDetails } from './ExerciseDetails';
+
+
