@@ -12,8 +12,8 @@
     "ts": "tsc --noEmit",
     "checks": "yarn ts; yarn lint",
     "watch-checks": "node scripts/watch-checks.js",
-    "init-template": "ts-node scripts/init-template.ts",
-    "sync-template": "ts-node scripts/sync-template.ts"
+    "init-template": "tsx scripts/init-template.ts",
+    "sync-template": "tsx scripts/sync-template.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -49,6 +49,7 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.3.1",
     "tiktoken": "^1.0.20",
+    "tsx": "^4.21.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
