@@ -303,10 +303,10 @@ export function ManagePlan() {
 
             {/* Add Exercise Sheet */}
             <Sheet open={addSheetOpen} onOpenChange={setAddSheetOpen}>
-                <SheetContent side="bottom" className="rounded-t-3xl h-[85vh]">
+                <SheetContent side="bottom" className="rounded-t-3xl h-[85vh] px-5">
                     <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4" />
-                    <SheetHeader className="mb-4">
-                        <SheetTitle>
+                    <SheetHeader className="mb-6">
+                        <SheetTitle className="text-xl">
                             {selectedExercise ? 'Configure Exercise' : 'Add Exercise'}
                         </SheetTitle>
                     </SheetHeader>
@@ -432,11 +432,11 @@ export function ManagePlan() {
                                 />
                             </div>
 
-                            <div className="h-[55vh] overflow-y-auto -mx-1">
+                            <div className="h-[55vh] overflow-y-auto">
                                 {libraryLoading ? (
                                     <div className="divide-y divide-border">
                                         {[1, 2, 3, 4, 5].map((i) => (
-                                            <div key={i} className="flex items-center gap-4 px-1 py-3">
+                                            <div key={i} className="flex items-center gap-4 py-3">
                                                 <Skeleton className="h-14 w-14 rounded-lg" />
                                                 <div className="space-y-2">
                                                     <Skeleton className="h-4 w-32" />
@@ -457,7 +457,7 @@ export function ManagePlan() {
                                             <button
                                                 key={exercise._id}
                                                 onClick={() => handleSelectExercise(exercise)}
-                                                className="w-full flex items-center gap-4 px-1 py-3 hover:bg-muted/50 active:scale-[0.99] transition-all text-left"
+                                                className="w-full flex items-center gap-4 py-3.5 hover:bg-muted/50 active:scale-[0.99] transition-all text-left"
                                             >
                                                 <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                                                     {exercise.imageUrl ? (
@@ -472,7 +472,7 @@ export function ManagePlan() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="flex-1 min-w-0 py-0.5">
+                                                <div className="flex-1 min-w-0">
                                                     <p className="font-medium text-[15px] truncate">{exercise.name}</p>
                                                     <p className="text-sm text-muted-foreground mt-0.5">
                                                         {exercise.primaryMuscle} • {exercise.type}
