@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Training App - List View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        background: 'hsl(210, 20%, 98%)',
+                        foreground: 'hsl(222, 47%, 11%)',
+                        card: 'hsl(0, 0%, 100%)',
+                        muted: 'hsl(210, 40%, 96%)',
+                        'muted-foreground': 'hsl(215, 16%, 47%)',
+                        primary: 'hsl(221, 83%, 53%)',
+                        'primary-foreground': 'hsl(210, 40%, 98%)',
+                        border: 'hsl(214, 32%, 91%)',
+                        success: 'hsl(142, 76%, 36%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, hsl(221, 83%, 53%, 0.08) 0%, transparent 50%),
+                        linear-gradient(225deg, hsl(262, 83%, 58%, 0.06) 0%, transparent 50%),
+                        hsl(210, 20%, 98%);
+            min-height: 100vh;
+        }
+        
+        .pressable {
+            transition: transform 100ms ease-out;
+        }
+        .pressable:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-press:active {
+            transform: scale(0.9);
+        }
+        
+        .progress-gradient {
+            background: linear-gradient(90deg, hsl(221, 83%, 53%) 0%, hsl(221, 83%, 60%) 100%);
+        }
+        .progress-success {
+            background: linear-gradient(90deg, hsl(142, 76%, 36%) 0%, hsl(152, 69%, 31%) 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        
+        .btn-primary-shadow {
+            box-shadow: 0 4px 14px hsla(221, 83%, 53%, 0.3);
+        }
+        
+        .glass {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .card-complete {
+            border-left: 4px solid hsl(142, 76%, 36%);
+            background: linear-gradient(90deg, hsl(142, 76%, 36%, 0.05) 0%, transparent 30%);
+        }
+    </style>
+</head>
+<body class="text-foreground">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col">
+        
+        <!-- Header -->
+        <header class="sticky top-0 z-50 glass bg-background/80 border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-lg font-semibold">Push Day</h1>
+                <div class="flex items-center gap-2">
+                    <!-- View toggle - List active -->
+                    <div class="flex bg-muted rounded-lg p-0.5">
+                        <button class="p-2 rounded-md text-muted-foreground">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </button>
+                        <button class="p-2 rounded-md bg-card shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="flex-1 px-4 pb-24 space-y-4 pt-4">
+            
+            <!-- Compact Week Nav + Progress combined -->
+            <div class="bg-card rounded-2xl card-shadow p-4 pressable">
+                <div class="flex items-center justify-between mb-3">
+                    <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted btn-press">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <div class="text-center flex-1">
+                        <p class="text-lg font-bold">Week 2 / 8</p>
+                    </div>
+                    <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted btn-press">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="h-2 bg-muted rounded-full overflow-hidden">
+                    <div class="h-full progress-gradient rounded-full transition-all duration-500" style="width: 35%"></div>
+                </div>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span class="text-muted-foreground">15/43 sets</span>
+                    <span class="font-semibold text-primary">35%</span>
+                </div>
+            </div>
+            
+            <!-- Compact List View Cards -->
+            <div class="space-y-2">
+                
+                <!-- List Item - In Progress -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                            <img 
+                                src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/shoulder_press-LYx3NMWvgFfwlXQAG4nFo4diRcQIKX.jpg" 
+                                alt="Shoulder Press"
+                                class="w-full h-full object-contain"
+                            >
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Shoulder Press</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-muted-foreground">2/6 sets</span>
+                                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div class="h-full progress-gradient rounded-full" style="width: 33%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-primary hover:text-primary">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center btn-press">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-success text-white flex items-center justify-center btn-press" title="Mark all done">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- List Item - Not started -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                            <img 
+                                src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/bicep_curls-cFNt2Lg4YaLerI0WuzVIwIKhhd40zV.jpg" 
+                                alt="Bicep Curls"
+                                class="w-full h-full object-contain"
+                            >
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Bicep Curls</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-muted-foreground">0/4 sets</span>
+                                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div class="h-full progress-gradient rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-primary hover:text-primary">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center btn-press">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-success text-white flex items-center justify-center btn-press" title="Mark all done">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- List Item - Not started -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                            <img 
+                                src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/deadlifts-A89avZ3LDg6CGpCckxzYBq9tUyhwfx.jpg" 
+                                alt="Deadlifts"
+                                class="w-full h-full object-contain"
+                            >
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Deadlifts</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-muted-foreground">0/5 sets</span>
+                                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div class="h-full progress-gradient rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-primary hover:text-primary">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center btn-press">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-success text-white flex items-center justify-center btn-press" title="Mark all done">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- List Item - Not started -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                            <img 
+                                src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/single_leg_press-K63hBBsvDyHZOiqaIVBCarp6wfV37i.jpg" 
+                                alt="Single Leg Press"
+                                class="w-full h-full object-contain"
+                            >
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Single Leg Press</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-muted-foreground">0/4 sets</span>
+                                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div class="h-full progress-gradient rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-primary hover:text-primary">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center btn-press">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-success text-white flex items-center justify-center btn-press" title="Mark all done">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Divider -->
+                <div class="pt-2">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Completed</p>
+                </div>
+                
+                <!-- List Item - Completed -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable card-complete">
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex-shrink-0">
+                            <div class="w-12 h-12 rounded-lg bg-muted overflow-hidden">
+                                <img 
+                                    src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/chin-ups-OfqQ6lwuzsRClMrE0XqZlg2LOQ58C7.jpg" 
+                                    alt="Chin-ups"
+                                    class="w-full h-full object-contain"
+                                >
+                            </div>
+                            <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-success flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Chin-ups</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-success font-medium">4/4 sets ✓</span>
+                                <div class="flex-1 h-1.5 bg-success/20 rounded-full overflow-hidden">
+                                    <div class="h-full progress-success rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-destructive hover:text-destructive" title="Remove set">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full border border-success bg-success/10 flex items-center justify-center text-success">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- List Item - Completed -->
+                <div class="bg-card rounded-xl card-shadow p-3 pressable card-complete">
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex-shrink-0">
+                            <div class="w-12 h-12 rounded-lg bg-muted overflow-hidden">
+                                <img 
+                                    src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/reverse_lunges-GQ4y9nGujgn2H0Fdu35TNjL5IBdfwR.jpg" 
+                                    alt="Reverse Lunges"
+                                    class="w-full h-full object-contain"
+                                >
+                            </div>
+                            <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-success flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold truncate">Reverse Lunges</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-success font-medium">3/3 sets ✓</span>
+                                <div class="flex-1 h-1.5 bg-success/20 rounded-full overflow-hidden">
+                                    <div class="h-full progress-success rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground btn-press hover:border-destructive hover:text-destructive" title="Remove set">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <button class="w-8 h-8 rounded-full border border-success bg-success/10 flex items-center justify-center text-success">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+        
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 z-50 glass bg-background/90 border-t border-border">
+            <div class="max-w-md mx-auto flex justify-around py-2">
+                <button class="flex flex-col items-center py-2 px-4 text-primary">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span class="text-xs mt-1 font-medium">Workout</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Plans</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Progress</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Settings</span>
+                </button>
+            </div>
+        </nav>
+        
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Training App - Workout View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        background: 'hsl(210, 20%, 98%)',
+                        foreground: 'hsl(222, 47%, 11%)',
+                        card: 'hsl(0, 0%, 100%)',
+                        muted: 'hsl(210, 40%, 96%)',
+                        'muted-foreground': 'hsl(215, 16%, 47%)',
+                        primary: 'hsl(221, 83%, 53%)',
+                        'primary-foreground': 'hsl(210, 40%, 98%)',
+                        border: 'hsl(214, 32%, 91%)',
+                        success: 'hsl(142, 76%, 36%)',
+                        'muscle-badge': 'hsl(210, 100%, 95%)',
+                        'muscle-badge-text': 'hsl(210, 100%, 40%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, hsl(221, 83%, 53%, 0.08) 0%, transparent 50%),
+                linear-gradient(225deg, hsl(262, 83%, 58%, 0.06) 0%, transparent 50%),
+                hsl(210, 20%, 98%);
+            min-height: 100vh;
+        }
+
+        /* Press effect */
+        .pressable {
+            transition: transform 100ms ease-out, box-shadow 100ms ease-out;
+        }
+
+        .pressable:active {
+            transform: scale(0.97);
+        }
+
+        /* Button press */
+        .btn-press:active {
+            transform: scale(0.9);
+        }
+
+        /* Gradient progress bar */
+        .progress-gradient {
+            background: linear-gradient(90deg, hsl(221, 83%, 53%) 0%, hsl(221, 83%, 60%) 100%);
+        }
+
+        .progress-success {
+            background: linear-gradient(90deg, hsl(142, 76%, 36%) 0%, hsl(152, 69%, 31%) 100%);
+        }
+
+        /* Card shadow */
+        .card-shadow {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Primary button shadow */
+        .btn-primary-shadow {
+            box-shadow: 0 4px 14px hsla(221, 83%, 53%, 0.3);
+        }
+
+        .btn-success-shadow {
+            box-shadow: 0 4px 14px hsla(142, 76%, 36%, 0.3);
+        }
+
+        /* Backdrop blur */
+        .glass {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Completed card */
+        .card-complete {
+            border: 2px solid hsl(142, 76%, 36%, 0.5);
+            background: linear-gradient(135deg, hsl(142, 76%, 36%, 0.05) 0%, transparent 100%);
+        }
+
+        /* Animation for completion */
+        @keyframes pulse-success {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 hsla(142, 76%, 36%, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px hsla(142, 76%, 36%, 0);
+            }
+        }
+
+        .pulse-success {
+            animation: pulse-success 1s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="text-foreground">
+    <!-- Mobile container -->
+    <div class="max-w-md mx-auto min-h-screen flex flex-col">
+
+        <!-- Header (sticky with blur) -->
+        <header class="sticky top-0 z-50 glass bg-background/80 border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-lg font-semibold">Push Day</h1>
+                <button
+                    class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                    <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="flex-1 px-4 pb-24 space-y-4 pt-4">
+
+            <!-- Week Navigator -->
+            <div class="bg-card rounded-2xl card-shadow p-4 pressable">
+                <div class="flex items-center justify-between">
+                    <button
+                        class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors btn-press">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div class="text-center">
+                        <p class="text-xs text-muted-foreground uppercase tracking-wider">Week</p>
+                        <p class="text-2xl font-bold">2 <span class="text-muted-foreground font-normal">/ 8</span></p>
+                    </div>
+                    <button
+                        class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors btn-press">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weekly Progress Card -->
+            <div class="bg-card rounded-2xl card-shadow overflow-hidden pressable relative">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+                <div class="relative p-5 space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">Weekly Progress</p>
+                            <p class="text-3xl font-bold tracking-tight">35%</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-primary">15</p>
+                            <p class="text-sm text-muted-foreground">of 43 sets</p>
+                        </div>
+                    </div>
+                    <div class="h-3 bg-muted rounded-full overflow-hidden">
+                        <div class="h-full progress-gradient rounded-full transition-all duration-700"
+                            style="width: 35%"></div>
+                    </div>
+                    <p class="text-sm font-medium text-center text-muted-foreground">Keep pushing! 💪</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="bg-muted p-1 rounded-xl">
+                <div class="flex">
+                    <button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium bg-card shadow-sm">
+                        Exercises
+                    </button>
+                    <button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-muted-foreground">
+                        Workouts
+                    </button>
+                    <button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-muted-foreground">
+                        Active
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exercise Cards -->
+            <div class="space-y-3">
+
+                <!-- Exercise Card 1 - In Progress -->
+                <div class="bg-card rounded-2xl card-shadow p-4 pressable">
+                    <div class="flex gap-4">
+                        <div class="w-20 h-20 rounded-xl bg-muted flex-shrink-0 overflow-hidden">
+                            <img src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/shoulder_press-LYx3NMWvgFfwlXQAG4nFo4diRcQIKX.jpg"
+                                alt="Shoulder Press" class="w-full h-full object-contain">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between">
+                                <h3 class="text-lg font-bold tracking-tight">Shoulder Press</h3>
+                                <button
+                                    class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-primary/10">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-muted-foreground">8 reps • 55kg</p>
+                            <p class="text-base font-semibold mt-1">Sets: 2/6</p>
+                        </div>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+                        <div class="h-full progress-gradient rounded-full transition-all duration-500"
+                            style="width: 33%"></div>
+                    </div>
+
+                    <div class="h-px bg-border/50 my-4"></div>
+
+                    <!-- Footer -->
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-muscle-badge text-muscle-badge-text">
+                            Shoulders
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground btn-press transition-all hover:border-primary hover:text-primary">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4">
+                                    </path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white btn-press transition-all btn-primary-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-success to-emerald-600 text-white btn-press transition-all btn-success-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exercise Card 2 - Not Started -->
+                <div class="bg-card rounded-2xl card-shadow p-4 pressable">
+                    <div class="flex gap-4">
+                        <div class="w-20 h-20 rounded-xl bg-muted flex-shrink-0 overflow-hidden">
+                            <img src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/bicep_curls-cFNt2Lg4YaLerI0WuzVIwIKhhd40zV.jpg"
+                                alt="Bicep Curls" class="w-full h-full object-contain">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between">
+                                <h3 class="text-lg font-bold tracking-tight">Bicep Curls</h3>
+                                <button
+                                    class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-primary/10">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-muted-foreground">10 reps • 15kg</p>
+                            <p class="text-base font-semibold mt-1">Sets: 0/4</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+                        <div class="h-full progress-gradient rounded-full transition-all duration-500"
+                            style="width: 0%"></div>
+                    </div>
+
+                    <div class="h-px bg-border/50 my-4"></div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-muscle-badge text-muscle-badge-text">
+                            Biceps
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground btn-press transition-all hover:border-primary hover:text-primary">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4">
+                                    </path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white btn-press transition-all btn-primary-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-success to-emerald-600 text-white btn-press transition-all btn-success-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exercise Card 3 - Not Started -->
+                <div class="bg-card rounded-2xl card-shadow p-4 pressable">
+                    <div class="flex gap-4">
+                        <div class="w-20 h-20 rounded-xl bg-muted flex-shrink-0 overflow-hidden">
+                            <img src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/deadlifts-A89avZ3LDg6CGpCckxzYBq9tUyhwfx.jpg"
+                                alt="Deadlifts" class="w-full h-full object-contain">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between">
+                                <h3 class="text-lg font-bold tracking-tight">Deadlifts</h3>
+                                <button
+                                    class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-primary/10">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-muted-foreground">6 reps • 80kg</p>
+                            <p class="text-base font-semibold mt-1">Sets: 0/5</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+                        <div class="h-full progress-gradient rounded-full transition-all duration-500"
+                            style="width: 0%"></div>
+                    </div>
+
+                    <div class="h-px bg-border/50 my-4"></div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-muscle-badge text-muscle-badge-text">
+                            Back
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground btn-press transition-all hover:border-primary hover:text-primary">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4">
+                                    </path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white btn-press transition-all btn-primary-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                            <button
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-success to-emerald-600 text-white btn-press transition-all btn-success-shadow">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Section -->
+                <div class="mt-6">
+                    <button class="w-full flex items-center justify-between py-3 px-1 text-left">
+                        <span class="font-semibold text-muted-foreground">Completed Exercises (2)</span>
+                        <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7">
+                            </path>
+                        </svg>
+                    </button>
+
+                    <div class="space-y-3 mt-2">
+                        <!-- Completed Card 1 -->
+                        <div class="rounded-2xl card-shadow p-4 pressable card-complete">
+                            <div class="flex gap-4">
+                                <div class="relative flex-shrink-0">
+                                    <div class="w-20 h-20 rounded-xl bg-muted overflow-hidden">
+                                        <img src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/chin-ups-OfqQ6lwuzsRClMrE0XqZlg2LOQ58C7.jpg"
+                                            alt="Chin-ups" class="w-full h-full object-contain">
+                                    </div>
+                                    <div
+                                        class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-success flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-start justify-between">
+                                        <h3 class="text-lg font-bold tracking-tight">Chin-ups</h3>
+                                        <button
+                                            class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-primary/10">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p class="text-sm text-muted-foreground">8 reps • Bodyweight</p>
+                                    <p class="text-base font-semibold mt-1 text-success">Sets: 4/4 ✓</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 h-2 bg-success/20 rounded-full overflow-hidden">
+                                <div class="h-full progress-success rounded-full" style="width: 100%"></div>
+                            </div>
+
+                            <div class="h-px bg-success/20 my-4"></div>
+
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-medium bg-muscle-badge text-muscle-badge-text">
+                                    Back
+                                </span>
+                                <div class="flex items-center gap-2 opacity-50">
+                                    <button
+                                        class="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground"
+                                        disabled>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M20 12H4"></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center text-success bg-success/10"
+                                        disabled>
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Completed Card 2 -->
+                        <div class="rounded-2xl card-shadow p-4 pressable card-complete">
+                            <div class="flex gap-4">
+                                <div class="relative flex-shrink-0">
+                                    <div class="w-20 h-20 rounded-xl bg-muted overflow-hidden">
+                                        <img src="https://zdllzsw6qffmlxhs.public.blob.vercel-storage.com/reverse_lunges-GQ4y9nGujgn2H0Fdu35TNjL5IBdfwR.jpg"
+                                            alt="Reverse Lunges" class="w-full h-full object-contain">
+                                    </div>
+                                    <div
+                                        class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-success flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-start justify-between">
+                                        <h3 class="text-lg font-bold tracking-tight">Reverse Lunges</h3>
+                                        <button
+                                            class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-primary/10">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p class="text-sm text-muted-foreground">12 reps • Bodyweight</p>
+                                    <p class="text-base font-semibold mt-1 text-success">Sets: 3/3 ✓</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 h-2 bg-success/20 rounded-full overflow-hidden">
+                                <div class="h-full progress-success rounded-full" style="width: 100%"></div>
+                            </div>
+
+                            <div class="h-px bg-success/20 my-4"></div>
+
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-medium bg-muscle-badge text-muscle-badge-text">
+                                    Quadriceps
+                                </span>
+                                <div class="flex items-center gap-2 opacity-50">
+                                    <button
+                                        class="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground"
+                                        disabled>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M20 12H4"></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center text-success bg-success/10"
+                                        disabled>
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 z-50 glass bg-background/90 border-t border-border">
+            <div class="max-w-md mx-auto flex justify-around py-2">
+                <button class="flex flex-col items-center py-2 px-4 text-primary">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span class="text-xs mt-1 font-medium">Workout</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span class="text-xs mt-1">Plans</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Progress</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Settings</span>
+                </button>
+            </div>
+        </nav>
+
+    </div>
+</body>
+
+</html>

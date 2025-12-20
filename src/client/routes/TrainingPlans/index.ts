@@ -1,0 +1,2 @@
+export { TrainingPlans } from './TrainingPlans';
+

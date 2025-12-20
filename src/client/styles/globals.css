@@ -59,6 +59,22 @@
 
         --success: 142 71% 45%;
         --warning: 48 96% 53%;
+
+        /* Training App - Layout tokens */
+        --touch-target-min: 44px;
+        --exercise-image-sm: 48px;
+        --exercise-image-md: 60px;
+        --exercise-image-lg: 80px;
+        --page-padding: 1rem;
+        --card-gap: 0.75rem;
+        --section-gap: 1.5rem;
+
+        /* Training App - Semantic colors */
+        --exercise-complete: 142 76% 36%;
+        --exercise-selected-bg: var(--primary) / 0.1;
+        --muscle-badge-bg: 210 100% 95%;
+        --muscle-badge-text: 210 100% 40%;
+        --muscle-badge-border: 210 100% 85%;
     }
 
     .dark {
@@ -95,6 +111,12 @@
 
         --success: 142 71% 45%;
         --warning: 48 96% 53%;
+
+        /* Training App - Dark mode semantic colors */
+        --exercise-complete: 142 76% 36%;
+        --muscle-badge-bg: 210 100% 20%;
+        --muscle-badge-text: 210 100% 80%;
+        --muscle-badge-border: 210 100% 30%;
     }
 
     * {

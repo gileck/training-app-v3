@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Training App - Training Plans</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        background: 'hsl(210, 20%, 98%)',
+                        foreground: 'hsl(222, 47%, 11%)',
+                        card: 'hsl(0, 0%, 100%)',
+                        muted: 'hsl(210, 40%, 96%)',
+                        'muted-foreground': 'hsl(215, 16%, 47%)',
+                        primary: 'hsl(221, 83%, 53%)',
+                        'primary-foreground': 'hsl(210, 40%, 98%)',
+                        border: 'hsl(214, 32%, 91%)',
+                        success: 'hsl(142, 76%, 36%)',
+                        destructive: 'hsl(0, 84%, 60%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, hsl(221, 83%, 53%, 0.08) 0%, transparent 50%),
+                        linear-gradient(225deg, hsl(262, 83%, 58%, 0.06) 0%, transparent 50%),
+                        hsl(210, 20%, 98%);
+            min-height: 100vh;
+        }
+        
+        .pressable {
+            transition: transform 100ms ease-out, box-shadow 100ms ease-out;
+        }
+        .pressable:active {
+            transform: scale(0.97);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        
+        .btn-primary-shadow {
+            box-shadow: 0 4px 14px hsla(221, 83%, 53%, 0.3);
+        }
+        
+        .glass {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .card-active {
+            border: 2px solid hsl(221, 83%, 53%);
+            background: linear-gradient(135deg, hsl(221, 83%, 53%, 0.05) 0%, transparent 100%);
+        }
+        
+        /* FAB animation */
+        .fab {
+            transition: transform 100ms ease-out, box-shadow 100ms ease-out;
+        }
+        .fab:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body class="text-foreground">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col">
+        
+        <!-- Header -->
+        <header class="sticky top-0 z-50 glass bg-background/80 border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-bold">Training Plans</h1>
+            </div>
+        </header>
+        
+        <main class="flex-1 px-4 pb-24 pt-4">
+            
+            <!-- Plans list -->
+            <div class="space-y-3">
+                
+                <!-- Active Plan Card -->
+                <div class="rounded-2xl card-shadow p-5 pressable card-active">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold">Push Day Program</h3>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary text-white">
+                                    Active
+                                </span>
+                            </div>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                8 weeks • 12 exercises
+                            </p>
+                        </div>
+                        <button class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Progress -->
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-muted-foreground">Week 2 of 8</span>
+                            <span class="font-semibold text-primary">25%</span>
+                        </div>
+                        <div class="h-2 bg-primary/20 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full" style="width: 25%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="flex-1 h-10 rounded-xl bg-primary text-white font-medium text-sm hover:bg-primary/90 transition-colors">
+                            Continue Workout
+                        </button>
+                        <button class="h-10 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
+                            Manage
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Inactive Plan -->
+                <div class="bg-card rounded-2xl card-shadow p-5 pressable">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold">Leg Day Focus</h3>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                6 weeks • 8 exercises
+                            </p>
+                        </div>
+                        <button class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="flex-1 h-10 rounded-xl border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-colors">
+                            Set as Active
+                        </button>
+                        <button class="h-10 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
+                            Manage
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Inactive Plan -->
+                <div class="bg-card rounded-2xl card-shadow p-5 pressable">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold">Full Body Workout</h3>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                12 weeks • 15 exercises
+                            </p>
+                        </div>
+                        <button class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="flex-1 h-10 rounded-xl border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-colors">
+                            Set as Active
+                        </button>
+                        <button class="h-10 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
+                            Manage
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Completed Plan -->
+                <div class="bg-card rounded-2xl card-shadow p-5 pressable opacity-75">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold">Starter Program</h3>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-success/20 text-success">
+                                    Completed
+                                </span>
+                            </div>
+                            <p class="text-sm text-muted-foreground mt-1">
+                                4 weeks • 6 exercises
+                            </p>
+                        </div>
+                        <button class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Completed progress -->
+                    <div class="mb-4">
+                        <div class="h-2 bg-success/20 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-success to-emerald-500 rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
+                            Restart Plan
+                        </button>
+                        <button class="h-10 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
+                            View
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+        
+        <!-- FAB - Create Plan -->
+        <button class="fab fixed bottom-20 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center btn-primary-shadow z-40">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+        
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 z-50 glass bg-background/90 border-t border-border">
+            <div class="max-w-md mx-auto flex justify-around py-2">
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Workout</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-primary">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="text-xs mt-1 font-medium">Plans</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Progress</span>
+                </button>
+                <button class="flex flex-col items-center py-2 px-4 text-muted-foreground">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="text-xs mt-1">Settings</span>
+                </button>
+            </div>
+        </nav>
+        
+    </div>
+</body>
+</html>
+
