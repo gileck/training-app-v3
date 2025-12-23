@@ -2,6 +2,7 @@ import { get, set, del } from 'idb-keyval';
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
 import { logger } from '@/client/features/session-logs';
 import { formatBytes } from '@/client/lib/utils';
+import { QUERY_DEFAULTS } from '@/client/config';
 
 const CACHE_KEY = 'react-query-cache';
 const CACHE_BUSTER = 'v2'; // Increment to invalidate all cached data (v2: excluded reports from cache)
@@ -14,10 +15,11 @@ const CACHE_BUSTER = 'v2'; // Increment to invalidate all cached data (v2: exclu
 export type StorageType = 'localStorage' | 'indexedDB';
 
 /**
- * Maximum age for persisted cache (24 hours)
+ * Maximum age for persisted cache (7 days)
  * After this, the cache will be discarded and fresh data fetched
+ * Configured in @/client/config/defaults.ts
  */
-const MAX_AGE = 24 * 60 * 60 * 1000;
+const MAX_AGE = QUERY_DEFAULTS.PERSIST_MAX_AGE;
 
 /**
  * Calculate approximate size of an object in bytes

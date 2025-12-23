@@ -92,7 +92,7 @@ localStorage key: react-query-cache-v2
 <PersistQueryClientProvider
     persistOptions={{
         persister,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: QUERY_DEFAULTS.PERSIST_MAX_AGE, // 7 days (from @/client/config)
         dehydrateOptions: {
             shouldDehydrateQuery: (query) => {
                 // Only persist successful queries
@@ -107,8 +107,9 @@ localStorage key: react-query-cache-v2
 
 ```typescript
 // src/client/config/defaults.ts
-QUERY_DEFAULTS.STALE_TIME    // 30 seconds (data is "fresh")
-QUERY_DEFAULTS.GC_TIME       // 30 minutes (keep in memory)
+QUERY_DEFAULTS.STALE_TIME       // 30 seconds (data is "fresh")
+QUERY_DEFAULTS.GC_TIME          // 30 minutes (keep in memory after unmount)
+QUERY_DEFAULTS.PERSIST_MAX_AGE  // 7 days (localStorage/IndexedDB persistence)
 ```
 
 ### Excluding Queries from Persistence

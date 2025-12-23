@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "3474ab194f4b6890097635b8c4fe5b03a0381d4d",
-  "lastProjectCommit": "fe75ea0c48adef7e4dfa1945271cc74e08f1e91e",
-  "lastSyncDate": "2025-12-20T15:22:02.194Z",
+  "lastSyncCommit": "3275a212ff68aa355d13ff58b74421c1a4ddfb98",
+  "lastProjectCommit": "79d2249518ca6ff0b572d122f83fdcda8e6d1504",
+  "lastSyncDate": "2025-12-23T19:17:41.456Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,29 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-23T19:17:41.455Z",
+      "templateCommit": "3275a212ff68aa355d13ff58b74421c1a4ddfb98",
+      "projectCommit": "79d2249518ca6ff0b572d122f83fdcda8e6d1504",
+      "filesApplied": 9,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "3275a21 Document optimistic updates as required pattern, warn against server response UI updates \u001b[90m(2025-12-23)\u001b[0m\n  - Optimistic updates are now documented as REQUIRED for all mutations\n  - Added critical warning: never update UI from server response (causes race conditions)\n  - Added race condition example showing why this matters\n  - Added Online vs Offline behavior tables\n  - Updated Best Practices DO/DON'T sections\n  - Updated Core Principles and Summary in architecture.md",
+        "f2824e1 Use centralized QUERY_DEFAULTS.PERSIST_MAX_AGE (7 days) for React Query persistence \u001b[90m(2025-12-23)\u001b[0m\n  - Updated persister.ts to import from @/client/config instead of hardcoded 24 hours\n  - Updated docs/caching-strategy.md to reflect the 7-day persistence max age",
+        "fc14e45 feat(sync-template): improve commit display and AI token limit \u001b[90m(2025-12-23)\u001b[0m\n  - Show only headline (first line) of commits in console output\n  - Change date format to dd/mm/yyyy\n  - Increase maxOutputTokens from 150 to 500 to prevent truncation",
+        "b944846 docs: document iOS Safari/PWA viewport fix in BottomNavBar \u001b[90m(2025-12-23)\u001b[0m\n  - Remove unused useIOSKeyboardFix hook (Option 1)\n  - Add comprehensive JSDoc explaining the 100dvh layout solution\n  - Document what approaches didn't work and why\n  - Cross-reference Layout.tsx and BottomNavBar.tsx",
+        "067d01e fix(ios): Option 2 - use 100dvh layout instead of position:fixed \u001b[90m(2025-12-23)\u001b[0m\n  Option 1 (scroll jiggle) didn't fix scrolling down issue.\n  \n  Option 2 approach:\n  - Layout uses height: 100dvh on mobile (adjusts with iOS keyboard)\n  - Main content scrolls internally (overflow-y: auto)\n  - Navbar sits at bottom of flex container (no position:fixed)\n  - 100dvh automatically handles iOS viewport changes",
+        "d43a026 fix(ios): simplify - replace 500 lines with scroll jiggle workaround \u001b[90m(2025-12-23)\u001b[0m\n  The previous approach was overengineered. This simple fix:\n  1. When keyboard closes (focusout on input)\n  2. Do a tiny scroll jiggle (+1px then back)\n  3. This forces iOS to recalculate its viewport\n  \n  ~500 lines → ~90 lines. Sometimes simple is better.",
+        "4951b82 fix(ios): always apply offset in iOS quirk mode, remove vv_offsetTop check \u001b[90m(2025-12-23)\u001b[0m\n  Root cause: vv_offsetTop fluctuates between 0 and >0 during iOS scroll\n  animations, causing rapid offset toggling (flickering navbar).\n  \n  Fix: Once in iOS quirk mode (vv_height < innerHeight by ~68px), always\n  apply the 68px offset. This works for both scroll=0 (home indicator\n  visible) and scrolled states (navbar lifted into view). The previous\n  vv_offsetTop check was the source of the flickering.",
+        "8b40576 fix(ios): check vv_offsetTop to determine if offset needed when scrolled \u001b[90m(2025-12-23)\u001b[0m\n  Root cause: After keyboard closes in iOS PWA, when at scroll=0 the\n  navbar is visible in the home indicator area (vv_offsetTop=0). But\n  when scrolled DOWN, iOS shifts the visual viewport (vv_offsetTop=68)\n  and the navbar gets pushed below visible area.\n  \n  Fix: Check vv_offsetTop - only apply offset when scrolled (offsetTop > 0).\n  At scroll=0 (offsetTop=0), CSS safe area handles positioning.",
+        "dba4a53 fix(ios): use threshold instead of safe area for keyboard detection \u001b[90m(2025-12-23)\u001b[0m\n  The iOS viewport quirk after keyboard closes is ~68px, not equal to\n  safeAreaBottom (34px). Use a 100px threshold to distinguish between\n  iOS quirks (should be 0 offset) vs real keyboard/toolbar (needs offset).",
+        "94adca7 fix: revert yarn.lock to fix build \u001b[90m(2025-12-23)\u001b[0m",
+        "ce0978c fix(ios): prevent double-compensation for safe area inset \u001b[90m(2025-12-23)\u001b[0m\n  Root cause: After keyboard closes in iOS PWA mode, visualViewport.height\n  is 68px smaller than innerHeight due to the home indicator safe area.\n  Our calculation saw this as a 68px offset, but CSS already handles\n  safe area via paddingBottom: env(safe-area-inset-bottom).\n  \n  Fix: Measure safe-area-inset-bottom and subtract it from the calculated\n  offset to prevent double-compensation. When offset equals safe area\n  (and keyboard is not active), set offset to 0.",
+        "46e96b3 fix: resolve TypeScript errors \u001b[90m(2025-12-23)\u001b[0m\n  - Add explicit types array to tsconfig.json to avoid @types/minimatch stub issue\n  - Fix null return type in getViewportMeasurements function",
+        "a260f1a fix(ios): improved navbar positioning for iOS viewport issues \u001b[90m(2025-12-23)\u001b[0m\n  - New offset calculation using document coordinates (pageTop + height)\n  - Added requestAnimationFrame polling during keyboard animations\n  - Added comprehensive debug logging (enable with window.enableLogs('ios-viewport'))\n  - Handles both browser toolbar show/hide and PWA keyboard scenarios\n  - Added touch event handlers for iOS scroll momentum"
+      ]
+    },
     {
       "date": "2025-12-20T15:22:02.191Z",
       "templateCommit": "3474ab194f4b6890097635b8c4fe5b03a0381d4d",

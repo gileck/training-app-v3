@@ -1074,7 +1074,7 @@ class TemplateSyncTool {
       // Get full commit messages between lastSyncCommit and HEAD
       // Format: hash, date, subject, then body - separated by a delimiter
       const log = this.exec(
-        `git log ${this.config.lastSyncCommit}..HEAD --pretty=format:"---COMMIT---%n%h|%ad|%s%n%b" --date=short --no-decorate`,
+        `git log ${this.config.lastSyncCommit}..HEAD --pretty=format:"---COMMIT---%n%h|%ad|%s%n%b" --date=format:"%d/%m/%Y" --no-decorate`,
         { cwd: templatePath, silent: true }
       );
 
@@ -1186,13 +1186,10 @@ class TemplateSyncTool {
         this.log('\n✅ No new commits since last sync.');
       } else {
         this.log(`\n📝 New commits since last sync (${commits.length}):\n`);
-        commits.forEach((c, i) => {
-          // Indent each line of the commit message
-          const indented = c.split('\n').map(line => `   ${line}`).join('\n');
-          this.log(indented);
-          if (i < commits.length - 1) {
-            this.log(''); // Add blank line between commits
-          }
+        commits.forEach((c) => {
+          // Only show the first line (headline with date)
+          const headline = c.split('\n')[0];
+          this.log(`   ${headline}`);
         });
       }
 
@@ -1583,13 +1580,10 @@ class TemplateSyncTool {
       const templateCommits = this.getTemplateCommitsSinceLastSync();
       if (templateCommits.length > 0) {
         console.log(`\n📜 Template commits since last sync (${templateCommits.length}):\n`);
-        templateCommits.slice(0, 10).forEach((c, i) => {
-          // Indent each line of the commit message
-          const indented = c.split('\n').map(line => `   ${line}`).join('\n');
-          console.log(indented);
-          if (i < Math.min(templateCommits.length, 10) - 1) {
-            console.log(''); // Add blank line between commits
-          }
+        templateCommits.slice(0, 10).forEach((c) => {
+          // Only show the first line (headline with date)
+          const headline = c.split('\n')[0];
+          console.log(`   ${headline}`);
         });
         if (templateCommits.length > 10) {
           console.log(`\n   ... and ${templateCommits.length - 10} more`);
@@ -1740,12 +1734,10 @@ class TemplateSyncTool {
         
         if (templateCommitsForReport.length > 0 && !this.options.quiet) {
           this.log(`\n📜 Template commits being synced (${templateCommitsForReport.length}):\n`);
-          templateCommitsForReport.forEach((c, i) => {
-            const indented = c.split('\n').map(line => `   ${line}`).join('\n');
-            this.log(indented);
-            if (i < templateCommitsForReport.length - 1) {
-              this.log('');
-            }
+          templateCommitsForReport.forEach((c) => {
+            // Only show the first line (headline with date)
+            const headline = c.split('\n')[0];
+            this.log(`   ${headline}`);
           });
         }
         

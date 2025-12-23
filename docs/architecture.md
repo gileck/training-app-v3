@@ -67,7 +67,7 @@ This document provides a high-level overview of the application architecture, de
 
 1. **Offline-First**: App works without network, syncs when online
 2. **Fast Boot**: App renders quickly using cached state (localStorage) and background validation
-3. **Optimistic Updates**: UI updates before server confirms
+3. **Optimistic Updates (Required)**: All mutations MUST update UI immediately before server confirms. Server responses should NOT update UI (only trigger error rollback or background invalidation)
 4. **Feature-Based Organization**: Code is organized by feature, not type
 
 ---
@@ -324,34 +324,78 @@ const isOffline = useEffectiveOffline();
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Optimistic Updates
+### Optimistic Updates (Required Pattern)
 
-Mutations update the UI immediately, then sync with server:
+**Optimistic updates are REQUIRED for all mutations** in this application. They provide:
+- **Instant feedback**: UI responds in ~0ms instead of waiting for network
+- **Offline support**: UI works even when network is unavailable
+- **Native-like UX**: App feels as fast as native mobile apps
+
+#### The Pattern
 
 ```typescript
 useMutation({
     mutationFn: updateTodo,
     
-    // Update UI immediately
+    // 1. OPTIMISTIC UPDATE: Update UI immediately (before server responds)
     onMutate: async (newData) => {
+        await queryClient.cancelQueries({ queryKey: ['todos'] });
         const previous = queryClient.getQueryData(['todos']);
         queryClient.setQueryData(['todos'], optimisticUpdate(newData));
         return { previous };
     },
     
-    // Rollback on error
+    // 2. ROLLBACK: Restore previous state on error (online mode only)
     onError: (err, vars, context) => {
         queryClient.setQueryData(['todos'], context.previous);
+        toast.error('Failed to update');
     },
     
-    // Handle offline (data may be {})
-    onSuccess: (data) => {
-        if (data && data.id) {
-            queryClient.setQueryData(['todos', data.id], data);
-        }
+    // 3. INVALIDATE ONLY: Do NOT update UI from server response
+    onSuccess: () => {
+        // Just invalidate to refetch in background - UI is already correct
+        queryClient.invalidateQueries({ queryKey: ['todos'] });
     },
 });
 ```
+
+#### ⚠️ Critical: Do NOT Update UI from Server Response
+
+**Never use server response data to update the UI** in `onSuccess`. This causes race conditions:
+
+```typescript
+// ❌ WRONG: Race condition bug
+onSuccess: (data) => {
+    // This overwrites optimistic update with stale server data!
+    queryClient.setQueryData(['todos', data.id], data);
+},
+
+// ✅ CORRECT: Only invalidate, let background refetch handle sync
+onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['todos'] });
+},
+```
+
+**Why this matters:**
+1. User clicks "Mark Done" → optimistic update shows ✓
+2. User clicks "Mark Undone" → optimistic update shows ○
+3. First server response arrives → **overwrites to ✓** (stale data!)
+4. Second server response arrives → finally shows ○
+
+By only invalidating, the background refetch gets the final correct state.
+
+#### Offline Mode Behavior
+
+| Mode | `onMutate` | `onError` | `onSuccess` |
+|------|------------|-----------|-------------|
+| **Online** | Updates UI | Rollback + show error | Invalidate queries |
+| **Offline** | Updates UI | Never called (queued) | Called with `{}` data |
+
+When offline:
+- Mutations are queued to localStorage (not sent to server)
+- `onSuccess` is called immediately with empty `{}` data
+- UI stays updated from `onMutate`
+- When online, batch sync sends queued requests
 
 📚 **Detailed Documentation**: [offline-pwa-support.md](./offline-pwa-support.md)
 
@@ -533,7 +577,8 @@ This architecture enables:
 
 ✅ **Instant startup** - App renders immediately from cache  
 ✅ **Offline-first** - Full functionality without network  
-✅ **Native-like UX** - Optimistic updates, no loading spinners  
+✅ **Native-like UX** - Required optimistic updates, no loading spinners  
+✅ **No race conditions** - Server responses don't update UI, only invalidate  
 ✅ **Maintainable code** - Feature-based organization  
 ✅ **Type safety** - End-to-end TypeScript  
 ✅ **Enforced patterns** - ESLint rules ensure consistency

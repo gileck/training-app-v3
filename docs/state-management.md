@@ -265,7 +265,7 @@ React Query handles all the complexity of server state:
 - **Caching**: Automatic with configurable stale times
 - **Deduplication**: Multiple components share one request
 - **Background refresh**: Updates stale data automatically
-- **Optimistic updates**: UI updates before server confirms
+- **Optimistic updates**: UI updates before server confirms **(REQUIRED in this app)**
 - **Persistence**: localStorage for offline support
 
 ### Query Hook Pattern
@@ -298,7 +298,12 @@ export function useItems(options?: { enabled?: boolean }) {
 }
 ```
 
-### Mutation Hook Pattern
+### Mutation Hook Pattern (Optimistic Updates Required)
+
+**Optimistic updates are REQUIRED for all mutations** to ensure:
+- **Instant feedback**: UI responds immediately without waiting for network
+- **Offline support**: UI works when network is unavailable
+- **Native-like UX**: App feels as responsive as native mobile apps
 
 ```typescript
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -316,15 +321,15 @@ export function useUpdateItem() {
             return response.data?.item;
         },
         
-        // STEP 1: Optimistic update (before request)
+        // STEP 1: OPTIMISTIC UPDATE - Update UI immediately (before server responds)
         onMutate: async (variables) => {
-            // Cancel in-flight queries
+            // Cancel in-flight queries to prevent race conditions
             await queryClient.cancelQueries({ queryKey: itemsQueryKey });
             
             // Snapshot for rollback
             const previousItems = queryClient.getQueryData(itemsQueryKey);
             
-            // Optimistically update cache
+            // Optimistically update cache - UI updates NOW
             queryClient.setQueryData(itemsQueryKey, (old) => ({
                 items: old.items.map((item) =>
                     item._id === variables.itemId
@@ -336,23 +341,59 @@ export function useUpdateItem() {
             return { previousItems };
         },
         
-        // STEP 2: Rollback on error
+        // STEP 2: ROLLBACK - Restore on error (online mode only)
         onError: (_err, _variables, context) => {
             if (context?.previousItems) {
                 queryClient.setQueryData(itemsQueryKey, context.previousItems);
             }
+            toast.error('Failed to update item');
         },
         
-        // STEP 3: Update cache on success
-        // ⚠️ CRITICAL: Guard against empty data (offline mode)
-        onSuccess: (data) => {
-            if (data && data._id) {
-                queryClient.setQueryData(itemQueryKey(data._id), { item: data });
-            }
+        // STEP 3: INVALIDATE ONLY - Do NOT update UI from server response
+        onSuccess: () => {
+            // Only invalidate - background refetch will sync final state
             queryClient.invalidateQueries({ queryKey: itemsQueryKey });
         },
     });
 }
+```
+
+#### ⚠️ Critical: Do NOT Update UI from Server Response
+
+**Never use server response data to update the UI** in `onSuccess`. This causes race conditions:
+
+```typescript
+// ❌ WRONG: Causes race condition bugs
+onSuccess: (data) => {
+    if (data && data._id) {
+        // This overwrites optimistic update with potentially stale server data!
+        queryClient.setQueryData(itemQueryKey(data._id), { item: data });
+    }
+    queryClient.invalidateQueries({ queryKey: itemsQueryKey });
+},
+
+// ✅ CORRECT: Only invalidate, let background refetch handle sync
+onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: itemsQueryKey });
+},
+```
+
+**Race condition example:**
+1. User updates item to "A" → optimistic update shows "A"
+2. User quickly updates to "B" → optimistic update shows "B"  
+3. First server response returns "A" → **UI incorrectly shows "A"**
+4. Second response returns "B" → UI finally shows "B"
+
+By only invalidating queries, the background refetch gets the final correct state.
+
+#### Offline Mode Behavior
+
+| Mode | `onMutate` | `onError` | `onSuccess` |
+|------|------------|-----------|-------------|
+| **Online** | Updates UI immediately | Rollback + show error | Invalidate queries |
+| **Offline** | Updates UI immediately | Never called (request queued) | Called with `{}` data |
+
+When offline, mutations are queued and synced later via batch updates
 ```
 
 ### Query Keys Convention
@@ -627,9 +668,17 @@ const theme = useSettingsStore((s) => s.settings.theme);
 // Export query keys for external invalidation
 export const todosQueryKey = ['todos'] as const;
 
-// Guard against empty data in mutations
-onSuccess: (data) => {
-    if (data && data.id) { /* ... */ }
+// ALWAYS implement optimistic updates for mutations
+onMutate: async (newData) => {
+    await queryClient.cancelQueries({ queryKey: ['items'] });
+    const previous = queryClient.getQueryData(['items']);
+    queryClient.setQueryData(['items'], optimisticUpdate(newData));
+    return { previous };
+},
+
+// Only invalidate in onSuccess - never update UI from server response
+onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['items'] });
 },
 
 // Use centralized config
@@ -651,10 +700,14 @@ const store = useSettingsStore(); // BAD
 // Don't hardcode cache times
 staleTime: 30000, // BAD - use QUERY_DEFAULTS.STALE_TIME
 
-// Don't assume data exists in onSuccess
+// Don't update UI from server response (causes race conditions)
 onSuccess: (data) => {
-    cache.set(data.id); // BAD - data may be {} when offline
+    queryClient.setQueryData(['items', data.id], data); // BAD - race condition!
 },
+
+// Don't skip optimistic updates (required for offline + fast UX)
+// BAD - no onMutate means UI waits for server
+useMutation({ mutationFn: updateItem });
 
 // Don't use useState for server data
 const [todos, setTodos] = useState([]); // BAD - use React Query

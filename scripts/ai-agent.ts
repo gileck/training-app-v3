@@ -67,7 +67,7 @@ export async function askAgent(prompt: string): Promise<string | null> {
         const request = client.models.generateContent({
             model: MODEL,
             contents: prompt,
-            config: { maxOutputTokens: 150, temperature: 0.3 }
+            config: { maxOutputTokens: 500, temperature: 0.3 }
         }).then(r => r.text?.trim() || null);
 
         return await Promise.race([request, timeout]);
