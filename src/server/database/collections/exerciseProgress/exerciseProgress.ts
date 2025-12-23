@@ -122,4 +122,69 @@ export const deleteExerciseProgressByPlanExerciseId = async (
     return result.deletedCount;
 };
 
+/**
+ * Atomically increment setsCompleted by 1, respecting max bound.
+ * Uses MongoDB $inc operator to prevent race conditions from rapid clicks.
+ * Returns the updated document, or null if already at max.
+ */
+export const atomicIncrementSets = async (
+    weeklyProgressId: ObjectId | string,
+    planExerciseId: ObjectId | string,
+    maxSets: number
+): Promise<ExerciseProgress | null> => {
+    const collection = await getCollection();
+    const weeklyProgressIdObj =
+        typeof weeklyProgressId === 'string' ? new ObjectId(weeklyProgressId) : weeklyProgressId;
+    const planExerciseIdObj =
+        typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
+
+    // Atomically increment only if current value is below max
+    const result = await collection.findOneAndUpdate(
+        {
+            weeklyProgressId: weeklyProgressIdObj,
+            planExerciseId: planExerciseIdObj,
+            setsCompleted: { $lt: maxSets },
+        },
+        {
+            $inc: { setsCompleted: 1 },
+            $set: { updatedAt: new Date() },
+        },
+        { returnDocument: 'after' }
+    );
+
+    return result || null;
+};
+
+/**
+ * Atomically decrement setsCompleted by 1, respecting min bound of 0.
+ * Uses MongoDB $inc operator to prevent race conditions from rapid clicks.
+ * Returns the updated document, or null if already at 0.
+ */
+export const atomicDecrementSets = async (
+    weeklyProgressId: ObjectId | string,
+    planExerciseId: ObjectId | string
+): Promise<ExerciseProgress | null> => {
+    const collection = await getCollection();
+    const weeklyProgressIdObj =
+        typeof weeklyProgressId === 'string' ? new ObjectId(weeklyProgressId) : weeklyProgressId;
+    const planExerciseIdObj =
+        typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
+
+    // Atomically decrement only if current value is above 0
+    const result = await collection.findOneAndUpdate(
+        {
+            weeklyProgressId: weeklyProgressIdObj,
+            planExerciseId: planExerciseIdObj,
+            setsCompleted: { $gt: 0 },
+        },
+        {
+            $inc: { setsCompleted: -1 },
+            $set: { updatedAt: new Date() },
+        },
+        { returnDocument: 'after' }
+    );
+
+    return result || null;
+};
+
 

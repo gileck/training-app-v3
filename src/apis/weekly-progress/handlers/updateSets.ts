@@ -7,6 +7,11 @@ import {
     exerciseProgress,
     setLogs,
 } from '@/server/database';
+import {
+    atomicIncrementSets,
+    atomicDecrementSets,
+    findOrCreateExerciseProgress,
+} from '@/server/database/collections/exerciseProgress';
 
 export const updateSets = async (
     request: UpdateSetsRequest,
@@ -56,18 +61,23 @@ export const updateSets = async (
             request.weekNumber
         );
 
-        // Get current progress for this exercise
-        const currentProgress = await exerciseProgress.findExerciseProgress(
-            weekProgress._id,
-            request.planExerciseId
-        );
+        // Ensure exercise progress document exists before atomic operations
+        await findOrCreateExerciseProgress(weekProgress._id, request.planExerciseId);
 
-        let setsCompleted = currentProgress?.setsCompleted || 0;
+        let setsCompleted: number;
+        let isDone: boolean;
 
         if (request.action === 'add') {
-            // Only add if not already at max sets
-            if (setsCompleted < exercise.sets) {
-                setsCompleted += 1;
+            // Use atomic increment to prevent race conditions from rapid clicks
+            const updated = await atomicIncrementSets(
+                weekProgress._id,
+                request.planExerciseId,
+                exercise.sets
+            );
+
+            if (updated) {
+                setsCompleted = updated.setsCompleted;
+                isDone = setsCompleted >= exercise.sets;
 
                 // Create set log entry
                 await setLogs.createSetLog({
@@ -78,10 +88,62 @@ export const updateSets = async (
                     setNumber: setsCompleted,
                     completedAt: new Date(),
                 });
+
+                // Update isDone flag if needed
+                if (isDone) {
+                    await exerciseProgress.updateExerciseProgress(
+                        weekProgress._id,
+                        request.planExerciseId,
+                        { isDone: true }
+                    );
+                }
+            } else {
+                // Already at max sets, return current state
+                const current = await exerciseProgress.findExerciseProgress(
+                    weekProgress._id,
+                    request.planExerciseId
+                );
+                setsCompleted = current?.setsCompleted || exercise.sets;
+                isDone = true;
             }
-        } else if (request.action === 'complete-all') {
-            // Complete all remaining sets at once
-            const remaining = exercise.sets - setsCompleted;
+        } else if (request.action === 'remove') {
+            // Use atomic decrement to prevent race conditions from rapid clicks
+            const updated = await atomicDecrementSets(
+                weekProgress._id,
+                request.planExerciseId
+            );
+
+            if (updated) {
+                setsCompleted = updated.setsCompleted;
+                isDone = setsCompleted >= exercise.sets;
+
+                // Delete the most recent set log
+                await setLogs.deleteLatestSetLog(
+                    context.userId,
+                    request.planExerciseId,
+                    request.weekNumber
+                );
+
+                // Update isDone flag if it changed
+                await exerciseProgress.updateExerciseProgress(
+                    weekProgress._id,
+                    request.planExerciseId,
+                    { isDone }
+                );
+            } else {
+                // Already at 0, return current state
+                setsCompleted = 0;
+                isDone = false;
+            }
+        } else {
+            // complete-all action - get current state first
+            const currentProgress = await exerciseProgress.findExerciseProgress(
+                weekProgress._id,
+                request.planExerciseId
+            );
+            const currentSets = currentProgress?.setsCompleted || 0;
+            const remaining = exercise.sets - currentSets;
+
             if (remaining > 0) {
                 // Create set log entries for all remaining sets
                 const setLogPromises = [];
@@ -92,34 +154,24 @@ export const updateSets = async (
                             planExerciseId: new ObjectId(request.planExerciseId),
                             planId: new ObjectId(request.planId),
                             weekNumber: request.weekNumber,
-                            setNumber: setsCompleted + i,
+                            setNumber: currentSets + i,
                             completedAt: new Date(),
                         })
                     );
                 }
                 await Promise.all(setLogPromises);
-                setsCompleted = exercise.sets;
             }
-        } else {
-            // Remove action
-            if (setsCompleted > 0) {
-                // Delete the most recent set log
-                await setLogs.deleteLatestSetLog(
-                    context.userId,
-                    request.planExerciseId,
-                    request.weekNumber
-                );
-                setsCompleted -= 1;
-            }
+
+            setsCompleted = exercise.sets;
+            isDone = true;
+
+            // Update to full completion
+            await exerciseProgress.updateExerciseProgress(
+                weekProgress._id,
+                request.planExerciseId,
+                { setsCompleted, isDone }
+            );
         }
-
-        const isDone = setsCompleted >= exercise.sets;
-
-        // Update exercise progress
-        await exerciseProgress.updateExerciseProgress(weekProgress._id, request.planExerciseId, {
-            setsCompleted,
-            isDone,
-        });
 
         return { setsCompleted, isDone };
     } catch (error: unknown) {
