@@ -78,21 +78,29 @@
     }
 
     .dark {
-        --background: 222 47% 6%;
-        /* Slate-950 */
+        /* Layered backgrounds - darkest to lightest for depth */
+        --background: 224 50% 4%;
+        /* Deep navy-black - page background */
         --foreground: 210 40% 96%;
 
-        --muted: 217 33% 17%;
-        --muted-foreground: 215 20% 65%;
-
-        --popover: 222 47% 6%;
-        --popover-foreground: 210 40% 98%;
-
-        --card: 222 47% 6%;
+        /* Elevated surfaces with subtle blue tint */
+        --card: 224 45% 8%;
+        /* Slightly elevated - cards stand out */
         --card-foreground: 210 40% 98%;
 
-        --border: 217 33% 17%;
-        --input: 217 33% 17%;
+        --popover: 224 42% 11%;
+        /* More elevated - dropdowns, modals */
+        --popover-foreground: 210 40% 98%;
+
+        --muted: 224 35% 14%;
+        /* Muted backgrounds - input groups, disabled areas */
+        --muted-foreground: 215 20% 60%;
+
+        /* Visible borders - subtle but clear */
+        --border: 224 25% 20%;
+        /* Visible border with blue tint */
+        --input: 224 30% 15%;
+        /* Input background - darker than card */
         --ring: 217 91% 60%;
 
         --primary: 217 91% 60%;
@@ -103,10 +111,12 @@
         /* Bright violet */
         --secondary-foreground: 222 84% 5%;
 
-        --accent: 217 33% 17%;
+        --accent: 224 35% 16%;
+        /* Accent background - hover states */
         --accent-foreground: 210 40% 98%;
 
-        --destructive: 0 63% 31%;
+        --destructive: 0 72% 51%;
+        /* Brighter red for visibility */
         --destructive-foreground: 210 40% 98%;
 
         --success: 142 71% 45%;
@@ -114,9 +124,9 @@
 
         /* Training App - Dark mode semantic colors */
         --exercise-complete: 142 76% 36%;
-        --muscle-badge-bg: 210 100% 20%;
-        --muscle-badge-text: 210 100% 80%;
-        --muscle-badge-border: 210 100% 30%;
+        --muscle-badge-bg: 217 50% 15%;
+        --muscle-badge-text: 217 90% 75%;
+        --muscle-badge-border: 217 50% 28%;
     }
 
     * {
@@ -144,6 +154,14 @@
         background-image:
             radial-gradient(600px circle at 0% -10%, hsl(var(--primary) / 0.08), transparent 40%),
             radial-gradient(800px circle at 100% 0%, hsl(var(--secondary) / 0.06), transparent 45%);
+    }
+
+    /* Enhanced dark mode atmosphere */
+    .dark body {
+        background-image:
+            radial-gradient(800px circle at 0% -15%, hsl(var(--primary) / 0.12), transparent 50%),
+            radial-gradient(600px circle at 100% 5%, hsl(var(--secondary) / 0.08), transparent 40%),
+            radial-gradient(1200px circle at 50% 100%, hsl(var(--primary) / 0.04), transparent 60%);
     }
 }
 
@@ -296,7 +314,8 @@
 }
 
 .dark .ios-input-group {
-    background: hsl(var(--muted) / 0.2);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
 }
 
 /* iOS-style button press effect */

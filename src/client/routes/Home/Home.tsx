@@ -139,6 +139,8 @@ export function Home() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgress | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
+    const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
@@ -656,6 +658,10 @@ export function Home() {
                                 <SavedWorkoutCard
                                     key={workout._id}
                                     workout={workout}
+                                    isExpanded={expandedWorkoutId === workout._id}
+                                    onToggleExpand={() => setExpandedWorkoutId(
+                                        expandedWorkoutId === workout._id ? null : workout._id
+                                    )}
                                     onStart={() => {
                                         // Convert saved workout exercises to session format
                                         // Note: Using exerciseDefId as planExerciseId since saved workouts aren't tied to plans
@@ -1179,44 +1185,79 @@ function ExerciseCardList({
 interface SavedWorkoutCardProps {
     workout: SavedWorkoutWithExercises;
     onStart: () => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
-function SavedWorkoutCard({ workout, onStart }: SavedWorkoutCardProps) {
+function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: SavedWorkoutCardProps) {
     return (
-        <Card className="rounded-xl border-0 shadow-sm">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-base truncate">{workout.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
-                        </p>
-                        {/* Exercise preview */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                            {workout.exercises.slice(0, 3).map((ex) => (
-                                <Badge
-                                    key={ex.exerciseDefId}
-                                    variant="outline"
-                                    className="text-xs"
-                                >
-                                    {ex.exerciseDef.name}
-                                </Badge>
-                            ))}
-                            {workout.exercises.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                    +{workout.exercises.length - 3} more
-                                </Badge>
-                            )}
+        <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+                {/* Header - clickable to expand */}
+                <div
+                    className="p-4 cursor-pointer active:bg-muted/50 transition-colors"
+                    onClick={onToggleExpand}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-base truncate">{workout.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                                </p>
+                            </div>
                         </div>
+                        <Button
+                            size="icon"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onStart();
+                            }}
+                            className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25"
+                        >
+                            <Play className="h-5 w-5" />
+                        </Button>
                     </div>
-                    <Button
-                        size="icon"
-                        onClick={onStart}
-                        className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25"
-                    >
-                        <Play className="h-5 w-5" />
-                    </Button>
                 </div>
+
+                {/* Expandable exercise list */}
+                {isExpanded && (
+                    <div className="border-t bg-muted/30">
+                        {workout.exercises.map((ex, index) => (
+                            <div
+                                key={ex.exerciseDefId}
+                                className={`flex items-center gap-3 p-3 ${index !== workout.exercises.length - 1 ? 'border-b border-border/50' : ''}`}
+                            >
+                                <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
+                                    {ex.exerciseDef.imageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={ex.exerciseDef.imageUrl}
+                                            alt={ex.exerciseDef.name}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-sm truncate">
+                                        {ex.exerciseDef.name}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        {ex.sets} sets × {ex.reps} reps
+                                        {ex.weight > 0 && ` • ${ex.weight}kg`}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
