@@ -17,6 +17,16 @@ export async function updateSavedWorkout(
             return { error: 'Workout ID is required' };
         }
 
+        // Check if this is a temporary ID (from optimistic update that hasn't synced)
+        if (request.workoutId.startsWith('temp-')) {
+            return { error: 'Cannot update workout that is still syncing. Please try again.' };
+        }
+
+        // Validate ObjectId format
+        if (!ObjectId.isValid(request.workoutId)) {
+            return { error: 'Invalid workout ID format' };
+        }
+
         // Check workout exists
         const existing = await savedWorkouts.findWorkoutById(request.workoutId, context.userId);
         if (!existing) {
