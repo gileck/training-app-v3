@@ -1519,104 +1519,164 @@ export function ManagePlan() {
 
             {/* Edit Exercise Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="rounded-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Edit Exercise</DialogTitle>
-                    </DialogHeader>
+                <DialogContent className="rounded-3xl p-0 gap-0 border-0 shadow-2xl overflow-hidden max-w-sm">
                     {exerciseToEdit && (
-                        <div className="space-y-4 py-4">
-                            <p className="font-medium">{exerciseToEdit.exerciseDef.name}</p>
+                        <>
+                            {/* Header with exercise info */}
+                            <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-background shadow-md overflow-hidden flex-shrink-0 relative border border-border/50">
+                                        {exerciseToEdit.exerciseDef.imageUrl ? (
+                                            <Image
+                                                src={exerciseToEdit.exerciseDef.imageUrl}
+                                                alt={exerciseToEdit.exerciseDef.name}
+                                                fill
+                                                className="object-contain p-1"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Dumbbell className="h-7 w-7 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h2 className="text-lg font-bold truncate">{exerciseToEdit.exerciseDef.name}</h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            {exerciseToEdit.exerciseDef.primaryMuscle}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <div className="grid gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Sets</Label>
-                                    <div className="flex items-center gap-3">
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setConfigSets((s) => Math.max(1, s - 1))}
-                                            className="h-10 w-10 rounded-lg"
-                                        >
-                                            -
-                                        </Button>
-                                        <span className="w-12 text-center font-semibold">
-                                            {configSets}
-                                        </span>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setConfigSets((s) => Math.min(10, s + 1))}
-                                            className="h-10 w-10 rounded-lg"
-                                        >
-                                            +
-                                        </Button>
+                            {/* Configuration controls */}
+                            <div className="p-6 pt-4 space-y-5">
+                                {/* Sets & Reps in a row */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Sets */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Sets
+                                        </label>
+                                        <div className="flex items-center justify-between bg-muted/50 rounded-xl p-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setConfigSets((s) => Math.max(1, s - 1))}
+                                                className="h-10 w-10 rounded-lg hover:bg-background"
+                                            >
+                                                <span className="text-lg font-medium">−</span>
+                                            </Button>
+                                            <span className="text-2xl font-bold tabular-nums">
+                                                {configSets}
+                                            </span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setConfigSets((s) => Math.min(10, s + 1))}
+                                                className="h-10 w-10 rounded-lg hover:bg-background"
+                                            >
+                                                <span className="text-lg font-medium">+</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Reps */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Reps
+                                        </label>
+                                        <div className="flex items-center justify-between bg-muted/50 rounded-xl p-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setConfigReps((r) => Math.max(1, r - 1))}
+                                                className="h-10 w-10 rounded-lg hover:bg-background"
+                                            >
+                                                <span className="text-lg font-medium">−</span>
+                                            </Button>
+                                            <span className="text-2xl font-bold tabular-nums">
+                                                {configReps}
+                                            </span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setConfigReps((r) => Math.min(50, r + 1))}
+                                                className="h-10 w-10 rounded-lg hover:bg-background"
+                                            >
+                                                <span className="text-lg font-medium">+</span>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Reps</Label>
-                                    <div className="flex items-center gap-3">
+                                {/* Weight */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Weight
+                                    </label>
+                                    <div className="flex items-center bg-muted/50 rounded-xl p-1">
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="icon"
-                                            onClick={() => setConfigReps((r) => Math.max(1, r - 1))}
-                                            className="h-10 w-10 rounded-lg"
+                                            onClick={() => setConfigWeight((w) => Math.max(0, w - 2.5))}
+                                            className="h-10 w-10 rounded-lg hover:bg-background"
                                         >
-                                            -
+                                            <span className="text-lg font-medium">−</span>
                                         </Button>
-                                        <span className="w-12 text-center font-semibold">
-                                            {configReps}
-                                        </span>
+                                        <div className="flex-1 text-center">
+                                            <Input
+                                                type="number"
+                                                value={configWeight}
+                                                onChange={(e) => setConfigWeight(Number(e.target.value))}
+                                                className="h-10 text-center text-2xl font-bold border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                        </div>
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="icon"
-                                            onClick={() => setConfigReps((r) => Math.min(50, r + 1))}
-                                            className="h-10 w-10 rounded-lg"
+                                            onClick={() => setConfigWeight((w) => w + 2.5)}
+                                            className="h-10 w-10 rounded-lg hover:bg-background"
                                         >
-                                            +
+                                            <span className="text-lg font-medium">+</span>
                                         </Button>
+                                        <span className="pr-3 text-sm font-medium text-muted-foreground">kg</span>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Weight (kg)</Label>
-                                    <Input
-                                        type="number"
-                                        value={configWeight}
-                                        onChange={(e) => setConfigWeight(Number(e.target.value))}
-                                        className="rounded-lg"
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Notes (optional)</Label>
+                                {/* Notes */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Notes
+                                    </label>
                                     <Textarea
                                         value={configComments}
                                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConfigComments(e.target.value)}
-                                        placeholder="Add any notes or reminders..."
-                                        className="rounded-lg resize-none"
-                                        rows={2}
+                                        placeholder="Add notes or reminders..."
+                                        className="rounded-xl resize-none bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px]"
                                     />
                                 </div>
                             </div>
-                        </div>
+
+                            {/* Footer */}
+                            <div className="p-4 pt-0 flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setEditDialogOpen(false)}
+                                    className="flex-1 h-12 rounded-xl font-semibold"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleSaveEdit}
+                                    disabled={updateExerciseMutation.isPending}
+                                    className="flex-1 h-12 rounded-xl font-semibold"
+                                >
+                                    {updateExerciseMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </>
                     )}
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setEditDialogOpen(false)}
-                            className="rounded-lg"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSaveEdit}
-                            disabled={updateExerciseMutation.isPending}
-                            className="rounded-lg"
-                        >
-                            {updateExerciseMutation.isPending ? 'Saving...' : 'Save'}
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
