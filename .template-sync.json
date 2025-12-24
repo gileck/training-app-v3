@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "8298f4e64fc4b4afb28f1db8f2d234bb55c9b6dd",
-  "lastProjectCommit": "86244f90c6d1c4943d6e25857f109f4ee709cc6c",
-  "lastSyncDate": "2025-12-24T17:22:29.509Z",
+  "lastSyncCommit": "c785aadb99b3223ad459534ab44f587adfe30cbd",
+  "lastProjectCommit": "7a788d4905e90af67b04c7edd1ad6b1d769f46e0",
+  "lastSyncDate": "2025-12-24T17:28:21.367Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -39,6 +39,17 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-24T17:28:21.366Z",
+      "templateCommit": "c785aadb99b3223ad459534ab44f587adfe30cbd",
+      "projectCommit": "7a788d4905e90af67b04c7edd1ad6b1d769f46e0",
+      "filesApplied": 3,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "c785aad fix: Remove .cursor from default ignored files \u001b[90m(24/12/2025)\u001b[0m\n  Cursor commands and rules will now sync from template to projects.\n  This allows template improvements to cursor workflows to propagate."
+      ]
+    },
     {
       "date": "2025-12-24T17:22:29.509Z",
       "templateCommit": "8298f4e64fc4b4afb28f1db8f2d234bb55c9b6dd",

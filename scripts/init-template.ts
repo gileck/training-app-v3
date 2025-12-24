@@ -45,7 +45,6 @@ const DEFAULT_IGNORED_FILES = [
   'node_modules',
   'dist',
   'build',
-  '.cursor',
   'yarn.lock',
   'package-lock.json',
   'pnpm-lock.yaml',
