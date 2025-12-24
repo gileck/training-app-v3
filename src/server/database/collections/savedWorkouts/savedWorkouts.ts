@@ -18,7 +18,7 @@ export const findWorkoutsByUserId = async (
 ): Promise<SavedWorkout[]> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    return collection.find({ userId: userIdObj }).sort({ updatedAt: -1 }).toArray();
+    return collection.find({ userId: userIdObj }).sort({ order: 1, updatedAt: -1 }).toArray();
 };
 
 /**
@@ -40,8 +40,13 @@ export const findWorkoutById = async (
 export const createWorkout = async (workout: SavedWorkoutCreate): Promise<SavedWorkout> => {
     const collection = await getCollection();
     const now = new Date();
+    
+    // Get the next order number
+    const existingCount = await collection.countDocuments({ userId: workout.userId });
+    
     const workoutWithDates = {
         ...workout,
+        order: workout.order ?? existingCount,
         createdAt: now,
         updatedAt: now,
     } as SavedWorkout;
@@ -100,6 +105,29 @@ export const countWorkoutsByUserId = async (
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
     return collection.countDocuments({ userId: userIdObj });
+};
+
+/**
+ * Reorder workouts by updating their order field
+ */
+export const reorderWorkouts = async (
+    userId: ObjectId | string,
+    workoutIds: string[]
+): Promise<boolean> => {
+    const collection = await getCollection();
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    const now = new Date();
+
+    // Update each workout's order based on its position in the array
+    const operations = workoutIds.map((workoutId, index) => ({
+        updateOne: {
+            filter: { _id: new ObjectId(workoutId), userId: userIdObj },
+            update: { $set: { order: index, updatedAt: now } },
+        },
+    }));
+
+    const result = await collection.bulkWrite(operations);
+    return result.modifiedCount === workoutIds.length;
 };
 
 

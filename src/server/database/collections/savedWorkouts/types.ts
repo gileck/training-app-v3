@@ -14,11 +14,12 @@ export interface SavedWorkout {
     userId: ObjectId;
     name: string;
     exercises: SavedWorkoutExercise[];
+    order: number;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export type SavedWorkoutCreate = Omit<SavedWorkout, '_id' | 'createdAt' | 'updatedAt'>;
+export type SavedWorkoutCreate = Omit<SavedWorkout, '_id' | 'createdAt' | 'updatedAt' | 'order'> & { order?: number };
 export type SavedWorkoutUpdate = Partial<Omit<SavedWorkout, '_id' | 'userId' | 'createdAt'>> & {
     updatedAt: Date;
 };
@@ -38,6 +39,7 @@ export interface SavedWorkoutClient {
     userId: string;
     name: string;
     exercises: SavedWorkoutExerciseClient[];
+    order: number;
     createdAt: string;
     updatedAt: string;
 }

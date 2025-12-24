@@ -71,4 +71,13 @@ export interface DeleteSavedWorkoutResponse {
     error?: string;
 }
 
+// Reorder saved workouts
+export interface ReorderSavedWorkoutsRequest {
+    workoutIds: string[];
+}
+
+export interface ReorderSavedWorkoutsResponse {
+    success?: boolean;
+    error?: string;
+}
 

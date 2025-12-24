@@ -32,12 +32,14 @@ import {
     createSavedWorkout,
     updateSavedWorkout,
     deleteSavedWorkout,
+    reorderSavedWorkouts,
 } from '@/apis/saved-workouts/client';
 import type {
     ListSavedWorkoutsResponse,
     CreateSavedWorkoutRequest,
     UpdateSavedWorkoutRequest,
     DeleteSavedWorkoutRequest,
+    ReorderSavedWorkoutsRequest,
     SavedWorkoutWithExercises,
 } from '@/apis/saved-workouts/types';
 
@@ -100,6 +102,10 @@ export function useCreateSavedWorkout() {
             const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
 
             // Create optimistic workout with temporary ID
+            // Get the next order number
+            const existingWorkouts = previousWorkouts?.workouts || [];
+            const nextOrder = existingWorkouts.length;
+            
             const optimisticWorkout: SavedWorkoutWithExercises = {
                 _id: `temp-${Date.now()}`,
                 userId: '',
@@ -126,6 +132,7 @@ export function useCreateSavedWorkout() {
                         updatedAt: new Date().toISOString(),
                     },
                 })),
+                order: nextOrder,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
@@ -279,4 +286,56 @@ export function useDeleteSavedWorkout() {
     });
 }
 
+/**
+ * Hook for reordering saved workouts
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI reorders items immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ */
+export function useReorderSavedWorkouts() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: ReorderSavedWorkoutsRequest) => {
+            const response = await reorderSavedWorkouts(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        // OPTIMISTIC UPDATE: Reorder workouts immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
+            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+
+            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+                if (!old?.workouts) return old;
+                // Reorder workouts based on the new order from workoutIds
+                const workoutMap = new Map(old.workouts.map((w) => [w._id, w]));
+                const reorderedWorkouts = variables.workoutIds
+                    .map((id, index) => {
+                        const workout = workoutMap.get(id);
+                        if (workout) {
+                            return { ...workout, order: index };
+                        }
+                        return null;
+                    })
+                    .filter((w): w is SavedWorkoutWithExercises => w !== null);
+                return { workouts: reorderedWorkouts };
+            });
+
+            return { previousWorkouts };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousWorkouts) {
+                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
+    });
+}
 

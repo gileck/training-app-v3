@@ -6,6 +6,7 @@ import {
     API_CREATE_SAVED_WORKOUT,
     API_UPDATE_SAVED_WORKOUT,
     API_DELETE_SAVED_WORKOUT,
+    API_REORDER_SAVED_WORKOUTS,
 } from './index';
 import {
     ListSavedWorkoutsRequest,
@@ -18,6 +19,8 @@ import {
     UpdateSavedWorkoutResponse,
     DeleteSavedWorkoutRequest,
     DeleteSavedWorkoutResponse,
+    ReorderSavedWorkoutsRequest,
+    ReorderSavedWorkoutsResponse,
 } from './types';
 
 /**
@@ -65,4 +68,12 @@ export const deleteSavedWorkout = async (
     return apiClient.post(API_DELETE_SAVED_WORKOUT, params);
 };
 
+/**
+ * Reorder saved workouts
+ */
+export const reorderSavedWorkouts = async (
+    params: ReorderSavedWorkoutsRequest
+): Promise<CacheResult<ReorderSavedWorkoutsResponse>> => {
+    return apiClient.post(API_REORDER_SAVED_WORKOUTS, params);
+};
 

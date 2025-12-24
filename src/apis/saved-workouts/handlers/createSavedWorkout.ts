@@ -50,6 +50,7 @@ export async function createSavedWorkout(
                     durationSeconds: e.durationSeconds,
                     order: e.order,
                 })),
+                order: workout.order,
                 createdAt: workout.createdAt.toISOString(),
                 updatedAt: workout.updatedAt.toISOString(),
             },

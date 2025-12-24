@@ -69,6 +69,7 @@ export async function getSavedWorkout(
                           },
                 };
             }),
+            order: workout.order ?? 0,
             createdAt: workout.createdAt.toISOString(),
             updatedAt: workout.updatedAt.toISOString(),
         };

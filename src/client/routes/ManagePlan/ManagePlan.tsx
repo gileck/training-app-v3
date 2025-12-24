@@ -44,6 +44,7 @@ import {
     useCreateSavedWorkout,
     useUpdateSavedWorkout,
     useDeleteSavedWorkout,
+    useReorderSavedWorkouts,
 } from '../Home/hooks';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
@@ -76,6 +77,7 @@ export function ManagePlan() {
     const createWorkoutMutation = useCreateSavedWorkout();
     const updateWorkoutMutation = useUpdateSavedWorkout();
     const deleteWorkoutMutation = useDeleteSavedWorkout();
+    const reorderWorkoutsMutation = useReorderSavedWorkouts();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
 
     // UI state
@@ -162,6 +164,8 @@ export function ManagePlan() {
     const [workoutToDelete, setWorkoutToDelete] = useState<SavedWorkoutWithExercises | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
     const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral reorder mode
+    const [isWorkoutReorderMode, setIsWorkoutReorderMode] = useState(false);
 
     const plan = planData?.plan;
     const planExercises = exercisesData?.exercises || [];
@@ -628,6 +632,17 @@ export function ManagePlan() {
         );
     };
 
+    const handleMoveWorkout = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= savedWorkouts.length) return;
+
+        // Create new order of workout IDs
+        const workoutIds = savedWorkouts.map((w) => w._id);
+        [workoutIds[index], workoutIds[newIndex]] = [workoutIds[newIndex], workoutIds[index]];
+
+        reorderWorkoutsMutation.mutate({ workoutIds });
+    };
+
     const isLoading = planLoading || exercisesLoading;
 
     // Loading state
@@ -835,8 +850,18 @@ export function ManagePlan() {
 
                 {/* Workouts Tab */}
                 <TabsContent value="workouts" className="mt-4 space-y-4">
-                    {/* Create workout button */}
+                    {/* Create workout button and reorder toggle */}
                     <div className="flex gap-2 justify-end">
+                        {savedWorkouts.length > 1 && (
+                            <Button
+                                variant={isWorkoutReorderMode ? 'secondary' : 'outline'}
+                                size="icon"
+                                onClick={() => setIsWorkoutReorderMode(!isWorkoutReorderMode)}
+                                className="rounded-xl h-10 w-10"
+                            >
+                                <ArrowUpDown className="h-4 w-4" />
+                            </Button>
+                        )}
                         <Button
                             onClick={() => handleOpenWorkoutDialog()}
                             disabled={planExercises.length === 0}
@@ -867,7 +892,7 @@ export function ManagePlan() {
                         </Card>
                     ) : (
                         <div className="space-y-3">
-                            {savedWorkouts.map((workout) => {
+                            {savedWorkouts.map((workout, workoutIndex) => {
                                 const isExpanded = expandedWorkoutId === workout._id;
                                 return (
                                     <Card
@@ -878,13 +903,37 @@ export function ManagePlan() {
                                             {/* Header - clickable to expand */}
                                             <div
                                                 className="p-4 cursor-pointer active:bg-muted/50 transition-colors"
-                                                onClick={() => setExpandedWorkoutId(isExpanded ? null : workout._id)}
+                                                onClick={() => !isWorkoutReorderMode && setExpandedWorkoutId(isExpanded ? null : workout._id)}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                        <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
-                                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                                        </div>
+                                                        {/* Reorder buttons - only show in reorder mode */}
+                                                        {isWorkoutReorderMode ? (
+                                                            <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleMoveWorkout(workoutIndex, 'up')}
+                                                                    disabled={workoutIndex === 0 || reorderWorkoutsMutation.isPending}
+                                                                    className="h-7 w-7 rounded-md"
+                                                                >
+                                                                    <ChevronUp className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleMoveWorkout(workoutIndex, 'down')}
+                                                                    disabled={workoutIndex === savedWorkouts.length - 1 || reorderWorkoutsMutation.isPending}
+                                                                    className="h-7 w-7 rounded-md"
+                                                                >
+                                                                    <ChevronDown className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
                                                         <div className="flex-1 min-w-0">
                                                             <h3 className="font-semibold truncate">{workout.name}</h3>
                                                             <p className="text-sm text-muted-foreground">
@@ -892,33 +941,35 @@ export function ManagePlan() {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleOpenWorkoutDialog(workout)}
-                                                            className="h-8 w-8 rounded-full"
-                                                        >
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDuplicateWorkout(workout)}
-                                                            disabled={createWorkoutMutation.isPending}
-                                                            className="h-8 w-8 rounded-full"
-                                                        >
-                                                            <Copy className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDeleteWorkoutClick(workout)}
-                                                            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    {!isWorkoutReorderMode && (
+                                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleOpenWorkoutDialog(workout)}
+                                                                className="h-8 w-8 rounded-full"
+                                                            >
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleDuplicateWorkout(workout)}
+                                                                disabled={createWorkoutMutation.isPending}
+                                                                className="h-8 w-8 rounded-full"
+                                                            >
+                                                                <Copy className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleDeleteWorkoutClick(workout)}
+                                                                className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 

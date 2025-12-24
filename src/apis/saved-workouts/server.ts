@@ -8,6 +8,7 @@ import {
     API_CREATE_SAVED_WORKOUT,
     API_UPDATE_SAVED_WORKOUT,
     API_DELETE_SAVED_WORKOUT,
+    API_REORDER_SAVED_WORKOUTS,
 } from './index';
 
 // Import handlers
@@ -16,6 +17,7 @@ import { getSavedWorkout } from './handlers/getSavedWorkout';
 import { createSavedWorkout } from './handlers/createSavedWorkout';
 import { updateSavedWorkout } from './handlers/updateSavedWorkout';
 import { deleteSavedWorkout } from './handlers/deleteSavedWorkout';
+import { reorderSavedWorkouts } from './handlers/reorderSavedWorkouts';
 
 // Export consolidated handlers object
 export const savedWorkoutsApiHandlers = {
@@ -24,6 +26,6 @@ export const savedWorkoutsApiHandlers = {
     [API_CREATE_SAVED_WORKOUT]: { process: createSavedWorkout },
     [API_UPDATE_SAVED_WORKOUT]: { process: updateSavedWorkout },
     [API_DELETE_SAVED_WORKOUT]: { process: deleteSavedWorkout },
+    [API_REORDER_SAVED_WORKOUTS]: { process: reorderSavedWorkouts },
 };
-
 
