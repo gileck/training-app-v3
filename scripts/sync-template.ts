@@ -18,6 +18,7 @@
  *   --report                 Generate a sync report file (SYNC-REPORT.md)
  *   --quiet                  Minimal output (errors only)
  *   --verbose                Detailed output for debugging
+ *   --use-https              Use HTTPS instead of SSH for cloning (SSH is default)
  * 
  * Auto modes (non-interactive):
  *   --auto-safe-only         Apply only safe changes, skip all conflicts
@@ -104,6 +105,7 @@ interface SyncOptions {
   report: boolean;
   quiet: boolean;
   verbose: boolean;
+  useHTTPS: boolean;
 }
 
 class TemplateSyncTool {
@@ -120,6 +122,49 @@ class TemplateSyncTool {
       input: process.stdin,
       output: process.stdout,
     });
+  }
+
+  /**
+   * Convert an HTTPS GitHub/GitLab URL to SSH format.
+   * Examples:
+   *   https://github.com/user/repo.git -> git@github.com:user/repo.git
+   *   https://gitlab.com/user/repo.git -> git@gitlab.com:user/repo.git
+   */
+  private convertToSSH(url: string): string {
+    // Already SSH format
+    if (url.startsWith('git@')) {
+      return url;
+    }
+
+    // Match HTTPS URLs like https://github.com/user/repo.git
+    const httpsMatch = url.match(/^https?:\/\/([^/]+)\/(.+)$/);
+    if (httpsMatch) {
+      const [, host, path] = httpsMatch;
+      return `git@${host}:${path}`;
+    }
+
+    // Return as-is if we can't parse it
+    return url;
+  }
+
+  /**
+   * Get the repository URL to use for cloning.
+   * Uses SSH by default, unless --use-https flag is provided.
+   */
+  private getRepoUrl(): string {
+    const baseUrl = this.config.templateRepo;
+    
+    // If user explicitly wants HTTPS, return as-is
+    if (this.options.useHTTPS) {
+      return baseUrl;
+    }
+    
+    // Default: convert to SSH for authentication
+    const sshUrl = this.convertToSSH(baseUrl);
+    if (sshUrl !== baseUrl) {
+      this.logVerbose(`Using SSH URL: ${baseUrl} -> ${sshUrl}`);
+    }
+    return sshUrl;
   }
 
   // Logging helpers for quiet/verbose modes
@@ -194,10 +239,11 @@ class TemplateSyncTool {
       fs.rmSync(templatePath, { recursive: true, force: true });
     }
 
-    console.log(`📥 Cloning template from ${this.config.templateRepo}...`);
+    const repoUrl = this.getRepoUrl();
+    console.log(`📥 Cloning template from ${repoUrl}...`);
     // Clone with full history to enable comparison with lastSyncCommit
     this.exec(
-      `git clone --branch ${this.config.templateBranch} ${this.config.templateRepo} ${TEMPLATE_DIR}`,
+      `git clone --branch ${this.config.templateBranch} ${repoUrl} ${TEMPLATE_DIR}`,
       { silent: true }
     );
   }
@@ -1839,6 +1885,7 @@ const options: SyncOptions = {
   report: args.includes('--report'),
   quiet: args.includes('--quiet'),
   verbose: args.includes('--verbose'),
+  useHTTPS: args.includes('--use-https'),
 };
 
 const tool = new TemplateSyncTool(options);

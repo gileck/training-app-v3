@@ -6,7 +6,8 @@ import {
   useUser,
   useLogout,
   useSettingsStore,
-  useEffectiveOffline
+  useEffectiveOffline,
+  useThemeStore,
 } from '@/client/features';
 import { useState } from 'react';
 import { Button } from '@/client/components/ui/button';
@@ -33,6 +34,10 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const isDeviceOffline = useSettingsStore((state) => state.isDeviceOffline);
   const effectiveOffline = useEffectiveOffline();
+  
+  // Theme store for light/dark mode
+  const themeMode = useThemeStore((state) => state.settings.mode);
+  const setThemeMode = useThemeStore((state) => state.setMode);
 
   // Use logout mutation
   const logoutMutation = useLogout();
@@ -74,9 +79,9 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
     logoutMutation.mutate();
   };
 
-  const handleThemeToggle = () => { updateSettings({ theme: settings.theme === 'light' ? 'dark' : 'light' }); };
+  const handleThemeToggle = () => { setThemeMode(themeMode === 'light' ? 'dark' : 'light'); };
 
-  const getThemeIcon = () => settings.theme === 'light' ? <Moon size={18} /> : <SunMedium size={18} />;
+  const getThemeIcon = () => themeMode === 'light' ? <Moon size={18} /> : <SunMedium size={18} />;
 
   const handleGoOnline = () => {
     updateSettings({ offlineMode: false });
@@ -85,7 +90,14 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
 
   return (
     <>
-      <nav className={`sticky top-0 z-40 border-b bg-background/80 backdrop-blur ${isStandalone ? 'backdrop-blur-md' : ''}`}>
+      {/* Header uses CSS variables for theming - inline styles ensure proper reactivity when theme changes */}
+      <nav 
+        className={`sticky top-0 z-40 border-b backdrop-blur ${isStandalone ? 'backdrop-blur-md' : ''}`}
+        style={{ 
+          backgroundColor: 'hsl(var(--header) / 0.8)', 
+          color: 'hsl(var(--header-foreground))' 
+        }}
+      >
         <div className="mx-auto flex h-14 w-full max-w-screen-lg items-center justify-between px-3 sm:px-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" aria-label="open drawer" onClick={onDrawerToggle}>
@@ -122,7 +134,7 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
               </button>
             )}
 
-            <Button variant="ghost" size="icon" onClick={handleThemeToggle} title={`Current theme: ${settings.theme}`} aria-label="toggle theme">
+            <Button variant="ghost" size="icon" onClick={handleThemeToggle} title={`Current mode: ${themeMode}`} aria-label="toggle theme">
               {getThemeIcon()}
             </Button>
 

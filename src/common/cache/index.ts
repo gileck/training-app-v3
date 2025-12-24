@@ -4,10 +4,8 @@ import { CacheOptions, CacheParams, CacheResult, CacheStatus, CacheProvider } fr
  * Default cache options
  */
 const DEFAULT_OPTIONS: CacheOptions = {
-    isStaleTTL: 10000, // 10 seconds
     ttl: 3600000, // 1 hour
     bypassCache: false,
-    maxStaleAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 
 /**
@@ -72,63 +70,14 @@ export const createCache = (provider: CacheProvider) => {
             return { data: result, isFromCache: false };
         }
 
-        // Check if we want stale-while-revalidate behavior
-        if (opts.staleWhileRevalidate) {
-            const staleResult = await provider.readCacheWithStale<T>(cacheKey, opts.isStaleTTL);
-
-            if (staleResult) {
-                if (!staleResult.isStale) {
-                    // Fresh data, return it
-                    return {
-                        data: staleResult.data,
-                        isFromCache: true,
-                        metadata: staleResult.metadata,
-                    };
-                } else {
-                    // Check if data is too old (beyond maxStaleAge)
-                    const maxStaleAge = opts.maxStaleAge || 7 * 24 * 60 * 60 * 1000; // 7 days default
-                    const age = Date.now() - new Date(staleResult.metadata.createdAt).getTime();
-
-                    if (age <= maxStaleAge) {
-                        // Stale but acceptable, return it and revalidate in background
-                        // Don't await the revalidation to return stale data immediately
-                        callback().then(async (freshResult) => {
-                            // Check if fresh data is valid for caching
-                            const isDataValid = opts.isDataValidForCache ? opts.isDataValidForCache(freshResult) : true;
-                            
-                            if (!isDataValid) {
-                                // Delete existing cache if fresh data is not valid
-                                await provider.deleteCache(cacheKey);
-                                return;
-                            }
-
-                            // Only cache successful results (no error property)
-                            if (!hasErrorProperty(freshResult)) {
-                                await provider.writeCache(cacheKey, freshResult);
-                            }
-                        }).catch(() => {
-                            // Ignore revalidation errors, we already have stale data
-                        });
-
-                        return {
-                            data: staleResult.data,
-                            isFromCache: true,
-                            metadata: staleResult.metadata,
-                        };
-                    }
-                    // Data is too old, fall through to fresh fetch
-                }
-            }
-        } else {
-            // Regular cache lookup without stale-while-revalidate
-            const cached = await provider.readCache<T>(cacheKey, opts.ttl);
-            if (cached) {
-                return {
-                    data: cached.data,
-                    isFromCache: true,
-                    metadata: cached.metadata,
-                };
-            }
+        // Try to read from cache
+        const cached = await provider.readCache<T>(cacheKey, opts.ttl);
+        if (cached) {
+            return {
+                data: cached.data,
+                isFromCache: true,
+                metadata: cached.metadata,
+            };
         }
 
         // Execute the callback to get fresh data

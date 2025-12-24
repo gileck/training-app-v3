@@ -36,6 +36,17 @@ export const useSettingsStore = createStore<SettingsState>({
     }),
     persistOptions: {
         partialize: (state) => ({ settings: state.settings }),
+        // Merge persisted settings with defaults to handle new fields
+        merge: (persistedState, currentState) => {
+            const persisted = persistedState as { settings?: Partial<Settings> };
+            return {
+                ...currentState,
+                settings: {
+                    ...defaultSettings,
+                    ...persisted?.settings,
+                },
+            };
+        },
     },
 });
 

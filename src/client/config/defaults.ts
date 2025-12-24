@@ -42,16 +42,13 @@ export const STORE_DEFAULTS = {
 // ============================================================================
 
 export const QUERY_DEFAULTS = {
-    /** How long data is considered "fresh" (won't refetch) */
+    /** How long data is considered "fresh" (won't refetch) - used when SWR is ON */
     STALE_TIME: 30 * TIME.SECOND,
 
-    /** How long to keep data in memory after component unmounts */
+    /** How long to keep data in memory after component unmounts - used when SWR is ON */
     GC_TIME: 30 * TIME.MINUTE,
 
-    /** Maximum age for stale data to be served while revalidating */
-    MAX_STALE_AGE: 24 * TIME.HOUR,
-
-    /** IndexedDB persistence max age */
+    /** localStorage persistence max age */
     PERSIST_MAX_AGE: 7 * TIME.DAY,
 } as const;
 

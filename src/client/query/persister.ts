@@ -2,7 +2,7 @@ import { get, set, del } from 'idb-keyval';
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
 import { logger } from '@/client/features/session-logs';
 import { formatBytes } from '@/client/lib/utils';
-import { QUERY_DEFAULTS } from '@/client/config';
+import { defaultSettings } from '@/client/features/settings/types';
 
 const CACHE_KEY = 'react-query-cache';
 const CACHE_BUSTER = 'v2'; // Increment to invalidate all cached data (v2: excluded reports from cache)
@@ -15,11 +15,28 @@ const CACHE_BUSTER = 'v2'; // Increment to invalidate all cached data (v2: exclu
 export type StorageType = 'localStorage' | 'indexedDB';
 
 /**
- * Maximum age for persisted cache (7 days)
- * After this, the cache will be discarded and fresh data fetched
- * Configured in @/client/config/defaults.ts
+ * Get cache persist max age from user settings.
+ * Falls back to default (7 days) if settings not available.
  */
-const MAX_AGE = QUERY_DEFAULTS.PERSIST_MAX_AGE;
+function getMaxAge(): number {
+    if (typeof window === 'undefined') {
+        return defaultSettings.cachePersistDays * 24 * 60 * 60 * 1000;
+    }
+    
+    try {
+        const stored = localStorage.getItem('settings-storage');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            const days = parsed?.state?.settings?.cachePersistDays;
+            if (typeof days === 'number' && days > 0) {
+                return days * 24 * 60 * 60 * 1000;
+            }
+        }
+    } catch {
+        // Ignore parse errors
+    }
+    return defaultSettings.cachePersistDays * 24 * 60 * 60 * 1000;
+}
 
 /**
  * Calculate approximate size of an object in bytes
@@ -98,9 +115,10 @@ export function createLocalStoragePersister(): Persister {
                 }
 
                 // Check if cache is too old
-                if (client.timestamp && Date.now() - client.timestamp > MAX_AGE) {
+                const maxAge = getMaxAge();
+                if (client.timestamp && Date.now() - client.timestamp > maxAge) {
                     logger.warn('cache', `React Query cache expired, clearing (localStorage)`, {
-                        meta: { cacheAge: Date.now() - client.timestamp, maxAge: MAX_AGE }
+                        meta: { cacheAge: Date.now() - client.timestamp, maxAge }
                     });
                     localStorage.removeItem(key);
                     return undefined;
@@ -174,9 +192,10 @@ export function createIDBPersister(): Persister {
                 }
 
                 // Check if cache is too old
-                if (client.timestamp && Date.now() - client.timestamp > MAX_AGE) {
+                const maxAge = getMaxAge();
+                if (client.timestamp && Date.now() - client.timestamp > maxAge) {
                     logger.warn('cache', `React Query cache expired, clearing (IndexedDB)`, {
-                        meta: { cacheAge: Date.now() - client.timestamp, maxAge: MAX_AGE }
+                        meta: { cacheAge: Date.now() - client.timestamp, maxAge }
                     });
                     await del(`${CACHE_KEY}-${CACHE_BUSTER}`);
                     return undefined;

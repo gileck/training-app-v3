@@ -27,6 +27,8 @@ yarn init-template https://github.com/yourusername/app-template-ai.git
 
 Replace `yourusername` with your GitHub username or organization.
 
+> **Note:** SSH is used by default for authentication. The HTTPS URL you provide is automatically converted to SSH format. Use `--use-https` flag if you prefer HTTPS.
+
 This creates a `.template-sync.json` configuration file.
 
 ### 2. Customize Configuration
@@ -35,7 +37,7 @@ Edit `.template-sync.json` to specify:
 
 ```json
 {
-  "templateRepo": "https://github.com/yourusername/app-template-ai.git",
+  "templateRepo": "git@github.com:yourusername/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "abc123...",
   "lastSyncCommit": "abc123...",
@@ -640,10 +642,12 @@ jobs:
 
 | Command | Purpose |
 |---------|---------|
-| `yarn init-template <url>` | Initialize tracking in new project |
+| `yarn init-template <url>` | Initialize tracking in new project (SSH default) |
+| `yarn init-template <url> --use-https` | Initialize with HTTPS instead of SSH |
 | `yarn sync-template` | Sync updates from template (interactive) |
 | `yarn sync-template --dry-run` | Preview changes |
 | `yarn sync-template --force` | Force sync with uncommitted changes |
+| `yarn sync-template --use-https` | Use HTTPS instead of SSH for cloning |
 | `yarn sync-template --diff-summary` | Generate detailed diff report |
 
 ### Auto Mode Flags

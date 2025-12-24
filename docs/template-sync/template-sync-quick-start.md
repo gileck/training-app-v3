@@ -22,10 +22,12 @@ This tells your project where the template is so it can sync updates later:
 yarn init-template https://github.com/yourusername/app-template-ai.git
 ```
 
+> **Note:** SSH is used by default for authentication. The HTTPS URL you provide is automatically converted to SSH format (e.g., `git@github.com:user/repo.git`). Use `--use-https` flag if you prefer HTTPS.
+
 This creates `.template-sync.json`:
 ```json
 {
-  "templateRepo": "https://github.com/yourusername/app-template-ai.git",
+  "templateRepo": "git@github.com:yourusername/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "abc123...",
   "lastSyncCommit": "abc123...",
@@ -78,7 +80,7 @@ Output:
 ```
 🔄 Template Sync Tool
 ============================================================
-📥 Cloning template from https://github.com/yourusername/app-template-ai.git...
+📥 Cloning template from git@github.com:yourusername/app-template-ai.git...
 📍 Template commit: def456...
 
 🔍 Analyzing changes...

@@ -7,10 +7,14 @@
  * Run this once when you first create a project from the template.
  * 
  * Usage:
- *   yarn init-template <template-repo-url>
+ *   yarn init-template <template-repo-url> [options]
+ * 
+ * Options:
+ *   --use-https  Store the HTTPS URL instead of SSH (SSH is default)
  * 
  * Example:
  *   yarn init-template https://github.com/yourusername/app-template-ai.git
+ *   yarn init-template https://github.com/yourusername/app-template-ai.git --use-https
  */
 
 import * as fs from 'fs';
@@ -79,7 +83,30 @@ function exec(command: string, silent = true): string {
   }
 }
 
-function initTemplate(templateRepo: string): void {
+/**
+ * Convert an HTTPS GitHub/GitLab URL to SSH format.
+ * Examples:
+ *   https://github.com/user/repo.git -> git@github.com:user/repo.git
+ *   https://gitlab.com/user/repo.git -> git@gitlab.com:user/repo.git
+ */
+function convertToSSH(url: string): string {
+  // Already SSH format
+  if (url.startsWith('git@')) {
+    return url;
+  }
+
+  // Match HTTPS URLs like https://github.com/user/repo.git
+  const httpsMatch = url.match(/^https?:\/\/([^/]+)\/(.+)$/);
+  if (httpsMatch) {
+    const [, host, path] = httpsMatch;
+    return `git@${host}:${path}`;
+  }
+
+  // Return as-is if we can't parse it
+  return url;
+}
+
+function initTemplate(templateRepo: string, useHTTPS: boolean): void {
   const projectRoot = process.cwd();
   const configPath = path.join(projectRoot, CONFIG_FILE);
 
@@ -97,8 +124,17 @@ function initTemplate(templateRepo: string): void {
     }
   }
 
+  // Convert to SSH by default (unless --use-https is specified)
+  let finalRepo = templateRepo;
+  if (!useHTTPS) {
+    finalRepo = convertToSSH(templateRepo);
+    if (finalRepo !== templateRepo) {
+      console.log(`🔐 Using SSH URL: ${finalRepo}`);
+    }
+  }
+
   // Validate template repo
-  console.log(`📦 Template repository: ${templateRepo}`);
+  console.log(`📦 Template repository: ${finalRepo}`);
 
   // Try to get current git commit (for baseCommit)
   const currentCommit = exec('git rev-parse HEAD');
@@ -107,7 +143,7 @@ function initTemplate(templateRepo: string): void {
   // Note: lastSyncCommit is null for first sync - this tells sync-template
   // to compare the entire template against the project
   const config: TemplateSyncConfig = {
-    templateRepo,
+    templateRepo: finalRepo,
     templateBranch: 'main',
     baseCommit: currentCommit || null,  // Project commit when initialized
     lastSyncCommit: null,               // null = first sync, will compare everything
@@ -138,15 +174,22 @@ function initTemplate(templateRepo: string): void {
 // Main execution
 const args = process.argv.slice(2);
 
-if (args.length === 0) {
+// Parse flags
+const useHTTPS = args.includes('--use-https');
+const positionalArgs = args.filter(arg => !arg.startsWith('--'));
+
+if (positionalArgs.length === 0) {
   console.error('❌ Error: Template repository URL required\n');
   console.error('Usage:');
-  console.error('  yarn init-template <template-repo-url>');
+  console.error('  yarn init-template <template-repo-url> [options]');
+  console.error('\nOptions:');
+  console.error('  --use-https  Store the HTTPS URL instead of SSH (SSH is default)');
   console.error('\nExample:');
   console.error('  yarn init-template https://github.com/yourusername/app-template-ai.git');
+  console.error('  yarn init-template https://github.com/yourusername/app-template-ai.git --use-https');
   process.exit(1);
 }
 
-const templateRepo = args[0];
-initTemplate(templateRepo);
+const templateRepo = positionalArgs[0];
+initTemplate(templateRepo, useHTTPS);
 

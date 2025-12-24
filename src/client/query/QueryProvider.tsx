@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { QueryClientProvider, useIsRestoring } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { getQueryClient } from './queryClient';
 import { createLocalStoragePersister } from './persister';
+import { defaultSettings } from '@/client/features/settings/types';
 
 interface QueryProviderProps {
     children: React.ReactNode;
+}
+
+/**
+ * Get cache persist days from localStorage settings.
+ * Falls back to default if settings not available yet.
+ */
+function getCachePersistDays(): number {
+    if (typeof window === 'undefined') return defaultSettings.cachePersistDays;
+    
+    try {
+        const stored = localStorage.getItem('settings-storage');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            const days = parsed?.state?.settings?.cachePersistDays;
+            if (typeof days === 'number' && days > 0) {
+                return days;
+            }
+        }
+    } catch {
+        // Ignore parse errors
+    }
+    return defaultSettings.cachePersistDays;
 }
 
 /**
@@ -79,6 +102,12 @@ const dehydrateOptions = {
 export function QueryProvider({ children }: QueryProviderProps) {
     const queryClient = getQueryClient();
 
+    // Get persist max age from settings (read once on mount)
+    const persistMaxAge = useMemo(() => {
+        const days = getCachePersistDays();
+        return days * 24 * 60 * 60 * 1000; // Convert days to ms
+    }, []);
+
     // Only use persistence on client side
     if (!persister) {
         return (
@@ -93,7 +122,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
             client={queryClient}
             persistOptions={{
                 persister,
-                maxAge: 24 * 60 * 60 * 1000, // 24 hours
+                maxAge: persistMaxAge,
                 dehydrateOptions,
             }}
         >

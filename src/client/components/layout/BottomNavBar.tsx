@@ -49,10 +49,13 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
   };
 
   // No position:fixed - navbar sits at bottom of 100dvh flex container (see docs above)
+  // Footer uses CSS variables for theming - inline styles ensure proper reactivity when theme changes
   return (
     <div
-      className="z-40 block shrink-0 border-t bg-background sm:hidden"
+      className="z-40 block shrink-0 border-t sm:hidden"
       style={{
+        backgroundColor: 'hsl(var(--footer))',
+        color: 'hsl(var(--footer-foreground))',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -72,10 +75,16 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
               aria-current={active ? 'page' : undefined}
               className={`flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[11px] font-medium transition-colors ${active
                 ? 'bg-accent text-foreground'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                : 'hover:bg-accent/50 hover:text-foreground'
               }`}
+              style={!active ? { color: 'hsl(var(--footer-foreground))' } : undefined}
             >
-              <span className={active ? 'text-primary' : 'text-muted-foreground'}>{item.icon}</span>
+              <span 
+                className={active ? 'text-primary' : ''}
+                style={!active ? { color: 'hsl(var(--footer-foreground))' } : undefined}
+              >
+                {item.icon}
+              </span>
               <span className="leading-none">{item.label}</span>
             </button>
           );

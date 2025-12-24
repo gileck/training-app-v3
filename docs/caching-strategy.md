@@ -109,8 +109,41 @@ localStorage key: react-query-cache-v2
 // src/client/config/defaults.ts
 QUERY_DEFAULTS.STALE_TIME       // 30 seconds (data is "fresh")
 QUERY_DEFAULTS.GC_TIME          // 30 minutes (keep in memory after unmount)
-QUERY_DEFAULTS.PERSIST_MAX_AGE  // 7 days (localStorage/IndexedDB persistence)
+QUERY_DEFAULTS.PERSIST_MAX_AGE  // 7 days (localStorage persistence)
 ```
+
+### User-Controlled Cache Behavior
+
+The `staleWhileRevalidate` setting (Settings → "Use Cache") controls React Query caching:
+
+| Setting | staleTime | gcTime | Behavior | Offline |
+|---------|-----------|--------|----------|---------|
+| **ON** (default) | User-configurable (default 30s) | User-configurable (default 30min) | Serve cached data instantly, refresh in background | ✅ Works |
+| **OFF** | 0 | 0 | Always fetch fresh, never show cached data | ❌ Won't work |
+
+When SWR is ON, users can customize:
+- **Stale Time** (seconds): How long data is "fresh" before refetching (default: 30)
+- **Memory Cache** (minutes): How long to keep data in memory (default: 30)
+- **Persist Cache** (days): How long to keep cache in localStorage (default: 7)
+
+This is controlled by `useQueryDefaults()` - the single point of control for all queries:
+
+```typescript
+// src/client/query/defaults.ts
+export function useQueryDefaults() {
+    const { staleWhileRevalidate, cacheStaleTimeSeconds, cacheGcTimeMinutes } = useSettingsStore((s) => s.settings);
+
+    if (staleWhileRevalidate) {
+        return { 
+            staleTime: cacheStaleTimeSeconds * 1000,  // User-configurable
+            gcTime: cacheGcTimeMinutes * 60 * 1000,   // User-configurable
+        };
+    }
+    return { staleTime: 0, gcTime: 0 }; // No caching, offline won't work
+}
+```
+
+All query hooks use `...queryDefaults` to automatically respect these settings.
 
 ### Excluding Queries from Persistence
 
