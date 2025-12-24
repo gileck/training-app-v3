@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @theme {
+    /* Font family - can be overridden at runtime */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    
+    /* Color tokens */
     --color-background: hsl(var(--background));
     --color-foreground: hsl(var(--foreground));
     --color-muted: hsl(var(--muted));
@@ -20,6 +24,12 @@
     --color-accent-foreground: hsl(var(--accent-foreground));
     --color-destructive: hsl(var(--destructive));
     --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-success: hsl(var(--success));
+    --color-warning: hsl(var(--warning));
+    --color-header: hsl(var(--header));
+    --color-header-foreground: hsl(var(--header-foreground));
+    --color-footer: hsl(var(--footer));
+    --color-footer-foreground: hsl(var(--footer-foreground));
 }
 
 @layer base {
@@ -59,48 +69,30 @@
 
         --success: 142 71% 45%;
         --warning: 48 96% 53%;
-
-        /* Training App - Layout tokens */
-        --touch-target-min: 44px;
-        --exercise-image-sm: 48px;
-        --exercise-image-md: 60px;
-        --exercise-image-lg: 80px;
-        --page-padding: 1rem;
-        --card-gap: 0.75rem;
-        --section-gap: 1.5rem;
-
-        /* Training App - Semantic colors */
-        --exercise-complete: 142 76% 36%;
-        --exercise-selected-bg: var(--primary) / 0.1;
-        --muscle-badge-bg: 210 100% 95%;
-        --muscle-badge-text: 210 100% 40%;
-        --muscle-badge-border: 210 100% 85%;
+        
+        /* Layout colors - defaults to card for header, muted for footer */
+        --header: 0 0% 100%;
+        --header-foreground: 222 47% 11%;
+        --footer: 210 40% 96%;
+        --footer-foreground: 215 16% 47%;
     }
 
     .dark {
-        /* Layered backgrounds - darkest to lightest for depth */
-        --background: 224 50% 4%;
-        /* Deep navy-black - page background */
+        --background: 222 47% 6%;
+        /* Slate-950 */
         --foreground: 210 40% 96%;
 
-        /* Elevated surfaces with subtle blue tint */
-        --card: 224 45% 8%;
-        /* Slightly elevated - cards stand out */
-        --card-foreground: 210 40% 98%;
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
 
-        --popover: 224 42% 11%;
-        /* More elevated - dropdowns, modals */
+        --popover: 222 47% 6%;
         --popover-foreground: 210 40% 98%;
 
-        --muted: 224 35% 14%;
-        /* Muted backgrounds - input groups, disabled areas */
-        --muted-foreground: 215 20% 60%;
+        --card: 222 47% 6%;
+        --card-foreground: 210 40% 98%;
 
-        /* Visible borders - subtle but clear */
-        --border: 224 25% 20%;
-        /* Visible border with blue tint */
-        --input: 224 30% 15%;
-        /* Input background - darker than card */
+        --border: 217 33% 17%;
+        --input: 217 33% 17%;
         --ring: 217 91% 60%;
 
         --primary: 217 91% 60%;
@@ -111,22 +103,20 @@
         /* Bright violet */
         --secondary-foreground: 222 84% 5%;
 
-        --accent: 224 35% 16%;
-        /* Accent background - hover states */
+        --accent: 217 33% 17%;
         --accent-foreground: 210 40% 98%;
 
-        --destructive: 0 72% 51%;
-        /* Brighter red for visibility */
+        --destructive: 0 63% 31%;
         --destructive-foreground: 210 40% 98%;
 
         --success: 142 71% 45%;
         --warning: 48 96% 53%;
-
-        /* Training App - Dark mode semantic colors */
-        --exercise-complete: 142 76% 36%;
-        --muscle-badge-bg: 217 50% 15%;
-        --muscle-badge-text: 217 90% 75%;
-        --muscle-badge-border: 217 50% 28%;
+        
+        /* Layout colors - defaults to card for header, muted for footer */
+        --header: 222 47% 6%;
+        --header-foreground: 210 40% 98%;
+        --footer: 217 33% 17%;
+        --footer-foreground: 215 20% 65%;
     }
 
     * {
@@ -151,17 +141,17 @@
 
     body {
         @apply bg-background text-foreground;
+        font-family: var(--font-sans);
         background-image:
             radial-gradient(600px circle at 0% -10%, hsl(var(--primary) / 0.08), transparent 40%),
             radial-gradient(800px circle at 100% 0%, hsl(var(--secondary) / 0.06), transparent 45%);
+        /* Smooth transitions for theme changes */
+        transition: background-color 0.2s ease, color 0.2s ease;
     }
-
-    /* Enhanced dark mode atmosphere */
-    .dark body {
-        background-image:
-            radial-gradient(800px circle at 0% -15%, hsl(var(--primary) / 0.12), transparent 50%),
-            radial-gradient(600px circle at 100% 5%, hsl(var(--secondary) / 0.08), transparent 40%),
-            radial-gradient(1200px circle at 50% 100%, hsl(var(--primary) / 0.04), transparent 60%);
+    
+    /* Smooth transitions for cards and buttons during theme changes */
+    .transition-theme {
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
 }
 
@@ -314,8 +304,7 @@
 }
 
 .dark .ios-input-group {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted) / 0.2);
 }
 
 /* iOS-style button press effect */

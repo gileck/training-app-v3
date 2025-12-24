@@ -155,6 +155,12 @@ All mutation hooks in the application follow this pattern:
 When offline, `apiClient.post` returns an empty object `{}` instead of actual response data.
 This is intentional - it allows optimistic updates to persist without triggering rollbacks.
 
+**Why this design?**
+1. Optimistic updates (in `onMutate`) already update the UI immediately
+2. Returning `{}` prevents the mutation from "failing" (no rollback triggered)
+3. The request is queued and will sync via batch-updates when online
+4. After sync, React Query caches are invalidated to fetch fresh data
+
 - Queue automatically flushes when connection is restored
 - User sees: Confirmation that action will complete when online
 

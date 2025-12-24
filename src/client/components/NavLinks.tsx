@@ -1,5 +1,5 @@
 import { NavItem } from './layout/types';
-import { Dumbbell, Calendar, Settings, MessageSquare, CheckSquare, ClipboardList, TrendingUp } from 'lucide-react';
+import { Dumbbell, Calendar, Settings, MessageSquare, CheckSquare, ClipboardList, TrendingUp, Palette } from 'lucide-react';
 
 // Main bottom navigation (Training App)
 export const navItems: NavItem[] = [
@@ -17,6 +17,7 @@ export const menuItems: NavItem[] = [
   { path: '/ai-chat', label: 'AI Chat', icon: <MessageSquare size={18} /> },
   { path: '/todos', label: 'Todos', icon: <CheckSquare size={18} /> },
   { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
+  { path: '/theme', label: 'Theme', icon: <Palette size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
