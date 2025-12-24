@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "2e50ae1370634b5c8ef234867677a70db7f16808",
-  "lastProjectCommit": "792e5476d8b1f4a5a717b364822c5f418fb21c6b",
-  "lastSyncDate": "2025-12-24T17:05:48.287Z",
+  "lastSyncCommit": "c1a7f2a21a60c55148db96fa5a6dac3ec5069ef3",
+  "lastProjectCommit": "244558a6598f4518fbfb5231f252366e04c07f97",
+  "lastSyncDate": "2025-12-24T17:12:38.928Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,18 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-24T17:12:38.927Z",
+      "templateCommit": "c1a7f2a21a60c55148db96fa5a6dac3ec5069ef3",
+      "projectCommit": "244558a6598f4518fbfb5231f252366e04c07f97",
+      "filesApplied": 2,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "c1a7f2a feat: Add template-diff cursor command for summarizing template differences \u001b[90m(24/12/2025)\u001b[0m",
+        "47ebc73 fix: Make --diff-summary show full template comparison regardless of commits \u001b[90m(24/12/2025)\u001b[0m\n  - Changed diff-summary to compare current files directly (not commit-based)\n  - Simplified categorization: new files, modified files, ignored files\n  - Shows ALL differences between template and project\n  - Updated documentation to reflect the change"
+      ]
+    },
     {
       "date": "2025-12-24T17:05:48.286Z",
       "templateCommit": "2e50ae1370634b5c8ef234867677a70db7f16808",

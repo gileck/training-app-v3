@@ -416,15 +416,18 @@ If you add project-specific dependencies, consider maintaining a separate list a
 - For **truly project-specific files** → Add to `projectSpecificFiles` ✅
 - For **template files you've customized** → Leave them syncable, handle as conflicts ⚠️
 
-**Reviewing skipped file changes:**
+**Reviewing all template differences:**
 
-Use `--diff-summary` to see what changes exist in skipped files:
+Use `--diff-summary` to see ALL differences between your project and the template:
 
 ```bash
 yarn sync-template --diff-summary
 ```
 
-This generates `template-diff-summary.md` showing diffs for ALL files including skipped ones. Review this periodically to catch important template changes you may want to manually apply.
+This generates `template-diff-summary.md` showing diffs for ALL files - including modified, new, and ignored files - regardless of commit history. This is a full comparison of your current project against the latest template. Review this periodically to:
+- See what's different from the template
+- Catch important template changes you may want to manually apply
+- Understand how your project has diverged from the template
 
 ### 3. Mark Custom Code
 
@@ -648,7 +651,7 @@ jobs:
 | `yarn sync-template --dry-run` | Preview changes |
 | `yarn sync-template --force` | Force sync with uncommitted changes |
 | `yarn sync-template --use-https` | Use HTTPS instead of SSH for cloning |
-| `yarn sync-template --diff-summary` | Generate detailed diff report |
+| `yarn sync-template --diff-summary` | Generate full diff report (all differences) |
 
 ### Auto Mode Flags
 
