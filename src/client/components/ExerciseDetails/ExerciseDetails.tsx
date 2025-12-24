@@ -421,7 +421,7 @@ export function ExerciseDetails({
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500">
+                                        <div className="flex items-center gap-1.5 text-success">
                                             <CheckCircle2 className="h-4 w-4" />
                                             <span className="font-semibold text-sm">{entry.setsCompleted}</span>
                                         </div>

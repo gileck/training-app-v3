@@ -7,6 +7,17 @@
  */
 
 /* ============================================
+   Training App - Extended Color Tokens
+   ============================================ */
+@theme {
+    /* Extended status color tokens (foreground variants + info) */
+    --color-success-foreground: hsl(var(--success-foreground));
+    --color-warning-foreground: hsl(var(--warning-foreground));
+    --color-info: hsl(var(--info));
+    --color-info-foreground: hsl(var(--info-foreground));
+}
+
+/* ============================================
    Training App - Layout Tokens
    ============================================ */
 :root {
@@ -23,6 +34,12 @@
     --card-gap: 0.75rem;
     --section-gap: 1.5rem;
 
+    /* Extended status colors - foreground variants */
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
+    --info: 221 83% 53%;
+    --info-foreground: 0 0% 100%;
+
     /* Semantic colors - Exercise states */
     --exercise-complete: 142 76% 36%;
     --exercise-selected-bg: var(--primary) / 0.1;
@@ -37,6 +54,12 @@
    Training App - Dark Mode Overrides
    ============================================ */
 .dark {
+    /* Extended status colors - dark mode values */
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
     /* Exercise states */
     --exercise-complete: 142 76% 36%;
     
@@ -45,14 +68,9 @@
     --muscle-badge-text: 217 90% 75%;
     --muscle-badge-border: 217 50% 28%;
     
-    /* Enhanced layered backgrounds for depth */
-    --background: 224 50% 4%;
-    --card: 224 45% 8%;
-    --popover: 224 42% 11%;
-    --muted: 224 35% 14%;
-    --border: 224 25% 20%;
-    --input: 224 30% 15%;
-    --accent: 224 35% 16%;
+    /* Note: Base theme colors (--background, --card, --muted, etc.) 
+       are managed by the theme feature in src/client/features/theme/
+       Do NOT override them here - they are applied via inline styles */
 }
 
 /* Enhanced dark mode atmosphere with triple gradient */

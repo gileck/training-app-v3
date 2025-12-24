@@ -429,7 +429,7 @@ export function Home() {
                         <div className="h-3 bg-muted rounded-full overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ease-out ${progressPercent >= 100
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                        ? 'bg-success'
                                         : 'bg-gradient-to-r from-primary to-primary/80'
                                     }`}
                                 style={{ width: `${Math.min(progressPercent, 100)}%` }}
@@ -610,7 +610,7 @@ export function Home() {
                             </div>
                             <Button
                                 onClick={() => handleStartWorkout()}
-                                className="h-12 px-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
+                                className="h-12 px-6 rounded-xl bg-success text-success-foreground shadow-lg shadow-success/30"
                             >
                                 <Zap className="mr-2 h-5 w-5" />
                                 Start Workout
@@ -708,7 +708,7 @@ export function Home() {
                                 <Button
                                     onClick={() => handleStartWorkout()}
                                     disabled={exercises.length === 0}
-                                    className="h-12 px-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
+                                    className="h-12 px-6 rounded-xl bg-success text-success-foreground shadow-lg shadow-success/30"
                                 >
                                     <Play className="mr-2 h-5 w-5" />
                                     Start Workout
@@ -882,7 +882,7 @@ export function Home() {
                                             </p>
                                         </div>
                                         {ex.setsCompleted >= ex.targetSets && (
-                                            <Check className="h-5 w-5 text-green-500" />
+                                            <Check className="h-5 w-5 text-success" />
                                         )}
                                     </button>
                                 ))}
@@ -943,7 +943,7 @@ function ExerciseCardGrid({
     return (
         <Card
             onClick={handleCardClick}
-            className={`rounded-2xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-green-500/50 bg-green-500/5' : ''
+            className={`rounded-2xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-success/50 bg-success/5' : ''
                 } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
         >
             <CardContent className="p-4">
@@ -972,8 +972,8 @@ function ExerciseCardGrid({
                         )}
                         {/* Completion badge (only shows if not selected) */}
                         {isComplete && !isSelected && (
-                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                                <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-success flex items-center justify-center shadow-sm">
+                                <Check className="h-4 w-4 text-success-foreground" strokeWidth={3} />
                             </div>
                         )}
                     </div>
@@ -996,7 +996,7 @@ function ExerciseCardGrid({
                             {exercise.planExercise.reps} reps
                             {exercise.planExercise.weight > 0 && ` • ${exercise.planExercise.weight}kg`}
                         </p>
-                        <p className={`text-base font-semibold mt-1 ${isComplete ? 'text-green-500' : ''}`}>
+                        <p className={`text-base font-semibold mt-1 ${isComplete ? 'text-success' : ''}`}>
                             Sets: {exercise.setsCompleted}/{exercise.targetSets}
                             {isComplete && ' ✓'}
                         </p>
@@ -1007,7 +1007,7 @@ function ExerciseCardGrid({
                 <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
                     <div
                         className={`h-full rounded-full transition-all duration-300 ${isComplete
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                ? 'bg-success'
                                 : 'bg-gradient-to-r from-primary to-primary/80'
                             }`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
@@ -1044,7 +1044,7 @@ function ExerciseCardGrid({
                             <Button
                                 size="icon"
                                 onClick={onCompleteAll}
-                                className="h-11 w-11 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30 active:scale-95 transition-transform"
+                                className="h-11 w-11 rounded-full bg-success shadow-lg shadow-success/30 active:scale-95 transition-transform"
                             >
                                 <CheckCheck className="h-6 w-6" />
                             </Button>
@@ -1053,7 +1053,7 @@ function ExerciseCardGrid({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-11 w-11 rounded-full text-green-500 border-2 border-green-500/50 bg-green-500/10"
+                                className="h-11 w-11 rounded-full text-success border-2 border-success/50 bg-success/10"
                                 disabled
                             >
                                 <CheckCheck className="h-5 w-5" />
@@ -1087,7 +1087,7 @@ function ExerciseCardList({
     return (
         <Card
             onClick={handleCardClick}
-            className={`rounded-xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-green-500/50 bg-green-500/5' : ''
+            className={`rounded-xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-success/50 bg-success/5' : ''
                 } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
         >
             <CardContent className="p-3">
@@ -1116,14 +1116,14 @@ function ExerciseCardList({
                         )}
                         {/* Completion badge (only if not selected) */}
                         {isComplete && !isSelected && (
-                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                                <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-success flex items-center justify-center shadow-sm">
+                                <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
                             </div>
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-semibold truncate">{exercise.exerciseDef.name}</h3>
-                        <p className={`text-sm ${isComplete ? 'text-green-500' : 'text-muted-foreground'}`}>
+                        <p className={`text-sm ${isComplete ? 'text-success' : 'text-muted-foreground'}`}>
                             {exercise.setsCompleted}/{exercise.targetSets} sets{isComplete && ' ✓'}
                         </p>
                     </div>
@@ -1142,7 +1142,7 @@ function ExerciseCardList({
                             onClick={onRemoveSet}
                             disabled={exercise.setsCompleted <= 0}
                             className={`h-9 w-9 rounded-full active:scale-95 transition-transform ${
-                                isComplete ? 'text-red-500 border-red-500/50 hover:bg-red-500/10' : ''
+                                isComplete ? 'text-destructive border-destructive/50 hover:bg-destructive/10' : ''
                             }`}
                         >
                             <Minus className="h-4 w-4" />
@@ -1159,7 +1159,7 @@ function ExerciseCardList({
                             <Button
                                 size="icon"
                                 onClick={onCompleteAll}
-                                className="h-9 w-9 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 transition-transform"
+                                className="h-9 w-9 rounded-full bg-success hover:bg-success/90 active:scale-95 transition-transform"
                             >
                                 <CheckCheck className="h-4 w-4" />
                             </Button>
@@ -1170,7 +1170,7 @@ function ExerciseCardList({
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-2">
                     <div
                         className={`h-full rounded-full transition-all duration-300 ${isComplete
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                ? 'bg-success'
                                 : 'bg-gradient-to-r from-primary to-primary/80'
                             }`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
@@ -1216,7 +1216,7 @@ function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: Save
                                 e.stopPropagation();
                                 onStart();
                             }}
-                            className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25"
+                            className="h-10 w-10 rounded-full bg-success text-success-foreground shadow-lg shadow-success/25"
                         >
                             <Play className="h-5 w-5" />
                         </Button>
@@ -1275,7 +1275,7 @@ function ActiveExerciseCard({ exercise, onAddSet, onRemoveSet }: ActiveExerciseC
     const isComplete = exercise.setsCompleted >= exercise.targetSets;
 
     return (
-        <Card className={`rounded-2xl border-0 shadow-lg ${isComplete ? 'ring-2 ring-green-500 bg-green-500/5' : ''}`}>
+        <Card className={`rounded-2xl border-0 shadow-lg ${isComplete ? 'ring-2 ring-success bg-success/5' : ''}`}>
             <CardContent className="p-6">
                 {/* Large Exercise Image */}
                 <div className="aspect-square max-h-48 mx-auto mb-6 rounded-2xl bg-muted overflow-hidden">
@@ -1312,7 +1312,7 @@ function ActiveExerciseCard({ exercise, onAddSet, onRemoveSet }: ActiveExerciseC
 
                 {/* Sets Progress */}
                 <div className="text-center mb-6">
-                    <p className={`text-4xl font-bold ${isComplete ? 'text-green-500' : ''}`}>
+                    <p className={`text-4xl font-bold ${isComplete ? 'text-success' : ''}`}>
                         {exercise.setsCompleted} / {exercise.targetSets}
                     </p>
                     <p className="text-sm text-muted-foreground">sets completed</p>
@@ -1322,7 +1322,7 @@ function ActiveExerciseCard({ exercise, onAddSet, onRemoveSet }: ActiveExerciseC
                 <div className="h-3 bg-muted rounded-full overflow-hidden mb-6">
                     <div
                         className={`h-full rounded-full transition-all duration-300 ${isComplete
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                ? 'bg-success'
                                 : 'bg-gradient-to-r from-primary to-primary/80'
                             }`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
@@ -1349,8 +1349,8 @@ function ActiveExerciseCard({ exercise, onAddSet, onRemoveSet }: ActiveExerciseC
                         <Plus className="h-10 w-10" />
                     </Button>
                     {isComplete && (
-                        <div className="h-16 w-16 rounded-full bg-green-500/10 border-2 border-green-500/50 flex items-center justify-center">
-                            <CheckCheck className="h-8 w-8 text-green-500" />
+                        <div className="h-16 w-16 rounded-full bg-success/10 border-2 border-success/50 flex items-center justify-center">
+                            <CheckCheck className="h-8 w-8 text-success" />
                         </div>
                     )}
                 </div>

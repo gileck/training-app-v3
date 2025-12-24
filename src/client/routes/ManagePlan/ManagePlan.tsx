@@ -697,7 +697,7 @@ export function ManagePlan() {
         <div className="p-4 pb-20 space-y-4">
             {/* Success toast - shown at page level */}
             {addSuccessMessage && (
-                <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-2 px-4 py-3 bg-green-500 text-white rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-2 px-4 py-3 bg-success text-success-foreground rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                     <Check className="h-4 w-4 shrink-0" />
                     <span className="text-sm font-medium">{addSuccessMessage}</span>
                 </div>

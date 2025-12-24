@@ -424,7 +424,7 @@ export function TrainingPlans() {
                                 </Button>
                             </div>
                             {planToEdit && editPlanWeeks < planToEdit.durationWeeks && (
-                                <p className="text-sm text-amber-600 dark:text-amber-400">
+                                <p className="text-sm text-warning">
                                     Warning: Reducing weeks may result in loss of progress data for removed weeks.
                                 </p>
                             )}
