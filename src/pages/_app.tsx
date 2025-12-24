@@ -1,5 +1,5 @@
 import "@/client/styles/globals.css";
-import "@/client/styles/training-app.css"; // Project-specific customizations
+import "@/client/styles/project.css"; // Project-specific customizations
 import type { AppProps } from "next/app";
 import { AppThemeProvider } from "@/client/components/ThemeProvider";
 import dynamic from 'next/dynamic';
