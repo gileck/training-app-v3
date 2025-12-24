@@ -175,15 +175,50 @@ export function useUpdateSavedWorkout() {
             queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
                 if (!old?.workouts) return old;
                 return {
-                    workouts: old.workouts.map((workout) =>
-                        workout._id === variables.workoutId
-                            ? {
-                                  ...workout,
-                                  ...(variables.name !== undefined && { name: variables.name }),
-                                  updatedAt: new Date().toISOString(),
-                              }
-                            : workout
-                    ),
+                    workouts: old.workouts.map((workout) => {
+                        if (workout._id !== variables.workoutId) return workout;
+                        
+                        const updates: Partial<SavedWorkoutWithExercises> = {
+                            updatedAt: new Date().toISOString(),
+                        };
+                        
+                        if (variables.name !== undefined) {
+                            updates.name = variables.name;
+                        }
+                        
+                        // Handle exercises update with exercise definitions preserved
+                        if (variables.exercises !== undefined) {
+                            updates.exercises = variables.exercises.map((ex, index) => {
+                                // Try to find existing exercise def from current workout
+                                const existingEx = workout.exercises.find(
+                                    (e) => e.exerciseDefId === ex.exerciseDefId
+                                );
+                                return {
+                                    exerciseDefId: ex.exerciseDefId,
+                                    sets: ex.sets,
+                                    reps: ex.reps,
+                                    weight: ex.weight,
+                                    durationSeconds: ex.durationSeconds ?? 0,
+                                    order: index,
+                                    exerciseDef: existingEx?.exerciseDef || {
+                                        _id: ex.exerciseDefId,
+                                        name: 'Loading...',
+                                        imageUrl: '',
+                                        primaryMuscle: '',
+                                        secondaryMuscles: [] as string[],
+                                        type: '',
+                                        isBodyweight: false,
+                                        isStatic: false,
+                                        isSystem: true,
+                                        createdAt: new Date().toISOString(),
+                                        updatedAt: new Date().toISOString(),
+                                    },
+                                };
+                            });
+                        }
+                        
+                        return { ...workout, ...updates };
+                    }),
                 };
             });
 

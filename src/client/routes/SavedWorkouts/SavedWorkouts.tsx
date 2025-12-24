@@ -19,7 +19,21 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/client/components/ui/sheet';
-import { ChevronLeft, Dumbbell, Search, Trash2, Edit2, Copy, Play, Info } from 'lucide-react';
+import {
+    ChevronLeft,
+    Dumbbell,
+    Search,
+    Trash2,
+    Edit2,
+    Copy,
+    Play,
+    Info,
+    Plus,
+    ChevronUp,
+    ChevronDown,
+    X,
+    Check,
+} from 'lucide-react';
 import { useRouter } from '../../router';
 import {
     useSavedWorkouts,
@@ -27,8 +41,14 @@ import {
     useDeleteSavedWorkout,
     useCreateSavedWorkout,
 } from '../Home/hooks';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { SavedWorkoutWithExercises, SavedWorkoutExerciseWithDef } from '@/apis/saved-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
+import { toast } from '@/client/components/ui/toast';
+import { useQuery } from '@tanstack/react-query';
+import { useQueryDefaults } from '@/client/query';
+import { listPlanExercises } from '@/apis/plan-exercises/client';
+import { useActivePlanId } from '@/client/features/workout';
+import Image from 'next/image';
 
 export function SavedWorkouts() {
     const { navigate } = useRouter();
@@ -38,6 +58,21 @@ export function SavedWorkouts() {
     const updateMutation = useUpdateSavedWorkout();
     const deleteMutation = useDeleteSavedWorkout();
     const duplicateMutation = useCreateSavedWorkout();
+
+    // Active plan for adding exercises
+    const activePlanId = useActivePlanId();
+    const queryDefaults = useQueryDefaults();
+    const { data: planExercisesData } = useQuery({
+        queryKey: ['plan-exercises', activePlanId],
+        queryFn: async () => {
+            if (!activePlanId) return { exercises: [] };
+            const response = await listPlanExercises({ planId: activePlanId });
+            return response.data || { exercises: [] };
+        },
+        enabled: !!activePlanId,
+        ...queryDefaults,
+    });
+    const planExercises = planExercisesData?.exercises || [];
 
     // UI State
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral search filter
@@ -60,6 +95,12 @@ export function SavedWorkouts() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExercise, setSelectedExercise] = useState<SavedWorkoutWithExercises['exercises'][0] | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral edit mode state
+    const [isEditMode, setIsEditMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral edit state for exercises
+    const [editedExercises, setEditedExercises] = useState<SavedWorkoutExerciseWithDef[]>([]);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [addExerciseDialogOpen, setAddExerciseDialogOpen] = useState(false);
 
     const workouts = data?.workouts || [];
 
@@ -127,6 +168,8 @@ export function SavedWorkouts() {
 
     const handleViewDetails = (workout: SavedWorkoutWithExercises) => {
         setWorkoutToView(workout);
+        setEditedExercises([...workout.exercises]);
+        setIsEditMode(false);
         setDetailsSheetOpen(true);
     };
 
@@ -134,6 +177,112 @@ export function SavedWorkouts() {
         setSelectedExercise(exercise);
         setExerciseDetailsOpen(true);
     };
+
+    // Edit mode handlers
+    const handleEnterEditMode = () => {
+        if (workoutToView) {
+            setEditedExercises([...workoutToView.exercises]);
+            setIsEditMode(true);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditMode(false);
+        if (workoutToView) {
+            setEditedExercises([...workoutToView.exercises]);
+        }
+    };
+
+    const handleSaveExercises = () => {
+        if (!workoutToView || editedExercises.length === 0) {
+            toast.error('At least one exercise is required');
+            return;
+        }
+
+        updateMutation.mutate(
+            {
+                workoutId: workoutToView._id,
+                exercises: editedExercises.map((ex) => ({
+                    exerciseDefId: ex.exerciseDefId,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    weight: ex.weight,
+                    durationSeconds: ex.durationSeconds,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    setIsEditMode(false);
+                    // Update the local workout view
+                    setWorkoutToView((prev) =>
+                        prev ? { ...prev, exercises: editedExercises } : null
+                    );
+                    toast.success('Workout updated');
+                },
+                onError: (err) => {
+                    toast.error(`Failed to update: ${err.message}`);
+                },
+            }
+        );
+    };
+
+    const handleRemoveExercise = (index: number) => {
+        setEditedExercises((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handleMoveUp = (index: number) => {
+        if (index === 0) return;
+        setEditedExercises((prev) => {
+            const items = [...prev];
+            [items[index - 1], items[index]] = [items[index], items[index - 1]];
+            return items.map((item, i) => ({ ...item, order: i }));
+        });
+    };
+
+    const handleMoveDown = (index: number) => {
+        if (index === editedExercises.length - 1) return;
+        setEditedExercises((prev) => {
+            const items = [...prev];
+            [items[index], items[index + 1]] = [items[index + 1], items[index]];
+            return items.map((item, i) => ({ ...item, order: i }));
+        });
+    };
+
+    // Add exercises from plan
+    const handleAddExercises = () => {
+        setAddExerciseDialogOpen(true);
+    };
+
+    const handleSelectExerciseToAdd = (planExercise: typeof planExercises[0]) => {
+        // Check if already in workout
+        const alreadyExists = editedExercises.some(
+            (ex) => ex.exerciseDefId === planExercise.exerciseDefId
+        );
+
+        if (alreadyExists) {
+            toast.info('This exercise is already in the workout');
+            return;
+        }
+
+        // Add exercise to edited list
+        const newExercise: SavedWorkoutExerciseWithDef = {
+            exerciseDefId: planExercise.exerciseDefId,
+            sets: planExercise.sets,
+            reps: planExercise.reps,
+            weight: planExercise.weight,
+            durationSeconds: planExercise.durationSeconds,
+            order: editedExercises.length,
+            exerciseDef: planExercise.exerciseDef,
+        };
+
+        setEditedExercises((prev) => [...prev, newExercise]);
+        toast.success(`Added ${planExercise.exerciseDef.name}`);
+    };
+
+    // Filter plan exercises that aren't already in the workout
+    const availablePlanExercises = planExercises.filter(
+        (pe) => !editedExercises.some((ex) => ex.exerciseDefId === pe.exerciseDefId)
+    );
 
     // Loading state
     if (isLoading && !data) {
@@ -345,63 +494,270 @@ export function SavedWorkouts() {
                 </DialogContent>
             </Dialog>
 
-            {/* Details Sheet */}
-            <Sheet open={detailsSheetOpen} onOpenChange={setDetailsSheetOpen}>
+            {/* Details Sheet with Edit Mode */}
+            <Sheet open={detailsSheetOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsEditMode(false);
+                }
+                setDetailsSheetOpen(open);
+            }}>
                 <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
                     <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4" />
                     <SheetHeader className="text-left">
-                        <SheetTitle className="text-xl font-bold">{workoutToView?.name}</SheetTitle>
+                        <div className="flex items-center justify-between">
+                            <SheetTitle className="text-xl font-bold">{workoutToView?.name}</SheetTitle>
+                            {!isEditMode ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleEnterEditMode}
+                                    className="rounded-lg"
+                                >
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Edit
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCancelEdit}
+                                        className="rounded-lg"
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={handleSaveExercises}
+                                        disabled={updateMutation.isPending}
+                                        className="rounded-lg"
+                                    >
+                                        <Check className="h-4 w-4 mr-1" />
+                                        {updateMutation.isPending ? 'Saving...' : 'Save'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </SheetHeader>
-                    <div className="mt-4 space-y-3">
-                        {workoutToView?.exercises.map((exercise, index) => (
-                            <Card key={index} className="rounded-xl border-0 shadow-sm">
-                                <CardContent className="p-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                                            {exercise.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={exercise.exerciseDef.imageUrl}
-                                                    alt={exercise.exerciseDef.name}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-semibold truncate">{exercise.exerciseDef.name}</h4>
-                                            <p className="text-sm text-muted-foreground">
-                                                {exercise.sets} sets × {exercise.reps} reps
-                                                {exercise.weight > 0 && ` • ${exercise.weight}kg`}
-                                            </p>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleExerciseInfo(exercise)}
-                                            className="h-8 w-8 rounded-full text-primary"
-                                        >
-                                            <Info className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                    <div className="mt-6 pb-4">
+
+                    {/* Add Exercise Button (only in edit mode) */}
+                    {isEditMode && activePlanId && (
                         <Button
-                            onClick={() => setDetailsSheetOpen(false)}
-                            className="w-full h-12 rounded-xl"
+                            variant="outline"
+                            onClick={handleAddExercises}
+                            className="w-full mt-4 rounded-xl border-dashed"
                         >
-                            <Play className="h-4 w-4 mr-2" />
-                            Start This Workout
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Exercise from Plan
                         </Button>
+                    )}
+
+                    {/* Exercise List */}
+                    <div className="mt-4 space-y-3">
+                        {isEditMode ? (
+                            <div className="space-y-3">
+                                {editedExercises.map((exercise, index) => (
+                                    <Card
+                                        key={`${exercise.exerciseDefId}-${index}`}
+                                        className="rounded-xl border-0 shadow-sm"
+                                    >
+                                        <CardContent className="p-3">
+                                            <div className="flex items-center gap-2">
+                                                {/* Reorder buttons */}
+                                                <div className="flex flex-col -my-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveUp(index)}
+                                                        disabled={index === 0}
+                                                        className="h-6 w-6 rounded-md"
+                                                    >
+                                                        <ChevronUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveDown(index)}
+                                                        disabled={index === editedExercises.length - 1}
+                                                        className="h-6 w-6 rounded-md"
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+
+                                                {/* Exercise image */}
+                                                <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                                    {exercise.exerciseDef.imageUrl ? (
+                                                        <Image
+                                                            src={exercise.exerciseDef.imageUrl}
+                                                            alt={exercise.exerciseDef.name}
+                                                            width={48}
+                                                            height={48}
+                                                            className="w-full h-full object-contain"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Exercise info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold truncate">
+                                                        {exercise.exerciseDef.name}
+                                                    </h4>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {exercise.sets} sets × {exercise.reps} reps
+                                                        {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                    </p>
+                                                </div>
+
+                                                {/* Remove button */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleRemoveExercise(index)}
+                                                    className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            workoutToView?.exercises.map((exercise, index) => (
+                                <Card key={index} className="rounded-xl border-0 shadow-sm">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                                {exercise.exerciseDef.imageUrl ? (
+                                                    <Image
+                                                        src={exercise.exerciseDef.imageUrl}
+                                                        alt={exercise.exerciseDef.name}
+                                                        width={48}
+                                                        height={48}
+                                                        className="w-full h-full object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold truncate">{exercise.exerciseDef.name}</h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                    {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleExerciseInfo(exercise)}
+                                                className="h-8 w-8 rounded-full text-primary"
+                                            >
+                                                <Info className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
                     </div>
+
+                    {/* Action buttons */}
+                    {!isEditMode && (
+                        <div className="mt-6 pb-4">
+                            <Button
+                                onClick={() => setDetailsSheetOpen(false)}
+                                className="w-full h-12 rounded-xl"
+                            >
+                                <Play className="h-4 w-4 mr-2" />
+                                Start This Workout
+                            </Button>
+                        </div>
+                    )}
                 </SheetContent>
             </Sheet>
+
+            {/* Add Exercise Dialog */}
+            <Dialog open={addExerciseDialogOpen} onOpenChange={setAddExerciseDialogOpen}>
+                <DialogContent className="rounded-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Add Exercise from Plan</DialogTitle>
+                        <DialogDescription>
+                            Select exercises from your active training plan to add to this workout.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        {availablePlanExercises.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Dumbbell className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">
+                                    {planExercises.length === 0
+                                        ? 'No exercises in your active plan'
+                                        : 'All exercises already added'}
+                                </p>
+                            </div>
+                        ) : (
+                            availablePlanExercises.map((exercise) => (
+                                <Card
+                                    key={exercise._id}
+                                    className="rounded-xl border-0 shadow-sm cursor-pointer hover:bg-muted/50 active:scale-[0.98] transition-all"
+                                    onClick={() => handleSelectExerciseToAdd(exercise)}
+                                >
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                                {exercise.exerciseDef.imageUrl ? (
+                                                    <Image
+                                                        src={exercise.exerciseDef.imageUrl}
+                                                        alt={exercise.exerciseDef.name}
+                                                        width={48}
+                                                        height={48}
+                                                        className="w-full h-full object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold truncate">
+                                                    {exercise.exerciseDef.name}
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                    {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                </p>
+                                            </div>
+                                            <Plus className="h-5 w-5 text-primary" />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAddExerciseDialogOpen(false)}
+                            className="rounded-lg w-full"
+                        >
+                            Done
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Exercise Details */}
             <ExerciseDetails
@@ -416,4 +772,3 @@ export function SavedWorkouts() {
         </div>
     );
 }
-
