@@ -8,6 +8,7 @@ import { Label } from '@/client/components/ui/label';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Badge } from '@/client/components/ui/badge';
 import { toast } from '@/client/components/ui/toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import {
     Dialog,
     DialogContent,
@@ -16,7 +17,13 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { ChevronLeft, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare } from 'lucide-react';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/client/components/ui/sheet';
+import { ChevronLeft, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare, Copy, Info, Play, Bookmark } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -38,9 +45,16 @@ import {
     useUpdateExercise,
     useDeleteExercise,
 } from './hooks';
+import {
+    useSavedWorkouts,
+    useCreateSavedWorkout,
+    useUpdateSavedWorkout,
+    useDeleteSavedWorkout,
+} from '../Home/hooks';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { SavedWorkoutWithExercises, SavedWorkoutExerciseWithDef } from '@/apis/saved-workouts/types';
 
 export function ManagePlan() {
     const { navigate, routeParams } = useRouter();
@@ -63,7 +77,16 @@ export function ManagePlan() {
     const updateExerciseDefMutation = useUpdateExercise();
     const deleteExerciseDefMutation = useDeleteExercise();
 
+    // Saved workouts
+    const { data: savedWorkoutsData } = useSavedWorkouts();
+    const createWorkoutMutation = useCreateSavedWorkout();
+    const updateWorkoutMutation = useUpdateSavedWorkout();
+    const deleteWorkoutMutation = useDeleteSavedWorkout();
+    const savedWorkouts = savedWorkoutsData?.workouts || [];
+
     // UI state
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral tab state
+    const [activeTab, setActiveTab] = useState<'exercises' | 'workouts'>('exercises');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral sheet state
     const [addSheetOpen, setAddSheetOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral search filter
@@ -120,6 +143,32 @@ export function ManagePlan() {
     const [showMultiConfig, setShowMultiConfig] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral notes dialog
     const [notesDialogExerciseId, setNotesDialogExerciseId] = useState<string | null>(null);
+
+    // Workouts tab state
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [createWorkoutDialogOpen, setCreateWorkoutDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [newWorkoutName, setNewWorkoutName] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [workoutDetailsSheetOpen, setWorkoutDetailsSheetOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
+    const [workoutToView, setWorkoutToView] = useState<SavedWorkoutWithExercises | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral edit mode
+    const [isWorkoutEditMode, setIsWorkoutEditMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral edit state
+    const [editedWorkoutExercises, setEditedWorkoutExercises] = useState<SavedWorkoutExerciseWithDef[]>([]);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [renameWorkoutDialogOpen, setRenameWorkoutDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
+    const [workoutToRename, setWorkoutToRename] = useState<SavedWorkoutWithExercises | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [renameWorkoutName, setRenameWorkoutName] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [deleteWorkoutDialogOpen, setDeleteWorkoutDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
+    const [workoutToDelete, setWorkoutToDelete] = useState<SavedWorkoutWithExercises | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [addExerciseToWorkoutDialogOpen, setAddExerciseToWorkoutDialogOpen] = useState(false);
 
     const plan = planData?.plan;
     const planExercises = exercisesData?.exercises || [];
@@ -437,6 +486,200 @@ export function ManagePlan() {
         );
     };
 
+    // ==================== Saved Workouts Handlers ====================
+
+    const handleCreateWorkout = () => {
+        if (!newWorkoutName.trim() || planExercises.length === 0) return;
+
+        createWorkoutMutation.mutate(
+            {
+                name: newWorkoutName.trim(),
+                exercises: planExercises.map((ex) => ({
+                    exerciseDefId: ex.exerciseDefId,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    weight: ex.weight,
+                    durationSeconds: ex.durationSeconds,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    setCreateWorkoutDialogOpen(false);
+                    setNewWorkoutName('');
+                    toast.success('Workout created');
+                },
+                onError: (err) => {
+                    toast.error(`Failed to create workout: ${err.message}`);
+                },
+            }
+        );
+    };
+
+    const handleViewWorkoutDetails = (workout: SavedWorkoutWithExercises) => {
+        setWorkoutToView(workout);
+        setEditedWorkoutExercises([...workout.exercises]);
+        setIsWorkoutEditMode(false);
+        setWorkoutDetailsSheetOpen(true);
+    };
+
+    const handleEnterWorkoutEditMode = () => {
+        if (workoutToView) {
+            setEditedWorkoutExercises([...workoutToView.exercises]);
+            setIsWorkoutEditMode(true);
+        }
+    };
+
+    const handleCancelWorkoutEdit = () => {
+        setIsWorkoutEditMode(false);
+        if (workoutToView) {
+            setEditedWorkoutExercises([...workoutToView.exercises]);
+        }
+    };
+
+    const handleSaveWorkoutExercises = () => {
+        if (!workoutToView || editedWorkoutExercises.length === 0) {
+            toast.error('At least one exercise is required');
+            return;
+        }
+
+        updateWorkoutMutation.mutate(
+            {
+                workoutId: workoutToView._id,
+                exercises: editedWorkoutExercises.map((ex) => ({
+                    exerciseDefId: ex.exerciseDefId,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    weight: ex.weight,
+                    durationSeconds: ex.durationSeconds,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    setIsWorkoutEditMode(false);
+                    setWorkoutToView((prev) =>
+                        prev ? { ...prev, exercises: editedWorkoutExercises } : null
+                    );
+                    toast.success('Workout updated');
+                },
+                onError: (err) => {
+                    toast.error(`Failed to update: ${err.message}`);
+                },
+            }
+        );
+    };
+
+    const handleRemoveWorkoutExercise = (index: number) => {
+        setEditedWorkoutExercises((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handleMoveWorkoutExercise = (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === editedWorkoutExercises.length - 1) return;
+
+        setEditedWorkoutExercises((prev) => {
+            const items = [...prev];
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            [items[index], items[targetIndex]] = [items[targetIndex], items[index]];
+            return items.map((item, i) => ({ ...item, order: i }));
+        });
+    };
+
+    const handleAddExerciseToWorkout = (planExercise: PlanExerciseWithDefinition) => {
+        const alreadyExists = editedWorkoutExercises.some(
+            (ex) => ex.exerciseDefId === planExercise.exerciseDefId
+        );
+
+        if (alreadyExists) {
+            toast.info('This exercise is already in the workout');
+            return;
+        }
+
+        const newExercise: SavedWorkoutExerciseWithDef = {
+            exerciseDefId: planExercise.exerciseDefId,
+            sets: planExercise.sets,
+            reps: planExercise.reps,
+            weight: planExercise.weight,
+            durationSeconds: planExercise.durationSeconds,
+            order: editedWorkoutExercises.length,
+            exerciseDef: planExercise.exerciseDef,
+        };
+
+        setEditedWorkoutExercises((prev) => [...prev, newExercise]);
+        toast.success(`Added ${planExercise.exerciseDef.name}`);
+    };
+
+    const handleRenameWorkoutClick = (workout: SavedWorkoutWithExercises) => {
+        setWorkoutToRename(workout);
+        setRenameWorkoutName(workout.name);
+        setRenameWorkoutDialogOpen(true);
+    };
+
+    const handleSaveWorkoutRename = () => {
+        if (!workoutToRename || !renameWorkoutName.trim()) return;
+
+        updateWorkoutMutation.mutate(
+            { workoutId: workoutToRename._id, name: renameWorkoutName.trim() },
+            {
+                onSuccess: () => {
+                    setRenameWorkoutDialogOpen(false);
+                    setWorkoutToRename(null);
+                    toast.success('Workout renamed');
+                },
+                onError: (err) => {
+                    toast.error(`Failed to rename: ${err.message}`);
+                },
+            }
+        );
+    };
+
+    const handleDeleteWorkoutClick = (workout: SavedWorkoutWithExercises) => {
+        setWorkoutToDelete(workout);
+        setDeleteWorkoutDialogOpen(true);
+    };
+
+    const confirmDeleteWorkout = () => {
+        if (!workoutToDelete) return;
+
+        deleteWorkoutMutation.mutate(
+            { workoutId: workoutToDelete._id },
+            {
+                onSuccess: () => {
+                    setDeleteWorkoutDialogOpen(false);
+                    setWorkoutToDelete(null);
+                    toast.success('Workout deleted');
+                },
+                onError: (err) => {
+                    toast.error(`Failed to delete: ${err.message}`);
+                },
+            }
+        );
+    };
+
+    const handleDuplicateWorkout = (workout: SavedWorkoutWithExercises) => {
+        createWorkoutMutation.mutate(
+            {
+                name: `${workout.name} (Copy)`,
+                exercises: workout.exercises.map((ex) => ({
+                    exerciseDefId: ex.exerciseDefId,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    weight: ex.weight,
+                    durationSeconds: ex.durationSeconds,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Workout duplicated');
+                },
+            }
+        );
+    };
+
+    // Available exercises for adding to workout (not already in workout)
+    const availableExercisesForWorkout = planExercises.filter(
+        (pe) => !editedWorkoutExercises.some((ex) => ex.exerciseDefId === pe.exerciseDefId)
+    );
+
     const isLoading = planLoading || exercisesLoading;
 
     // Loading state
@@ -504,25 +747,42 @@ export function ManagePlan() {
                     <h1 className="text-xl font-semibold">{plan.name}</h1>
                     <p className="text-sm text-muted-foreground">{plan.durationWeeks} weeks</p>
                 </div>
-                <div className="flex gap-2">
-                    {planExercises.length > 1 && (
-                        <Button
-                            variant={isReorderMode ? 'secondary' : 'outline'}
-                            size="icon"
-                            onClick={() => setIsReorderMode(!isReorderMode)}
-                            className="rounded-xl h-10 w-10"
-                        >
-                            <ArrowUpDown className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <Button onClick={() => setAddSheetOpen(true)} className="rounded-xl">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add
-                    </Button>
-                </div>
             </div>
 
-            {/* Exercise list */}
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'exercises' | 'workouts')} className="w-full">
+                <TabsList className="w-full bg-muted p-1 rounded-xl">
+                    <TabsTrigger value="exercises" className="flex-1 rounded-lg text-sm font-medium">
+                        <Dumbbell className="h-4 w-4 mr-2" />
+                        Exercises
+                    </TabsTrigger>
+                    <TabsTrigger value="workouts" className="flex-1 rounded-lg text-sm font-medium">
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        Workouts
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Exercises Tab */}
+                <TabsContent value="exercises" className="mt-4 space-y-4">
+                    {/* Add/Reorder buttons for exercises */}
+                    <div className="flex gap-2 justify-end">
+                        {planExercises.length > 1 && (
+                            <Button
+                                variant={isReorderMode ? 'secondary' : 'outline'}
+                                size="icon"
+                                onClick={() => setIsReorderMode(!isReorderMode)}
+                                className="rounded-xl h-10 w-10"
+                            >
+                                <ArrowUpDown className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <Button onClick={() => setAddSheetOpen(true)} className="rounded-xl">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Exercise
+                        </Button>
+                    </div>
+
+                    {/* Exercise list */}
             {planExercises.length === 0 ? (
                 <Card className="rounded-2xl border-0 shadow-sm">
                     <CardContent className="flex flex-col items-center justify-center py-12">
@@ -621,8 +881,112 @@ export function ManagePlan() {
                             </CardContent>
                         </Card>
                     ))}
-                </div>
-            )}
+                    </div>
+                )}
+                </TabsContent>
+
+                {/* Workouts Tab */}
+                <TabsContent value="workouts" className="mt-4 space-y-4">
+                    {/* Create workout button */}
+                    <div className="flex gap-2 justify-end">
+                        <Button
+                            onClick={() => setCreateWorkoutDialogOpen(true)}
+                            disabled={planExercises.length === 0}
+                            className="rounded-xl"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Workout
+                        </Button>
+                    </div>
+
+                    {/* Workouts list */}
+                    {savedWorkouts.length === 0 ? (
+                        <Card className="rounded-2xl border-0 shadow-sm">
+                            <CardContent className="flex flex-col items-center justify-center py-12">
+                                <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No saved workouts</h3>
+                                <p className="text-sm text-muted-foreground mb-4 text-center">
+                                    Create a workout from your plan exercises
+                                </p>
+                                <Button
+                                    onClick={() => setCreateWorkoutDialogOpen(true)}
+                                    disabled={planExercises.length === 0}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create Workout
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3">
+                            {savedWorkouts.map((workout) => (
+                                <Card
+                                    key={workout._id}
+                                    className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform"
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold truncate">{workout.name}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleViewWorkoutDetails(workout)}
+                                                    className="h-8 w-8 rounded-full"
+                                                >
+                                                    <Info className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleRenameWorkoutClick(workout)}
+                                                    className="h-8 w-8 rounded-full"
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDuplicateWorkout(workout)}
+                                                    disabled={createWorkoutMutation.isPending}
+                                                    className="h-8 w-8 rounded-full"
+                                                >
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteWorkoutClick(workout)}
+                                                    className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {workout.exercises.slice(0, 4).map((ex, i) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">
+                                                    {ex.exerciseDef.name}
+                                                </Badge>
+                                            ))}
+                                            {workout.exercises.length > 4 && (
+                                                <Badge variant="outline" className="text-xs">
+                                                    +{workout.exercises.length - 4} more
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
 
             {/* Add Exercise Dialog */}
             <Dialog open={addSheetOpen} onOpenChange={setAddSheetOpen}>
@@ -1408,6 +1772,361 @@ export function ManagePlan() {
                             className="rounded-lg"
                         >
                             {deleteExerciseDefMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ==================== Saved Workouts Dialogs ==================== */}
+
+            {/* Create Workout Dialog */}
+            <Dialog open={createWorkoutDialogOpen} onOpenChange={setCreateWorkoutDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Create Workout</DialogTitle>
+                        <DialogDescription>
+                            Create a new workout from your plan&apos;s {planExercises.length} exercises.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="workout-name">Workout Name</Label>
+                        <Input
+                            id="workout-name"
+                            value={newWorkoutName}
+                            onChange={(e) => setNewWorkoutName(e.target.value)}
+                            placeholder="e.g., Upper Body, Leg Day"
+                            className="mt-2 rounded-lg"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setCreateWorkoutDialogOpen(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreateWorkout}
+                            disabled={!newWorkoutName.trim() || createWorkoutMutation.isPending}
+                            className="rounded-lg"
+                        >
+                            {createWorkoutMutation.isPending ? 'Creating...' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Rename Workout Dialog */}
+            <Dialog open={renameWorkoutDialogOpen} onOpenChange={setRenameWorkoutDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Rename Workout</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="rename-workout-name">Name</Label>
+                        <Input
+                            id="rename-workout-name"
+                            value={renameWorkoutName}
+                            onChange={(e) => setRenameWorkoutName(e.target.value)}
+                            placeholder="Workout name"
+                            className="mt-2 rounded-lg"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setRenameWorkoutDialogOpen(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSaveWorkoutRename}
+                            disabled={!renameWorkoutName.trim() || updateWorkoutMutation.isPending}
+                            className="rounded-lg"
+                        >
+                            {updateWorkoutMutation.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Workout Dialog */}
+            <Dialog open={deleteWorkoutDialogOpen} onOpenChange={setDeleteWorkoutDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Delete Workout?</DialogTitle>
+                        <DialogDescription>
+                            This will permanently delete &quot;{workoutToDelete?.name}&quot;. This cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteWorkoutDialogOpen(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDeleteWorkout}
+                            disabled={deleteWorkoutMutation.isPending}
+                            className="rounded-lg"
+                        >
+                            {deleteWorkoutMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Workout Details Sheet */}
+            <Sheet open={workoutDetailsSheetOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsWorkoutEditMode(false);
+                }
+                setWorkoutDetailsSheetOpen(open);
+            }}>
+                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
+                    <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4" />
+                    <SheetHeader className="text-left">
+                        <div className="flex items-center justify-between">
+                            <SheetTitle className="text-xl font-bold">{workoutToView?.name}</SheetTitle>
+                            {!isWorkoutEditMode ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleEnterWorkoutEditMode}
+                                    className="rounded-lg"
+                                >
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Edit
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCancelWorkoutEdit}
+                                        className="rounded-lg"
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={handleSaveWorkoutExercises}
+                                        disabled={updateWorkoutMutation.isPending}
+                                        className="rounded-lg"
+                                    >
+                                        <Check className="h-4 w-4 mr-1" />
+                                        {updateWorkoutMutation.isPending ? 'Saving...' : 'Save'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </SheetHeader>
+
+                    {/* Add Exercise Button (only in edit mode) */}
+                    {isWorkoutEditMode && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setAddExerciseToWorkoutDialogOpen(true)}
+                            disabled={availableExercisesForWorkout.length === 0}
+                            className="w-full mt-4 rounded-xl border-dashed"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Exercise from Plan
+                        </Button>
+                    )}
+
+                    {/* Exercise List */}
+                    <div className="mt-4 space-y-3">
+                        {isWorkoutEditMode ? (
+                            <div className="space-y-3">
+                                {editedWorkoutExercises.map((exercise, index) => (
+                                    <Card
+                                        key={`${exercise.exerciseDefId}-${index}`}
+                                        className="rounded-xl border-0 shadow-sm"
+                                    >
+                                        <CardContent className="p-3">
+                                            <div className="flex items-center gap-2">
+                                                {/* Reorder buttons */}
+                                                <div className="flex flex-col -my-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveWorkoutExercise(index, 'up')}
+                                                        disabled={index === 0}
+                                                        className="h-6 w-6 rounded-md"
+                                                    >
+                                                        <ChevronUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveWorkoutExercise(index, 'down')}
+                                                        disabled={index === editedWorkoutExercises.length - 1}
+                                                        className="h-6 w-6 rounded-md"
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+
+                                                {/* Exercise image */}
+                                                <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                                                    {exercise.exerciseDef.imageUrl ? (
+                                                        <Image
+                                                            src={exercise.exerciseDef.imageUrl}
+                                                            alt={exercise.exerciseDef.name}
+                                                            fill
+                                                            className="object-contain"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Exercise info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold truncate">
+                                                        {exercise.exerciseDef.name}
+                                                    </h4>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {exercise.sets} sets × {exercise.reps} reps
+                                                        {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                    </p>
+                                                </div>
+
+                                                {/* Remove button */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleRemoveWorkoutExercise(index)}
+                                                    className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            workoutToView?.exercises.map((exercise, index) => (
+                                <Card key={index} className="rounded-xl border-0 shadow-sm">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                                                {exercise.exerciseDef.imageUrl ? (
+                                                    <Image
+                                                        src={exercise.exerciseDef.imageUrl}
+                                                        alt={exercise.exerciseDef.name}
+                                                        fill
+                                                        className="object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold truncate">{exercise.exerciseDef.name}</h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                    {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Action buttons */}
+                    {!isWorkoutEditMode && (
+                        <div className="mt-6 pb-4">
+                            <Button
+                                onClick={() => setWorkoutDetailsSheetOpen(false)}
+                                className="w-full h-12 rounded-xl"
+                            >
+                                <Play className="h-4 w-4 mr-2" />
+                                Start This Workout
+                            </Button>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
+
+            {/* Add Exercise to Workout Dialog */}
+            <Dialog open={addExerciseToWorkoutDialogOpen} onOpenChange={setAddExerciseToWorkoutDialogOpen}>
+                <DialogContent className="rounded-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Add Exercise from Plan</DialogTitle>
+                        <DialogDescription>
+                            Select exercises from your training plan to add to this workout.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        {availableExercisesForWorkout.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Dumbbell className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">All exercises already added</p>
+                            </div>
+                        ) : (
+                            availableExercisesForWorkout.map((exercise) => (
+                                <Card
+                                    key={exercise._id}
+                                    className="rounded-xl border-0 shadow-sm cursor-pointer hover:bg-muted/50 active:scale-[0.98] transition-all"
+                                    onClick={() => handleAddExerciseToWorkout(exercise)}
+                                >
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                                                {exercise.exerciseDef.imageUrl ? (
+                                                    <Image
+                                                        src={exercise.exerciseDef.imageUrl}
+                                                        alt={exercise.exerciseDef.name}
+                                                        fill
+                                                        className="object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold truncate">
+                                                    {exercise.exerciseDef.name}
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                    {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                </p>
+                                            </div>
+                                            <Plus className="h-5 w-5 text-primary" />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAddExerciseToWorkoutDialogOpen(false)}
+                            className="rounded-lg w-full"
+                        >
+                            Done
                         </Button>
                     </DialogFooter>
                 </DialogContent>
