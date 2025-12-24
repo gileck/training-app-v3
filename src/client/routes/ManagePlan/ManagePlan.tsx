@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { ChevronLeft, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare, Copy, Bookmark } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare, Copy, Bookmark } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -160,6 +160,8 @@ export function ManagePlan() {
     const [deleteWorkoutDialogOpen, setDeleteWorkoutDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
     const [workoutToDelete, setWorkoutToDelete] = useState<SavedWorkoutWithExercises | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
+    const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
     const plan = planData?.plan;
     const planExercises = exercisesData?.exercises || [];
@@ -865,62 +867,101 @@ export function ManagePlan() {
                         </Card>
                     ) : (
                         <div className="space-y-3">
-                            {savedWorkouts.map((workout) => (
-                                <Card
-                                    key={workout._id}
-                                    className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform"
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold truncate">{workout.name}</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
-                                                </p>
+                            {savedWorkouts.map((workout) => {
+                                const isExpanded = expandedWorkoutId === workout._id;
+                                return (
+                                    <Card
+                                        key={workout._id}
+                                        className="rounded-xl border-0 shadow-sm overflow-hidden"
+                                    >
+                                        <CardContent className="p-0">
+                                            {/* Header - clickable to expand */}
+                                            <div
+                                                className="p-4 cursor-pointer active:bg-muted/50 transition-colors"
+                                                onClick={() => setExpandedWorkoutId(isExpanded ? null : workout._id)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="font-semibold truncate">{workout.name}</h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleOpenWorkoutDialog(workout)}
+                                                            className="h-8 w-8 rounded-full"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleDuplicateWorkout(workout)}
+                                                            disabled={createWorkoutMutation.isPending}
+                                                            className="h-8 w-8 rounded-full"
+                                                        >
+                                                            <Copy className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleDeleteWorkoutClick(workout)}
+                                                            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleOpenWorkoutDialog(workout)}
-                                                    className="h-8 w-8 rounded-full"
-                                                >
-                                                    <Edit2 className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDuplicateWorkout(workout)}
-                                                    disabled={createWorkoutMutation.isPending}
-                                                    className="h-8 w-8 rounded-full"
-                                                >
-                                                    <Copy className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDeleteWorkoutClick(workout)}
-                                                    className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-1">
-                                            {workout.exercises.slice(0, 4).map((ex, i) => (
-                                                <Badge key={i} variant="secondary" className="text-xs">
-                                                    {ex.exerciseDef.name}
-                                                </Badge>
-                                            ))}
-                                            {workout.exercises.length > 4 && (
-                                                <Badge variant="outline" className="text-xs">
-                                                    +{workout.exercises.length - 4} more
-                                                </Badge>
+
+                                            {/* Expandable exercise list */}
+                                            {isExpanded && (
+                                                <div className="border-t bg-muted/30">
+                                                    {workout.exercises.map((ex, index) => (
+                                                        <div
+                                                            key={ex.exerciseDefId}
+                                                            className={`flex items-center gap-3 p-3 ${index !== workout.exercises.length - 1 ? 'border-b border-border/50' : ''}`}
+                                                        >
+                                                            <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0 relative">
+                                                                {ex.exerciseDef.imageUrl ? (
+                                                                    <Image
+                                                                        src={ex.exerciseDef.imageUrl}
+                                                                        alt={ex.exerciseDef.name}
+                                                                        fill
+                                                                        className="object-contain"
+                                                                        unoptimized
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="font-medium text-sm truncate">
+                                                                    {ex.exerciseDef.name}
+                                                                </h4>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {ex.sets} sets × {ex.reps} reps
+                                                                    {ex.weight > 0 && ` • ${ex.weight}kg`}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     )}
                 </TabsContent>
