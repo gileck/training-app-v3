@@ -149,6 +149,8 @@ export function ManagePlan() {
     const [createWorkoutDialogOpen, setCreateWorkoutDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
     const [newWorkoutName, setNewWorkoutName] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral selection for new workout
+    const [selectedExercisesForNewWorkout, setSelectedExercisesForNewWorkout] = useState<Set<string>>(new Set());
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [workoutDetailsSheetOpen, setWorkoutDetailsSheetOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
@@ -488,13 +490,45 @@ export function ManagePlan() {
 
     // ==================== Saved Workouts Handlers ====================
 
+    const handleOpenCreateWorkoutDialog = () => {
+        setNewWorkoutName('');
+        // Pre-select all exercises by default
+        setSelectedExercisesForNewWorkout(new Set(planExercises.map((ex) => ex._id)));
+        setCreateWorkoutDialogOpen(true);
+    };
+
+    const handleToggleExerciseForNewWorkout = (exerciseId: string) => {
+        setSelectedExercisesForNewWorkout((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(exerciseId)) {
+                newSet.delete(exerciseId);
+            } else {
+                newSet.add(exerciseId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAllForNewWorkout = () => {
+        setSelectedExercisesForNewWorkout(new Set(planExercises.map((ex) => ex._id)));
+    };
+
+    const handleDeselectAllForNewWorkout = () => {
+        setSelectedExercisesForNewWorkout(new Set());
+    };
+
     const handleCreateWorkout = () => {
-        if (!newWorkoutName.trim() || planExercises.length === 0) return;
+        if (!newWorkoutName.trim() || selectedExercisesForNewWorkout.size === 0) return;
+
+        // Get selected exercises in their original order
+        const selectedPlanExercises = planExercises.filter((ex) => 
+            selectedExercisesForNewWorkout.has(ex._id)
+        );
 
         createWorkoutMutation.mutate(
             {
                 name: newWorkoutName.trim(),
-                exercises: planExercises.map((ex) => ({
+                exercises: selectedPlanExercises.map((ex) => ({
                     exerciseDefId: ex.exerciseDefId,
                     sets: ex.sets,
                     reps: ex.reps,
@@ -506,6 +540,7 @@ export function ManagePlan() {
                 onSuccess: () => {
                     setCreateWorkoutDialogOpen(false);
                     setNewWorkoutName('');
+                    setSelectedExercisesForNewWorkout(new Set());
                     toast.success('Workout created');
                 },
                 onError: (err) => {
@@ -890,7 +925,7 @@ export function ManagePlan() {
                     {/* Create workout button */}
                     <div className="flex gap-2 justify-end">
                         <Button
-                            onClick={() => setCreateWorkoutDialogOpen(true)}
+                            onClick={handleOpenCreateWorkoutDialog}
                             disabled={planExercises.length === 0}
                             className="rounded-xl"
                         >
@@ -909,7 +944,7 @@ export function ManagePlan() {
                                     Create a workout from your plan exercises
                                 </p>
                                 <Button
-                                    onClick={() => setCreateWorkoutDialogOpen(true)}
+                                    onClick={handleOpenCreateWorkoutDialog}
                                     disabled={planExercises.length === 0}
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -1781,14 +1816,16 @@ export function ManagePlan() {
 
             {/* Create Workout Dialog */}
             <Dialog open={createWorkoutDialogOpen} onOpenChange={setCreateWorkoutDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent className="rounded-2xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle>Create Workout</DialogTitle>
                         <DialogDescription>
-                            Create a new workout from your plan&apos;s {planExercises.length} exercises.
+                            Select exercises from your plan to include in this workout.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
+                    
+                    {/* Workout Name */}
+                    <div className="py-2">
                         <Label htmlFor="workout-name">Workout Name</Label>
                         <Input
                             id="workout-name"
@@ -1798,7 +1835,92 @@ export function ManagePlan() {
                             className="mt-2 rounded-lg"
                         />
                     </div>
-                    <DialogFooter>
+
+                    {/* Select/Deselect All */}
+                    <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-muted-foreground">
+                            {selectedExercisesForNewWorkout.size} of {planExercises.length} selected
+                        </span>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSelectAllForNewWorkout}
+                                className="text-xs h-7"
+                            >
+                                Select All
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleDeselectAllForNewWorkout}
+                                className="text-xs h-7"
+                            >
+                                Deselect All
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Exercise List */}
+                    <div className="flex-1 overflow-y-auto py-2 space-y-2 min-h-0">
+                        {planExercises.map((exercise) => {
+                            const isSelected = selectedExercisesForNewWorkout.has(exercise._id);
+                            return (
+                                <Card
+                                    key={exercise._id}
+                                    onClick={() => handleToggleExerciseForNewWorkout(exercise._id)}
+                                    className={`rounded-xl border-0 shadow-sm cursor-pointer transition-all active:scale-[0.98] ${
+                                        isSelected 
+                                            ? 'ring-2 ring-primary bg-primary/5' 
+                                            : 'hover:bg-muted/50'
+                                    }`}
+                                >
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            {/* Checkbox indicator */}
+                                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                                                isSelected 
+                                                    ? 'bg-primary border-primary' 
+                                                    : 'border-muted-foreground/30'
+                                            }`}>
+                                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                                            </div>
+                                            
+                                            {/* Exercise image */}
+                                            <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                                                {exercise.exerciseDef.imageUrl ? (
+                                                    <Image
+                                                        src={exercise.exerciseDef.imageUrl}
+                                                        alt={exercise.exerciseDef.name}
+                                                        fill
+                                                        className="object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Exercise info */}
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-medium text-sm truncate">
+                                                    {exercise.exerciseDef.name}
+                                                </h4>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                    {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+
+                    <DialogFooter className="pt-4 border-t">
                         <Button
                             variant="outline"
                             onClick={() => setCreateWorkoutDialogOpen(false)}
@@ -1808,10 +1930,10 @@ export function ManagePlan() {
                         </Button>
                         <Button
                             onClick={handleCreateWorkout}
-                            disabled={!newWorkoutName.trim() || createWorkoutMutation.isPending}
+                            disabled={!newWorkoutName.trim() || selectedExercisesForNewWorkout.size === 0 || createWorkoutMutation.isPending}
                             className="rounded-lg"
                         >
-                            {createWorkoutMutation.isPending ? 'Creating...' : 'Create'}
+                            {createWorkoutMutation.isPending ? 'Creating...' : `Create (${selectedExercisesForNewWorkout.size})`}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
