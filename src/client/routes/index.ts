@@ -11,6 +11,7 @@ import { TrainingPlans } from './TrainingPlans';
 import { ManagePlan } from './ManagePlan';
 import { Progress } from './Progress';
 import { SavedWorkouts } from './SavedWorkouts';
+import { Theme } from './Theme';
 
 // Define routes
 export const routes = createRoutes({
@@ -23,6 +24,7 @@ export const routes = createRoutes({
   '/todos': Todos,
   '/todos/:todoId': SingleTodo,
   '/settings': Settings,
+  '/theme': Theme,
   '/not-found': NotFound,
   '/profile': Profile,
   '/admin/reports': Reports,
