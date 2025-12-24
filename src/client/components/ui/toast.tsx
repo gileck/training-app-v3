@@ -55,15 +55,15 @@ export const toast = {
 };
 
 const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
-    success: <CheckCircle className="h-5 w-5 text-green-500" />,
-    error: <XCircle className="h-5 w-5 text-red-500" />,
-    info: <AlertCircle className="h-5 w-5 text-blue-500" />,
+    success: <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />,
+    error: <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />,
+    info: <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
 };
 
 const TOAST_STYLES: Record<ToastType, string> = {
-    success: 'border-green-500 bg-green-50 dark:bg-green-950',
-    error: 'border-red-500 bg-red-50 dark:bg-red-950',
-    info: 'border-blue-500 bg-blue-50 dark:bg-blue-950',
+    success: 'border-green-500 bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100',
+    error: 'border-red-500 bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100',
+    info: 'border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100',
 };
 
 function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: () => void }) {
@@ -75,7 +75,7 @@ function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: () => void 
             <span className="flex-1 text-sm font-medium">{t.message}</span>
             <button
                 onClick={onRemove}
-                className="rounded p-1 hover:bg-black/10 dark:hover:bg-white/10"
+                className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity"
             >
                 <X className="h-4 w-4" />
             </button>
