@@ -38,7 +38,7 @@ import {
     Clock,
     SkipForward,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from '../../router';
 import {
     useWorkoutStore,
@@ -127,6 +127,12 @@ export function Home() {
 
     // Saved workouts data
     const { data: savedWorkoutsData } = useSavedWorkouts();
+
+    // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
+    // Used to position selection bar above the bottom navbar on mobile
+    const isMobile = useMemo(() => {
+        return typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
+    }, []);
     const createWorkoutMutation = useCreateSavedWorkout();
     const deleteWorkoutMutation = useDeleteSavedWorkout();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
@@ -140,12 +146,6 @@ export function Home() {
     const [newWorkoutName, setNewWorkoutName] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
     const [selectedExercisesForWorkout, setSelectedExercisesForWorkout] = useState<string[]>([]);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
-    const [endWorkoutOpen, setEndWorkoutOpen] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
-    const [saveWorkoutOnEnd, setSaveWorkoutOnEnd] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [endWorkoutName, setEndWorkoutName] = useState('');
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
@@ -330,31 +330,8 @@ export function Home() {
     };
 
     const handleEndWorkout = () => {
-        // Save as workout if enabled
-        if (saveWorkoutOnEnd && endWorkoutName.trim() && sessionExercises.length > 0) {
-            createWorkoutMutation.mutate({
-                name: endWorkoutName.trim(),
-                exercises: sessionExercises.map((ex) => ({
-                    exerciseDefId: ex.exerciseDef._id,
-                    sets: ex.targetSets,
-                    reps: ex.planExercise.reps,
-                    weight: ex.planExercise.weight,
-                    durationSeconds: ex.planExercise.durationSeconds,
-                })),
-            });
-        }
-
         endSession();
-        setEndWorkoutOpen(false);
-        setSaveWorkoutOnEnd(false);
-        setEndWorkoutName('');
         setActiveTab('exercises');
-    };
-
-    const handleOpenEndWorkout = () => {
-        setSaveWorkoutOnEnd(false);
-        setEndWorkoutName('');
-        setEndWorkoutOpen(true);
     };
 
     // Calculate session duration
@@ -632,7 +609,15 @@ export function Home() {
 
                 {/* Selection Bar - shows when exercises are selected */}
                 {isSelectionMode && selectedExerciseIds.length > 0 && (
-                    <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t z-50">
+                    <div 
+                        className="fixed left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t z-50"
+                        style={{
+                            // On mobile, position above the BottomNavBar which includes safe-area-inset-bottom
+                            // BottomNavBar height: pt-1 (4px) + h-14 (56px) + paddingBottom (safe-area + 4px) = 64px + safe-area
+                            // On desktop (≥640px), bottom nav is hidden, so use bottom: 0
+                            bottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
+                        }}
+                    >
                         <div className="flex items-center gap-3 max-w-lg mx-auto">
                             <Button
                                 variant="ghost"
@@ -828,7 +813,7 @@ export function Home() {
                                         </div>
                                         <Button
                                             variant="outline"
-                                            onClick={handleOpenEndWorkout}
+                                            onClick={handleEndWorkout}
                                             className="rounded-xl text-destructive border-destructive/50 hover:bg-destructive/10"
                                         >
                                             <Square className="mr-2 h-4 w-4" />
@@ -961,64 +946,6 @@ export function Home() {
                     )}
                 </TabsContent>
 
-                {/* End Workout Confirmation Dialog */}
-                <Dialog open={endWorkoutOpen} onOpenChange={setEndWorkoutOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>End Workout?</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-2">
-                            <p className="text-muted-foreground">
-                                You&apos;ve completed {completedSetsThisSession} sets in this session.
-                                Are you sure you want to end your workout?
-                            </p>
-
-                            {/* Save as Workout Option */}
-                            <div className="space-y-3 p-4 rounded-lg bg-muted/50">
-                                <div
-                                    className="flex items-center gap-3 cursor-pointer"
-                                    onClick={() => setSaveWorkoutOnEnd(!saveWorkoutOnEnd)}
-                                >
-                                    <Checkbox
-                                        checked={saveWorkoutOnEnd}
-                                        onCheckedChange={(checked: boolean | 'indeterminate') => setSaveWorkoutOnEnd(checked === true)}
-                                    />
-                                    <div>
-                                        <p className="font-medium">Save as Workout</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Save these {sessionExercises.length} exercises for quick access later
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {saveWorkoutOnEnd && (
-                                    <div className="pt-2">
-                                        <Label htmlFor="end-workout-name">Workout Name</Label>
-                                        <Input
-                                            id="end-workout-name"
-                                            placeholder="e.g., My Custom Workout"
-                                            value={endWorkoutName}
-                                            onChange={(e) => setEndWorkoutName(e.target.value)}
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setEndWorkoutOpen(false)}>
-                                Continue Workout
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={handleEndWorkout}
-                                disabled={saveWorkoutOnEnd && !endWorkoutName.trim()}
-                            >
-                                {saveWorkoutOnEnd ? 'Save & End' : 'End Workout'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </Tabs>
         </div>
     );
