@@ -255,7 +255,7 @@ class TemplateSyncTool {
     }
   }
 
-  private getAllFiles(dir: string, baseDir = dir): string[] {
+  private getAllFiles(dir: string, baseDir = dir, includeIgnored = false): string[] {
     const files: string[] = [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -263,13 +263,18 @@ class TemplateSyncTool {
       const fullPath = path.join(dir, entry.name);
       const relativePath = path.relative(baseDir, fullPath);
 
-      // Skip ignored files/directories
-      if (this.shouldIgnore(relativePath)) {
+      // Skip .git directory always
+      if (entry.name === '.git') {
+        continue;
+      }
+
+      // Skip ignored files/directories (unless includeIgnored is true)
+      if (!includeIgnored && this.shouldIgnore(relativePath)) {
         continue;
       }
 
       if (entry.isDirectory()) {
-        files.push(...this.getAllFiles(fullPath, baseDir));
+        files.push(...this.getAllFiles(fullPath, baseDir, includeIgnored));
       } else {
         files.push(relativePath);
       }
@@ -367,10 +372,10 @@ class TemplateSyncTool {
     return crypto.createHash('md5').update(content).digest('hex');
   }
 
-  private compareFiles(): FileChange[] {
+  private compareFiles(includeIgnored = false): FileChange[] {
     const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
-    const templateFiles = this.getAllFiles(templatePath);
-    const projectFiles = this.getAllFiles(this.projectRoot);
+    const templateFiles = this.getAllFiles(templatePath, templatePath, includeIgnored);
+    const projectFiles = this.getAllFiles(this.projectRoot, this.projectRoot, includeIgnored);
 
     const allFiles = Array.from(new Set([...templateFiles, ...projectFiles]));
     const changes: FileChange[] = [];
@@ -1429,9 +1434,9 @@ class TemplateSyncTool {
 
       console.log(`📍 Template commit: ${templateCommit}\n`);
 
-      // Compare files - get ALL differences between template and project
-      console.log('🔍 Comparing template with project...');
-      const changes = this.compareFiles();
+      // Compare files - get ALL differences between template and project (including ignored files)
+      console.log('🔍 Comparing template with project (including ignored files)...');
+      const changes = this.compareFiles(true);
 
       if (changes.length === 0) {
         console.log('✅ No differences found. Your project matches the template!');
