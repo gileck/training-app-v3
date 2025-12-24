@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
@@ -51,7 +51,7 @@ import type { ExerciseDefinitionClient } from '@/server/database/collections/exe
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
 
 export function ManagePlan() {
-    const { navigate, routeParams } = useRouter();
+    const { navigate, routeParams, queryParams } = useRouter();
     const planId = routeParams.planId || '';
 
     // Queries
@@ -80,7 +80,16 @@ export function ManagePlan() {
 
     // UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral tab state
-    const [activeTab, setActiveTab] = useState<'exercises' | 'workouts'>('exercises');
+    const [activeTab, setActiveTab] = useState<'exercises' | 'workouts'>(
+        queryParams.tab === 'workouts' ? 'workouts' : 'exercises'
+    );
+
+    // Update tab when query param changes
+    useEffect(() => {
+        if (queryParams.tab === 'workouts') {
+            setActiveTab('workouts');
+        }
+    }, [queryParams.tab]);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral sheet state
     const [addSheetOpen, setAddSheetOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral search filter

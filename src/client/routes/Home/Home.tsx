@@ -3,17 +3,8 @@ import { Button } from '@/client/components/ui/button';
 import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
-import { Input } from '@/client/components/ui/input';
 import { Label } from '@/client/components/ui/label';
-import { Checkbox } from '@/client/components/ui/checkbox';
 import { Switch } from '@/client/components/ui/switch';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/client/components/ui/dialog';
 import {
     ChevronLeft,
     ChevronRight,
@@ -33,7 +24,6 @@ import {
     Bookmark,
     Zap,
     X,
-    Trash2,
     Timer,
     Square,
     Clock,
@@ -77,7 +67,7 @@ import {
 } from '@/client/features/workout';
 import type { WorkoutTab, SessionSource } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import { useSavedWorkouts, useCreateSavedWorkout, useDeleteSavedWorkout } from './hooks';
+import { useSavedWorkouts, useCreateSavedWorkout } from './hooks';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 
@@ -140,18 +130,11 @@ export function Home() {
         return typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
     }, []);
     const createWorkoutMutation = useCreateSavedWorkout();
-    const deleteWorkoutMutation = useDeleteSavedWorkout();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
 
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [completedExpanded, setCompletedExpanded] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
-    const [createWorkoutOpen, setCreateWorkoutOpen] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [newWorkoutName, setNewWorkoutName] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [selectedExercisesForWorkout, setSelectedExercisesForWorkout] = useState<string[]>([]);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
@@ -227,53 +210,6 @@ export function Home() {
         if (percent < 75) return 'Halfway there! 🔥';
         if (percent < 100) return 'Almost done!';
         return 'Week complete! 🏆';
-    };
-
-    const handleOpenCreateWorkout = () => {
-        setNewWorkoutName('');
-        setSelectedExercisesForWorkout([]);
-        setCreateWorkoutOpen(true);
-    };
-
-    const handleToggleExerciseForWorkout = (exerciseId: string) => {
-        setSelectedExercisesForWorkout((prev) =>
-            prev.includes(exerciseId)
-                ? prev.filter((id) => id !== exerciseId)
-                : [...prev, exerciseId]
-        );
-    };
-
-    const handleCreateWorkout = () => {
-        if (!newWorkoutName.trim() || selectedExercisesForWorkout.length === 0) return;
-
-        // Get exercise details from week data
-        const selectedExerciseData = exercises.filter((ex) =>
-            selectedExercisesForWorkout.includes(ex.planExerciseId)
-        );
-
-        createWorkoutMutation.mutate(
-            {
-                name: newWorkoutName.trim(),
-                exercises: selectedExerciseData.map((ex) => ({
-                    exerciseDefId: ex.exerciseDef._id,
-                    sets: ex.planExercise.sets,
-                    reps: ex.planExercise.reps,
-                    weight: ex.planExercise.weight,
-                    durationSeconds: ex.planExercise.durationSeconds,
-                })),
-            },
-            {
-                onSuccess: () => {
-                    setCreateWorkoutOpen(false);
-                    setNewWorkoutName('');
-                    setSelectedExercisesForWorkout([]);
-                },
-            }
-        );
-    };
-
-    const handleDeleteWorkout = (workoutId: string) => {
-        deleteWorkoutMutation.mutate({ workoutId });
     };
 
     // Start workout with selected exercises
@@ -685,12 +621,12 @@ export function Home() {
                 <TabsContent value="workouts" className="mt-4 space-y-4">
                     {/* Create Workout Button */}
                     <Button
-                        onClick={handleOpenCreateWorkout}
+                        onClick={() => navigate(`/training-plans/${activePlanId}?tab=workouts`)}
+                        variant="outline"
                         className="w-full h-12 rounded-xl"
-                        disabled={exercises.length === 0}
                     >
-                        <Plus className="mr-2 h-5 w-5" />
-                        Create Workout
+                        <Settings2 className="mr-2 h-5 w-5" />
+                        Manage Workouts
                     </Button>
 
                     {/* Empty State */}
@@ -699,9 +635,16 @@ export function Home() {
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
                                 <h3 className="text-lg font-semibold mb-2">No Saved Workouts</h3>
-                                <p className="text-sm text-muted-foreground text-center">
-                                    Create a workout from your exercises to quickly start sessions
+                                <p className="text-sm text-muted-foreground text-center mb-4">
+                                    Create workouts from your exercises to quickly start sessions
                                 </p>
+                                <Button
+                                    onClick={() => navigate(`/training-plans/${activePlanId}?tab=workouts`)}
+                                    className="rounded-xl"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create Workout
+                                </Button>
                             </CardContent>
                         </Card>
                     )}
@@ -739,80 +682,11 @@ export function Home() {
                                         // Pass 'saved-workout' source to prevent backend sync (no real planExerciseIds)
                                         handleStartWorkout(workoutExercises, 'saved-workout');
                                     }}
-                                    onDelete={() => handleDeleteWorkout(workout._id)}
                                 />
                             ))}
                         </div>
                     )}
                 </TabsContent>
-
-                {/* Create Workout Dialog */}
-                <Dialog open={createWorkoutOpen} onOpenChange={setCreateWorkoutOpen}>
-                    <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Create Workout</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="workout-name">Workout Name</Label>
-                                <Input
-                                    id="workout-name"
-                                    placeholder="e.g., Push Day, Leg Day"
-                                    value={newWorkoutName}
-                                    onChange={(e) => setNewWorkoutName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Select Exercises</Label>
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                    {exercises.map((exercise) => (
-                                        <div
-                                            key={exercise.planExerciseId}
-                                            className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50"
-                                            onClick={() => handleToggleExerciseForWorkout(exercise.planExerciseId)}
-                                        >
-                                            <Checkbox
-                                                checked={selectedExercisesForWorkout.includes(exercise.planExerciseId)}
-                                                onCheckedChange={() => handleToggleExerciseForWorkout(exercise.planExerciseId)}
-                                            />
-                                            <div className="w-10 h-10 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                                                {exercise.exerciseDef.imageUrl ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img
-                                                        src={exercise.exerciseDef.imageUrl}
-                                                        alt={exercise.exerciseDef.name}
-                                                        className="w-full h-full object-contain"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium truncate">{exercise.exerciseDef.name}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {exercise.planExercise.sets} sets × {exercise.planExercise.reps} reps
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setCreateWorkoutOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleCreateWorkout}
-                                disabled={!newWorkoutName.trim() || selectedExercisesForWorkout.length === 0 || createWorkoutMutation.isPending}
-                            >
-                                {createWorkoutMutation.isPending ? 'Creating...' : 'Create Workout'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
 
                 {/* Active Workout Tab Content */}
                 <TabsContent value="active" className="mt-4 space-y-4">
@@ -1302,10 +1176,9 @@ function ExerciseCardList({
 interface SavedWorkoutCardProps {
     workout: SavedWorkoutWithExercises;
     onStart: () => void;
-    onDelete: () => void;
 }
 
-function SavedWorkoutCard({ workout, onStart, onDelete }: SavedWorkoutCardProps) {
+function SavedWorkoutCard({ workout, onStart }: SavedWorkoutCardProps) {
     return (
         <Card className="rounded-xl border-0 shadow-sm">
             <CardContent className="p-4">
@@ -1333,26 +1206,13 @@ function SavedWorkoutCard({ workout, onStart, onDelete }: SavedWorkoutCardProps)
                             )}
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete();
-                            }}
-                            className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            size="icon"
-                            onClick={onStart}
-                            className="h-9 w-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white"
-                        >
-                            <Play className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <Button
+                        size="icon"
+                        onClick={onStart}
+                        className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25"
+                    >
+                        <Play className="h-5 w-5" />
+                    </Button>
                 </div>
             </CardContent>
         </Card>
