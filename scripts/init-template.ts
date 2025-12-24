@@ -50,6 +50,7 @@ const DEFAULT_IGNORED_FILES = [
   'pnpm-lock.yaml',
   // Project-specific config
   'src/app.config.js',                       // App name, db name, etc.
+  'src/client/styles/project.css',           // Project-specific CSS (extends globals.css)
   // Example features (not needed in new projects)
   'src/client/routes/Todos/**',
   'src/client/routes/Chat/**',

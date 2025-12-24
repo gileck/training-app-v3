@@ -1,0 +1,37 @@
+/**
+ * Project-Specific Styles
+ * 
+ * This file is for project-specific CSS customizations that extend the base theme.
+ * It is imported AFTER globals.css, so you can override any template styles here.
+ * 
+ * This file is IGNORED by template-sync, so your customizations won't conflict
+ * with template updates to globals.css.
+ * 
+ * Examples of what to put here:
+ * - Project-specific CSS variables (--my-app-color, --feature-spacing, etc.)
+ * - Custom component styles unique to your app
+ * - App-specific layout tokens
+ * - Semantic colors for your domain (--order-pending, --user-premium, etc.)
+ * 
+ * DO NOT modify globals.css for project-specific styles - put them here instead.
+ */
+
+/* === Project CSS Variables === */
+/* Add your custom CSS variables here */
+
+:root {
+  /* Example: Custom app colors
+  --app-brand: 210 100% 50%;
+  --feature-highlight: 45 100% 60%;
+  */
+}
+
+.dark {
+  /* Example: Dark mode overrides
+  --app-brand: 210 100% 60%;
+  */
+}
+
+/* === Project Component Styles === */
+/* Add project-specific component styles below */
+

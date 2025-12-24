@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "c785aadb99b3223ad459534ab44f587adfe30cbd",
-  "lastProjectCommit": "7a788d4905e90af67b04c7edd1ad6b1d769f46e0",
-  "lastSyncDate": "2025-12-24T17:28:21.367Z",
+  "lastSyncCommit": "3c850a581e2dedb754e3525bc2e34a52ef6246c1",
+  "lastProjectCommit": "7bcc91401c6777cc92eaeb664f556b7ab6199af7",
+  "lastSyncDate": "2025-12-24T17:46:11.293Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -39,6 +39,18 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-24T17:46:11.292Z",
+      "templateCommit": "3c850a581e2dedb754e3525bc2e34a52ef6246c1",
+      "projectCommit": "7bcc91401c6777cc92eaeb664f556b7ab6199af7",
+      "filesApplied": 2,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "3c850a5 update docs \u001b[90m(24/12/2025)\u001b[0m",
+        "f55851c feat: Add project.css for project-specific styles \u001b[90m(24/12/2025)\u001b[0m\n  - Created src/client/styles/project.css for project customizations\n  - Imported after globals.css so it can override template styles\n  - Added to default ignored files so it won't conflict with template updates\n  - Projects should put custom CSS variables and styles here instead of globals.css\n  \n  This solves the divergence problem when template updates globals.css"
+      ]
+    },
     {
       "date": "2025-12-24T17:28:21.366Z",
       "templateCommit": "c785aadb99b3223ad459534ab44f587adfe30cbd",
