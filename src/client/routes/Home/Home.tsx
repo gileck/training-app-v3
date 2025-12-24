@@ -77,11 +77,9 @@ import {
 } from '@/client/features/workout';
 import type { WorkoutTab, SessionSource } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import { useSavedWorkouts, useCreateSavedWorkout, useDeleteSavedWorkout, useWeeklyNote, useUpdateWeeklyNote } from './hooks';
+import { useSavedWorkouts, useCreateSavedWorkout, useDeleteSavedWorkout } from './hooks';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
-import { Textarea } from '@/client/components/ui/textarea';
-import { StickyNote, MessageSquareText } from 'lucide-react';
 
 export function Home() {
     const { navigate } = useRouter();
@@ -136,10 +134,6 @@ export function Home() {
     // Saved workouts data
     const { data: savedWorkoutsData } = useSavedWorkouts();
 
-    // Weekly notes
-    const { data: weeklyNoteData } = useWeeklyNote(activePlanId, currentWeek);
-    const updateWeeklyNoteMutation = useUpdateWeeklyNote();
-
     // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
     // Used to position selection bar above the bottom navbar on mobile
     const isMobile = useMemo(() => {
@@ -162,13 +156,6 @@ export function Home() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgress | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
-    const [weeklyNoteDialogOpen, setWeeklyNoteDialogOpen] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [weeklyNoteContent, setWeeklyNoteContent] = useState('');
-
-    // Sync weekly note content when data changes
-    const currentNote = weeklyNoteData?.note || '';
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
@@ -190,21 +177,6 @@ export function Home() {
         }
     };
 
-    const handleOpenWeeklyNote = () => {
-        setWeeklyNoteContent(currentNote);
-        setWeeklyNoteDialogOpen(true);
-    };
-
-    const handleSaveWeeklyNote = () => {
-        if (!activePlanId) return;
-        
-        updateWeeklyNoteMutation.mutate({
-            planId: activePlanId,
-            weekNumber: currentWeek,
-            content: weeklyNoteContent,
-        });
-        setWeeklyNoteDialogOpen(false);
-    };
 
     const handleAddSet = (exercise: ExerciseWeekProgress) => {
         if (!activePlanId || exercise.setsCompleted >= exercise.targetSets) return;
@@ -509,25 +481,6 @@ export function Home() {
                             <ChevronRight className="h-5 w-5" />
                         </Button>
                     </div>
-
-                    {/* Weekly Note Button */}
-                    <button
-                        onClick={handleOpenWeeklyNote}
-                        className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                            currentNote 
-                                ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50' 
-                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                        }`}
-                    >
-                        {currentNote ? (
-                            <MessageSquareText className="h-4 w-4 flex-shrink-0" />
-                        ) : (
-                            <StickyNote className="h-4 w-4 flex-shrink-0" />
-                        )}
-                        <span className="text-sm truncate">
-                            {currentNote || 'Add note for this week...'}
-                        </span>
-                    </button>
 
                     {/* Progress */}
                     <div>
@@ -1067,38 +1020,9 @@ export function Home() {
                 weight={selectedExerciseForDetails?.planExercise.weight}
                 durationSeconds={selectedExerciseForDetails?.planExercise.durationSeconds}
                 comments={selectedExerciseForDetails?.planExercise.comments}
+                planId={activePlanId || undefined}
+                weekNumber={currentWeek}
             />
-
-            {/* Weekly Note Dialog */}
-            <Dialog open={weeklyNoteDialogOpen} onOpenChange={setWeeklyNoteDialogOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <MessageSquareText className="h-5 w-5" />
-                            Week {currentWeek} Notes
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Textarea
-                            value={weeklyNoteContent}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setWeeklyNoteContent(e.target.value)}
-                            placeholder="Add notes for this week... e.g. goals, energy levels, recovery notes"
-                            className="min-h-[120px] resize-none rounded-xl"
-                        />
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Notes are saved per week and can help you track your progress and observations.
-                        </p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setWeeklyNoteDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSaveWeeklyNote} disabled={updateWeeklyNoteMutation.isPending}>
-                            {updateWeeklyNoteMutation.isPending ? 'Saving...' : 'Save Note'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

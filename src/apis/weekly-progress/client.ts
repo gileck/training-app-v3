@@ -3,18 +3,18 @@ import { CacheResult } from '@/common/cache/types';
 import {
     API_GET_WEEK_PROGRESS,
     API_UPDATE_SETS,
-    API_GET_WEEKLY_NOTE,
-    API_UPDATE_WEEKLY_NOTE,
+    API_GET_EXERCISE_NOTES,
+    API_UPDATE_EXERCISE_NOTE,
 } from './index';
 import {
     GetWeekProgressRequest,
     GetWeekProgressResponse,
     UpdateSetsRequest,
     UpdateSetsResponse,
-    GetWeeklyNoteRequest,
-    GetWeeklyNoteResponse,
-    UpdateWeeklyNoteRequest,
-    UpdateWeeklyNoteResponse,
+    GetExerciseNotesRequest,
+    GetExerciseNotesResponse,
+    UpdateExerciseNoteRequest,
+    UpdateExerciseNoteResponse,
 } from './types';
 
 /**
@@ -36,21 +36,21 @@ export const updateSets = async (
 };
 
 /**
- * Get weekly note for a specific week
+ * Get notes for a specific exercise (current week + previous weeks)
  */
-export const getWeeklyNote = async (
-    params: GetWeeklyNoteRequest
-): Promise<CacheResult<GetWeeklyNoteResponse>> => {
-    return apiClient.call(API_GET_WEEKLY_NOTE, params);
+export const getExerciseNotes = async (
+    params: GetExerciseNotesRequest
+): Promise<CacheResult<GetExerciseNotesResponse>> => {
+    return apiClient.call(API_GET_EXERCISE_NOTES, params);
 };
 
 /**
- * Update weekly note for a specific week
+ * Update note for a specific exercise in a specific week
  */
-export const updateWeeklyNote = async (
-    params: UpdateWeeklyNoteRequest
-): Promise<CacheResult<UpdateWeeklyNoteResponse>> => {
-    return apiClient.post(API_UPDATE_WEEKLY_NOTE, params);
+export const updateExerciseNote = async (
+    params: UpdateExerciseNoteRequest
+): Promise<CacheResult<UpdateExerciseNoteResponse>> => {
+    return apiClient.post(API_UPDATE_EXERCISE_NOTE, params);
 };
 
 

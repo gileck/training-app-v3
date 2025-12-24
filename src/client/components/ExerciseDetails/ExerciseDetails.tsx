@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/client/components/ui/dialog';
 import { Badge } from '@/client/components/ui/badge';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Separator } from '@/client/components/ui/separator';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Button } from '@/client/components/ui/button';
-import { Dumbbell, Clock, Weight, Target, Info, MessageSquare, History, Calendar, CheckCircle2, X, Repeat, Timer } from 'lucide-react';
+import { Textarea } from '@/client/components/ui/textarea';
+import { Dumbbell, Clock, Weight, Target, Info, MessageSquare, History, Calendar, CheckCircle2, X, Repeat, Timer, ChevronDown, ChevronUp, Edit2, Save, Plus } from 'lucide-react';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExerciseHistory } from '@/apis/activity-logs/client';
+import { getExerciseNotes, updateExerciseNote } from '@/apis/weekly-progress/client';
 import { useQueryDefaults } from '@/client/query';
+import { toast } from '@/client/components/ui/toast';
 
 interface ExerciseDetailsProps {
     exercise: ExerciseDefinitionClient | null;
@@ -20,6 +24,9 @@ interface ExerciseDetailsProps {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    // Required for notes feature
+    planId?: string;
+    weekNumber?: number;
 }
 
 function useExerciseHistory(exerciseDefId: string | undefined, enabled: boolean) {
@@ -33,6 +40,42 @@ function useExerciseHistory(exerciseDefId: string | undefined, enabled: boolean)
         },
         enabled: enabled && !!exerciseDefId,
         ...queryDefaults,
+    });
+}
+
+function useExerciseNotes(planId: string | undefined, exerciseDefId: string | undefined, weekNumber: number | undefined, enabled: boolean) {
+    const queryDefaults = useQueryDefaults();
+    return useQuery({
+        queryKey: ['exercise-notes', planId, exerciseDefId, weekNumber],
+        queryFn: async () => {
+            if (!planId || !exerciseDefId || !weekNumber) return { currentNote: '', previousNotes: [] };
+            const result = await getExerciseNotes({ planId, exerciseDefId, weekNumber });
+            return result.data || { currentNote: '', previousNotes: [] };
+        },
+        enabled: enabled && !!planId && !!exerciseDefId && !!weekNumber,
+        ...queryDefaults,
+    });
+}
+
+function useUpdateExerciseNote() {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: async (data: { planId: string; exerciseDefId: string; weekNumber: number; content: string }) => {
+            const response = await updateExerciseNote(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['exercise-notes', variables.planId, variables.exerciseDefId, variables.weekNumber],
+            });
+        },
+        onError: (error) => {
+            toast.error(`Failed to save note: ${error.message}`);
+        },
     });
 }
 
@@ -65,9 +108,60 @@ export function ExerciseDetails({
     weight,
     durationSeconds,
     comments,
+    planId,
+    weekNumber,
 }: ExerciseDetailsProps) {
     const { data: historyData, isLoading: historyLoading } = useExerciseHistory(exercise?._id, open);
+    const { data: notesData, isLoading: notesLoading } = useExerciseNotes(planId, exercise?._id, weekNumber, open);
+    const updateNoteMutation = useUpdateExerciseNote();
+    
     const history = historyData?.history || [];
+    const currentNote = notesData?.currentNote || '';
+    const previousNotes = notesData?.previousNotes || [];
+
+    // State for editing notes
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog edit mode state
+    const [isEditingNote, setIsEditingNote] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [noteContent, setNoteContent] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral collapsible section state
+    const [previousNotesExpanded, setPreviousNotesExpanded] = useState(false);
+
+    // Reset state when dialog opens/closes
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!newOpen) {
+            setIsEditingNote(false);
+            setNoteContent('');
+            setPreviousNotesExpanded(false);
+        }
+        onOpenChange(newOpen);
+    };
+
+    const handleStartEditNote = () => {
+        setNoteContent(currentNote);
+        setIsEditingNote(true);
+    };
+
+    const handleSaveNote = () => {
+        if (!planId || !exercise?._id || !weekNumber) return;
+        
+        updateNoteMutation.mutate({
+            planId,
+            exerciseDefId: exercise._id,
+            weekNumber,
+            content: noteContent,
+        }, {
+            onSuccess: () => {
+                setIsEditingNote(false);
+                toast.success('Note saved');
+            },
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditingNote(false);
+        setNoteContent('');
+    };
 
     if (!exercise) return null;
 
@@ -80,7 +174,7 @@ export function ExerciseDetails({
     ].filter(Boolean) as { value: string | number; label: string; icon: React.ElementType }[];
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="w-[calc(100%-32px)] max-w-lg mx-auto max-h-[calc(100vh-64px)] overflow-y-auto rounded-3xl p-0 gap-0 border-0 shadow-2xl">
                 {/* Close button */}
                 <Button
@@ -163,20 +257,130 @@ export function ExerciseDetails({
                         </>
                     )}
 
-                    {/* Comments (if provided) */}
+                    {/* Comments (if provided) - these are the static exercise notes */}
                     {comments && comments.trim() !== '' && (
                         <>
                             <Separator />
                             <div>
                                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Notes
+                                    <Info className="h-4 w-4" />
+                                    Exercise Instructions
                                 </h3>
                                 <Card className="rounded-xl border-dashed">
                                     <CardContent className="p-4">
                                         <p className="text-sm whitespace-pre-wrap leading-relaxed">{comments}</p>
                                     </CardContent>
                                 </Card>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Weekly Notes - per exercise per week */}
+                    {planId && weekNumber && (
+                        <>
+                            <Separator />
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4" />
+                                        Week {weekNumber} Note
+                                    </h3>
+                                    {!isEditingNote && !notesLoading && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleStartEditNote}
+                                            className="h-8 px-3 text-xs"
+                                        >
+                                            {currentNote ? <Edit2 className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
+                                            {currentNote ? 'Edit' : 'Add Note'}
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {notesLoading ? (
+                                    <Skeleton className="h-20 w-full rounded-xl" />
+                                ) : isEditingNote ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={noteContent}
+                                            onChange={(e) => setNoteContent(e.target.value)}
+                                            placeholder="Add a note for this exercise this week..."
+                                            className="rounded-xl resize-none min-h-[100px]"
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleCancelEdit}
+                                                className="flex-1 h-9 rounded-lg"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={handleSaveNote}
+                                                disabled={updateNoteMutation.isPending}
+                                                className="flex-1 h-9 rounded-lg"
+                                            >
+                                                <Save className="h-3.5 w-3.5 mr-1.5" />
+                                                {updateNoteMutation.isPending ? 'Saving...' : 'Save'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : currentNote ? (
+                                    <Card className="rounded-xl bg-primary/5 border-primary/20">
+                                        <CardContent className="p-4">
+                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentNote}</p>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <div className="text-center py-4 text-muted-foreground border-2 border-dashed rounded-xl">
+                                        <MessageSquare className="h-6 w-6 mx-auto mb-1 opacity-40" />
+                                        <p className="text-sm">No note for this week</p>
+                                    </div>
+                                )}
+
+                                {/* Previous weeks' notes (collapsed by default) */}
+                                {previousNotes.length > 0 && (
+                                    <div className="mt-4">
+                                        <button
+                                            onClick={() => setPreviousNotesExpanded(!previousNotesExpanded)}
+                                            className="flex items-center justify-between w-full py-2 text-left group"
+                                        >
+                                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                                Previous Notes ({previousNotes.length})
+                                            </span>
+                                            {previousNotesExpanded ? (
+                                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                            ) : (
+                                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                        </button>
+                                        
+                                        {previousNotesExpanded && (
+                                            <div className="space-y-2 mt-2">
+                                                {previousNotes.map((note) => (
+                                                    <Card key={note.weekNumber} className="rounded-xl border-dashed">
+                                                        <CardContent className="p-3">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <Badge variant="secondary" className="text-xs">
+                                                                    Week {note.weekNumber}
+                                                                </Badge>
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {new Date(note.updatedAt).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                                                {note.content}
+                                                            </p>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}

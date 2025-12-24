@@ -46,24 +46,33 @@ export interface UpdateSetsResponse {
     error?: string;
 }
 
-// Weekly Notes
-export interface GetWeeklyNoteRequest {
-    planId: string;
+// Weekly Notes - Per Exercise Per Week
+export interface ExerciseNoteClient {
     weekNumber: number;
+    content: string;
+    updatedAt: string;
 }
 
-export interface GetWeeklyNoteResponse {
-    note?: string;
+export interface GetExerciseNotesRequest {
+    planId: string;
+    exerciseDefId: string;
+    weekNumber: number; // Current week to highlight
+}
+
+export interface GetExerciseNotesResponse {
+    currentNote?: string; // Note for current week (if exists)
+    previousNotes?: ExerciseNoteClient[]; // Notes from other weeks
     error?: string;
 }
 
-export interface UpdateWeeklyNoteRequest {
+export interface UpdateExerciseNoteRequest {
     planId: string;
+    exerciseDefId: string;
     weekNumber: number;
     content: string;
 }
 
-export interface UpdateWeeklyNoteResponse {
+export interface UpdateExerciseNoteResponse {
     note?: string;
     error?: string;
 }

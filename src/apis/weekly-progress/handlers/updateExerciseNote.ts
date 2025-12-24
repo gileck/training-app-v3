@@ -1,10 +1,13 @@
-import { UpdateWeeklyNoteRequest, UpdateWeeklyNoteResponse, ApiHandlerContext } from '../types';
+import { UpdateExerciseNoteRequest, UpdateExerciseNoteResponse, ApiHandlerContext } from '../types';
 import { weeklyNotes, trainingPlans } from '@/server/database';
 
-export const updateWeeklyNote = async (
-    request: UpdateWeeklyNoteRequest,
+/**
+ * Create or update a note for a specific exercise in a specific week
+ */
+export const updateExerciseNote = async (
+    request: UpdateExerciseNoteRequest,
     context: ApiHandlerContext
-): Promise<UpdateWeeklyNoteResponse> => {
+): Promise<UpdateExerciseNoteResponse> => {
     try {
         if (!context.userId) {
             return { error: 'Not authenticated' };
@@ -12,6 +15,10 @@ export const updateWeeklyNote = async (
 
         if (!request.planId) {
             return { error: 'Plan ID is required' };
+        }
+
+        if (!request.exerciseDefId) {
+            return { error: 'Exercise definition ID is required' };
         }
 
         if (!request.weekNumber || request.weekNumber < 1) {
@@ -26,7 +33,12 @@ export const updateWeeklyNote = async (
 
         // Check if content is empty - if so, delete the note
         if (!request.content || request.content.trim() === '') {
-            await weeklyNotes.deleteNote(context.userId, request.planId, request.weekNumber);
+            await weeklyNotes.deleteNote(
+                context.userId,
+                request.planId,
+                request.exerciseDefId,
+                request.weekNumber
+            );
             return { note: '' };
         }
 
@@ -34,14 +46,15 @@ export const updateWeeklyNote = async (
         const note = await weeklyNotes.upsertNote(
             context.userId,
             request.planId,
+            request.exerciseDefId,
             request.weekNumber,
             request.content.trim()
         );
 
         return { note: note.content };
     } catch (error) {
-        console.error('Error updating weekly note:', error);
-        return { error: 'Failed to update weekly note' };
+        console.error('Error updating exercise note:', error);
+        return { error: 'Failed to update exercise note' };
     }
 };
 

@@ -17,6 +17,7 @@ export const toClient = (note: WeeklyNote): WeeklyNoteClient => ({
     _id: note._id.toHexString(),
     userId: note.userId.toHexString(),
     planId: note.planId.toHexString(),
+    exerciseDefId: note.exerciseDefId.toHexString(),
     weekNumber: note.weekNumber,
     content: note.content,
     createdAt: note.createdAt.toISOString(),
@@ -24,36 +25,41 @@ export const toClient = (note: WeeklyNote): WeeklyNoteClient => ({
 });
 
 /**
- * Find a weekly note for a specific plan/week
+ * Find a weekly note for a specific exercise in a plan/week
  */
 export const findNote = async (
     userId: ObjectId | string,
     planId: ObjectId | string,
+    exerciseDefId: ObjectId | string,
     weekNumber: number
 ): Promise<WeeklyNote | null> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
     const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const exerciseDefIdObj = typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
 
     return collection.findOne({
         userId: userIdObj,
         planId: planIdObj,
+        exerciseDefId: exerciseDefIdObj,
         weekNumber,
     });
 };
 
 /**
- * Create or update a weekly note (upsert)
+ * Create or update a weekly note for an exercise (upsert)
  */
 export const upsertNote = async (
     userId: ObjectId | string,
     planId: ObjectId | string,
+    exerciseDefId: ObjectId | string,
     weekNumber: number,
     content: string
 ): Promise<WeeklyNote> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
     const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const exerciseDefIdObj = typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
 
     const now = new Date();
 
@@ -61,6 +67,7 @@ export const upsertNote = async (
         {
             userId: userIdObj,
             planId: planIdObj,
+            exerciseDefId: exerciseDefIdObj,
             weekNumber,
         },
         {
@@ -71,6 +78,7 @@ export const upsertNote = async (
             $setOnInsert: {
                 userId: userIdObj,
                 planId: planIdObj,
+                exerciseDefId: exerciseDefIdObj,
                 weekNumber,
                 createdAt: now,
             },
@@ -82,6 +90,25 @@ export const upsertNote = async (
     );
 
     return result!;
+};
+
+/**
+ * Find all notes for a specific exercise across all weeks (for history)
+ */
+export const findNotesByExercise = async (
+    userId: ObjectId | string,
+    planId: ObjectId | string,
+    exerciseDefId: ObjectId | string
+): Promise<WeeklyNote[]> => {
+    const collection = await getCollection();
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const exerciseDefIdObj = typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
+
+    return collection
+        .find({ userId: userIdObj, planId: planIdObj, exerciseDefId: exerciseDefIdObj })
+        .sort({ weekNumber: -1 }) // Most recent first
+        .toArray();
 };
 
 /**
@@ -102,20 +129,23 @@ export const findNotesByPlan = async (
 };
 
 /**
- * Delete a weekly note
+ * Delete a weekly note for an exercise
  */
 export const deleteNote = async (
     userId: ObjectId | string,
     planId: ObjectId | string,
+    exerciseDefId: ObjectId | string,
     weekNumber: number
 ): Promise<boolean> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
     const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const exerciseDefIdObj = typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
 
     const result = await collection.deleteOne({
         userId: userIdObj,
         planId: planIdObj,
+        exerciseDefId: exerciseDefIdObj,
         weekNumber,
     });
 
