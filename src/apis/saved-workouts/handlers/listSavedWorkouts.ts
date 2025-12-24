@@ -27,7 +27,8 @@ export async function listSavedWorkouts(
         const exerciseDefsMap = new Map(exerciseDefs.map((e) => [e._id.toHexString(), e]));
 
         // Map workouts with exercise definitions
-        const workoutsWithExercises: SavedWorkoutWithExercises[] = workouts.map((workout) => ({
+        // Assign order based on position if not set (for legacy workouts)
+        const workoutsWithExercises: SavedWorkoutWithExercises[] = workouts.map((workout, index) => ({
             _id: workout._id.toHexString(),
             userId: workout.userId.toHexString(),
             name: workout.name,
@@ -70,7 +71,8 @@ export async function listSavedWorkouts(
                           },
                 };
             }),
-            order: workout.order ?? 0,
+            // Use existing order if set, otherwise use position in array (for legacy workouts)
+            order: workout.order ?? index,
             createdAt: workout.createdAt.toISOString(),
             updatedAt: workout.updatedAt.toISOString(),
         }));

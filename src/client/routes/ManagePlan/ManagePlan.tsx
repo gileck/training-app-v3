@@ -640,7 +640,14 @@ export function ManagePlan() {
         const workoutIds = savedWorkouts.map((w) => w._id);
         [workoutIds[index], workoutIds[newIndex]] = [workoutIds[newIndex], workoutIds[index]];
 
-        reorderWorkoutsMutation.mutate({ workoutIds });
+        reorderWorkoutsMutation.mutate(
+            { workoutIds },
+            {
+                onError: (err) => {
+                    toast.error(`Failed to reorder: ${err.message}`);
+                },
+            }
+        );
     };
 
     const isLoading = planLoading || exercisesLoading;
@@ -856,7 +863,13 @@ export function ManagePlan() {
                             <Button
                                 variant={isWorkoutReorderMode ? 'secondary' : 'outline'}
                                 size="icon"
-                                onClick={() => setIsWorkoutReorderMode(!isWorkoutReorderMode)}
+                                onClick={() => {
+                                    // Collapse any expanded workout when entering/exiting reorder mode
+                                    if (!isWorkoutReorderMode) {
+                                        setExpandedWorkoutId(null);
+                                    }
+                                    setIsWorkoutReorderMode(!isWorkoutReorderMode);
+                                }}
                                 className="rounded-xl h-10 w-10"
                             >
                                 <ArrowUpDown className="h-4 w-4" />
