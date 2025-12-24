@@ -111,6 +111,25 @@ User Opens App
 
 This enables **fast startup** with a short local boot gate, then cached UI renders while fresh data loads in the background.
 
+### BootGate & FOUC Prevention
+
+The `BootGate` component in `_app.tsx` prevents **Flash of Unstyled Content (FOUC)** by rendering `null` until all persisted Zustand stores have hydrated from localStorage:
+
+```tsx
+function BootGate({ children }: { children: ReactNode }) {
+  const isHydrated = useAllPersistedStoresHydrated();
+  if (isHydrated) return <>{children}</>;
+  return null; // Render nothing until stores are ready
+}
+```
+
+**Why this matters for theming:**
+- CSS has default theme values (light mode) in `globals.css`
+- Without BootGate: Default theme renders → User's saved theme applies → **visible flash**
+- With BootGate: Nothing renders → Stores hydrate (~1-5ms) → Correct theme renders immediately
+
+The `useAllPersistedStoresHydrated()` hook (from `@/client/stores`) checks if all persisted stores (auth, settings, theme, router) have finished loading from localStorage. Since localStorage reads are synchronous and fast, the blank screen is imperceptible (<5ms typically).
+
 > **Why localStorage?** We use localStorage (not IndexedDB) for React Query persistence because IndexedDB was causing 5+ second startup delays on some systems (Dec 2025 - possibly a browser bug). localStorage is limited to ~5MB but is consistently fast. See the [State Management](#state-management) section for details and how to switch back if IndexedDB performance improves.
 
 ---

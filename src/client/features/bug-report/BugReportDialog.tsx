@@ -174,7 +174,7 @@ export function BugReportDialog() {
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Bug className="h-5 w-5 text-red-500" />
+                        <Bug className="h-5 w-5 text-destructive" />
                         Report an Issue
                     </DialogTitle>
                     <DialogDescription>

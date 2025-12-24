@@ -124,8 +124,8 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
                 onClick={canToggleOnline ? () => setOfflineDialogOpen(true) : undefined}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-sm font-medium transition-colors ${
                   isDeviceOffline
-                    ? 'border-slate-400 text-slate-500 dark:border-slate-600 dark:text-slate-500 cursor-default'
-                    : 'border-orange-500 text-orange-600 dark:border-orange-400 dark:text-orange-400 hover:bg-orange-500/10 cursor-pointer'
+                    ? 'border-muted-foreground/50 text-muted-foreground cursor-default'
+                    : 'border-warning text-warning hover:bg-warning/10 cursor-pointer'
                 }`}
                 title={isDeviceOffline ? 'No network connection' : 'Click to go online'}
               >
@@ -180,7 +180,7 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-green-500" />
+              <Wifi className="w-5 h-5 text-success" />
               Go Online?
             </DialogTitle>
             <DialogDescription>

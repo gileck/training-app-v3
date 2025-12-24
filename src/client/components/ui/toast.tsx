@@ -55,15 +55,15 @@ export const toast = {
 };
 
 const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
-    success: <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />,
-    error: <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />,
-    info: <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
+    success: <CheckCircle className="h-5 w-5 text-success" />,
+    error: <XCircle className="h-5 w-5 text-destructive" />,
+    info: <AlertCircle className="h-5 w-5 text-info" />,
 };
 
 const TOAST_STYLES: Record<ToastType, string> = {
-    success: 'border-green-500 bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100',
-    error: 'border-red-500 bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100',
-    info: 'border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100',
+    success: 'border-success bg-success/10 text-success',
+    error: 'border-destructive bg-destructive/10 text-destructive',
+    info: 'border-info bg-info/10 text-info',
 };
 
 function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: () => void }) {

@@ -43,10 +43,10 @@ interface GroupedReport {
 }
 
 const STATUS_COLORS: Record<ReportStatus, string> = {
-    new: 'bg-blue-500',
-    investigating: 'bg-yellow-500',
-    resolved: 'bg-green-500',
-    closed: 'bg-gray-500',
+    new: 'bg-info',
+    investigating: 'bg-warning',
+    resolved: 'bg-success',
+    closed: 'bg-muted-foreground',
 };
 
 const STATUS_ICONS: Record<ReportStatus, React.ReactNode> = {
@@ -213,11 +213,11 @@ END OF REPORT
                     <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                             {report.type === 'bug' && report.category === 'performance' ? (
-                                <Gauge className="h-5 w-5 text-purple-500 flex-shrink-0" />
+                                <Gauge className="h-5 w-5 text-secondary flex-shrink-0" />
                             ) : report.type === 'bug' ? (
-                                <Bug className="h-5 w-5 text-red-500 flex-shrink-0" />
+                                <Bug className="h-5 w-5 text-destructive flex-shrink-0" />
                             ) : (
-                                <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                                <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
                             )}
                             <div className="min-w-0 flex-1">
                                 <div className="font-semibold text-sm truncate">
@@ -233,7 +233,7 @@ END OF REPORT
                                 </div>
                             </div>
                         </div>
-                        <Badge variant="outline" className={`${STATUS_COLORS[report.status]} text-white flex-shrink-0 text-xs`}>
+                        <Badge variant="outline" className={`${STATUS_COLORS[report.status]} text-primary-foreground flex-shrink-0 text-xs`}>
                             {STATUS_ICONS[report.status]}
                         </Badge>
                     </div>
@@ -243,7 +243,7 @@ END OF REPORT
                         <p className="text-sm text-foreground mb-3 line-clamp-2">{report.description}</p>
                     )}
                     {report.errorMessage && (
-                        <p className="text-sm font-mono text-red-600 dark:text-red-400 mb-3 line-clamp-2 bg-red-500/10 rounded px-2 py-1">
+                        <p className="text-sm font-mono text-destructive mb-3 line-clamp-2 bg-destructive/10 rounded px-2 py-1">
                             {report.errorMessage}
                         </p>
                     )}
@@ -259,7 +259,7 @@ END OF REPORT
                             </span>
                         )}
                         {report.performanceEntries && report.performanceEntries.length > 0 && (
-                            <span className="inline-flex items-center rounded-full bg-purple-500/20 px-2.5 py-0.5 text-purple-600 dark:text-purple-400">
+                            <span className="inline-flex items-center rounded-full bg-secondary/20 px-2.5 py-0.5 text-secondary">
                                 <Gauge className="mr-1 inline h-3 w-3" />
                                 {report.performanceEntries.length}
                             </span>
@@ -350,7 +350,7 @@ END OF REPORT
                                                     className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent text-left ${report.status === 'resolved' ? 'bg-accent' : ''}`}
                                                 >
                                                     <span>Resolved</span>
-                                                    {report.status === 'resolved' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                                    {report.status === 'resolved' && <CheckCircle className="h-4 w-4 text-success" />}
                                                 </button>
                                                 <button
                                                     onClick={() => {
@@ -427,7 +427,7 @@ END OF REPORT
                                         <div
                                             key={log.id}
                                             className={`mb-1 text-xs ${log.level === 'error' ? 'text-destructive' :
-                                                log.level === 'warn' ? 'text-yellow-600' :
+                                                log.level === 'warn' ? 'text-warning' :
                                                     'text-muted-foreground'
                                                 }`}
                                         >
@@ -510,14 +510,14 @@ function GroupedReportCard({ group }: { group: GroupedReport }) {
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                         {group.type === 'bug' ? (
-                            <Bug className="h-5 w-5 text-red-500" />
+                            <Bug className="h-5 w-5 text-destructive" />
                         ) : (
-                            <AlertCircle className="h-5 w-5 text-orange-500" />
+                            <AlertCircle className="h-5 w-5 text-warning" />
                         )}
                         <CardTitle className="text-base">
                             {group.type === 'bug' ? 'Bug Report' : 'Error'}
                         </CardTitle>
-                        <Badge variant="secondary" className="bg-purple-500 text-white">
+                        <Badge variant="secondary">
                             {group.count}x
                         </Badge>
                     </div>
@@ -527,7 +527,7 @@ function GroupedReportCard({ group }: { group: GroupedReport }) {
                 <div className="space-y-3">
                     {/* Error/Description */}
                     {group.type === 'error' ? (
-                        <p className="rounded bg-red-500/10 px-2 py-1 font-mono text-sm text-red-600 dark:bg-red-500/20 dark:text-red-400 line-clamp-2">
+                        <p className="rounded bg-destructive/10 px-2 py-1 font-mono text-sm text-destructive line-clamp-2">
                             {group.key}
                         </p>
                     ) : (
@@ -735,7 +735,7 @@ export function Reports() {
             ) : reports?.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                        <CheckCircle className="mx-auto h-12 w-12 text-success" />
                         <p className="mt-4 text-muted-foreground">
                             No reports found. Great job!
                         </p>

@@ -100,9 +100,9 @@ export function ColorCustomizer() {
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
                 <div className="flex items-center gap-2">
                     {mode === 'light' ? (
-                        <Sun className="h-4 w-4 text-amber-500" />
+                        <Sun className="h-4 w-4 text-warning" />
                     ) : (
-                        <Moon className="h-4 w-4 text-blue-400" />
+                        <Moon className="h-4 w-4 text-info" />
                     )}
                     <span className="text-sm font-medium">
                         Editing {mode === 'light' ? 'Light' : 'Dark'} Mode

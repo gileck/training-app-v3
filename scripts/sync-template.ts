@@ -13,6 +13,7 @@
  *   --dry-run                Show what would be done without making changes
  *   --force                  Force update even if there are uncommitted changes
  *   --diff-summary           Generate a diff summary file showing all template changes
+ *   --skip-ignored           Skip ignored files in diff-summary output
  *   --changelog              Show template commits since last sync (no sync)
  *   --validate               Run 'yarn checks' after sync to verify changes
  *   --report                 Generate a sync report file (SYNC-REPORT.md)
@@ -100,6 +101,7 @@ interface SyncOptions {
   force: boolean;
   autoMode: AutoMode;
   diffSummary: boolean;
+  skipIgnored: boolean;
   changelog: boolean;
   validate: boolean;
   report: boolean;
@@ -1434,9 +1436,14 @@ class TemplateSyncTool {
 
       console.log(`📍 Template commit: ${templateCommit}\n`);
 
-      // Compare files - get ALL differences between template and project (including ignored files)
-      console.log('🔍 Comparing template with project (including ignored files)...');
-      const changes = this.compareFiles(true);
+      // Compare files - include ignored files unless --skip-ignored is set
+      const includeIgnored = !this.options.skipIgnored;
+      if (includeIgnored) {
+        console.log('🔍 Comparing template with project (including ignored files)...');
+      } else {
+        console.log('🔍 Comparing template with project (skipping ignored files)...');
+      }
+      const changes = this.compareFiles(includeIgnored);
 
       if (changes.length === 0) {
         console.log('✅ No differences found. Your project matches the template!');
@@ -1450,9 +1457,9 @@ class TemplateSyncTool {
       lines.push(`Generated: ${new Date().toISOString()}`);
       lines.push(`Template: ${this.config.templateRepo}`);
       lines.push(`Template Commit: ${templateCommit}`);
+      lines.push(includeIgnored ? '' : 'Note: Ignored files were excluded (--skip-ignored)');
       lines.push('');
-      lines.push('This file shows **ALL** differences between the template and your current project,');
-      lines.push('regardless of commit history. Use this to review what differs from the template.');
+      lines.push('This file shows differences between the template and your current project.');
       lines.push('');
       lines.push('---');
       lines.push('');
@@ -1478,8 +1485,10 @@ class TemplateSyncTool {
       lines.push('');
       lines.push(`- **New in template** (not in project): ${newFiles.length} files`);
       lines.push(`- **Modified** (different from template): ${modifiedFiles.length} files`);
-      lines.push(`- **Ignored** (in ignore list): ${ignoredFiles.length} files`);
-      lines.push(`- **Total differences**: ${changes.length} files`);
+      if (includeIgnored) {
+        lines.push(`- **Ignored** (in ignore list): ${ignoredFiles.length} files`);
+      }
+      lines.push(`- **Total differences**: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
       lines.push('');
 
       // Table of contents
@@ -1504,7 +1513,7 @@ class TemplateSyncTool {
         lines.push('');
       }
 
-      if (ignoredFiles.length > 0) {
+      if (includeIgnored && ignoredFiles.length > 0) {
         lines.push('### Ignored Files (In Ignore List)');
         ignoredFiles.forEach((c, i) => {
           const anchor = `ignored-${c.path.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
@@ -1540,23 +1549,29 @@ class TemplateSyncTool {
 
       addDiffSection('New Files (In Template, Not In Project)', newFiles, 'new');
       addDiffSection('Modified Files (Different From Template)', modifiedFiles, 'mod');
-      addDiffSection('Ignored Files (In Ignore List)', ignoredFiles, 'ignored');
+      if (includeIgnored) {
+        addDiffSection('Ignored Files (In Ignore List)', ignoredFiles, 'ignored');
+      }
 
       // Write to file
       const outputPath = path.join(this.projectRoot, DIFF_SUMMARY_FILE);
       fs.writeFileSync(outputPath, lines.join('\n'), 'utf-8');
 
       console.log('\n' + '='.repeat(60));
-      console.log('📊 FULL DIFF SUMMARY GENERATED');
+      console.log('📊 DIFF SUMMARY GENERATED');
       console.log('='.repeat(60));
       console.log(`\n✅ Output written to: ${DIFF_SUMMARY_FILE}`);
       console.log(`\n📈 Summary:`);
       console.log(`   • New in template: ${newFiles.length} files`);
       console.log(`   • Modified: ${modifiedFiles.length} files`);
-      console.log(`   • Ignored: ${ignoredFiles.length} files`);
-      console.log(`   • Total: ${changes.length} files`);
-      console.log('\n💡 This shows ALL differences between template and project.');
-      console.log('   Run "yarn sync-template" to see which changes can be safely applied.');
+      if (includeIgnored) {
+        console.log(`   • Ignored: ${ignoredFiles.length} files`);
+      }
+      console.log(`   • Total: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      console.log('\n💡 Run "yarn sync-template" to see which changes can be safely applied.');
+      if (!includeIgnored) {
+        console.log('   Note: Ignored files were excluded. Remove --skip-ignored to include them.');
+      }
 
     } finally {
       this.cleanupTemplate();
@@ -1861,6 +1876,7 @@ const options: SyncOptions = {
   force: args.includes('--force'),
   autoMode,
   diffSummary: args.includes('--diff-summary'),
+  skipIgnored: args.includes('--skip-ignored'),
   changelog: args.includes('--changelog'),
   validate: args.includes('--validate'),
   report: args.includes('--report'),

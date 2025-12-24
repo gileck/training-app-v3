@@ -31,16 +31,15 @@ export const IOSAuthModal: React.FC<IOSAuthModalProps> = ({ children, isOpen }) 
             <div 
                 className={cn(
                     'absolute inset-0 backdrop-blur-xl bg-gradient-to-br',
-                    'from-slate-100/90 via-white/80 to-slate-50/90',
-                    'dark:from-slate-900/95 dark:via-slate-800/90 dark:to-slate-900/95',
+                    'from-background/90 via-card/80 to-muted/90',
                     'animate-in fade-in duration-300'
                 )}
             />
             
             {/* Subtle gradient orbs for depth */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-400/20 dark:bg-violet-500/10 rounded-full blur-3xl" />
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/15 rounded-full blur-3xl" />
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/15 rounded-full blur-3xl" />
             </div>
 
             {/* Modal card */}
@@ -48,10 +47,10 @@ export const IOSAuthModal: React.FC<IOSAuthModalProps> = ({ children, isOpen }) 
                 className={cn(
                     'relative z-10 w-full max-w-[380px] mx-4',
                     'animate-in fade-in zoom-in-95 duration-300',
-                    'bg-white dark:bg-slate-900',
+                    'bg-card',
                     'rounded-3xl',
-                    'shadow-2xl shadow-black/10 dark:shadow-black/50',
-                    'border border-slate-200 dark:border-slate-700',
+                    'shadow-2xl shadow-foreground/5',
+                    'border border-border',
                     'p-8'
                 )}
             >

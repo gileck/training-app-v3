@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "3c850a581e2dedb754e3525bc2e34a52ef6246c1",
-  "lastProjectCommit": "7bcc91401c6777cc92eaeb664f556b7ab6199af7",
-  "lastSyncDate": "2025-12-24T17:46:11.293Z",
+  "lastSyncCommit": "0aab8e737e495853ab8d3b8139d27e528da5d7d0",
+  "lastProjectCommit": "1488e9587cb7dadea7a15bef84ff7b2ee5298549",
+  "lastSyncDate": "2025-12-24T18:28:04.063Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,19 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-24T18:28:04.061Z",
+      "templateCommit": "0aab8e737e495853ab8d3b8139d27e528da5d7d0",
+      "projectCommit": "1488e9587cb7dadea7a15bef84ff7b2ee5298549",
+      "filesApplied": 16,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "0aab8e7 refactor: replace hardcoded colors with semantic theme tokens \u001b[90m(24/12/2025)\u001b[0m\n  - Add new CSS variables for status colors (info, success-foreground, warning-foreground, info-foreground)\n  - Update UI components (toast, badge, alert) to use semantic status tokens\n  - Update auth components (LoginForm, IOSAuthModal) with theme-aware colors\n  - Update status indicators in BatchSyncAlert, TopNavBar, Reports, Settings\n  - Fix bug report dialog and theme customizer icons to use semantic tokens\n  - Update theming guidelines documentation with new status color tokens\n  - Document BootGate pattern for FOUC prevention in architecture.md\n  \n  All components now properly support theme customization via the Theme & Appearance feature.",
+        "b1fd5a2 feat: Add --skip-ignored flag for diff-summary \u001b[90m(24/12/2025)\u001b[0m\n  Usage: yarn sync-template --diff-summary --skip-ignored\n  \n  This excludes ignored files from the diff summary output, showing only\n  files that would actually be synced (new and modified non-ignored files).",
+        "fe1ef2d update toast \u001b[90m(24/12/2025)\u001b[0m"
+      ]
+    },
     {
       "date": "2025-12-24T17:46:11.292Z",
       "templateCommit": "3c850a581e2dedb754e3525bc2e34a52ef6246c1",

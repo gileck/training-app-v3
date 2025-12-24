@@ -232,7 +232,7 @@ export function Settings() {
                   cacheSize.total.bytes / LOCAL_STORAGE_LIMIT > 0.8 
                     ? 'bg-destructive' 
                     : cacheSize.total.bytes / LOCAL_STORAGE_LIMIT > 0.5 
-                      ? 'bg-yellow-500' 
+                      ? 'bg-warning' 
                       : 'bg-primary'
                 }`}
                 style={{ width: `${Math.min((cacheSize.total.bytes / LOCAL_STORAGE_LIMIT) * 100, 100)}%` }}

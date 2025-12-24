@@ -77,8 +77,8 @@ export const LoginForm = () => {
         <div className="space-y-6">
             {/* Header */}
             <div className="text-center">
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25 mb-4">
-                    {isRegistering ? <UserPlus className="w-7 h-7 text-white" /> : <User className="w-7 h-7 text-white" />}
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25 mb-4">
+                    {isRegistering ? <UserPlus className="w-7 h-7 text-primary-foreground" /> : <User className="w-7 h-7 text-primary-foreground" />}
                 </div>
                 <h1 className="text-2xl font-bold text-foreground">
                     {isRegistering ? 'Create Account' : 'Welcome Back'}
@@ -90,9 +90,9 @@ export const LoginForm = () => {
 
             {/* Error */}
             {displayError && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                    <p className="text-sm text-red-700 dark:text-red-300">{displayError}</p>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive">{displayError}</p>
                 </div>
             )}
 
@@ -160,15 +160,15 @@ export const LoginForm = () => {
                     type="submit"
                     disabled={isLoading}
                     className={cn(
-                        'w-full h-12 rounded-xl font-semibold text-white',
-                        'bg-blue-500 hover:bg-blue-600 active:scale-[0.98]',
+                        'w-full h-12 rounded-xl font-semibold text-primary-foreground',
+                        'bg-primary hover:bg-primary/90 active:scale-[0.98]',
                         'flex items-center justify-center gap-2',
                         'transition-all duration-150',
                         'disabled:opacity-50 disabled:cursor-not-allowed'
                     )}
                 >
                     {isLoading ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                     ) : (
                         <>
                             {isRegistering ? 'Create Account' : 'Sign In'}
@@ -180,7 +180,7 @@ export const LoginForm = () => {
 
             {/* Toggle */}
             <p className="text-center text-sm">
-                <button type="button" onClick={toggleMode} disabled={isLoading} className="text-blue-500 hover:text-blue-600 font-medium disabled:opacity-50">
+                <button type="button" onClick={toggleMode} disabled={isLoading} className="text-primary hover:text-primary/80 font-medium disabled:opacity-50">
                     {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
                 </button>
             </p>
@@ -206,11 +206,11 @@ const InputField: React.FC<InputFieldProps> = ({ icon, name, type = 'text', plac
     <div>
         <div className={cn(
             'flex items-center h-12 rounded-xl border px-4 gap-3',
-            'bg-white dark:bg-slate-800',
-            'focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500',
-            error ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'
+            'bg-card',
+            'focus-within:ring-2 focus-within:ring-ring/30 focus-within:border-ring',
+            error ? 'border-destructive' : 'border-input'
         )}>
-            <span className="text-slate-400 dark:text-slate-500">{icon}</span>
+            <span className="text-muted-foreground">{icon}</span>
             <input
                 name={name}
                 type={type}
@@ -219,11 +219,11 @@ const InputField: React.FC<InputFieldProps> = ({ icon, name, type = 'text', plac
                 onChange={onChange}
                 disabled={disabled}
                 autoComplete={autoComplete}
-                className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none disabled:cursor-not-allowed"
+                className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
             />
             {rightElement}
         </div>
-        {error && <p className="text-xs text-red-500 mt-1 ml-1">{error}</p>}
+        {error && <p className="text-xs text-destructive mt-1 ml-1">{error}</p>}
     </div>
 );
 

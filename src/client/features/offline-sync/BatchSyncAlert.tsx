@@ -75,33 +75,33 @@ export const BatchSyncAlert: React.FC = () => {
         switch (status) {
             case 'syncing':
                 return {
-                    icon: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
-                    bgClass: 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/30',
-                    titleClass: 'text-blue-700 dark:text-blue-300',
+                    icon: <Loader2 className="h-5 w-5 animate-spin text-info" />,
+                    bgClass: 'bg-info/10 border-info/30',
+                    titleClass: 'text-info',
                     title: `Syncing ${totalItems} offline call${totalItems > 1 ? 's' : ''}...`,
                     subtitle: 'Sending queued changes to the server',
                 };
             case 'success':
                 return {
-                    icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
-                    bgClass: 'bg-gradient-to-r from-emerald-500/10 to-green-500/10 border-emerald-500/30',
-                    titleClass: 'text-emerald-700 dark:text-emerald-300',
+                    icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+                    bgClass: 'bg-success/10 border-success/30',
+                    titleClass: 'text-success',
                     title: `All ${syncedItems.length} call${syncedItems.length > 1 ? 's' : ''} synced successfully`,
                     subtitle: 'Your offline changes have been saved',
                 };
             case 'partial':
                 return {
-                    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-                    bgClass: 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30',
-                    titleClass: 'text-amber-700 dark:text-amber-300',
+                    icon: <AlertTriangle className="h-5 w-5 text-warning" />,
+                    bgClass: 'bg-warning/10 border-warning/30',
+                    titleClass: 'text-warning',
                     title: `${syncedItems.length} synced, ${failures.length} failed`,
                     subtitle: 'Some offline changes could not be saved',
                 };
             case 'error':
                 return {
-                    icon: <CloudOff className="h-5 w-5 text-red-500" />,
-                    bgClass: 'bg-gradient-to-r from-red-500/10 to-rose-500/10 border-red-500/30',
-                    titleClass: 'text-red-700 dark:text-red-300',
+                    icon: <CloudOff className="h-5 w-5 text-destructive" />,
+                    bgClass: 'bg-destructive/10 border-destructive/30',
+                    titleClass: 'text-destructive',
                     title: `${failures.length} call${failures.length > 1 ? 's' : ''} failed to sync`,
                     subtitle: 'Your offline changes could not be saved',
                 };
@@ -197,8 +197,8 @@ export const BatchSyncAlert: React.FC = () => {
                                 <div className="mt-3 space-y-3">
                                     {/* Failures section */}
                                     {hasFailures && (
-                                        <div className="rounded-xl bg-red-500/5 p-3">
-                                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">
+                                        <div className="rounded-xl bg-destructive/5 p-3">
+                                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-destructive">
                                                 <AlertTriangle className="h-3.5 w-3.5" />
                                                 Failed ({failures.length})
                                             </div>
@@ -214,7 +214,7 @@ export const BatchSyncAlert: React.FC = () => {
                                                             </span>
                                                             <RefreshCw className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                                                         </div>
-                                                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                                                        <p className="mt-1 text-xs text-destructive">
                                                             {failure.error}
                                                         </p>
                                                         {failure.params && Object.keys(failure.params).length > 0 && (
@@ -233,8 +233,8 @@ export const BatchSyncAlert: React.FC = () => {
 
                                     {/* Successes section */}
                                     {hasSuccesses && (
-                                        <div className="rounded-xl bg-emerald-500/5 p-3">
-                                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                        <div className="rounded-xl bg-success/5 p-3">
+                                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-success">
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                                 Synced ({syncedItems.length})
                                             </div>
@@ -244,7 +244,7 @@ export const BatchSyncAlert: React.FC = () => {
                                                         key={item.id}
                                                         className="flex items-center gap-2 rounded-lg bg-background/50 px-2.5 py-1.5 text-sm"
                                                     >
-                                                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                                                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-success" />
                                                         <span className="text-foreground">
                                                             {formatApiName(item.name)}
                                                         </span>
@@ -261,8 +261,8 @@ export const BatchSyncAlert: React.FC = () => {
 
                 {/* Progress bar for syncing state */}
                 {status === 'syncing' && (
-                    <div className="h-1 w-full overflow-hidden bg-blue-500/20">
-                        <div className="h-full w-1/3 animate-[progress_1.5s_ease-in-out_infinite] bg-gradient-to-r from-blue-500 to-indigo-500" />
+                    <div className="h-1 w-full overflow-hidden bg-info/20">
+                        <div className="h-full w-1/3 animate-[progress_1.5s_ease-in-out_infinite] bg-info" />
                     </div>
                 )}
             </div>

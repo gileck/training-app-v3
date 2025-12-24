@@ -23,6 +23,9 @@ When styling components, **ALWAYS use semantic CSS variables**. **NEVER use hard
 | `text-muted-foreground`   | `text-gray-500`, `text-slate-400`     |
 | `text-primary`            | `text-blue-500`, `text-blue-600`      |
 | `text-destructive`        | `text-red-500`, `text-red-600`        |
+| `text-success`            | `text-green-500`, `text-emerald-600`  |
+| `text-warning`            | `text-yellow-500`, `text-amber-600`   |
+| `text-info`               | `text-blue-500`, `text-sky-600`       |
 | `border-border`           | `border-gray-200`, `border-slate-700` |
 | `border-input`            | `border-gray-300`                     |
 | `ring-ring`               | `ring-blue-500`                       |
@@ -56,8 +59,29 @@ When styling components, **ALWAYS use semantic CSS variables**. **NEVER use hard
 - `ring-ring` - Focus ring color
 
 ### Status Colors
-- `text-success` / `bg-success` - Success states (use with `hsl(var(--success))` in custom styles)
-- `text-warning` / `bg-warning` - Warning states (use with `hsl(var(--warning))` in custom styles)
+- `text-success` / `bg-success` - Success states (green)
+- `text-success-foreground` - Text on success backgrounds
+- `text-warning` / `bg-warning` - Warning states (yellow/amber)
+- `text-warning-foreground` - Text on warning backgrounds
+- `text-info` / `bg-info` - Info states (blue)
+- `text-info-foreground` - Text on info backgrounds
+
+### Status Color Usage Examples
+
+```tsx
+// Success states
+<div className="bg-success/10 border-success/30 text-success">Success message</div>
+<Badge variant="success">Completed</Badge>
+
+// Warning states  
+<div className="bg-warning/10 border-warning/30 text-warning">Warning message</div>
+
+// Info states
+<div className="bg-info/10 border-info/30 text-info">Info message</div>
+
+// Error/Destructive states
+<div className="bg-destructive/10 border-destructive/30 text-destructive">Error message</div>
+```
 
 ## Font Family
 
