@@ -1,5 +1,5 @@
 import "@/client/styles/globals.css";
-import "@/client/styles/project.css"; // Project-specific customizations
+import "@/client/styles/project.css";  // Project-specific styles (ignored by template-sync)
 import type { AppProps } from "next/app";
 import { AppThemeProvider } from "@/client/components/ThemeProvider";
 import dynamic from 'next/dynamic';

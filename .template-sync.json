@@ -35,7 +35,8 @@
     "src/apis/apis.ts",
     "src/server/database/collections/index.ts",
     "src/server/database/collections/todos",
-    "src/server/database/collections/reports"
+    "src/server/database/collections/reports",
+    "src/client/styles/project.css"
   ],
   "projectSpecificFiles": [],
   "syncHistory": [

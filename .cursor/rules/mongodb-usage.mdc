@@ -1,5 +1,6 @@
 ---
 description: when accessing the databse or a collection in the db
+globs: 
 alwaysApply: false
 ---
 # MongoDB Usage Guidelines
