@@ -172,6 +172,30 @@ export const countSetLogsByFilter = async (filter: Record<string, unknown>): Pro
 };
 
 /**
+ * Get set logs for a specific exercise definition (across all plan exercises)
+ * Returns recent set completions for an exercise type
+ */
+export const findSetLogsByExerciseDefId = async (
+    userId: ObjectId | string,
+    exerciseDefId: string,
+    planExerciseIds: string[],
+    limit = 50
+): Promise<SetLog[]> => {
+    const collection = await getCollection();
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    const planExerciseObjectIds = planExerciseIds.map(id => new ObjectId(id));
+
+    return collection
+        .find({
+            userId: userIdObj,
+            planExerciseId: { $in: planExerciseObjectIds },
+        })
+        .sort({ completedAt: -1 })
+        .limit(limit)
+        .toArray();
+};
+
+/**
  * Get aggregated stats per day (for charts)
  */
 export const getSetStatsPerDay = async (

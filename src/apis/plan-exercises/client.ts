@@ -3,6 +3,7 @@ import { CacheResult } from '@/common/cache/types';
 import {
     API_LIST_PLAN_EXERCISES,
     API_ADD_PLAN_EXERCISE,
+    API_BULK_ADD_PLAN_EXERCISES,
     API_UPDATE_PLAN_EXERCISE,
     API_DELETE_PLAN_EXERCISE,
     API_REORDER_PLAN_EXERCISES,
@@ -12,6 +13,8 @@ import {
     ListPlanExercisesResponse,
     AddPlanExerciseRequest,
     AddPlanExerciseResponse,
+    BulkAddPlanExercisesRequest,
+    BulkAddPlanExercisesResponse,
     UpdatePlanExerciseRequest,
     UpdatePlanExerciseResponse,
     DeletePlanExerciseRequest,
@@ -36,6 +39,15 @@ export const addPlanExercise = async (
     params: AddPlanExerciseRequest
 ): Promise<CacheResult<AddPlanExerciseResponse>> => {
     return apiClient.post(API_ADD_PLAN_EXERCISE, params);
+};
+
+/**
+ * Add multiple exercises to a training plan in a single request
+ */
+export const bulkAddPlanExercises = async (
+    params: BulkAddPlanExercisesRequest
+): Promise<CacheResult<BulkAddPlanExercisesResponse>> => {
+    return apiClient.post(API_BULK_ADD_PLAN_EXERCISES, params);
 };
 
 /**

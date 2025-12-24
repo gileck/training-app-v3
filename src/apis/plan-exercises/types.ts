@@ -73,3 +73,31 @@ export interface ReorderPlanExercisesResponse {
     error?: string;
 }
 
+// Bulk add exercises to plan
+export interface BulkAddExerciseItem {
+    exerciseDefId: string;
+    sets: number;
+    reps: number;
+    weight?: number;
+    durationSeconds?: number;
+    comments?: string;
+}
+
+export interface BulkAddPlanExercisesRequest {
+    planId: string;
+    exercises: BulkAddExerciseItem[];
+}
+
+export interface BulkAddResult {
+    exerciseDefId: string;
+    exercise?: PlanExerciseWithDefinition;
+    error?: string;
+}
+
+export interface BulkAddPlanExercisesResponse {
+    results?: BulkAddResult[];
+    addedCount?: number;
+    failedCount?: number;
+    error?: string;
+}
+

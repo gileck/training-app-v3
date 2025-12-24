@@ -42,6 +42,8 @@ export {
     useCancelRestTimer,
     useIncrementCompletedSets,
     useUpdateSessionExercises,
+    useToggleAutoStartTimer,
+    useAutoStartTimer,
 } from './session-store';
 
 // Export rest timer hook

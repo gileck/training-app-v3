@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui
 import { Input } from '@/client/components/ui/input';
 import { Label } from '@/client/components/ui/label';
 import { Checkbox } from '@/client/components/ui/checkbox';
+import { Switch } from '@/client/components/ui/switch';
 import {
     Dialog,
     DialogContent,
@@ -71,11 +72,16 @@ import {
     useUpdateSessionExercises,
     useRestTimer,
     formatTime,
+    useAutoStartTimer,
+    useToggleAutoStartTimer,
 } from '@/client/features/workout';
 import type { WorkoutTab, SessionSource } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import { useSavedWorkouts, useCreateSavedWorkout, useDeleteSavedWorkout } from './hooks';
+import { useSavedWorkouts, useCreateSavedWorkout, useDeleteSavedWorkout, useWeeklyNote, useUpdateWeeklyNote } from './hooks';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
+import { Textarea } from '@/client/components/ui/textarea';
+import { StickyNote, MessageSquareText } from 'lucide-react';
 
 export function Home() {
     const { navigate } = useRouter();
@@ -124,9 +130,15 @@ export function Home() {
     const incrementCompletedSets = useIncrementCompletedSets();
     const updateSessionExercises = useUpdateSessionExercises();
     const { remainingSeconds, isRunning: isRestTimerRunning } = useRestTimer();
+    const autoStartTimer = useAutoStartTimer();
+    const toggleAutoStartTimer = useToggleAutoStartTimer();
 
     // Saved workouts data
     const { data: savedWorkoutsData } = useSavedWorkouts();
+
+    // Weekly notes
+    const { data: weeklyNoteData } = useWeeklyNote(activePlanId, currentWeek);
+    const updateWeeklyNoteMutation = useUpdateWeeklyNote();
 
     // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
     // Used to position selection bar above the bottom navbar on mobile
@@ -146,6 +158,17 @@ export function Home() {
     const [newWorkoutName, setNewWorkoutName] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
     const [selectedExercisesForWorkout, setSelectedExercisesForWorkout] = useState<string[]>([]);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgress | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [weeklyNoteDialogOpen, setWeeklyNoteDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [weeklyNoteContent, setWeeklyNoteContent] = useState('');
+
+    // Sync weekly note content when data changes
+    const currentNote = weeklyNoteData?.note || '';
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
@@ -165,6 +188,22 @@ export function Home() {
         if (activePlan && currentWeek < activePlan.durationWeeks) {
             setWeek(currentWeek + 1);
         }
+    };
+
+    const handleOpenWeeklyNote = () => {
+        setWeeklyNoteContent(currentNote);
+        setWeeklyNoteDialogOpen(true);
+    };
+
+    const handleSaveWeeklyNote = () => {
+        if (!activePlanId) return;
+        
+        updateWeeklyNoteMutation.mutate({
+            planId: activePlanId,
+            weekNumber: currentWeek,
+            content: weeklyNoteContent,
+        });
+        setWeeklyNoteDialogOpen(false);
     };
 
     const handleAddSet = (exercise: ExerciseWeekProgress) => {
@@ -202,6 +241,11 @@ export function Home() {
                 targetSets: exercise.targetSets,
             });
         }
+    };
+
+    const handleOpenExerciseDetails = (exercise: ExerciseWeekProgress) => {
+        setSelectedExerciseForDetails(exercise);
+        setExerciseDetailsOpen(true);
     };
 
     const getMotivationalMessage = (percent: number) => {
@@ -292,8 +336,10 @@ export function Home() {
         // Update session state
         incrementCompletedSets();
 
-        // Auto-start rest timer
-        startRestTimer();
+        // Auto-start rest timer (if enabled)
+        if (autoStartTimer) {
+            startRestTimer();
+        }
 
         // Update session exercises with new set count
         updateSessionExercises(
@@ -332,6 +378,22 @@ export function Home() {
     const handleEndWorkout = () => {
         endSession();
         setActiveTab('exercises');
+    };
+
+    const handleSaveSessionAsWorkout = () => {
+        if (sessionExercises.length === 0) return;
+
+        const workoutName = `Workout ${new Date().toLocaleDateString()}`;
+        createWorkoutMutation.mutate({
+            name: workoutName,
+            exercises: sessionExercises.map((ex) => ({
+                exerciseDefId: ex.exerciseDef._id,
+                sets: ex.targetSets,
+                reps: ex.planExercise.reps,
+                weight: ex.planExercise.weight,
+                durationSeconds: ex.planExercise.durationSeconds,
+            })),
+        });
     };
 
     // Calculate session duration
@@ -430,7 +492,7 @@ export function Home() {
                                 WEEK {currentWeek} / {activePlan.durationWeeks}
                             </p>
                             <button
-                                onClick={() => navigate('/training-plans')}
+                                onClick={() => navigate(`/training-plans/${activePlan._id}`)}
                                 className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 mx-auto"
                             >
                                 {activePlan.name}
@@ -447,6 +509,25 @@ export function Home() {
                             <ChevronRight className="h-5 w-5" />
                         </Button>
                     </div>
+
+                    {/* Weekly Note Button */}
+                    <button
+                        onClick={handleOpenWeeklyNote}
+                        className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                            currentNote 
+                                ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50' 
+                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                        }`}
+                    >
+                        {currentNote ? (
+                            <MessageSquareText className="h-4 w-4 flex-shrink-0" />
+                        ) : (
+                            <StickyNote className="h-4 w-4 flex-shrink-0" />
+                        )}
+                        <span className="text-sm truncate">
+                            {currentNote || 'Add note for this week...'}
+                        </span>
+                    </button>
 
                     {/* Progress */}
                     <div>
@@ -539,6 +620,7 @@ export function Home() {
                                         onAddSet={() => handleAddSet(exercise)}
                                         onRemoveSet={() => handleRemoveSet(exercise)}
                                         onCompleteAll={() => handleCompleteAll(exercise)}
+                                        onOpenDetails={() => handleOpenExerciseDetails(exercise)}
                                         isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
                                         onSelect={() => toggleSelection(exercise.planExerciseId)}
                                     />
@@ -549,6 +631,7 @@ export function Home() {
                                         onAddSet={() => handleAddSet(exercise)}
                                         onRemoveSet={() => handleRemoveSet(exercise)}
                                         onCompleteAll={() => handleCompleteAll(exercise)}
+                                        onOpenDetails={() => handleOpenExerciseDetails(exercise)}
                                         isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
                                         onSelect={() => toggleSelection(exercise.planExerciseId)}
                                     />
@@ -584,6 +667,7 @@ export function Home() {
                                                 onAddSet={() => handleAddSet(exercise)}
                                                 onRemoveSet={() => handleRemoveSet(exercise)}
                                                 onCompleteAll={() => { }}
+                                                onOpenDetails={() => handleOpenExerciseDetails(exercise)}
                                                 isComplete
                                                 isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
                                                 onSelect={() => toggleSelection(exercise.planExerciseId)}
@@ -595,6 +679,7 @@ export function Home() {
                                                 onAddSet={() => handleAddSet(exercise)}
                                                 onRemoveSet={() => handleRemoveSet(exercise)}
                                                 onCompleteAll={() => { }}
+                                                onOpenDetails={() => handleOpenExerciseDetails(exercise)}
                                                 isComplete
                                                 isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
                                                 onSelect={() => toggleSelection(exercise.planExerciseId)}
@@ -811,14 +896,24 @@ export function Home() {
                                                 {getSessionDuration()} • {completedSetsThisSession} sets done
                                             </p>
                                         </div>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleEndWorkout}
-                                            className="rounded-xl text-destructive border-destructive/50 hover:bg-destructive/10"
-                                        >
-                                            <Square className="mr-2 h-4 w-4" />
-                                            End
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleSaveSessionAsWorkout}
+                                                className="rounded-xl"
+                                            >
+                                                <Bookmark className="mr-2 h-4 w-4" />
+                                                Save
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleEndWorkout}
+                                                className="rounded-xl text-destructive border-destructive/50 hover:bg-destructive/10"
+                                            >
+                                                <Square className="mr-2 h-4 w-4" />
+                                                End
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -865,17 +960,31 @@ export function Home() {
                                             <Timer className="h-5 w-5 text-primary" />
                                             <span className="font-medium">Rest Timer</span>
                                         </div>
-                                        {isRestTimerRunning && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={cancelRestTimer}
-                                                className="text-muted-foreground"
-                                            >
-                                                <SkipForward className="mr-1 h-4 w-4" />
-                                                Skip
-                                            </Button>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {isRestTimerRunning && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={cancelRestTimer}
+                                                    className="text-muted-foreground"
+                                                >
+                                                    <SkipForward className="mr-1 h-4 w-4" />
+                                                    Skip
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Auto-start toggle */}
+                                    <div className="flex items-center justify-between py-2 mb-2 border-b border-border">
+                                        <Label htmlFor="auto-start-timer" className="text-sm text-muted-foreground cursor-pointer">
+                                            Auto-start after set
+                                        </Label>
+                                        <Switch
+                                            id="auto-start-timer"
+                                            checked={autoStartTimer}
+                                            onCheckedChange={toggleAutoStartTimer}
+                                        />
                                     </div>
 
                                     {/* Timer Display */}
@@ -947,6 +1056,49 @@ export function Home() {
                 </TabsContent>
 
             </Tabs>
+
+            {/* Exercise Details Sheet */}
+            <ExerciseDetails
+                exercise={selectedExerciseForDetails?.exerciseDef || null}
+                open={exerciseDetailsOpen}
+                onOpenChange={setExerciseDetailsOpen}
+                sets={selectedExerciseForDetails?.targetSets}
+                reps={selectedExerciseForDetails?.planExercise.reps}
+                weight={selectedExerciseForDetails?.planExercise.weight}
+                durationSeconds={selectedExerciseForDetails?.planExercise.durationSeconds}
+                comments={selectedExerciseForDetails?.planExercise.comments}
+            />
+
+            {/* Weekly Note Dialog */}
+            <Dialog open={weeklyNoteDialogOpen} onOpenChange={setWeeklyNoteDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MessageSquareText className="h-5 w-5" />
+                            Week {currentWeek} Notes
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Textarea
+                            value={weeklyNoteContent}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setWeeklyNoteContent(e.target.value)}
+                            placeholder="Add notes for this week... e.g. goals, energy levels, recovery notes"
+                            className="min-h-[120px] resize-none rounded-xl"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">
+                            Notes are saved per week and can help you track your progress and observations.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setWeeklyNoteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveWeeklyNote} disabled={updateWeeklyNoteMutation.isPending}>
+                            {updateWeeklyNoteMutation.isPending ? 'Saving...' : 'Save Note'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -957,6 +1109,7 @@ interface ExerciseCardProps {
     onAddSet: () => void;
     onRemoveSet: () => void;
     onCompleteAll: () => void;
+    onOpenDetails: () => void;
     isComplete?: boolean;
     isSelected?: boolean;
     onSelect?: () => void;
@@ -967,6 +1120,7 @@ function ExerciseCardGrid({
     onAddSet,
     onRemoveSet,
     onCompleteAll,
+    onOpenDetails,
     isComplete,
     isSelected,
     onSelect,
@@ -1019,7 +1173,15 @@ function ExerciseCardGrid({
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                             <h3 className="font-bold text-lg truncate">{exercise.exerciseDef.name}</h3>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 rounded-full text-primary"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenDetails();
+                                }}
+                            >
                                 <Info className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1102,6 +1264,7 @@ function ExerciseCardList({
     onAddSet,
     onRemoveSet,
     onCompleteAll,
+    onOpenDetails,
     isComplete,
     isSelected,
     onSelect,
@@ -1159,11 +1322,21 @@ function ExerciseCardList({
                     </div>
                     <div className="flex gap-1">
                         <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onOpenDetails}
+                            className="h-9 w-9 rounded-full text-primary"
+                        >
+                            <Info className="h-4 w-4" />
+                        </Button>
+                        <Button
                             variant="outline"
                             size="icon"
                             onClick={onRemoveSet}
                             disabled={exercise.setsCompleted <= 0}
-                            className="h-9 w-9 rounded-full active:scale-95 transition-transform"
+                            className={`h-9 w-9 rounded-full active:scale-95 transition-transform ${
+                                isComplete ? 'text-red-500 border-red-500/50 hover:bg-red-500/10' : ''
+                            }`}
                         >
                             <Minus className="h-4 w-4" />
                         </Button>
@@ -1182,16 +1355,6 @@ function ExerciseCardList({
                                 className="h-9 w-9 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 transition-transform"
                             >
                                 <CheckCheck className="h-4 w-4" />
-                            </Button>
-                        )}
-                        {isComplete && (
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={onRemoveSet}
-                                className="h-9 w-9 rounded-full text-red-500 border-red-500/50 hover:bg-red-500/10 active:scale-95 transition-transform"
-                            >
-                                <Minus className="h-4 w-4" />
                             </Button>
                         )}
                     </div>

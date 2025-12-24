@@ -11,12 +11,26 @@ const initialSessionState: WorkoutSession = {
     restTimerDuration: 90,
     completedSetsThisSession: 0,
     sessionSource: null,
+    autoStartTimer: true,
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
     key: 'workout-session',
     label: 'Workout Session',
-    inMemoryOnly: true, // Session state is ephemeral
+    persistOptions: {
+        // Persist session state to localStorage so it survives page refreshes
+        partialize: (state) => ({
+            isActive: state.isActive,
+            startedAt: state.startedAt,
+            currentExerciseIndex: state.currentExerciseIndex,
+            exercises: state.exercises,
+            restTimerDuration: state.restTimerDuration,
+            completedSetsThisSession: state.completedSetsThisSession,
+            sessionSource: state.sessionSource,
+            autoStartTimer: state.autoStartTimer,
+            // Don't persist restTimerEndAt as it's timestamp-based
+        }),
+    },
     creator: (set) => ({
         ...initialSessionState,
 
@@ -65,6 +79,10 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
         updateExercises: (exercises: ExerciseWeekProgress[]) => {
             set({ exercises });
         },
+
+        toggleAutoStartTimer: () => {
+            set((state) => ({ autoStartTimer: !state.autoStartTimer }));
+        },
     }),
 });
 
@@ -93,5 +111,7 @@ export const useStartRestTimer = () => useWorkoutSessionStore((state) => state.s
 export const useCancelRestTimer = () => useWorkoutSessionStore((state) => state.cancelRestTimer);
 export const useIncrementCompletedSets = () => useWorkoutSessionStore((state) => state.incrementCompletedSets);
 export const useUpdateSessionExercises = () => useWorkoutSessionStore((state) => state.updateExercises);
+export const useToggleAutoStartTimer = () => useWorkoutSessionStore((state) => state.toggleAutoStartTimer);
+export const useAutoStartTimer = () => useWorkoutSessionStore((state) => state.autoStartTimer);
 
 

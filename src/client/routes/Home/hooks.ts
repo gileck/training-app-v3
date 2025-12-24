@@ -30,20 +30,32 @@ import { useQueryDefaults } from '@/client/query/defaults';
 import {
     listSavedWorkouts,
     createSavedWorkout,
+    updateSavedWorkout,
     deleteSavedWorkout,
 } from '@/apis/saved-workouts/client';
+import {
+    getWeeklyNote,
+    updateWeeklyNote,
+} from '@/apis/weekly-progress/client';
 import type {
     ListSavedWorkoutsResponse,
     CreateSavedWorkoutRequest,
+    UpdateSavedWorkoutRequest,
     DeleteSavedWorkoutRequest,
     SavedWorkoutWithExercises,
 } from '@/apis/saved-workouts/types';
+import type {
+    GetWeeklyNoteResponse,
+    UpdateWeeklyNoteRequest,
+} from '@/apis/weekly-progress/types';
 
 // ============================================================================
 // Query Keys
 // ============================================================================
 
 export const savedWorkoutsQueryKey = ['saved-workouts'] as const;
+export const weeklyNoteQueryKey = (planId: string, weekNumber: number) =>
+    ['weekly-note', planId, weekNumber] as const;
 
 // ============================================================================
 // Query Hooks
@@ -147,6 +159,58 @@ export function useCreateSavedWorkout() {
 }
 
 /**
+ * Hook for updating a saved workout
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates item immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ */
+export function useUpdateSavedWorkout() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: UpdateSavedWorkoutRequest) => {
+            const response = await updateSavedWorkout(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.workout;
+        },
+        // OPTIMISTIC UPDATE: Update workout immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
+            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+
+            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+                if (!old?.workouts) return old;
+                return {
+                    workouts: old.workouts.map((workout) =>
+                        workout._id === variables.workoutId
+                            ? {
+                                  ...workout,
+                                  ...(variables.name !== undefined && { name: variables.name }),
+                                  updatedAt: new Date().toISOString(),
+                              }
+                            : workout
+                    ),
+                };
+            });
+
+            return { previousWorkouts };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousWorkouts) {
+                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
+    });
+}
+
+/**
  * Hook for deleting a saved workout
  * 
  * Uses OPTIMISTIC-ONLY pattern:
@@ -183,6 +247,70 @@ export function useDeleteSavedWorkout() {
         onError: (_err, _variables, context) => {
             if (context?.previousWorkouts) {
                 queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
+    });
+}
+
+// ============================================================================
+// Weekly Notes Hooks
+// ============================================================================
+
+/**
+ * Hook to fetch weekly note for a specific week
+ */
+export function useWeeklyNote(planId: string | null, weekNumber: number) {
+    const queryDefaults = useQueryDefaults();
+
+    return useQuery({
+        queryKey: weeklyNoteQueryKey(planId || '', weekNumber),
+        queryFn: async (): Promise<GetWeeklyNoteResponse> => {
+            if (!planId) return { note: '' };
+            const response = await getWeeklyNote({ planId, weekNumber });
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data || { note: '' };
+        },
+        enabled: !!planId && weekNumber >= 1,
+        ...queryDefaults,
+    });
+}
+
+/**
+ * Hook for updating a weekly note
+ * 
+ * Uses OPTIMISTIC-ONLY pattern for instant UI feedback.
+ */
+export function useUpdateWeeklyNote() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: UpdateWeeklyNoteRequest) => {
+            const response = await updateWeeklyNote(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.note;
+        },
+        // OPTIMISTIC UPDATE: Update note immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            const queryKey = weeklyNoteQueryKey(variables.planId, variables.weekNumber);
+            await queryClient.cancelQueries({ queryKey });
+            const previousNote = queryClient.getQueryData<GetWeeklyNoteResponse>(queryKey);
+
+            queryClient.setQueryData<GetWeeklyNoteResponse>(queryKey, () => ({
+                note: variables.content,
+            }));
+
+            return { previousNote, queryKey };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousNote && context?.queryKey) {
+                queryClient.setQueryData(context.queryKey, context.previousNote);
             }
         },
         // onSuccess: intentionally empty - NEVER update UI from server response

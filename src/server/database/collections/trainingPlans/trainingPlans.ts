@@ -108,6 +108,17 @@ export const setActivePlan = async (
 };
 
 /**
+ * Find multiple training plans by IDs
+ */
+export const findPlansByIds = async (
+    planIds: string[]
+): Promise<TrainingPlan[]> => {
+    const collection = await getCollection();
+    const objectIds = planIds.map(id => new ObjectId(id));
+    return collection.find({ _id: { $in: objectIds } }).toArray();
+};
+
+/**
  * Delete a training plan
  */
 export const deletePlan = async (

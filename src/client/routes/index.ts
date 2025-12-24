@@ -10,12 +10,14 @@ import { Reports } from './Reports';
 import { TrainingPlans } from './TrainingPlans';
 import { ManagePlan } from './ManagePlan';
 import { Progress } from './Progress';
+import { SavedWorkouts } from './SavedWorkouts';
 
 // Define routes
 export const routes = createRoutes({
   '/': Home,
   '/training-plans': TrainingPlans,
   '/training-plans/:planId': ManagePlan,
+  '/saved-workouts': SavedWorkouts,
   '/progress': Progress,
   '/ai-chat': AIChat,
   '/todos': Todos,

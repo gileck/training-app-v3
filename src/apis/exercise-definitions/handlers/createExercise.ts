@@ -25,6 +25,13 @@ export async function createExercise(
         // Upload image if provided
         let imageUrl = '';
         if (request.imageBase64 && isBase64Data(request.imageBase64)) {
+            // Check if blob storage is configured
+            if (!process.env.BLOB_READ_WRITE_TOKEN) {
+                return { 
+                    error: 'Image upload is not available. Please configure blob storage (BLOB_READ_WRITE_TOKEN) or create the exercise without an image.' 
+                };
+            }
+            
             try {
                 const uploadResult = await fileStorageAPI.uploadBase64Image(request.imageBase64, {
                     folder: `exercises/${context.userId}`,
@@ -32,8 +39,9 @@ export async function createExercise(
                 });
                 imageUrl = uploadResult.url;
             } catch (uploadError) {
-                console.error('Failed to upload exercise image:', uploadError);
-                // Continue without image rather than fail the entire request
+                const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown error';
+                console.error('Failed to upload exercise image:', errorMessage);
+                return { error: `Failed to upload image: ${errorMessage}` };
             }
         }
 

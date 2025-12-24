@@ -36,6 +36,28 @@ export interface CreatePlanResponse {
     error?: string;
 }
 
+// Update plan
+export interface UpdatePlanRequest {
+    planId: string;
+    name?: string;
+    durationWeeks?: number;
+}
+
+export interface UpdatePlanResponse {
+    plan?: TrainingPlanClient;
+    error?: string;
+}
+
+// Duplicate plan
+export interface DuplicatePlanRequest {
+    planId: string;
+}
+
+export interface DuplicatePlanResponse {
+    plan?: TrainingPlanClient;
+    error?: string;
+}
+
 // Delete plan
 export interface DeletePlanRequest {
     planId: string;

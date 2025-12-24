@@ -1,0 +1,2 @@
+export { SavedWorkouts } from './SavedWorkouts';
+

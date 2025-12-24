@@ -4,8 +4,10 @@ import {
     API_LIST_PLANS,
     API_GET_PLAN,
     API_CREATE_PLAN,
+    API_UPDATE_PLAN,
     API_DELETE_PLAN,
     API_SET_ACTIVE_PLAN,
+    API_DUPLICATE_PLAN,
 } from './index';
 import {
     ListPlansRequest,
@@ -14,10 +16,14 @@ import {
     GetPlanResponse,
     CreatePlanRequest,
     CreatePlanResponse,
+    UpdatePlanRequest,
+    UpdatePlanResponse,
     DeletePlanRequest,
     DeletePlanResponse,
     SetActivePlanRequest,
     SetActivePlanResponse,
+    DuplicatePlanRequest,
+    DuplicatePlanResponse,
 } from './types';
 
 /**
@@ -45,6 +51,24 @@ export const createPlan = async (
     params: CreatePlanRequest
 ): Promise<CacheResult<CreatePlanResponse>> => {
     return apiClient.post(API_CREATE_PLAN, params);
+};
+
+/**
+ * Update a training plan
+ */
+export const updatePlan = async (
+    params: UpdatePlanRequest
+): Promise<CacheResult<UpdatePlanResponse>> => {
+    return apiClient.post(API_UPDATE_PLAN, params);
+};
+
+/**
+ * Duplicate a training plan
+ */
+export const duplicatePlan = async (
+    params: DuplicatePlanRequest
+): Promise<CacheResult<DuplicatePlanResponse>> => {
+    return apiClient.post(API_DUPLICATE_PLAN, params);
 };
 
 /**

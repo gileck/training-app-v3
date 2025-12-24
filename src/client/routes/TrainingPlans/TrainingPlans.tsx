@@ -13,9 +13,9 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { Plus, Calendar, Trash2, Settings2, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2 } from 'lucide-react';
 import { useRouter } from '../../router';
-import { usePlans, useCreatePlan, useDeletePlan, useSetActivePlan } from './hooks';
+import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan, useDuplicatePlan } from './hooks';
 import { useWorkoutStore } from '@/client/features/workout';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
@@ -25,8 +25,10 @@ export function TrainingPlans() {
     // Queries and mutations
     const { data, error } = usePlans();
     const createPlanMutation = useCreatePlan();
+    const updatePlanMutation = useUpdatePlan();
     const deletePlanMutation = useDeletePlan();
     const setActivePlanMutation = useSetActivePlan();
+    const duplicatePlanMutation = useDuplicatePlan();
 
     // Workout store for syncing active plan
     const setActivePlan = useWorkoutStore((state) => state.setActivePlan);
@@ -42,6 +44,14 @@ export function TrainingPlans() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [planToDelete, setPlanToDelete] = useState<TrainingPlanClient | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [planToEdit, setPlanToEdit] = useState<TrainingPlanClient | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [editPlanName, setEditPlanName] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
+    const [editPlanWeeks, setEditPlanWeeks] = useState(8);
 
     const plans = data?.plans || [];
     const hasData = data !== undefined;
@@ -97,6 +107,35 @@ export function TrainingPlans() {
 
     const handleManagePlan = (plan: TrainingPlanClient) => {
         navigate(`/training-plans/${plan._id}`);
+    };
+
+    const handleEditPlan = (plan: TrainingPlanClient) => {
+        setPlanToEdit(plan);
+        setEditPlanName(plan.name);
+        setEditPlanWeeks(plan.durationWeeks);
+        setEditDialogOpen(true);
+    };
+
+    const confirmEdit = () => {
+        if (!planToEdit || !editPlanName.trim()) return;
+
+        updatePlanMutation.mutate(
+            {
+                planId: planToEdit._id,
+                name: editPlanName.trim(),
+                durationWeeks: editPlanWeeks,
+            },
+            {
+                onSuccess: () => {
+                    setEditDialogOpen(false);
+                    setPlanToEdit(null);
+                },
+            }
+        );
+    };
+
+    const handleDuplicatePlan = (plan: TrainingPlanClient) => {
+        duplicatePlanMutation.mutate({ planId: plan._id });
     };
 
     // Loading state - show skeleton when loading without cached data
@@ -220,6 +259,23 @@ export function TrainingPlans() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
+                                        onClick={() => handleEditPlan(plan)}
+                                        className="rounded-lg"
+                                    >
+                                        <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDuplicatePlan(plan)}
+                                        disabled={duplicatePlanMutation.isPending}
+                                        className="rounded-lg"
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => handleDeletePlan(plan)}
                                         className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
                                     >
@@ -320,6 +376,74 @@ export function TrainingPlans() {
                             className="rounded-lg"
                         >
                             {deletePlanMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Plan Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit Training Plan</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-plan-name">Plan Name</Label>
+                            <Input
+                                id="edit-plan-name"
+                                value={editPlanName}
+                                onChange={(e) => setEditPlanName(e.target.value)}
+                                placeholder="e.g., Push/Pull/Legs"
+                                className="rounded-lg"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-plan-weeks">Duration (weeks)</Label>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setEditPlanWeeks((w) => Math.max(1, w - 1))}
+                                    disabled={editPlanWeeks <= 1}
+                                    className="h-10 w-10 rounded-lg"
+                                >
+                                    -
+                                </Button>
+                                <span className="w-12 text-center font-semibold text-lg">
+                                    {editPlanWeeks}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setEditPlanWeeks((w) => Math.min(52, w + 1))}
+                                    disabled={editPlanWeeks >= 52}
+                                    className="h-10 w-10 rounded-lg"
+                                >
+                                    +
+                                </Button>
+                            </div>
+                            {planToEdit && editPlanWeeks < planToEdit.durationWeeks && (
+                                <p className="text-sm text-amber-600 dark:text-amber-400">
+                                    Warning: Reducing weeks may result in loss of progress data for removed weeks.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setEditDialogOpen(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmEdit}
+                            disabled={!editPlanName.trim() || updatePlanMutation.isPending}
+                            className="rounded-lg"
+                        >
+                            {updatePlanMutation.isPending ? 'Saving...' : 'Save'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

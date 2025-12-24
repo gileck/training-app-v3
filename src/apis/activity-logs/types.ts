@@ -44,3 +44,31 @@ export interface GetActivitySummaryResponse {
     error?: string;
 }
 
+// Get Exercise History (for exercise details)
+export interface GetExerciseHistoryRequest {
+    exerciseDefId: string;
+    limit?: number; // Max entries to return (default 20)
+}
+
+export interface ExerciseHistoryEntry {
+    date: string; // ISO date string
+    planName: string;
+    weekNumber: number;
+    setsCompleted: number;
+}
+
+export interface GetExerciseHistoryResponse {
+    history?: ExerciseHistoryEntry[];
+    error?: string;
+}
+
+// Delete Activity
+export interface DeleteActivityRequest {
+    activityId: string;
+}
+
+export interface DeleteActivityResponse {
+    success?: boolean;
+    error?: string;
+}
+

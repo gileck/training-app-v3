@@ -30,15 +30,19 @@ import { useQueryDefaults } from '@/client/query/defaults';
 import {
     listPlans,
     createPlan,
+    updatePlan,
     deletePlan,
     setActivePlan,
+    duplicatePlan,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
 import type {
     ListPlansResponse,
     CreatePlanRequest,
+    UpdatePlanRequest,
     DeletePlanRequest,
     SetActivePlanRequest,
+    DuplicatePlanRequest,
 } from '@/apis/training-plans/types';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
@@ -237,6 +241,117 @@ export function useSetActivePlan() {
                     })),
                 };
             });
+
+            return { previousPlans };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousPlans) {
+                queryClient.setQueryData(plansQueryKey, context.previousPlans);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
+    });
+}
+
+/**
+ * Hook for updating a training plan
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates item immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ */
+export function useUpdatePlan() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: UpdatePlanRequest) => {
+            const response = await updatePlan(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.plan;
+        },
+        // OPTIMISTIC UPDATE: Update plan immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: plansQueryKey });
+            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
+
+            queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                if (!old?.plans) return old;
+                return {
+                    plans: old.plans.map((plan) =>
+                        plan._id === variables.planId
+                            ? {
+                                  ...plan,
+                                  ...(variables.name !== undefined && { name: variables.name }),
+                                  ...(variables.durationWeeks !== undefined && { durationWeeks: variables.durationWeeks }),
+                                  updatedAt: new Date().toISOString(),
+                              }
+                            : plan
+                    ),
+                };
+            });
+
+            return { previousPlans };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousPlans) {
+                queryClient.setQueryData(plansQueryKey, context.previousPlans);
+            }
+        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
+    });
+}
+
+/**
+ * Hook for duplicating a training plan
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI adds duplicate plan immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ */
+export function useDuplicatePlan() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: DuplicatePlanRequest) => {
+            const response = await duplicatePlan(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.plan;
+        },
+        // OPTIMISTIC UPDATE: Add duplicated plan immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: plansQueryKey });
+            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
+
+            // Find the original plan to duplicate
+            const originalPlan = previousPlans?.plans?.find((p) => p._id === variables.planId);
+
+            if (originalPlan) {
+                // Create optimistic duplicate with temporary ID
+                const optimisticPlan: TrainingPlanClient = {
+                    _id: `temp-${Date.now()}`,
+                    userId: originalPlan.userId,
+                    name: `${originalPlan.name} (Copy)`,
+                    durationWeeks: originalPlan.durationWeeks,
+                    isActive: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+
+                queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                    if (!old?.plans) return { plans: [optimisticPlan] };
+                    return { plans: [...old.plans, optimisticPlan] };
+                });
+            }
 
             return { previousPlans };
         },

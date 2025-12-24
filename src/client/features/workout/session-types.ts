@@ -12,6 +12,8 @@ export interface WorkoutSession {
     completedSetsThisSession: number;
     /** Tracks where the session originated from - affects whether sets sync to backend */
     sessionSource: SessionSource | null;
+    /** Whether to auto-start the rest timer after completing a set */
+    autoStartTimer: boolean;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -23,6 +25,7 @@ export interface WorkoutSessionState extends WorkoutSession {
     cancelRestTimer: () => void;
     incrementCompletedSets: () => void;
     updateExercises: (exercises: ExerciseWeekProgress[]) => void;
+    toggleAutoStartTimer: () => void;
 }
 
 // Default rest times by exercise type

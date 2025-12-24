@@ -1,18 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
-import { getActivity, getActivitySummary } from '@/apis/activity-logs/client';
+import { getActivity, getActivitySummary, deleteActivity } from '@/apis/activity-logs/client';
 import type {
     GetActivityResponse,
     GetActivitySummaryResponse,
+    DeleteActivityRequest,
 } from '@/apis/activity-logs/types';
 
 // ============================================================================
 // Query Keys
 // ============================================================================
 
-export const activityQueryKey = (planId?: string) => ['activity', planId ?? 'all'] as const;
-export const activitySummaryQueryKey = (period: string, planId?: string) =>
-    ['activity-summary', period, planId ?? 'all'] as const;
+export const activityQueryKey = (planId?: string, startDate?: string, endDate?: string) => 
+    ['activity', planId ?? 'all', startDate ?? 'none', endDate ?? 'none'] as const;
+export const activitySummaryQueryKey = (period: string, planId?: string, startDate?: string, endDate?: string) =>
+    ['activity-summary', period, planId ?? 'all', startDate ?? 'none', endDate ?? 'none'] as const;
 
 // ============================================================================
 // Query Hooks
@@ -27,7 +29,7 @@ export function useActivity(options?: {
 }) {
     const queryDefaults = useQueryDefaults();
     return useQuery({
-        queryKey: activityQueryKey(options?.planId),
+        queryKey: activityQueryKey(options?.planId, options?.startDate, options?.endDate),
         queryFn: async (): Promise<GetActivityResponse> => {
             const response = await getActivity({
                 planId: options?.planId,
@@ -54,7 +56,7 @@ export function useActivitySummary(options?: {
     const period = options?.period ?? 'day';
 
     return useQuery({
-        queryKey: activitySummaryQueryKey(period, options?.planId),
+        queryKey: activitySummaryQueryKey(period, options?.planId, options?.startDate, options?.endDate),
         queryFn: async (): Promise<GetActivitySummaryResponse> => {
             const response = await getActivitySummary({
                 planId: options?.planId,
@@ -67,6 +69,64 @@ export function useActivitySummary(options?: {
         },
         enabled: options?.enabled ?? true,
         ...queryDefaults,
+    });
+}
+
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
+
+/**
+ * Hook for deleting an activity record
+ * 
+ * Uses OPTIMISTIC-ONLY pattern for instant UI feedback.
+ */
+export function useDeleteActivity() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: DeleteActivityRequest) => {
+            const response = await deleteActivity(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.success;
+        },
+        // OPTIMISTIC UPDATE: Remove activity immediately
+        onMutate: async (variables) => {
+            // Invalidate all activity-related queries
+            await queryClient.cancelQueries({ queryKey: ['activity'] });
+            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
+
+            // Store previous data for rollback
+            const previousQueries = queryClient.getQueriesData({ queryKey: ['activity'] });
+
+            // Optimistically update all activity queries
+            queryClient.setQueriesData<GetActivityResponse>(
+                { queryKey: ['activity'] },
+                (old) => {
+                    if (!old?.activities) return old;
+                    return {
+                        ...old,
+                        activities: old.activities.filter((a) => a._id !== variables.activityId),
+                    };
+                }
+            );
+
+            return { previousQueries };
+        },
+        // ONLY on error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousQueries) {
+                context.previousQueries.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+        },
+        // Invalidate summary queries on success since we can't optimistically update aggregations
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
+        },
     });
 }
 

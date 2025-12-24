@@ -11,3 +11,4 @@ export * as weeklyProgress from './weeklyProgress';
 export * as exerciseProgress from './exerciseProgress';
 export * as setLogs from './setLogs';
 export * as savedWorkouts from './savedWorkouts';
+export * as weeklyNotes from './weeklyNotes';

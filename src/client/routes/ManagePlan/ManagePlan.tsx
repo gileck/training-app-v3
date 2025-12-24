@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Input } from '@/client/components/ui/input';
+import { Textarea } from '@/client/components/ui/textarea';
 import { Label } from '@/client/components/ui/label';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Badge } from '@/client/components/ui/badge';
+import { toast } from '@/client/components/ui/toast';
 import {
     Dialog,
     DialogContent,
@@ -13,22 +16,29 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
+import { ChevronLeft, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare } from 'lucide-react';
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from '@/client/components/ui/sheet';
-import { ChevronLeft, Plus, Trash2, Edit2, Dumbbell, Search } from 'lucide-react';
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/client/components/ui/select';
 import { useRouter } from '../../router';
 import {
     usePlan,
     usePlanExercises,
     useExerciseLibrary,
     useAddPlanExercise,
+    useBulkAddPlanExercises,
     useUpdatePlanExercise,
     useDeletePlanExercise,
+    useReorderPlanExercises,
+    useCreateExercise,
+    useUpdateExercise,
+    useDeleteExercise,
 } from './hooks';
+import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 
@@ -41,10 +51,17 @@ export function ManagePlan() {
     const { data: exercisesData, isLoading: exercisesLoading } = usePlanExercises(planId);
     const { data: libraryData, isLoading: libraryLoading } = useExerciseLibrary();
 
-    // Mutations - pass libraryData for optimistic updates
-    const addExerciseMutation = useAddPlanExercise(libraryData);
+    // Mutations
+    const addExerciseMutation = useAddPlanExercise();
+    const bulkAddMutation = useBulkAddPlanExercises();
     const updateExerciseMutation = useUpdatePlanExercise(planId);
     const deleteExerciseMutation = useDeletePlanExercise(planId);
+    const reorderMutation = useReorderPlanExercises(planId);
+    
+    // Custom exercise mutations
+    const createExerciseMutation = useCreateExercise();
+    const updateExerciseDefMutation = useUpdateExercise();
+    const deleteExerciseDefMutation = useDeleteExercise();
 
     // UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral sheet state
@@ -59,6 +76,8 @@ export function ManagePlan() {
     const [configReps, setConfigReps] = useState(12);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [configWeight, setConfigWeight] = useState(0);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [configComments, setConfigComments] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
@@ -67,34 +86,100 @@ export function ManagePlan() {
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [exerciseToEdit, setExerciseToEdit] = useState<PlanExerciseWithDefinition | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [createExerciseOpen, setCreateExerciseOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [editExerciseDefOpen, setEditExerciseDefOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [exerciseDefToEdit, setExerciseDefToEdit] = useState<ExerciseDefinitionClient | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [deleteExerciseDefDialogOpen, setDeleteExerciseDefDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [exerciseDefToDelete, setExerciseDefToDelete] = useState<ExerciseDefinitionClient | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
+    const [isReorderMode, setIsReorderMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
+    const [filterMuscle, setFilterMuscle] = useState<string>('all');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
+    const [filterType, setFilterType] = useState<string>('all');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter UI state
+    const [showFilters, setShowFilters] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
+    const [filterSource, setFilterSource] = useState<'all' | 'system' | 'custom'>('all');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral multi-select mode
+    const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral multi-select state
+    const [selectedExercises, setSelectedExercises] = useState<Map<string, {
+        exercise: ExerciseDefinitionClient;
+        sets: number;
+        reps: number;
+        weight: number;
+        comments: string;
+    }>>(new Map());
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral multi-config view
+    const [showMultiConfig, setShowMultiConfig] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral notes dialog
+    const [notesDialogExerciseId, setNotesDialogExerciseId] = useState<string | null>(null);
 
     const plan = planData?.plan;
     const planExercises = exercisesData?.exercises || [];
     const exerciseLibrary = libraryData?.exercises || [];
 
-    // Filter library by search query and exclude already added exercises
+    // Get unique muscle groups and exercise types for filters (exclude empty strings)
+    const uniqueMuscles = [...new Set(exerciseLibrary.map((ex) => ex.primaryMuscle).filter(Boolean))].sort();
+    const uniqueTypes = [...new Set(exerciseLibrary.map((ex) => ex.type).filter(Boolean))].sort();
+
+    // Track which exercises are already in the plan
     const addedExerciseIds = new Set(planExercises.map((e) => e.exerciseDefId));
+
+    // Filter library by search query and filters (but keep exercises already in plan visible)
     const filteredLibrary = exerciseLibrary.filter((ex) => {
-        if (addedExerciseIds.has(ex._id)) return false;
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            ex.name.toLowerCase().includes(query) ||
-            ex.primaryMuscle.toLowerCase().includes(query) ||
-            ex.type.toLowerCase().includes(query)
-        );
+        // Apply source filter
+        if (filterSource === 'system' && !ex.isSystem) return false;
+        if (filterSource === 'custom' && ex.isSystem) return false;
+        // Apply muscle filter
+        if (filterMuscle !== 'all' && ex.primaryMuscle !== filterMuscle) return false;
+        // Apply type filter
+        if (filterType !== 'all' && ex.type !== filterType) return false;
+        // Apply search query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            if (
+                !ex.name.toLowerCase().includes(query) &&
+                !ex.primaryMuscle.toLowerCase().includes(query) &&
+                !ex.type.toLowerCase().includes(query)
+            ) {
+                return false;
+            }
+        }
+        return true;
     });
+
+    // Sort: exercises not in plan first, then alphabetically
+    const sortedFilteredLibrary = [...filteredLibrary].sort((a, b) => {
+        const aInPlan = addedExerciseIds.has(a._id);
+        const bInPlan = addedExerciseIds.has(b._id);
+        if (aInPlan !== bInPlan) return aInPlan ? 1 : -1;
+        return a.name.localeCompare(b.name);
+    });
+
+    const hasActiveFilters = filterMuscle !== 'all' || filterType !== 'all' || filterSource !== 'all';
 
     const handleSelectExercise = (exercise: ExerciseDefinitionClient) => {
         setSelectedExercise(exercise);
         setConfigSets(3);
         setConfigReps(exercise.isStatic ? 0 : 12);
         setConfigWeight(exercise.isBodyweight ? 0 : 20);
+        setConfigComments('');
     };
+
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral success message
+    const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
 
     const handleAddExercise = () => {
         if (!selectedExercise) return;
 
+        const exerciseName = selectedExercise.name;
         addExerciseMutation.mutate(
             {
                 planId,
@@ -102,15 +187,106 @@ export function ManagePlan() {
                 sets: configSets,
                 reps: configReps,
                 weight: configWeight,
+                comments: configComments.trim() || undefined,
             },
             {
                 onSuccess: () => {
+                    // Close the sheet and reset state
                     setSelectedExercise(null);
+                    setConfigComments('');
                     setAddSheetOpen(false);
                     setSearchQuery('');
+                    // Show success message (will show on plan page)
+                    setAddSuccessMessage(`"${exerciseName}" added to plan`);
+                    setTimeout(() => setAddSuccessMessage(null), 3000);
+                },
+                onError: (error) => {
+                    toast.error(`Failed to add exercise: ${error.message}`);
                 },
             }
         );
+    };
+
+    // Multi-select handlers
+    const handleToggleMultiSelect = (exercise: ExerciseDefinitionClient) => {
+        setSelectedExercises((prev) => {
+            const newMap = new Map(prev);
+            if (newMap.has(exercise._id)) {
+                newMap.delete(exercise._id);
+            } else {
+                newMap.set(exercise._id, {
+                    exercise,
+                    sets: 3,
+                    reps: exercise.isStatic ? 0 : 12,
+                    weight: exercise.isBodyweight ? 0 : 20,
+                    comments: '',
+                });
+            }
+            return newMap;
+        });
+    };
+
+    const handleUpdateMultiConfig = (exerciseId: string, field: 'sets' | 'reps' | 'weight' | 'comments', value: number | string) => {
+        setSelectedExercises((prev) => {
+            const newMap = new Map(prev);
+            const item = newMap.get(exerciseId);
+            if (item) {
+                newMap.set(exerciseId, { ...item, [field]: value });
+            }
+            return newMap;
+        });
+    };
+
+    const handleAddAllExercises = () => {
+        const exercises = Array.from(selectedExercises.values()).map((item) => ({
+            exerciseDefId: item.exercise._id,
+            sets: item.sets,
+            reps: item.reps,
+            weight: item.weight,
+            comments: item.comments.trim() || undefined,
+        }));
+
+        bulkAddMutation.mutate(
+            { planId, exercises },
+            {
+                onSuccess: (response) => {
+                    const addedCount = response?.addedCount || 0;
+                    const failedCount = response?.failedCount || 0;
+
+                    if (addedCount > 0) {
+                        let message = `${addedCount} exercise${addedCount > 1 ? 's' : ''} added to plan`;
+                        if (failedCount > 0) {
+                            message += ` (${failedCount} failed)`;
+                        }
+                        setAddSuccessMessage(message);
+                        setTimeout(() => setAddSuccessMessage(null), 3000);
+                    } else if (failedCount > 0) {
+                        // All failed - show errors
+                        const errors = response?.results
+                            ?.filter((r) => r.error)
+                            .map((r) => r.error)
+                            .join(', ');
+                        toast.error(`Failed to add exercises: ${errors}`);
+                    }
+
+                    // Reset multi-select state and close dialogs
+                    setSelectedExercises(new Map());
+                    setShowMultiConfig(false);
+                    setIsMultiSelectMode(false);
+                    setAddSheetOpen(false);
+                    setSearchQuery('');
+                },
+                onError: (error) => {
+                    toast.error(`Failed to add exercises: ${error.message}`);
+                },
+            }
+        );
+    };
+
+    const handleCancelMultiSelect = () => {
+        setSelectedExercises(new Map());
+        setShowMultiConfig(false);
+        setIsMultiSelectMode(false);
     };
 
     const handleEditExercise = (exercise: PlanExerciseWithDefinition) => {
@@ -118,6 +294,7 @@ export function ManagePlan() {
         setConfigSets(exercise.sets);
         setConfigReps(exercise.reps);
         setConfigWeight(exercise.weight);
+        setConfigComments(exercise.comments || '');
         setEditDialogOpen(true);
     };
 
@@ -130,11 +307,16 @@ export function ManagePlan() {
                 sets: configSets,
                 reps: configReps,
                 weight: configWeight,
+                comments: configComments.trim() || undefined,
             },
             {
                 onSuccess: () => {
                     setEditDialogOpen(false);
                     setExerciseToEdit(null);
+                    setConfigComments('');
+                },
+                onError: (error) => {
+                    toast.error(`Failed to update exercise: ${error.message}`);
                 },
             }
         );
@@ -154,6 +336,102 @@ export function ManagePlan() {
                 onSuccess: () => {
                     setDeleteDialogOpen(false);
                     setExerciseToDelete(null);
+                },
+                onError: (error) => {
+                    toast.error(`Failed to delete exercise: ${error.message}`);
+                },
+            }
+        );
+    };
+
+    const handleMoveExercise = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= planExercises.length) return;
+
+        // Create new order by swapping positions
+        const newOrder = [...planExercises];
+        const [moved] = newOrder.splice(index, 1);
+        newOrder.splice(newIndex, 0, moved);
+
+        // Get new exercise IDs in order
+        const exerciseIds = newOrder.map((ex) => ex._id);
+        reorderMutation.mutate({ planId, exerciseIds });
+    };
+
+    // Custom Exercise Handlers
+    const handleCreateCustomExercise = (data: {
+        name: string;
+        imageBase64?: string;
+        primaryMuscle: string;
+        secondaryMuscles: string[];
+        type: string;
+        isBodyweight: boolean;
+        isStatic: boolean;
+    }) => {
+        createExerciseMutation.mutate(data, {
+            onSuccess: (serverExercise) => {
+                setCreateExerciseOpen(false);
+                // Auto-select the newly created exercise with real server ID
+                if (serverExercise) {
+                    handleSelectExercise(serverExercise);
+                }
+            },
+            onError: (error) => {
+                toast.error(`Failed to create exercise: ${error.message}`);
+            },
+        });
+    };
+
+    const handleEditExerciseDef = (exercise: ExerciseDefinitionClient) => {
+        setExerciseDefToEdit(exercise);
+        setEditExerciseDefOpen(true);
+    };
+
+    const handleUpdateExerciseDef = (data: {
+        name: string;
+        imageBase64?: string;
+        primaryMuscle: string;
+        secondaryMuscles: string[];
+        type: string;
+        isBodyweight: boolean;
+        isStatic: boolean;
+    }) => {
+        if (!exerciseDefToEdit) return;
+
+        updateExerciseDefMutation.mutate(
+            {
+                exerciseId: exerciseDefToEdit._id,
+                ...data,
+            },
+            {
+                onSuccess: () => {
+                    setEditExerciseDefOpen(false);
+                    setExerciseDefToEdit(null);
+                },
+            }
+        );
+    };
+
+    const handleDeleteExerciseDefClick = (exercise: ExerciseDefinitionClient) => {
+        // Check if exercise is used in current plan
+        const isInPlan = planExercises.some((pe) => pe.exerciseDefId === exercise._id);
+        if (isInPlan) {
+            toast.error('Cannot delete: This exercise is currently used in this plan. Remove it from the plan first.');
+            return;
+        }
+        setExerciseDefToDelete(exercise);
+        setDeleteExerciseDefDialogOpen(true);
+    };
+
+    const confirmDeleteExerciseDef = () => {
+        if (!exerciseDefToDelete) return;
+
+        deleteExerciseDefMutation.mutate(
+            { exerciseId: exerciseDefToDelete._id },
+            {
+                onSuccess: () => {
+                    setDeleteExerciseDefDialogOpen(false);
+                    setExerciseDefToDelete(null);
                 },
             }
         );
@@ -204,6 +482,14 @@ export function ManagePlan() {
 
     return (
         <div className="p-4 pb-20 space-y-4">
+            {/* Success toast - shown at page level */}
+            {addSuccessMessage && (
+                <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-2 px-4 py-3 bg-green-500 text-white rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span className="text-sm font-medium">{addSuccessMessage}</span>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center gap-3 mb-2">
                 <Button
@@ -218,10 +504,22 @@ export function ManagePlan() {
                     <h1 className="text-xl font-semibold">{plan.name}</h1>
                     <p className="text-sm text-muted-foreground">{plan.durationWeeks} weeks</p>
                 </div>
-                <Button onClick={() => setAddSheetOpen(true)} className="rounded-xl">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add
-                </Button>
+                <div className="flex gap-2">
+                    {planExercises.length > 1 && (
+                        <Button
+                            variant={isReorderMode ? 'secondary' : 'outline'}
+                            size="icon"
+                            onClick={() => setIsReorderMode(!isReorderMode)}
+                            className="rounded-xl h-10 w-10"
+                        >
+                            <ArrowUpDown className="h-4 w-4" />
+                        </Button>
+                    )}
+                    <Button onClick={() => setAddSheetOpen(true)} className="rounded-xl">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add
+                    </Button>
+                </div>
             </div>
 
             {/* Exercise list */}
@@ -241,19 +539,44 @@ export function ManagePlan() {
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    {planExercises.map((exercise) => (
+                    {planExercises.map((exercise, index) => (
                         <Card
                             key={exercise._id}
                             className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform"
                         >
                             <CardContent className="p-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                    {/* Reorder buttons - only show in reorder mode */}
+                                    {isReorderMode && (
+                                        <div className="flex flex-col gap-0.5">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleMoveExercise(index, 'up')}
+                                                disabled={index === 0 || reorderMutation.isPending}
+                                                className="h-7 w-7 rounded-md"
+                                            >
+                                                <ChevronUp className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleMoveExercise(index, 'down')}
+                                                disabled={index === planExercises.length - 1 || reorderMutation.isPending}
+                                                className="h-7 w-7 rounded-md"
+                                            >
+                                                <ChevronDown className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
                                         {exercise.exerciseDef.imageUrl ? (
-                                            <img
+                                            <Image
                                                 src={exercise.exerciseDef.imageUrl}
                                                 alt={exercise.exerciseDef.name}
-                                                className="w-full h-full object-contain"
+                                                fill
+                                                className="object-contain"
+                                                unoptimized
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
@@ -301,138 +624,242 @@ export function ManagePlan() {
                 </div>
             )}
 
-            {/* Add Exercise Sheet */}
-            <Sheet open={addSheetOpen} onOpenChange={setAddSheetOpen}>
-                <SheetContent side="bottom" className="rounded-t-3xl h-[85vh] px-5">
-                    <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4" />
-                    <SheetHeader className="mb-6">
-                        <SheetTitle className="text-xl">
+            {/* Add Exercise Dialog */}
+            <Dialog open={addSheetOpen} onOpenChange={setAddSheetOpen}>
+                <DialogContent className="w-[calc(100%-32px)] max-w-lg h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] rounded-2xl p-0 gap-0 flex flex-col">
+                    {/* Header */}
+                    <div className="px-5 pt-5 pb-4 border-b shrink-0">
+                        <DialogTitle className="text-lg font-semibold">
                             {selectedExercise ? 'Configure Exercise' : 'Add Exercise'}
-                        </SheetTitle>
-                    </SheetHeader>
+                        </DialogTitle>
+                    </div>
 
                     {selectedExercise ? (
                         /* Exercise configuration */
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden flex-shrink-0">
-                                    {selectedExercise.imageUrl ? (
-                                        <img
-                                            src={selectedExercise.imageUrl}
-                                            alt={selectedExercise.name}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Dumbbell className="h-8 w-8 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{selectedExercise.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedExercise.primaryMuscle} • {selectedExercise.type}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Sets</Label>
-                                    <div className="flex items-center gap-3">
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setConfigSets((s) => Math.max(1, s - 1))}
-                                            className="h-11 w-11 rounded-lg"
-                                        >
-                                            -
-                                        </Button>
-                                        <span className="w-12 text-center font-semibold text-xl">
-                                            {configSets}
-                                        </span>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setConfigSets((s) => Math.min(10, s + 1))}
-                                            className="h-11 w-11 rounded-lg"
-                                        >
-                                            +
-                                        </Button>
+                        <div className="flex-1 overflow-y-auto px-5 py-5">
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden flex-shrink-0 relative">
+                                        {selectedExercise.imageUrl ? (
+                                            <Image
+                                                src={selectedExercise.imageUrl}
+                                                alt={selectedExercise.name}
+                                                fill
+                                                className="object-contain"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Dumbbell className="h-8 w-8 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-lg">{selectedExercise.name}</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            {selectedExercise.primaryMuscle} • {selectedExercise.type}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {!selectedExercise.isStatic && (
+                                <div className="grid gap-4">
                                     <div className="grid gap-2">
-                                        <Label>Reps</Label>
+                                        <Label>Sets</Label>
                                         <div className="flex items-center gap-3">
                                             <Button
                                                 variant="outline"
                                                 size="icon"
-                                                onClick={() => setConfigReps((r) => Math.max(1, r - 1))}
+                                                onClick={() => setConfigSets((s) => Math.max(1, s - 1))}
                                                 className="h-11 w-11 rounded-lg"
                                             >
                                                 -
                                             </Button>
                                             <span className="w-12 text-center font-semibold text-xl">
-                                                {configReps}
+                                                {configSets}
                                             </span>
                                             <Button
                                                 variant="outline"
                                                 size="icon"
-                                                onClick={() => setConfigReps((r) => Math.min(50, r + 1))}
+                                                onClick={() => setConfigSets((s) => Math.min(10, s + 1))}
                                                 className="h-11 w-11 rounded-lg"
                                             >
                                                 +
                                             </Button>
                                         </div>
                                     </div>
-                                )}
 
-                                {!selectedExercise.isBodyweight && (
+                                    {!selectedExercise.isStatic && (
+                                        <div className="grid gap-2">
+                                            <Label>Reps</Label>
+                                            <div className="flex items-center gap-3">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => setConfigReps((r) => Math.max(1, r - 1))}
+                                                    className="h-11 w-11 rounded-lg"
+                                                >
+                                                    -
+                                                </Button>
+                                                <span className="w-12 text-center font-semibold text-xl">
+                                                    {configReps}
+                                                </span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => setConfigReps((r) => Math.min(50, r + 1))}
+                                                    className="h-11 w-11 rounded-lg"
+                                                >
+                                                    +
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!selectedExercise.isBodyweight && (
+                                        <div className="grid gap-2">
+                                            <Label>Weight (kg)</Label>
+                                            <Input
+                                                type="number"
+                                                value={configWeight}
+                                                onChange={(e) => setConfigWeight(Number(e.target.value))}
+                                                className="rounded-lg"
+                                            />
+                                        </div>
+                                    )}
+
                                     <div className="grid gap-2">
-                                        <Label>Weight (kg)</Label>
-                                        <Input
-                                            type="number"
-                                            value={configWeight}
-                                            onChange={(e) => setConfigWeight(Number(e.target.value))}
-                                            className="rounded-lg"
+                                        <Label>Notes (optional)</Label>
+                                        <Textarea
+                                            value={configComments}
+                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConfigComments(e.target.value)}
+                                            placeholder="Add any notes or reminders..."
+                                            className="rounded-lg resize-none"
+                                            rows={3}
                                         />
                                     </div>
-                                )}
-                            </div>
-
-                            <div className="flex gap-3 mt-4">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setSelectedExercise(null)}
-                                    className="flex-1 h-12 rounded-xl"
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={handleAddExercise}
-                                    disabled={addExerciseMutation.isPending}
-                                    className="flex-1 h-12 rounded-xl"
-                                >
-                                    {addExerciseMutation.isPending ? 'Adding...' : 'Add to Plan'}
-                                </Button>
+                                </div>
                             </div>
                         </div>
                     ) : (
                         /* Exercise library browser */
-                        <div className="space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search exercises..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 rounded-xl"
-                                />
+                        <div className="flex-1 overflow-hidden flex flex-col px-5 py-4">
+                            {/* Create Custom Exercise - Prominent */}
+                            <button
+                                onClick={() => setCreateExerciseOpen(true)}
+                                className="w-full mb-4 p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex items-center justify-center gap-3 group"
+                            >
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                    <Sparkles className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-foreground">Create Custom Exercise</p>
+                                    <p className="text-sm text-muted-foreground">Add your own exercise to the library</p>
+                                </div>
+                            </button>
+
+                            {/* Search and Filter Row */}
+                            <div className="flex gap-2 mb-3">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search exercises..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10 rounded-xl h-10"
+                                    />
+                                </div>
+                                <Button
+                                    variant={showFilters || hasActiveFilters ? 'secondary' : 'outline'}
+                                    size="icon"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="rounded-xl h-10 w-10 shrink-0 relative"
+                                >
+                                    <Filter className="h-4 w-4" />
+                                    {hasActiveFilters && (
+                                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full" />
+                                    )}
+                                </Button>
                             </div>
 
-                            <div className="h-[55vh] overflow-y-auto">
+                            {/* Filters Panel */}
+                            {showFilters && (
+                                <div className="flex gap-2 flex-wrap mb-3 pb-3 border-b">
+                                    <Select value={filterSource} onValueChange={(v) => setFilterSource(v as 'all' | 'system' | 'custom')}>
+                                        <SelectTrigger className="w-[100px] rounded-xl h-9">
+                                            <SelectValue placeholder="Source" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All</SelectItem>
+                                            <SelectItem value="system">Library</SelectItem>
+                                            <SelectItem value="custom">Custom</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={filterMuscle} onValueChange={setFilterMuscle}>
+                                        <SelectTrigger className="w-[120px] rounded-xl h-9">
+                                            <SelectValue placeholder="Muscle" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Muscles</SelectItem>
+                                            {uniqueMuscles.map((muscle) => (
+                                                <SelectItem key={muscle} value={muscle}>
+                                                    {muscle}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={filterType} onValueChange={setFilterType}>
+                                        <SelectTrigger className="w-[120px] rounded-xl h-9">
+                                            <SelectValue placeholder="Type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Types</SelectItem>
+                                            {uniqueTypes.map((type) => (
+                                                <SelectItem key={type} value={type}>
+                                                    {type}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {(filterMuscle !== 'all' || filterType !== 'all' || filterSource !== 'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => { setFilterMuscle('all'); setFilterType('all'); setFilterSource('all'); }}
+                                            className="rounded-xl text-muted-foreground h-9"
+                                        >
+                                            <X className="h-3 w-3 mr-1" />
+                                            Clear
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Multi-select toggle */}
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-sm text-muted-foreground">
+                                    {sortedFilteredLibrary.length} exercise{sortedFilteredLibrary.length !== 1 ? 's' : ''}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setIsMultiSelectMode(!isMultiSelectMode);
+                                        if (isMultiSelectMode) {
+                                            setSelectedExercises(new Map());
+                                            setShowMultiConfig(false);
+                                        }
+                                    }}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                        isMultiSelectMode 
+                                            ? 'bg-primary text-primary-foreground' 
+                                            : 'bg-muted text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    <ListChecks className="h-4 w-4" />
+                                    Multi-select
+                                </button>
+                            </div>
+
+                            {/* Exercise List */}
+                            <div className="flex-1 overflow-y-auto -mx-5 px-5">
                                 {libraryLoading ? (
                                     <div className="divide-y divide-border">
                                         {[1, 2, 3, 4, 5].map((i) => (
@@ -445,48 +872,357 @@ export function ManagePlan() {
                                             </div>
                                         ))}
                                     </div>
-                                ) : filteredLibrary.length === 0 ? (
+                                ) : sortedFilteredLibrary.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">
-                                        {searchQuery
-                                            ? 'No exercises match your search'
-                                            : 'All exercises are already in your plan'}
+                                        {searchQuery || hasActiveFilters
+                                            ? 'No exercises match your filters'
+                                            : 'No exercises found'}
                                     </div>
                                 ) : (
                                     <div className="divide-y divide-border/50">
-                                        {filteredLibrary.map((exercise) => (
-                                            <button
+                                        {sortedFilteredLibrary.map((exercise) => {
+                                            const isInPlan = addedExerciseIds.has(exercise._id);
+                                            const isSelected = selectedExercises.has(exercise._id);
+                                            return (
+                                            <div
                                                 key={exercise._id}
-                                                onClick={() => handleSelectExercise(exercise)}
-                                                className="w-full flex items-center gap-4 py-3.5 hover:bg-muted/50 active:scale-[0.99] transition-all text-left"
+                                                className={`flex items-center gap-4 py-3.5 transition-all ${
+                                                    isInPlan ? 'bg-muted/30' : isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'
+                                                }`}
                                             >
-                                                <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                                                    {exercise.imageUrl ? (
-                                                        <img
-                                                            src={exercise.imageUrl}
-                                                            alt={exercise.name}
-                                                            className="w-full h-full object-contain"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
-                                                            <Dumbbell className="h-6 w-6 text-muted-foreground" />
+                                                <button
+                                                    onClick={() => {
+                                                        if (isInPlan) return;
+                                                        if (isMultiSelectMode) {
+                                                            handleToggleMultiSelect(exercise);
+                                                        } else {
+                                                            handleSelectExercise(exercise);
+                                                        }
+                                                    }}
+                                                    disabled={isInPlan}
+                                                    className={`flex items-center gap-4 flex-1 min-w-0 text-left transition-transform ${
+                                                        isInPlan ? 'opacity-60 cursor-default' : 'active:scale-[0.99]'
+                                                    }`}
+                                                >
+                                                    <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                                                        {exercise.imageUrl ? (
+                                                            <Image
+                                                                src={exercise.imageUrl}
+                                                                alt={exercise.name}
+                                                                fill
+                                                                className="object-contain"
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <Dumbbell className="h-6 w-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        {isInPlan && (
+                                                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                                <Check className="h-6 w-6 text-primary" />
+                                                            </div>
+                                                        )}
+                                                        {isSelected && !isInPlan && (
+                                                            <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                                                                <Check className="h-6 w-6 text-primary" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-medium text-[15px] truncate">{exercise.name}</p>
+                                                            {isInPlan && (
+                                                                <Badge variant="outline" className="text-xs shrink-0 text-primary border-primary/50">
+                                                                    In Plan
+                                                                </Badge>
+                                                            )}
+                                                            {isSelected && !isInPlan && (
+                                                                <Badge className="text-xs shrink-0">
+                                                                    Selected
+                                                                </Badge>
+                                                            )}
+                                                            {!exercise.isSystem && (
+                                                                <Badge variant="secondary" className="text-xs shrink-0">
+                                                                    Custom
+                                                                </Badge>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-[15px] truncate">{exercise.name}</p>
-                                                    <p className="text-sm text-muted-foreground mt-0.5">
-                                                        {exercise.primaryMuscle} • {exercise.type}
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                        <p className="text-sm text-muted-foreground mt-0.5">
+                                                            {exercise.primaryMuscle} • {exercise.type}
+                                                        </p>
+                                                    </div>
+                                                </button>
+                                                {/* Edit/Delete buttons for custom exercises */}
+                                                {!exercise.isSystem && (
+                                                    <div className="flex gap-1 shrink-0">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditExerciseDef(exercise);
+                                                            }}
+                                                            className="h-8 w-8 rounded-full"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteExerciseDefClick(exercise);
+                                                            }}
+                                                            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                        })}
                                     </div>
                                 )}
                             </div>
+
+                            {/* Multi-select action bar */}
+                            {isMultiSelectMode && selectedExercises.size > 0 && (
+                                <div className="sticky bottom-0 pt-4 pb-2 bg-background border-t">
+                                    <div className="flex gap-3">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleCancelMultiSelect}
+                                            className="flex-1 h-12 rounded-xl"
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={() => setShowMultiConfig(true)}
+                                            className="flex-1 h-12 rounded-xl"
+                                        >
+                                            Configure {selectedExercises.size} Exercise{selectedExercises.size > 1 ? 's' : ''}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
-                </SheetContent>
-            </Sheet>
+
+                    {/* Footer for Configure Exercise */}
+                    {selectedExercise && (
+                        <div className="shrink-0 border-t px-5 py-4 flex gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setSelectedExercise(null)}
+                                className="flex-1 h-12 rounded-xl"
+                            >
+                                Back
+                            </Button>
+                            <Button
+                                onClick={handleAddExercise}
+                                disabled={addExerciseMutation.isPending}
+                                className="flex-1 h-12 rounded-xl"
+                            >
+                                {addExerciseMutation.isPending ? 'Adding...' : 'Add to Plan'}
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Multi-Configure Dialog - Mobile First */}
+            <Dialog open={showMultiConfig} onOpenChange={setShowMultiConfig}>
+                <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto w-[calc(100%-32px)] max-w-md mx-auto p-4">
+                    <DialogHeader className="pb-2">
+                        <DialogTitle className="text-lg">Configure Exercises</DialogTitle>
+                        <DialogDescription className="text-sm">
+                            Set up {selectedExercises.size} exercise{selectedExercises.size > 1 ? 's' : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        {Array.from(selectedExercises.entries()).map(([exerciseId, item]) => (
+                            <Card key={exerciseId} className="rounded-xl border-0 bg-muted/50">
+                                <CardContent className="p-3 space-y-3">
+                                    {/* Exercise header */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-11 h-11 rounded-lg bg-background overflow-hidden flex-shrink-0 relative">
+                                            {item.exercise.imageUrl ? (
+                                                <Image
+                                                    src={item.exercise.imageUrl}
+                                                    alt={item.exercise.name}
+                                                    fill
+                                                    className="object-contain"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-sm truncate">{item.exercise.name}</p>
+                                            <p className="text-xs text-muted-foreground">{item.exercise.primaryMuscle}</p>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setNotesDialogExerciseId(exerciseId)}
+                                            className={`h-9 w-9 rounded-full ${item.comments ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+                                        >
+                                            <MessageSquare className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                setSelectedExercises((prev) => {
+                                                    const newMap = new Map(prev);
+                                                    newMap.delete(exerciseId);
+                                                    return newMap;
+                                                });
+                                                if (selectedExercises.size <= 1) {
+                                                    setShowMultiConfig(false);
+                                                }
+                                            }}
+                                            className="h-9 w-9 rounded-full text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    {/* Configuration rows - each on its own line */}
+                                    <div className="space-y-2">
+                                        {/* Sets row */}
+                                        <div className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+                                            <Label className="text-sm font-medium">Sets</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleUpdateMultiConfig(exerciseId, 'sets', Math.max(1, item.sets - 1))}
+                                                    className="h-9 w-9 rounded-lg"
+                                                >
+                                                    -
+                                                </Button>
+                                                <span className="w-8 text-center font-semibold text-lg">{item.sets}</span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleUpdateMultiConfig(exerciseId, 'sets', Math.min(10, item.sets + 1))}
+                                                    className="h-9 w-9 rounded-lg"
+                                                >
+                                                    +
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Reps row */}
+                                        {!item.exercise.isStatic && (
+                                            <div className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+                                                <Label className="text-sm font-medium">Reps</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleUpdateMultiConfig(exerciseId, 'reps', Math.max(1, item.reps - 1))}
+                                                        className="h-9 w-9 rounded-lg"
+                                                    >
+                                                        -
+                                                    </Button>
+                                                    <span className="w-8 text-center font-semibold text-lg">{item.reps}</span>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleUpdateMultiConfig(exerciseId, 'reps', Math.min(50, item.reps + 1))}
+                                                        className="h-9 w-9 rounded-lg"
+                                                    >
+                                                        +
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Weight row */}
+                                        {!item.exercise.isBodyweight && (
+                                            <div className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+                                                <Label className="text-sm font-medium">Weight (kg)</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleUpdateMultiConfig(exerciseId, 'weight', Math.max(0, item.weight - 1))}
+                                                        className="h-9 w-9 rounded-lg"
+                                                    >
+                                                        -
+                                                    </Button>
+                                                    <Input
+                                                        type="number"
+                                                        value={item.weight}
+                                                        onChange={(e) => handleUpdateMultiConfig(exerciseId, 'weight', Number(e.target.value))}
+                                                        className="w-20 h-9 rounded-lg text-center font-semibold"
+                                                    />
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleUpdateMultiConfig(exerciseId, 'weight', item.weight + 1)}
+                                                        className="h-9 w-9 rounded-lg"
+                                                    >
+                                                        +
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
+                        <Button
+                            onClick={handleAddAllExercises}
+                            disabled={bulkAddMutation.isPending || selectedExercises.size === 0}
+                            className="w-full h-12 rounded-xl text-base font-semibold"
+                        >
+                            {bulkAddMutation.isPending ? 'Adding...' : `Add ${selectedExercises.size} to Plan`}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowMultiConfig(false)}
+                            className="w-full h-11 rounded-xl"
+                        >
+                            Back
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Notes Dialog for Multi-Select */}
+            <Dialog open={!!notesDialogExerciseId} onOpenChange={(open) => !open && setNotesDialogExerciseId(null)}>
+                <DialogContent className="rounded-2xl max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add Notes</DialogTitle>
+                    </DialogHeader>
+                    <Textarea
+                        value={notesDialogExerciseId ? selectedExercises.get(notesDialogExerciseId)?.comments || '' : ''}
+                        onChange={(e) => {
+                            if (notesDialogExerciseId) {
+                                handleUpdateMultiConfig(notesDialogExerciseId, 'comments', e.target.value);
+                            }
+                        }}
+                        placeholder="Add any notes or reminders..."
+                        className="rounded-lg resize-none"
+                        rows={4}
+                    />
+                    <DialogFooter>
+                        <Button onClick={() => setNotesDialogExerciseId(null)} className="rounded-xl">
+                            Done
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Exercise Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -558,6 +1294,17 @@ export function ManagePlan() {
                                         className="rounded-lg"
                                     />
                                 </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Notes (optional)</Label>
+                                    <Textarea
+                                        value={configComments}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConfigComments(e.target.value)}
+                                        placeholder="Add any notes or reminders..."
+                                        className="rounded-lg resize-none"
+                                        rows={2}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -605,6 +1352,62 @@ export function ManagePlan() {
                             className="rounded-lg"
                         >
                             {deleteExerciseMutation.isPending ? 'Removing...' : 'Remove'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Custom Exercise Dialog */}
+            <CreateExerciseDialog
+                open={createExerciseOpen}
+                onOpenChange={setCreateExerciseOpen}
+                onSubmit={handleCreateCustomExercise}
+                isPending={createExerciseMutation.isPending}
+            />
+
+            {/* Edit Custom Exercise Dialog */}
+            <CreateExerciseDialog
+                open={editExerciseDefOpen}
+                onOpenChange={setEditExerciseDefOpen}
+                onSubmit={handleUpdateExerciseDef}
+                isPending={updateExerciseDefMutation.isPending}
+                editMode
+                initialData={exerciseDefToEdit ? {
+                    name: exerciseDefToEdit.name,
+                    imageUrl: exerciseDefToEdit.imageUrl,
+                    primaryMuscle: exerciseDefToEdit.primaryMuscle,
+                    secondaryMuscles: exerciseDefToEdit.secondaryMuscles,
+                    type: exerciseDefToEdit.type,
+                    isBodyweight: exerciseDefToEdit.isBodyweight,
+                    isStatic: exerciseDefToEdit.isStatic,
+                } : undefined}
+            />
+
+            {/* Delete Custom Exercise Confirmation Dialog */}
+            <Dialog open={deleteExerciseDefDialogOpen} onOpenChange={setDeleteExerciseDefDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Delete Custom Exercise?</DialogTitle>
+                        <DialogDescription>
+                            This will permanently delete &quot;{exerciseDefToDelete?.name}&quot;.
+                            This cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteExerciseDefDialogOpen(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDeleteExerciseDef}
+                            disabled={deleteExerciseDefMutation.isPending}
+                            className="rounded-lg"
+                        >
+                            {deleteExerciseDefMutation.isPending ? 'Deleting...' : 'Delete'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

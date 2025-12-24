@@ -46,3 +46,25 @@ export interface UpdateSetsResponse {
     error?: string;
 }
 
+// Weekly Notes
+export interface GetWeeklyNoteRequest {
+    planId: string;
+    weekNumber: number;
+}
+
+export interface GetWeeklyNoteResponse {
+    note?: string;
+    error?: string;
+}
+
+export interface UpdateWeeklyNoteRequest {
+    planId: string;
+    weekNumber: number;
+    content: string;
+}
+
+export interface UpdateWeeklyNoteResponse {
+    note?: string;
+    error?: string;
+}
+
