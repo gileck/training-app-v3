@@ -724,14 +724,17 @@ export function Home() {
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleSaveSessionAsWorkout}
-                                                className="rounded-xl"
-                                            >
-                                                <Bookmark className="mr-2 h-4 w-4" />
-                                                Save
-                                            </Button>
+                                            {/* Only show Save button for plan-based workouts (not already saved) */}
+                                            {sessionSource === 'plan' && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={handleSaveSessionAsWorkout}
+                                                    className="rounded-xl"
+                                                >
+                                                    <Bookmark className="mr-2 h-4 w-4" />
+                                                    Save
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="outline"
                                                 onClick={handleEndWorkout}
