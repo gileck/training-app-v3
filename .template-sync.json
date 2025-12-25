@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "70deba4142ae39fcd13efd8968f891d60cc64a7f",
-  "lastProjectCommit": "c4d987404505bf14eaff79ddee1facf5fbfd5200",
-  "lastSyncDate": "2025-12-25T09:57:01.864Z",
+  "lastSyncCommit": "0224d311cc796c65979be2fc4cf067cdb7be8b27",
+  "lastProjectCommit": "06f73f31aba8b4ed6ab346953086b903e9e400aa",
+  "lastSyncDate": "2025-12-25T10:17:23.665Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,17 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-25T10:17:23.665Z",
+      "templateCommit": "0224d311cc796c65979be2fc4cf067cdb7be8b27",
+      "projectCommit": "06f73f31aba8b4ed6ab346953086b903e9e400aa",
+      "filesApplied": 1,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "0224d31 feat(sync-template): add total project drift summary \u001b[90m(25/12/2025)\u001b[0m\n  - Add displayTotalDiffSummary() showing complete picture of differences\n  - Show summary at start of sync, changelog, and diff-summary modes\n  - Add interactive option 'Show total drift details' to view full file list\n  - Categories: new in template, modified, project-specific, ignored\n  - Only counts files that exist in template AND are different (not project-only additions)"
+      ]
+    },
     {
       "date": "2025-12-25T09:57:01.863Z",
       "templateCommit": "70deba4142ae39fcd13efd8968f891d60cc64a7f",
