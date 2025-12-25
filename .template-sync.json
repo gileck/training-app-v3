@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "001e19b7db16052d463b1e81028c6f6ebccda906",
-  "lastProjectCommit": "614fcf2281864f76dd63082890b955a35cb66e0a",
-  "lastSyncDate": "2025-12-25T10:20:37.280Z",
+  "lastSyncCommit": "4b2ae08219f2d7cbefc42b0656c18d80ba11a1f5",
+  "lastProjectCommit": "233aa88bc1349ddcbe35ae97cd734662e2cfd6ed",
+  "lastSyncDate": "2025-12-25T10:57:48.995Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,17 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-25T10:57:48.995Z",
+      "templateCommit": "4b2ae08219f2d7cbefc42b0656c18d80ba11a1f5",
+      "projectCommit": "233aa88bc1349ddcbe35ae97cd734662e2cfd6ed",
+      "filesApplied": 1,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "4b2ae08 feat: add merge-template script for targeted file merging \u001b[90m(25/12/2025)\u001b[0m\n  - New script: yarn merge-template <file1> [file2] ...\n  - Interactive options per file: take template, keep project, create merge file\n  - View full diff before deciding\n  - Shows diff stats (lines added/removed)\n  - Supports --dry-run, --use-https, --no-cleanup flags"
+      ]
+    },
     {
       "date": "2025-12-25T10:20:37.279Z",
       "templateCommit": "001e19b7db16052d463b1e81028c6f6ebccda906",
