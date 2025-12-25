@@ -56,7 +56,7 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
       style={{
         backgroundColor: 'hsl(var(--footer))',
         color: 'hsl(var(--footer-foreground))',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+        paddingBottom: 'max(4px, calc(env(safe-area-inset-bottom, 0px) / 2))',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
@@ -73,7 +73,7 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
               type="button"
               onClick={() => handleNavigation(item.path)}
               aria-current={active ? 'page' : undefined}
-              className={`flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[11px] font-medium transition-colors ${active
+              className={`flex h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[11px] font-medium transition-colors ${active
                 ? 'bg-accent text-foreground'
                 : 'hover:bg-accent/50 hover:text-foreground'
               }`}

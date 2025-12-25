@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "0aab8e737e495853ab8d3b8139d27e528da5d7d0",
-  "lastProjectCommit": "1488e9587cb7dadea7a15bef84ff7b2ee5298549",
-  "lastSyncDate": "2025-12-24T18:28:04.063Z",
+  "lastSyncCommit": "70deba4142ae39fcd13efd8968f891d60cc64a7f",
+  "lastProjectCommit": "c4d987404505bf14eaff79ddee1facf5fbfd5200",
+  "lastSyncDate": "2025-12-25T09:57:01.864Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,19 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-25T09:57:01.863Z",
+      "templateCommit": "70deba4142ae39fcd13efd8968f891d60cc64a7f",
+      "projectCommit": "c4d987404505bf14eaff79ddee1facf5fbfd5200",
+      "filesApplied": 1,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "70deba4 Add Todos and AI Chat to bottom navbar \u001b[90m(25/12/2025)\u001b[0m",
+        "97ac296 Reduce bottom navbar safe area padding to half \u001b[90m(25/12/2025)\u001b[0m\n  Use half the safe-area-inset-bottom to match native app styling (like WhatsApp)",
+        "f101832 Reduce bottom navbar spacing for iOS PWA \u001b[90m(25/12/2025)\u001b[0m\n  - Remove extra 4px padding, rely on safe-area-inset-bottom only\n  - Reduce nav button height from h-14 (56px) to h-12 (48px)"
+      ]
+    },
     {
       "date": "2025-12-24T18:28:04.061Z",
       "templateCommit": "0aab8e737e495853ab8d3b8139d27e528da5d7d0",
