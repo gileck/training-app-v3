@@ -15,6 +15,7 @@
  *   --diff-summary           Generate a diff summary file showing all template changes
  *   --skip-ignored           Skip ignored files in diff-summary output
  *   --changelog              Show template commits since last sync (no sync)
+ *   --show-drift             Show total project drift with full file list (no sync)
  *   --validate               Run 'yarn checks' after sync to verify changes
  *   --report                 Generate a sync report file (SYNC-REPORT.md)
  *   --quiet                  Minimal output (errors only)
@@ -103,6 +104,7 @@ interface SyncOptions {
   diffSummary: boolean;
   skipIgnored: boolean;
   changelog: boolean;
+  showDrift: boolean;
   validate: boolean;
   report: boolean;
   quiet: boolean;
@@ -1229,6 +1231,44 @@ class TemplateSyncTool {
   }
 
   /**
+   * Run show-drift mode - show total project drift with full file list
+   */
+  private async runShowDrift(): Promise<void> {
+    this.log('📊 Total Project Drift');
+    this.log('='.repeat(60));
+
+    // Clone template to compare
+    this.cloneTemplate();
+
+    try {
+      const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+      const templateCommit = this.exec('git rev-parse HEAD', {
+        cwd: templatePath,
+        silent: true,
+      });
+
+      this.log(`\n📍 Template commit: ${templateCommit}`);
+      
+      if (this.config.lastSyncCommit) {
+        this.log(`📍 Last synced:     ${this.config.lastSyncCommit}`);
+        this.log(`📅 Last sync date:  ${this.config.lastSyncDate || 'unknown'}`);
+      } else {
+        this.log('📍 Last synced:     (never synced)');
+      }
+
+      // Show total diff summary
+      this.displayTotalDiffSummary();
+      
+      // Show full details
+      this.displayTotalDiffDetails();
+
+      this.log('\n💡 Run "yarn sync-template" to sync changes from template.');
+    } finally {
+      this.cleanupTemplate();
+    }
+  }
+
+  /**
    * Run changelog mode - show template commits since last sync
    */
   private async runChangelog(): Promise<void> {
@@ -1525,8 +1565,10 @@ class TemplateSyncTool {
       console.log('   ' + '─'.repeat(maxLabelWidth + 8));
       console.log(`   📊 ${'Total differences'.padEnd(maxLabelWidth)}  ${totalDiffs}`);
       console.log(`   ✅ ${'Identical files'.padEnd(maxLabelWidth)}  ${summary.identical}`);
+      
+      console.log('\n   💡 Use --show-drift to see full file list');
     }
-    
+
     console.log('─'.repeat(60));
   }
 
@@ -1780,6 +1822,13 @@ class TemplateSyncTool {
     // Handle changelog mode (just show commits, no sync)
     if (this.options.changelog) {
       await this.runChangelog();
+      this.rl.close();
+      return;
+    }
+
+    // Handle show-drift mode (show total drift with file list, no sync)
+    if (this.options.showDrift) {
+      await this.runShowDrift();
       this.rl.close();
       return;
     }
@@ -2076,6 +2125,7 @@ const options: SyncOptions = {
   diffSummary: args.includes('--diff-summary'),
   skipIgnored: args.includes('--skip-ignored'),
   changelog: args.includes('--changelog'),
+  showDrift: args.includes('--show-drift'),
   validate: args.includes('--validate'),
   report: args.includes('--report'),
   quiet: args.includes('--quiet'),
