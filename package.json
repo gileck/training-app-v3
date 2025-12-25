@@ -13,7 +13,9 @@
     "checks": "yarn ts; yarn lint",
     "watch-checks": "node scripts/watch-checks.js",
     "init-template": "tsx scripts/init-template.ts",
-    "sync-template": "tsx scripts/sync-template.ts"
+    "sync-template": "tsx scripts/sync-template.ts",
+    "merge-template": "tsx scripts/merge-template-files.ts",
+    "generate-icons": "tsx scripts/generate-icons.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

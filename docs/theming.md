@@ -97,19 +97,8 @@ The theming system provides:
 | `--border` | `border-border` | Default borders |
 | `--input` | `border-input` | Form input borders |
 | `--ring` | `ring-ring` | Focus ring color |
-| `--success` | `bg-success`, `text-success` | Success states |
-| `--warning` | `bg-warning`, `text-warning` | Warning states |
-
-### Extended Status Colors (Training App)
-
-These tokens are defined in `src/client/styles/project.css` for training-app specific needs:
-
-| Variable | Tailwind Class | Usage |
-|----------|---------------|-------|
-| `--success-foreground` | `text-success-foreground` | Text on success backgrounds |
-| `--warning-foreground` | `text-warning-foreground` | Text on warning backgrounds |
-| `--info` | `bg-info`, `text-info` | Informational states |
-| `--info-foreground` | `text-info-foreground` | Text on info backgrounds |
+| `--success` | (custom) | Success states |
+| `--warning` | (custom) | Warning states |
 
 ### Layout Variables
 
@@ -181,34 +170,25 @@ Always use semantic Tailwind classes:
 
 ### Using Status Colors
 
-Use semantic Tailwind classes for status colors:
+For success and warning colors, use the CSS variables directly:
 
 ```tsx
 // Success indicator
 <div className="text-success">
-  <CheckIcon className="h-4 w-4" />
+  <CheckIcon className="h-4 w-4" style={{ color: 'hsl(var(--success))' }} />
   Success!
 </div>
 
-// Success button with proper foreground
-<button className="bg-success text-success-foreground rounded px-4 py-2">
-  Complete
-</button>
-
 // Warning badge
-<span className="bg-warning/20 text-warning rounded px-2 py-1 text-xs">
+<span 
+  className="rounded px-2 py-1 text-xs"
+  style={{ 
+    backgroundColor: 'hsl(var(--warning) / 0.2)', 
+    color: 'hsl(var(--warning))' 
+  }}
+>
   Warning
 </span>
-
-// Info message
-<div className="bg-info/10 text-info border border-info/30 rounded p-3">
-  Information message
-</div>
-
-// Destructive action
-<button className="bg-destructive text-destructive-foreground rounded px-4 py-2">
-  Delete
-</button>
 ```
 
 ### Accessing Theme in Code
@@ -438,8 +418,7 @@ When creating or modifying components:
 
 ### Integration Points
 - `src/client/components/ThemeProvider.tsx` - Applies theme to document
-- `src/client/styles/globals.css` - Base CSS variable definitions (template)
-- `src/client/styles/project.css` - Extended CSS tokens (training-app specific)
+- `src/client/styles/globals.css` - CSS variable definitions
 - `src/client/routes/Settings/Settings.tsx` - Settings page integration
 
 ### Guidelines

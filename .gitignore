@@ -39,7 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.cache/.playwright-mcp/
+
+# playwright mcp
+.playwright-mcp/
 
 # template sync
 .template-sync-temp/
