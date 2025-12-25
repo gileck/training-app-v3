@@ -4,8 +4,8 @@
   "description": "Track your workouts, build strength, achieve your fitness goals",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#667EEA",
-  "theme_color": "#667EEA",
+  "background_color": "#3B82F6",
+  "theme_color": "#3B82F6",
   "orientation": "portrait",
   "icons": [
     {

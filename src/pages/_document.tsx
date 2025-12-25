@@ -12,8 +12,8 @@ export default function Document() {
         <meta name="description" content="Track your workouts, build strength, achieve your fitness goals" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#667EEA" />
-        <meta name="msapplication-TileColor" content="#667EEA" />
+        <meta name="theme-color" content="#3B82F6" />
+        <meta name="msapplication-TileColor" content="#3B82F6" />
         <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
 
         <link rel="manifest" href="/manifest.json" />
