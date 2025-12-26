@@ -141,6 +141,18 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    /* iOS PWA standalone mode fix - ensure viewport fills entire screen */
+    @media all and (display-mode: standalone) {
+        html {
+            height: 100%;
+        }
+        body {
+            height: 100%;
+            /* -webkit-fill-available is more reliable than dvh in iOS PWA */
+            min-height: -webkit-fill-available;
+        }
+    }
+
     /* Hide scrollbar while keeping scroll functionality */
     html {
         scrollbar-width: none; /* Firefox */
