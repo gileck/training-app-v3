@@ -1092,9 +1092,15 @@ function ExerciseCardList({
         >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">
-                    {/* Image with completion/selection badge */}
+                    {/* Image with completion/selection badge - clickable to open details */}
                     <div className="relative flex-shrink-0">
-                        <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenDetails();
+                            }}
+                            className="w-12 h-12 rounded-lg bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                        >
                             {exercise.exerciseDef.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -1107,7 +1113,7 @@ function ExerciseCardList({
                                     <Dumbbell className="h-5 w-5 text-muted-foreground" />
                                 </div>
                             )}
-                        </div>
+                        </button>
                         {/* Selection badge (takes priority) */}
                         {isSelected && (
                             <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
@@ -1128,14 +1134,6 @@ function ExerciseCardList({
                         </p>
                     </div>
                     <div className="flex gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onOpenDetails}
-                            className="h-9 w-9 rounded-full text-primary"
-                        >
-                            <Info className="h-4 w-4" />
-                        </Button>
                         <Button
                             variant="outline"
                             size="icon"
