@@ -7,6 +7,8 @@ import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, Trash
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActivity, useActivitySummary, useDeleteActivity } from './hooks';
+import { useProgressStore } from './store';
+import type { DateRange, ProgressTab } from './store';
 import type { ActivityLogEntry, DailySummary } from '@/apis/activity-logs/types';
 import {
     BarChart,
@@ -23,8 +25,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/client/components/ui/dropdown-menu';
-
-type DateRange = '7days' | '14days' | '30days' | '90days' | 'all';
 
 const dateRangeLabels: Record<DateRange, string> = {
     '7days': 'Last 7 days',
@@ -493,10 +493,12 @@ function formatLastUpdated(date: Date | undefined): string {
 }
 
 export function Progress() {
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral tab state
-    const [activeTab, setActiveTab] = useState('activity');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [dateRange, setDateRange] = useState<DateRange>('30days');
+    // Persistent UI state from store
+    const activeTab = useProgressStore((state) => state.activeTab);
+    const setActiveTab = useProgressStore((state) => state.setActiveTab);
+    const dateRange = useProgressStore((state) => state.dateRange);
+    const setDateRange = useProgressStore((state) => state.setDateRange);
+
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral refresh state
     const [isRefreshing, setIsRefreshing] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral timestamp
@@ -562,7 +564,7 @@ export function Progress() {
 
             <StatsOverview />
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ProgressTab)}>
                 <TabsList className="w-full mb-4">
                     <TabsTrigger value="activity" className="flex-1">
                         <Activity className="h-4 w-4 mr-2" />
