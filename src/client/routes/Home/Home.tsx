@@ -588,10 +588,8 @@ export function Home() {
                     <div 
                         className="fixed left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t z-50"
                         style={{
-                            // On mobile, position above the BottomNavBar
-                            // BottomNavBar height: pt-1 (4px) + h-12 buttons (48px) + paddingBottom (4px) + gap ≈ 60px
-                            // In PWA standalone mode, container has pb-[env(safe-area-inset-bottom)] which pushes navbar up
-                            // In browser mode, safe-area-inset-bottom is typically 0
+                            // On mobile, position above the BottomNavBar which includes safe-area-inset-bottom
+                            // BottomNavBar height: pt-1 (4px) + h-14 (56px) + paddingBottom (safe-area + 4px) = 64px + safe-area
                             // On desktop (≥640px), bottom nav is hidden, so use bottom: 0
                             bottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
                         }}

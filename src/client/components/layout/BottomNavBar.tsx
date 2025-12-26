@@ -11,7 +11,7 @@ interface BottomNavBarProps {
  * ## iOS Safari/PWA Viewport Fix
  * 
  * This navbar does NOT use `position: fixed`. Instead, it sits at the bottom
- * of a flexbox container managed by Layout.tsx.
+ * of a flexbox container that uses `height: 100dvh` (see Layout.tsx).
  * 
  * ### The Problem
  * iOS Safari and PWA have viewport bugs where `position: fixed; bottom: 0`
@@ -20,17 +20,13 @@ interface BottomNavBarProps {
  * - The browser toolbar shows/hides on scroll
  * - In PWA standalone mode after keyboard interactions
  * 
- * ### The Solution (Flexbox Layout)
+ * ### The Solution (100dvh Layout)
  * Instead of `position: fixed`, we use a CSS-only approach:
- * 1. Layout.tsx sets container height based on mode:
- *    - Browser mode: `height: 100dvh` (dynamic viewport height)
- *    - PWA standalone mode: `height: 100%` with html/body using `-webkit-fill-available`
+ * 1. Layout.tsx sets `height: 100dvh` on mobile (dynamic viewport height)
  * 2. Main content has `overflow-y: auto` (scrolls internally)
  * 3. This navbar uses `shrink-0` and sits naturally at the flex container bottom
- * 4. In PWA standalone mode, Layout adds `pb-[env(safe-area-inset-bottom)]` to the
- *    container, so navbar doesn't need additional safe area padding.
  * 
- * The container height automatically adjusts when iOS shows/hides the keyboard or
+ * The `dvh` unit automatically adjusts when iOS shows/hides the keyboard or
  * toolbar, so the navbar stays correctly positioned without any JavaScript.
  * 
  * ### What We Tried That Didn't Work
@@ -39,7 +35,6 @@ interface BottomNavBarProps {
  * - Force repaint on keyboard close - inconsistent results
  * 
  * @see Layout.tsx for the parent container setup
- * @see globals.css for the PWA standalone mode html/body height fix
  */
 export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
   const { currentPath, navigate } = useRouter();
@@ -53,9 +48,7 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
     navigate(path);
   };
 
-  // No position:fixed - navbar sits at bottom of flex container (see docs above)
-  // In PWA standalone mode, the container already has pb-[env(safe-area-inset-bottom)]
-  // so the navbar doesn't need additional bottom padding for safe area.
+  // No position:fixed - navbar sits at bottom of 100dvh flex container (see docs above)
   // Footer uses CSS variables for theming - inline styles ensure proper reactivity when theme changes
   return (
     <div
@@ -63,7 +56,7 @@ export const BottomNavBar = ({ navItems }: BottomNavBarProps) => {
       style={{
         backgroundColor: 'hsl(var(--footer))',
         color: 'hsl(var(--footer-foreground))',
-        paddingBottom: '4px',
+        paddingBottom: 'max(4px, calc(env(safe-area-inset-bottom, 0px) / 2))',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}

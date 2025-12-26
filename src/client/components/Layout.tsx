@@ -33,19 +33,12 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
   // This makes the container height equal to the dynamic viewport height,
   // which automatically adjusts when iOS keyboard/toolbar appears/disappears.
   // The BottomNavBar sits at the flex container bottom (no position:fixed needed).
-  // 
-  // iOS PWA standalone mode requires special handling:
-  // - In browser mode: 100dvh works correctly
-  // - In PWA standalone mode: We use height:100% and rely on the html/body CSS
-  //   (see globals.css @media (display-mode: standalone)) which uses -webkit-fill-available
   // See BottomNavBar.tsx for full documentation of the iOS viewport fix.
   return (
     <div 
-      className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]' : ''}`}
+      className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`}
       style={{
-        // In PWA standalone mode, use 100% to inherit from html/body which use -webkit-fill-available
-        // In browser mode, use 100dvh which handles keyboard/toolbar properly
-        height: isMobile ? (isStandalone ? '100%' : '100dvh') : undefined,
+        height: isMobile ? '100dvh' : undefined,
         minHeight: isMobile ? undefined : '100vh',
       }}
     >
