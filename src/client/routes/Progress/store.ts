@@ -1,5 +1,18 @@
 import { createStore } from '@/client/stores';
-import type { ProgressState, ProgressTab, DateRange } from './types';
+
+/**
+ * Progress page types
+ */
+export type DateRange = '7days' | '14days' | '30days' | '90days' | 'all';
+
+export type ProgressTab = 'activity' | 'charts' | 'summary';
+
+interface ProgressState {
+    activeTab: ProgressTab;
+    dateRange: DateRange;
+    setActiveTab: (tab: ProgressTab) => void;
+    setDateRange: (range: DateRange) => void;
+}
 
 /**
  * Progress store - persists active tab and date range selection across sessions
@@ -20,11 +33,3 @@ export const useProgressStore = createStore<ProgressState>({
         }),
     },
 });
-
-/**
- * Derived hooks for convenience
- */
-export const useProgressActiveTab = () => useProgressStore((state) => state.activeTab);
-export const useProgressDateRange = () => useProgressStore((state) => state.dateRange);
-export const useSetProgressActiveTab = () => useProgressStore((state) => state.setActiveTab);
-export const useSetProgressDateRange = () => useProgressStore((state) => state.setDateRange);

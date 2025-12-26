@@ -1,6 +1,23 @@
 import { createStore } from '@/client/stores';
 import type { ReportType, ReportStatus } from '@/apis/reports/types';
-import type { ReportsState, ReportsViewMode, ReportsSortOrder } from './types';
+
+/**
+ * Reports page types
+ */
+export type ReportsViewMode = 'individual' | 'grouped';
+
+export type ReportsSortOrder = 'asc' | 'desc';
+
+interface ReportsState {
+    typeFilter: ReportType | 'all';
+    statusFilter: ReportStatus | 'all';
+    sortOrder: ReportsSortOrder;
+    viewMode: ReportsViewMode;
+    setTypeFilter: (type: ReportType | 'all') => void;
+    setStatusFilter: (status: ReportStatus | 'all') => void;
+    setSortOrder: (order: ReportsSortOrder) => void;
+    setViewMode: (mode: ReportsViewMode) => void;
+}
 
 /**
  * Reports store - persists filters and view mode across sessions
@@ -27,15 +44,3 @@ export const useReportsStore = createStore<ReportsState>({
         }),
     },
 });
-
-/**
- * Derived hooks for convenience
- */
-export const useReportsTypeFilter = () => useReportsStore((state) => state.typeFilter);
-export const useReportsStatusFilter = () => useReportsStore((state) => state.statusFilter);
-export const useReportsSortOrder = () => useReportsStore((state) => state.sortOrder);
-export const useReportsViewMode = () => useReportsStore((state) => state.viewMode);
-export const useSetReportsTypeFilter = () => useReportsStore((state) => state.setTypeFilter);
-export const useSetReportsStatusFilter = () => useReportsStore((state) => state.setStatusFilter);
-export const useSetReportsSortOrder = () => useReportsStore((state) => state.setSortOrder);
-export const useSetReportsViewMode = () => useReportsStore((state) => state.setViewMode);

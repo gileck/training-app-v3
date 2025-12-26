@@ -1,5 +1,22 @@
 import { createStore } from '@/client/stores';
-import type { ManagePlanState, ManagePlanTab, FilterSource } from './types';
+
+/**
+ * Manage Plan page types
+ */
+export type ManagePlanTab = 'exercises' | 'workouts';
+
+export type FilterSource = 'all' | 'system' | 'custom';
+
+interface ManagePlanState {
+    activeTab: ManagePlanTab;
+    filterMuscle: string;
+    filterType: string;
+    filterSource: FilterSource;
+    setActiveTab: (tab: ManagePlanTab) => void;
+    setFilterMuscle: (muscle: string) => void;
+    setFilterType: (type: string) => void;
+    setFilterSource: (source: FilterSource) => void;
+}
 
 /**
  * Manage Plan store - persists active tab and exercise filters across sessions
@@ -26,15 +43,3 @@ export const useManagePlanStore = createStore<ManagePlanState>({
         }),
     },
 });
-
-/**
- * Derived hooks for convenience
- */
-export const useManagePlanActiveTab = () => useManagePlanStore((state) => state.activeTab);
-export const useManagePlanFilterMuscle = () => useManagePlanStore((state) => state.filterMuscle);
-export const useManagePlanFilterType = () => useManagePlanStore((state) => state.filterType);
-export const useManagePlanFilterSource = () => useManagePlanStore((state) => state.filterSource);
-export const useSetManagePlanActiveTab = () => useManagePlanStore((state) => state.setActiveTab);
-export const useSetManagePlanFilterMuscle = () => useManagePlanStore((state) => state.setFilterMuscle);
-export const useSetManagePlanFilterType = () => useManagePlanStore((state) => state.setFilterType);
-export const useSetManagePlanFilterSource = () => useManagePlanStore((state) => state.setFilterSource);

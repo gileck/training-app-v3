@@ -26,8 +26,8 @@ import {
     SelectValue,
 } from '@/client/components/ui/select';
 import { useRouter } from '../../router';
-import { useManagePlanStore } from '@/client/features/manage-plan';
-import type { FilterSource } from '@/client/features/manage-plan';
+import { useManagePlanStore } from './store';
+import type { FilterSource } from './store';
 import {
     usePlan,
     usePlanExercises,

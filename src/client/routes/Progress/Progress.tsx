@@ -7,8 +7,8 @@ import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, Trash
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActivity, useActivitySummary, useDeleteActivity } from './hooks';
-import { useProgressStore } from '@/client/features/progress';
-import type { DateRange, ProgressTab } from '@/client/features/progress';
+import { useProgressStore } from './store';
+import type { DateRange, ProgressTab } from './store';
 import type { ActivityLogEntry, DailySummary } from '@/apis/activity-logs/types';
 import {
     BarChart,
