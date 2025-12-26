@@ -77,7 +77,6 @@ export function useAuthValidation() {
         user,
         setValidatedUser,
         setValidating,
-        setError,
         clearAuth,
     } = useAuthStore();
 
@@ -131,11 +130,11 @@ export function useAuthValidation() {
                 clearAuth();
             }
             setValidating(false);
-            if (error instanceof Error) {
-                setError(error.message);
-            }
+            // NOTE: Don't setError here - /me validation failure is expected for
+            // first-time/logged-out users. Only login/register mutations should
+            // display errors to the user.
         }
-    }, [data, isLoading, isError, error, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth, setError]);
+    }, [data, isLoading, isError, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth]);
 
     const revalidate = async () => {
         hasValidated.current = false;
