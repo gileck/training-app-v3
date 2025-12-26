@@ -7,7 +7,7 @@ export default function Document() {
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="application-name" content="Training App" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Training" />
         <meta name="description" content="Track your workouts, build strength, achieve your fitness goals" />
         <meta name="format-detection" content="telephone=no" />
