@@ -26,7 +26,17 @@ export async function getActivitySummary(
         // Default date range based on period if not specified
         const now = new Date();
         let startDate = request.startDate ? new Date(request.startDate) : null;
-        const endDate = request.endDate ? new Date(request.endDate) : now;
+
+        // For endDate: if provided as date string, add 1 day for exclusive upper bound
+        // to include the entire end date. Otherwise use current time.
+        let endDateFilter: { $lte?: Date; $lt?: Date };
+        if (request.endDate) {
+            const endDateExclusive = new Date(request.endDate);
+            endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+            endDateFilter = { $lt: endDateExclusive };
+        } else {
+            endDateFilter = { $lte: now };
+        }
 
         if (!startDate) {
             switch (request.period) {
@@ -44,7 +54,7 @@ export async function getActivitySummary(
 
         filter.completedAt = {
             $gte: startDate,
-            $lte: endDate,
+            ...endDateFilter,
         };
 
         // Get all logs in the date range
