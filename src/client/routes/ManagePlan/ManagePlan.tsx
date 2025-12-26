@@ -1033,7 +1033,7 @@ export function ManagePlan() {
 
             {/* Add Exercise Dialog */}
             <Dialog open={addSheetOpen} onOpenChange={setAddSheetOpen}>
-                <DialogContent className="w-[calc(100%-32px)] max-w-lg h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] rounded-2xl p-0 gap-0 flex flex-col">
+                <DialogContent className="w-[calc(100%-32px)] max-w-lg h-[calc(100vh-120px)] max-h-[700px] rounded-2xl p-0 gap-0 flex flex-col">
                     {/* Header */}
                     <div className="px-5 pt-5 pb-4 border-b shrink-0">
                         <DialogTitle className="text-lg font-semibold">
@@ -1188,58 +1188,78 @@ export function ManagePlan() {
                                 </Button>
                             </div>
 
-                            {/* Filters Panel */}
-                            {showFilters && (
-                                <div className="flex gap-2 flex-wrap mb-3 pb-3 border-b">
-                                    <Select value={filterSource} onValueChange={(v) => setFilterSource(v as 'all' | 'system' | 'custom')}>
-                                        <SelectTrigger className="w-[100px] rounded-xl h-9">
-                                            <SelectValue placeholder="Source" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All</SelectItem>
-                                            <SelectItem value="system">Library</SelectItem>
-                                            <SelectItem value="custom">Custom</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={filterMuscle} onValueChange={setFilterMuscle}>
-                                        <SelectTrigger className="w-[120px] rounded-xl h-9">
-                                            <SelectValue placeholder="Muscle" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Muscles</SelectItem>
-                                            {uniqueMuscles.map((muscle) => (
-                                                <SelectItem key={muscle} value={muscle}>
-                                                    {muscle}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={filterType} onValueChange={setFilterType}>
-                                        <SelectTrigger className="w-[120px] rounded-xl h-9">
-                                            <SelectValue placeholder="Type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Types</SelectItem>
-                                            {uniqueTypes.map((type) => (
-                                                <SelectItem key={type} value={type}>
-                                                    {type}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {(filterMuscle !== 'all' || filterType !== 'all' || filterSource !== 'all') && (
+                            {/* Filters Dialog */}
+                            <Dialog open={showFilters} onOpenChange={setShowFilters}>
+                                <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-2xl">
+                                    <DialogHeader>
+                                        <DialogTitle>Filter Exercises</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-2">
+                                        <div className="grid gap-2">
+                                            <Label>Source</Label>
+                                            <Select value={filterSource} onValueChange={(v) => setFilterSource(v as 'all' | 'system' | 'custom')}>
+                                                <SelectTrigger className="rounded-xl">
+                                                    <SelectValue placeholder="Source" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="system">Library</SelectItem>
+                                                    <SelectItem value="custom">Custom</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Muscle Group</Label>
+                                            <Select value={filterMuscle} onValueChange={setFilterMuscle}>
+                                                <SelectTrigger className="rounded-xl">
+                                                    <SelectValue placeholder="All Muscles" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Muscles</SelectItem>
+                                                    {uniqueMuscles.map((muscle) => (
+                                                        <SelectItem key={muscle} value={muscle}>
+                                                            {muscle}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Exercise Type</Label>
+                                            <Select value={filterType} onValueChange={setFilterType}>
+                                                <SelectTrigger className="rounded-xl">
+                                                    <SelectValue placeholder="All Types" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Types</SelectItem>
+                                                    {uniqueTypes.map((type) => (
+                                                        <SelectItem key={type} value={type}>
+                                                            {type}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <DialogFooter className="flex-row gap-2">
+                                        {hasActiveFilters && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => { setFilterMuscle('all'); setFilterType('all'); setFilterSource('all'); }}
+                                                className="rounded-xl flex-1"
+                                            >
+                                                Clear Filters
+                                            </Button>
+                                        )}
                                         <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => { setFilterMuscle('all'); setFilterType('all'); setFilterSource('all'); }}
-                                            className="rounded-xl text-muted-foreground h-9"
+                                            onClick={() => setShowFilters(false)}
+                                            className="rounded-xl flex-1"
                                         >
-                                            <X className="h-3 w-3 mr-1" />
-                                            Clear
+                                            Apply
                                         </Button>
-                                    )}
-                                </div>
-                            )}
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
 
                             {/* Multi-select toggle */}
                             <div className="flex items-center justify-between mb-3">

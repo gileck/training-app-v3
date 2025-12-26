@@ -61,15 +61,15 @@ const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
 };
 
 const TOAST_STYLES: Record<ToastType, string> = {
-    success: 'border-success bg-success/10 text-success',
-    error: 'border-destructive bg-destructive/10 text-destructive',
-    info: 'border-info bg-info/10 text-info',
+    success: 'border-l-success bg-card text-foreground',
+    error: 'border-l-destructive bg-card text-foreground',
+    info: 'border-l-info bg-card text-foreground',
 };
 
 function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: () => void }) {
     return (
         <div
-            className={`flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 shadow-lg ${TOAST_STYLES[t.type]} animate-in slide-in-from-right-full duration-300`}
+            className={`flex items-center gap-3 rounded-lg border border-border border-l-4 px-4 py-3 shadow-xl ${TOAST_STYLES[t.type]} animate-in slide-in-from-right-full duration-300`}
         >
             {TOAST_ICONS[t.type]}
             <span className="flex-1 text-sm font-medium">{t.message}</span>
@@ -90,9 +90,11 @@ export function ToastContainer() {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+        <div className="fixed bottom-20 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
             {toasts.map((t) => (
-                <ToastItem key={t.id} toast={t} onRemove={() => removeToast(t.id)} />
+                <div key={t.id} className="pointer-events-auto">
+                    <ToastItem toast={t} onRemove={() => removeToast(t.id)} />
+                </div>
             ))}
         </div>
     );
