@@ -103,10 +103,14 @@ export const findSetLogsByDateRange = async (
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
+    // Add 1 day to endDate and use $lt to include the entire end date
+    const endDateExclusive = new Date(endDate);
+    endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+
     return collection
         .find({
             userId: userIdObj,
-            completedAt: { $gte: startDate, $lte: endDate },
+            completedAt: { $gte: startDate, $lt: endDateExclusive },
         })
         .sort({ completedAt: -1 })
         .skip(skip)
@@ -206,11 +210,15 @@ export const getSetStatsPerDay = async (
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
+    // Add 1 day to endDate and use $lt to include the entire end date
+    const endDateExclusive = new Date(endDate);
+    endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+
     const pipeline = [
         {
             $match: {
                 userId: userIdObj,
-                completedAt: { $gte: startDate, $lte: endDate },
+                completedAt: { $gte: startDate, $lt: endDateExclusive },
             },
         },
         {
