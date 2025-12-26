@@ -26,6 +26,8 @@ import {
     SelectValue,
 } from '@/client/components/ui/select';
 import { useRouter } from '../../router';
+import { useManagePlanStore } from '@/client/features/manage-plan';
+import type { FilterSource } from '@/client/features/manage-plan';
 import {
     usePlan,
     usePlanExercises,
@@ -80,18 +82,22 @@ export function ManagePlan() {
     const reorderWorkoutsMutation = useReorderSavedWorkouts();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
 
-    // UI state
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral tab state
-    const [activeTab, setActiveTab] = useState<'exercises' | 'workouts'>(
-        queryParams.tab === 'workouts' ? 'workouts' : 'exercises'
-    );
+    // Persistent UI state from store
+    const activeTab = useManagePlanStore((state) => state.activeTab);
+    const setActiveTab = useManagePlanStore((state) => state.setActiveTab);
+    const filterMuscle = useManagePlanStore((state) => state.filterMuscle);
+    const setFilterMuscle = useManagePlanStore((state) => state.setFilterMuscle);
+    const filterType = useManagePlanStore((state) => state.filterType);
+    const setFilterType = useManagePlanStore((state) => state.setFilterType);
+    const filterSource = useManagePlanStore((state) => state.filterSource);
+    const setFilterSource = useManagePlanStore((state) => state.setFilterSource);
 
-    // Update tab when query param changes
+    // Update tab when query param changes (for deep linking)
     useEffect(() => {
         if (queryParams.tab === 'workouts') {
             setActiveTab('workouts');
         }
-    }, [queryParams.tab]);
+    }, [queryParams.tab, setActiveTab]);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral sheet state
     const [addSheetOpen, setAddSheetOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral search filter
@@ -126,14 +132,8 @@ export function ManagePlan() {
     const [exerciseDefToDelete, setExerciseDefToDelete] = useState<ExerciseDefinitionClient | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
     const [isReorderMode, setIsReorderMode] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [filterMuscle, setFilterMuscle] = useState<string>('all');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [filterType, setFilterType] = useState<string>('all');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter UI state
     const [showFilters, setShowFilters] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [filterSource, setFilterSource] = useState<'all' | 'system' | 'custom'>('all');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral multi-select mode
     const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral multi-select state
@@ -1197,7 +1197,7 @@ export function ManagePlan() {
                                     <div className="grid gap-4 py-2">
                                         <div className="grid gap-2">
                                             <Label>Source</Label>
-                                            <Select value={filterSource} onValueChange={(v) => setFilterSource(v as 'all' | 'system' | 'custom')}>
+                                            <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
                                                 <SelectTrigger className="rounded-xl">
                                                     <SelectValue placeholder="Source" />
                                                 </SelectTrigger>

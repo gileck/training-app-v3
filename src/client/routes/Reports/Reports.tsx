@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useReports, useUpdateReportStatus, useDeleteReport, useDeleteAllReports } from './hooks';
+import { useReportsStore } from '@/client/features/reports';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
 import { Badge } from '@/client/components/ui/badge';
@@ -582,15 +583,17 @@ function GroupedReportCard({ group }: { group: GroupedReport }) {
 }
 
 export function Reports() {
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [typeFilter, setTypeFilter] = useState<ReportType | 'all'>('all');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral filter state
-    const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral sort state
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral view state
-    const [viewMode, setViewMode] = useState<'individual' | 'grouped'>('individual');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
+    // Persistent UI state from store
+    const typeFilter = useReportsStore((state) => state.typeFilter);
+    const setTypeFilter = useReportsStore((state) => state.setTypeFilter);
+    const statusFilter = useReportsStore((state) => state.statusFilter);
+    const setStatusFilter = useReportsStore((state) => state.setStatusFilter);
+    const sortOrder = useReportsStore((state) => state.sortOrder);
+    const setSortOrder = useReportsStore((state) => state.setSortOrder);
+    const viewMode = useReportsStore((state) => state.viewMode);
+    const setViewMode = useReportsStore((state) => state.setViewMode);
+
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
     const { data: reports, isLoading, error } = useReports({
