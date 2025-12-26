@@ -31,7 +31,11 @@ export async function getActivity(
                 (filter.completedAt as Record<string, Date>).$gte = new Date(request.startDate);
             }
             if (request.endDate) {
-                (filter.completedAt as Record<string, Date>).$lte = new Date(request.endDate);
+                // Add 1 day and use $lt to include the entire end date
+                // e.g., "2025-12-26" becomes < 2025-12-27T00:00:00Z
+                const endDateExclusive = new Date(request.endDate);
+                endDateExclusive.setDate(endDateExclusive.getDate() + 1);
+                (filter.completedAt as Record<string, Date>).$lt = endDateExclusive;
             }
         }
 
