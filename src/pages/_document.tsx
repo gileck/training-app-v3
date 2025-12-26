@@ -7,6 +7,16 @@ export default function Document() {
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="application-name" content="Training App" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* 
+          Status bar style options: "default" | "black" | "black-translucent"
+          
+          IMPORTANT: Do NOT use "black-translucent" - it causes the bottom navbar 
+          to have extra space below it in iOS PWA standalone mode. This happens because 
+          black-translucent extends content under the status bar and changes how iOS 
+          calculates viewport height, causing layout issues with fixed/flex positioning.
+          
+          Use "default" for predictable viewport behavior.
+        */}
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Training" />
         <meta name="description" content="Track your workouts, build strength, achieve your fitness goals" />
