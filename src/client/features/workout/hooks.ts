@@ -183,9 +183,15 @@ export function useUpdateSets() {
 
 /**
  * Hook to sync active plan with store and server data
+ * 
+ * Returns:
+ * - activePlan: The currently active plan object (or undefined)
+ * - plans: Array of all plans (empty array while loading or if no plans)
+ * - isLoading: True when initial fetch is in progress with no cached data
+ * - plansData: The raw query data (undefined while loading)
  */
 export function useSyncActivePlan() {
-    const { data: plansData } = usePlans();
+    const { data: plansData, isLoading } = usePlans();
     const activePlanId = useActivePlanId();
     const setActivePlan = useWorkoutStore((state) => state.setActivePlan);
     const setWeek = useWorkoutStore((state) => state.setWeek);
@@ -210,6 +216,11 @@ export function useSyncActivePlan() {
     // Get the current active plan object
     const activePlan = plansData?.plans?.find((p) => p._id === activePlanId);
 
-    return { activePlan, plans: plansData?.plans || [] };
+    return { 
+        activePlan, 
+        plans: plansData?.plans || [], 
+        isLoading,
+        plansData, // Raw data - undefined while loading, defined after fetch
+    };
 }
 

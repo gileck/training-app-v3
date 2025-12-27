@@ -1,0 +1,73 @@
+/**
+ * Training App - Project-specific CSS customizations
+ * 
+ * This file contains styles specific to the Training App that extend
+ * the base template styles. Keep globals.css aligned with the template
+ * for easy merging of template updates.
+ */
+
+/* ============================================
+   Training App - Layout Tokens
+   ============================================ */
+:root {
+    /* Touch target sizing for mobile */
+    --touch-target-min: 44px;
+    
+    /* Exercise image sizes */
+    --exercise-image-sm: 48px;
+    --exercise-image-md: 60px;
+    --exercise-image-lg: 80px;
+    
+    /* Layout spacing */
+    --page-padding: 1rem;
+    --card-gap: 0.75rem;
+    --section-gap: 1.5rem;
+
+    /* Semantic colors - Exercise states */
+    --exercise-complete: 142 76% 36%;
+    --exercise-selected-bg: var(--primary) / 0.1;
+    
+    /* Muscle badge colors - Light mode */
+    --muscle-badge-bg: 210 100% 95%;
+    --muscle-badge-text: 210 100% 40%;
+    --muscle-badge-border: 210 100% 85%;
+}
+
+/* ============================================
+   Training App - Dark Mode Overrides
+   ============================================ */
+.dark {
+    /* Exercise states */
+    --exercise-complete: 142 76% 36%;
+    
+    /* Muscle badge colors - Dark mode */
+    --muscle-badge-bg: 217 50% 15%;
+    --muscle-badge-text: 217 90% 75%;
+    --muscle-badge-border: 217 50% 28%;
+    
+    /* Enhanced layered backgrounds for depth */
+    --background: 224 50% 4%;
+    --card: 224 45% 8%;
+    --popover: 224 42% 11%;
+    --muted: 224 35% 14%;
+    --border: 224 25% 20%;
+    --input: 224 30% 15%;
+    --accent: 224 35% 16%;
+}
+
+/* Enhanced dark mode atmosphere with triple gradient */
+.dark body {
+    background-image:
+        radial-gradient(800px circle at 0% -15%, hsl(var(--primary) / 0.12), transparent 50%),
+        radial-gradient(600px circle at 100% 5%, hsl(var(--secondary) / 0.08), transparent 40%),
+        radial-gradient(1200px circle at 50% 100%, hsl(var(--primary) / 0.04), transparent 60%);
+}
+
+/* Enhanced iOS input group for dark mode */
+.dark .ios-input-group {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+}
+
+
+

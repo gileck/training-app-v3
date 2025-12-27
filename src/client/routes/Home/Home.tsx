@@ -84,7 +84,7 @@ export function Home() {
     const setActiveTab = useWorkoutStore((state) => state.setActiveTab);
 
     // Sync active plan from server
-    const { activePlan, plans } = useSyncActivePlan();
+    const { activePlan, plans, isLoading: plansLoading, plansData } = useSyncActivePlan();
 
     // Week progress data
     const {
@@ -315,7 +315,47 @@ export function Home() {
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // No plan selected
+    // Loading state for plans - show skeleton while fetching (no cached data yet)
+    // IMPORTANT: Check loading BEFORE checking for empty plans to avoid flash of empty state
+    if (plansLoading || plansData === undefined) {
+        return (
+            <div className="p-4 pb-20 space-y-4">
+                {/* Week Navigator Skeleton */}
+                <Card className="rounded-2xl border-0 shadow-sm">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="text-center space-y-2">
+                                <Skeleton className="h-6 w-32 mx-auto" />
+                                <Skeleton className="h-4 w-24 mx-auto" />
+                            </div>
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Progress Card Skeleton */}
+                <Card className="rounded-2xl border-0 shadow-sm">
+                    <CardContent className="p-5 space-y-4">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-28" />
+                                <Skeleton className="h-8 w-16" />
+                            </div>
+                            <div className="text-right space-y-2">
+                                <Skeleton className="h-6 w-12 ml-auto" />
+                                <Skeleton className="h-4 w-16 ml-auto" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-3 w-full rounded-full" />
+                        <Skeleton className="h-4 w-32 mx-auto" />
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    // No plan selected - only show AFTER we know plans have loaded (plansData is defined)
     if (!activePlanId || !activePlan) {
         return (
             <div className="p-4 pb-20 space-y-4">
