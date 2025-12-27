@@ -1225,8 +1225,17 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                         placeholder="Search exercises..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10 rounded-xl h-10"
+                                        className="pl-10 pr-9 rounded-xl h-10"
                                     />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center transition-colors"
+                                            aria-label="Clear search"
+                                        >
+                                            <X className="h-3 w-3 text-muted-foreground" />
+                                        </button>
+                                    )}
                                 </div>
                                 <Button
                                     variant={showFilters || hasActiveFilters ? 'secondary' : 'outline'}
@@ -1267,10 +1276,10 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                                 <SelectTrigger className="rounded-xl">
                                                     <SelectValue placeholder="All Muscles" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[40vh]">
                                                     <SelectItem value="all">All Muscles</SelectItem>
                                                     {uniqueMuscles.map((muscle) => (
-                                                        <SelectItem key={muscle} value={muscle}>
+                                                        <SelectItem key={muscle} value={muscle} className="truncate">
                                                             {muscle}
                                                         </SelectItem>
                                                     ))}
@@ -1283,10 +1292,10 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                                 <SelectTrigger className="rounded-xl">
                                                     <SelectValue placeholder="All Types" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[40vh]">
                                                     <SelectItem value="all">All Types</SelectItem>
                                                     {uniqueTypes.map((type) => (
-                                                        <SelectItem key={type} value={type}>
+                                                        <SelectItem key={type} value={type} className="truncate">
                                                             {type}
                                                         </SelectItem>
                                                     ))}
@@ -1313,6 +1322,27 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+
+                            {/* Active Filters Summary */}
+                            {hasActiveFilters && (
+                                <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+                                    <span className="font-medium">Filters:</span>
+                                    <span>
+                                        {[
+                                            filterSource === 'system' ? 'Library' : filterSource === 'custom' ? 'Custom' : null,
+                                            filterMuscle !== 'all' ? filterMuscle : null,
+                                            filterType !== 'all' ? filterType : null
+                                        ].filter(Boolean).join(' • ')}
+                                    </span>
+                                    <button
+                                        onClick={() => { setFilterSource('all'); setFilterMuscle('all'); setFilterType('all'); }}
+                                        className="h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center transition-colors"
+                                        aria-label="Clear filters"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Multi-select toggle and view mode */}
                             <div className="flex items-center justify-between mb-3">
