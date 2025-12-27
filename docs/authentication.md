@@ -74,7 +74,7 @@ App Start
 │  useAuthValidation() calls /me endpoint                      │
 │  Server returns: { error: "Not authenticated" }              │
 │  → isValidated = true, user = null                           │
-│  → Shows Login Dialog (no error message displayed)           │
+│  → Shows clean Login Dialog (NO error message displayed)     │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -204,23 +204,24 @@ interface AuthState {
 ### Auth Hooks (`src/client/features/auth/hooks.ts`)
 
 All auth-related hooks in one file:
-- `useAuthValidation()` - Background validation pattern (silent errors)
+- `useAuthValidation()` - Background validation pattern
 - `useLogin()` - Login mutation, updates Zustand on success
 - `useRegister()` - Registration mutation
 - `useLogout()` - Clears auth state and React Query cache
 - `useCurrentUser()` - Fetches current user via React Query
 
-### Error Handling
+### Error Handling Strategy
 
-Error messages are only shown for **user-initiated actions** (login/register), not for background validation:
+Error display is separated between validation and user actions:
 
-| API Call | Shows Error? | Reason |
-|----------|-------------|--------|
-| `/me` (validation) | ❌ No | Expected for first-time/logged-out users - just show login |
-| `auth/login` | ✅ Yes | User action - show "Invalid username or password" etc. |
-| `auth/register` | ✅ Yes | User action - show "Username already taken" etc. |
+| Scenario | Error Displayed? | Reason |
+|----------|-----------------|--------|
+| `/me` validation fails (first-time user) | ❌ No | Expected behavior, clean login screen |
+| `/me` validation fails (session expired) | ❌ No | Silent redirect to login |
+| Login with wrong password | ✅ Yes | User action failed |
+| Register with taken username | ✅ Yes | User action failed |
 
-This prevents confusing error messages like "Not authenticated" appearing when a new user first visits the app.
+**Key insight**: The `/me` endpoint returning "Not authenticated" is not an error from the user's perspective—they simply haven't logged in yet. Only login/register mutation failures should display error messages.
 
 ### AuthWrapper (`src/client/features/auth/AuthWrapper.tsx`)
 
@@ -345,9 +346,6 @@ function LogoutButton() {
 ### User sees brief blank screen then app loads
 This is expected for users with a valid cookie but no localStorage hint (e.g., cleared localStorage). The `/me` check (~100ms) detects the valid session and logs them in. No loader is shown to avoid HMR/hydration flickering issues.
 
-### User sees brief blank screen then login dialog (no error)
-This is expected for first-time users or users with no valid session. The `/me` check returns "Not authenticated" but **no error is displayed** - the login dialog simply appears. Error messages only appear after failed login/register attempts.
-
 ### User sees app briefly then login dialog
 This happens when the localStorage hint exists but the session has expired server-side. The instant boot shows the app, then validation fails and login is shown.
 
@@ -363,3 +361,6 @@ This should not happen with the current implementation. If it does:
 
 ### 401 errors after app restart
 Session may have expired server-side. This is handled gracefully - user sees app briefly (instant boot), then login dialog after validation fails.
+
+### "Not authenticated" error showing on first visit
+This is a bug if it happens. The `/me` validation failure should NOT set an error message—it's expected for first-time users. Check `useAuthValidation()` in `hooks.ts` and ensure there's no `setError()` call in the validation failure handler. Only `useLogin()` and `useRegister()` mutations should call `setError()`.
