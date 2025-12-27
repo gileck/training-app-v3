@@ -40,10 +40,7 @@ export const findReports = async (
             query.createdAt.$gte = filters.startDate;
         }
         if (filters.endDate) {
-            // Add 1 day and use $lt to include the entire end date
-            const endDateExclusive = new Date(filters.endDate);
-            endDateExclusive.setDate(endDateExclusive.getDate() + 1);
-            query.createdAt.$lt = endDateExclusive;
+            query.createdAt.$lte = filters.endDate;
         }
     }
 

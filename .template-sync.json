@@ -3,8 +3,8 @@
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
-  "lastProjectCommit": "6a898960409bb565b0b9156b6affc87f1dd9e137",
-  "lastSyncDate": "2025-12-27T10:29:50.328Z",
+  "lastProjectCommit": "577351b8f96b73dc5c770ddda964be5ec0779ea2",
+  "lastSyncDate": "2025-12-27T10:31:40.812Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,15 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2025-12-27T10:31:40.812Z",
+      "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
+      "projectCommit": "577351b8f96b73dc5c770ddda964be5ec0779ea2",
+      "filesApplied": 5,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2025-12-27T10:29:50.327Z",
       "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",

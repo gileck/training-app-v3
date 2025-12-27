@@ -298,82 +298,6 @@ export function useItems(options?: { enabled?: boolean }) {
 }
 ```
 
-### ⚠️ Loading States - CRITICAL UX Pattern
-
-**NEVER show empty states ("No items found") while data is loading. This is a critical UX bug.**
-
-#### The Problem
-
-When using `data?.items || []` with unloaded data, the array is empty. If you check `items.length === 0`, 
-the UI incorrectly shows "No items" before data loads - confusing users with false empty states.
-
-#### State Priority Chain
-
-Always check states in this exact order: **Loading → Error → Empty → Data**
-
-| Scenario | `isLoading` | `data` | Correct UI |
-|----------|-------------|--------|------------|
-| First load, no cache | `true` | `undefined` | Loading spinner |
-| Cached data exists | `false` | cached value | Show cached data |
-| Revalidating with cache | `false` | cached value | Show cached data |
-| Error, no cache | `false` | `undefined` | Error message |
-| Success, empty result | `false` | `{ items: [] }` | Empty state |
-
-#### Correct Implementation
-
-```typescript
-function ItemsList() {
-    const { data, isLoading, error } = useItems();
-    const items = data?.items || [];
-
-    return (
-        <Card>
-            {isLoading ? (
-                // 1. LOADING: Show spinner when fetching with no cache
-                <LinearProgress />
-            ) : error ? (
-                // 2. ERROR: Show error message
-                <p className="text-destructive">Failed to load</p>
-            ) : !data ? (
-                // 3. NO DATA: Edge case - query done but no data
-                <p className="text-muted-foreground">Unable to load items</p>
-            ) : items.length === 0 ? (
-                // 4. EMPTY: Data loaded but array is truly empty
-                <p className="text-muted-foreground">No items yet</p>
-            ) : (
-                // 5. DATA: Show the actual content
-                <ul>
-                    {items.map(item => <li key={item.id}>{item.name}</li>)}
-                </ul>
-            )}
-        </Card>
-    );
-}
-```
-
-#### ❌ WRONG Pattern (Shows False Empty State)
-
-```typescript
-function ItemsList() {
-    const { data } = useItems();
-    const items = data?.items || [];
-
-    // BUG: Shows "No items" during loading because items is [] when data is undefined!
-    return items.length === 0 ? <p>No items yet</p> : <ItemList items={items} />;
-}
-```
-
-#### Key React Query States
-
-| State | Description |
-|-------|-------------|
-| `isLoading` | `true` when fetching AND no data exists (initial load or no cache) |
-| `isFetching` | `true` whenever network request in progress (including background refresh) |
-| `data` | Contains cached data immediately if available, even while revalidating |
-| `error` | Set when query fails |
-
-**Empty state should ONLY render when `!isLoading && data exists && items.length === 0`**
-
 ### Mutation Hook Pattern (Optimistic Updates Required)
 
 **Optimistic updates are REQUIRED for all mutations** to ensure:
@@ -815,6 +739,102 @@ const [value, setValue] = useState('');
 // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
 const [inputValue, setInputValue] = useState('');
 ```
+
+---
+
+## 🚨 CRITICAL: Correct Loading State Pattern
+
+**NEVER show empty state before data is loaded.** This is a common bug that confuses users.
+
+### The Problem
+
+When using React Query, `isLoading` is only `true` during the **initial fetch with no cached data**. If the cache is empty (cache miss), React Query will:
+1. Set `isLoading = true`
+2. Fetch data
+3. Set `isLoading = false`, `data = fetched data`
+
+However, if you check only `isLoading`, you might show empty state incorrectly when:
+- Cache was restored but was empty
+- Query was enabled later
+- Data hasn't arrived yet
+
+### ❌ WRONG Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // WRONG: Only checks isLoading
+    if (isLoading) {
+        return <Skeleton />;
+    }
+
+    // BUG: Shows "No items" even if data hasn't loaded yet!
+    if (items.length === 0) {
+        return <EmptyState />;
+    }
+
+    return <ItemsList items={items} />;
+}
+```
+
+### ✅ CORRECT Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // CORRECT: Check both isLoading AND data existence
+    // Show loading when:
+    // 1. Initial fetch with no cache (isLoading)
+    // 2. OR no data exists yet (before first fetch completes)
+    if (isLoading || data === undefined) {
+        return <Skeleton />;
+    }
+
+    // Now we know data has been fetched - it's safe to check for empty
+    if (items.length === 0) {
+        return <EmptyState />;
+    }
+
+    return <ItemsList items={items} />;
+}
+```
+
+### Key Rules
+
+1. **Always check `data === undefined`** alongside `isLoading` for the loading state
+2. **Only show empty state** when `data` is defined AND the array is empty
+3. **Show cached data immediately** - if `data` exists (from cache), show it while `isFetching` refreshes in background
+4. **Use skeleton loaders** not spinners for better UX (per app design guidelines)
+
+### Helper Pattern
+
+For cleaner code, compute a `showLoading` variable:
+
+```typescript
+const { data, isLoading, error } = useMyQuery();
+
+// Determine if we should show loading state
+const showLoading = isLoading || data === undefined;
+
+// In render:
+if (showLoading) return <Skeleton />;
+if (error) return <ErrorState />;
+if (data.items.length === 0) return <EmptyState />;
+return <ItemsList items={data.items} />;
+```
+
+### Cache Behavior Summary
+
+| Cache State | `isLoading` | `data` | What to Show |
+|-------------|-------------|--------|--------------|
+| No cache, fetching | `true` | `undefined` | **Loading skeleton** |
+| Cache miss, fetch done | `false` | `{ items: [] }` | **Empty state** |
+| Cache hit (has data) | `false` | `{ items: [...] }` | **Data** |
+| Cache hit, refetching | `false` | `{ items: [...] }` | **Data** (with optional refresh indicator) |
 
 ---
 

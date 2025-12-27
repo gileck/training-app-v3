@@ -77,6 +77,7 @@ export function useAuthValidation() {
         user,
         setValidatedUser,
         setValidating,
+        setError,
         clearAuth,
     } = useAuthStore();
 
@@ -134,7 +135,7 @@ export function useAuthValidation() {
             // first-time/logged-out users. Only login/register mutations should
             // display errors to the user.
         }
-    }, [data, isLoading, isError, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth]);
+    }, [data, isLoading, isError, error, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth, setError]);
 
     const revalidate = async () => {
         hasValidated.current = false;

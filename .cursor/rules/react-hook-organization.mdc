@@ -225,3 +225,53 @@ export function useTodos() {
 export const todosQueryKey = ['todos'] as const;
 export const todoQueryKey = (id: string) => ['todos', id] as const;
 ```
+
+## 🚨 CRITICAL: Loading States & Empty States
+
+**NEVER show empty state before data is loaded.** This is a common bug that creates a bad UX.
+
+### The Problem
+
+`isLoading` is only `true` during initial fetch with no cached data. If you only check `isLoading`, you may show empty state before data arrives.
+
+### ❌ WRONG Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    if (isLoading) return <Skeleton />;
+    
+    // BUG: Shows "No items" even if data hasn't loaded yet!
+    if (items.length === 0) return <EmptyState />;
+    
+    return <ItemsList items={items} />;
+}
+```
+
+### ✅ CORRECT Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // Check BOTH isLoading AND data existence
+    if (isLoading || data === undefined) {
+        return <Skeleton />;
+    }
+
+    // Now we know data has been fetched - safe to check for empty
+    if (items.length === 0) return <EmptyState />;
+    
+    return <ItemsList items={items} />;
+}
+```
+
+### Key Rules
+
+1. **Always check `data === undefined`** alongside `isLoading`
+2. **Only show empty state** when `data` is defined AND array is empty
+3. **Show cached data immediately** while `isFetching` refreshes in background
+4. **Use skeleton loaders** not spinners (per app design guidelines)
