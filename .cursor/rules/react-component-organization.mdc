@@ -63,13 +63,17 @@ export function useDeleteUser() {
 const UserList = () => {
   const { data, isLoading, error } = useUsers();
   const deleteUserMutation = useDeleteUser();
+  const users = data?.users || [];
   
-  if (isLoading && !data) return <LoadingSpinner />;
+  // CRITICAL: Check states in order - Loading → Error → Empty → Data
+  if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage error={error} />;
+  if (!data) return <p>Unable to load users</p>;
+  if (users.length === 0) return <EmptyState message="No users yet" />;
   
   return (
     <div className="user-list">
-      {data?.users?.map(user => (
+      {users.map(user => (
         <UserListItem 
           key={user.id} 
           user={user} 
@@ -205,21 +209,85 @@ export function useFeatureAction() {
 const FeaturePage = () => {
     const { data, isLoading, error } = useFeatureData();
     const actionMutation = useFeatureAction();
+    const items = data?.items || [];
     
-    if (isLoading && !data) return <LoadingSpinner />;
+    // CRITICAL: Check states in order - Loading → Error → Empty → Data
+    if (isLoading) return <LoadingSpinner />;
     if (error) return <ErrorDisplay error={error} />;
+    if (!data) return <p>Unable to load</p>;
     
     return (
         <PageLayout>
             <FeatureHeader title={data?.title} />
             <FeatureFilters filters={data?.filters} />
-            <FeatureList 
-                items={data?.items || []} 
-                onAction={(id) => actionMutation.mutate(id)} 
-            />
+            {items.length === 0 ? (
+                <EmptyState message="No items yet" />
+            ) : (
+                <FeatureList 
+                    items={items} 
+                    onAction={(id) => actionMutation.mutate(id)} 
+                />
+            )}
         </PageLayout>
     );
 };
 ```
 
 Each component referenced above would live in its own file with focused responsibility.
+
+## ⚠️ Loading States - CRITICAL UX Pattern
+
+**NEVER show empty states ("No items found") while data is loading.**
+
+### The Problem
+
+When using `data?.items || []` with unloaded data, the array is empty. If you check `items.length === 0`, 
+the UI incorrectly shows "No items" before data loads - a critical UX bug.
+
+### State Priority Chain
+
+Always check states in this exact order: **Loading → Error → Empty → Data**
+
+```typescript
+// ✅ CORRECT: Proper loading state handling
+function ItemsList() {
+    const { data, isLoading, error } = useItems();
+    const items = data?.items || [];
+
+    return (
+        <Card>
+            {isLoading ? (
+                <LoadingSpinner />
+            ) : error ? (
+                <ErrorMessage />
+            ) : !data ? (
+                <p>Unable to load</p>
+            ) : items.length === 0 ? (
+                <EmptyState />  // ONLY when truly empty
+            ) : (
+                <ItemList items={items} />
+            )}
+        </Card>
+    );
+}
+
+// ❌ WRONG: Shows "No items" during loading!
+function ItemsList() {
+    const { data } = useItems();
+    const items = data?.items || [];
+    
+    // BUG: items is [] when loading, so shows empty state!
+    return items.length === 0 
+        ? <p>No items</p> 
+        : <ItemList items={items} />;
+}
+```
+
+### Quick Reference
+
+| Cache State | `isLoading` | `data` | Show |
+|-------------|-------------|--------|------|
+| No cache, fetching | `true` | `undefined` | Loading |
+| Cache exists | `false` | cached | Data |
+| Failed | `false` | `undefined` | Error |
+| Success, empty | `false` | `[]` | Empty state |

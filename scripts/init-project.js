@@ -3,15 +3,15 @@
  Minimal interactive initializer for this template:
  1) Prompt for project name (default: folder name)
  2) Update src/app.config.js: appName and dbName
- 3) Create a local user in MongoDB: username "local_user_id", password "1234"
- 4) Write LOCAL_USER_ID in .env
+ 3) Create src/config/pwa.config.ts with PWA metadata
+ 4) Create a local user in MongoDB: username "local_user_id", password "1234"
+ 5) Write LOCAL_USER_ID in .env
 */
 
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 const readline = require('readline');
-const crypto = require('crypto');
 
 async function prompt(question, defaultValue) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -132,6 +132,79 @@ function ensureEnvFromParentOrEmpty() {
     }
 }
 
+function createPwaConfig(projectName, description, themeColor) {
+    const configDir = path.resolve(__dirname, '..', 'src', 'config');
+    const configPath = path.join(configDir, 'pwa.config.ts');
+
+    // Ensure config directory exists
+    if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    const content = `/**
+ * PWA Configuration - Project-specific values
+ *
+ * This file contains project-specific PWA metadata.
+ * Edit these values for your project.
+ * The _document.tsx file imports from here and should not need modification.
+ */
+
+export const pwaConfig = {
+  // App identity
+  applicationName: "${projectName}",
+  appleWebAppTitle: "${projectName}",
+  description: "${description}",
+
+  // Theme
+  themeColor: "${themeColor}",
+
+  // Icons - paths relative to /public
+  icons: {
+    appleTouchIcon: "/icons/apple-touch-icon.png",
+    appleTouchIcon152: "/icons/icon-152x152.png",
+    appleTouchIcon167: "/icons/icon-167x167.png",
+    appleTouchIcon180: "/icons/icon-180x180.png",
+    favicon32: "/favicon-32x32.png",
+    splashScreen: "/icons/icon-512x512.png",
+  },
+};
+`;
+
+    fs.writeFileSync(configPath, content, 'utf8');
+    return true;
+}
+
+function createManifest(projectName, description, themeColor) {
+    const manifestPath = path.resolve(__dirname, '..', 'public', 'manifest.json');
+
+    const manifest = {
+        name: projectName,
+        short_name: projectName,
+        description: description,
+        start_url: "/",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: themeColor,
+        orientation: "portrait",
+        icons: [
+            { src: "/icons/icon-72x72.png", sizes: "72x72", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-96x96.png", sizes: "96x96", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-128x128.png", sizes: "128x128", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-144x144.png", sizes: "144x144", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-167x167.png", sizes: "167x167", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-180x180.png", sizes: "180x180", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png", purpose: "any maskable" },
+            { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ],
+        splash_pages: null
+    };
+
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+    return true;
+}
+
 async function main() {
     ensureEnvFromParentOrEmpty();
 
@@ -142,6 +215,15 @@ async function main() {
     const changed = updateAppConfig(projectName, dbName);
     console.log(changed ? 'Updated src/app.config.js' : 'src/app.config.js already up to date');
 
+    // PWA configuration
+    const pwaDescription = await prompt('App Description', 'A custom SPA application with PWA capabilities');
+    const pwaThemeColor = await prompt('Theme Color (hex)', '#000000');
+
+    createPwaConfig(projectName, pwaDescription, pwaThemeColor);
+    console.log('Created src/config/pwa.config.ts');
+
+    createManifest(projectName, pwaDescription, pwaThemeColor);
+    console.log('Created public/manifest.json');
 
     const userId = await createLocalUserAndWriteEnv();
     console.log(`LOCAL_USER_ID set to ${userId} in .env`);

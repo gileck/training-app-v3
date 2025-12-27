@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "4b2ae08219f2d7cbefc42b0656c18d80ba11a1f5",
-  "lastProjectCommit": "233aa88bc1349ddcbe35ae97cd734662e2cfd6ed",
-  "lastSyncDate": "2025-12-25T10:57:48.995Z",
+  "lastSyncCommit": "8fdc63da03162171888192413737c95a8676e996",
+  "lastProjectCommit": "bf46ff85892bde39e18ba0edc2224641c0b45fa0",
+  "lastSyncDate": "2025-12-27T09:52:07.000Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -40,6 +40,22 @@
   ],
   "projectSpecificFiles": [],
   "syncHistory": [
+    {
+      "date": "2025-12-27T09:52:06.999Z",
+      "templateCommit": "8fdc63da03162171888192413737c95a8676e996",
+      "projectCommit": "bf46ff85892bde39e18ba0edc2224641c0b45fa0",
+      "filesApplied": 8,
+      "filesSkipped": 0,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "8fdc63d feat: add PWA config generation to init-project script \u001b[90m(27/12/2025)\u001b[0m\n  - Add prompts for app description and theme color\n  - Generate src/config/pwa.config.ts with user values\n  - Generate public/manifest.json with matching values\n  - Add pwa.config.ts and manifest.json to template ignore list\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "8223a3b refactor: extract PWA config from _document.tsx for easier template syncing \u001b[90m(27/12/2025)\u001b[0m\n  Move project-specific PWA metadata (app name, description, theme color, icons)\n  to a separate config file, making _document.tsx generic and mergeable.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "0376972 fix: remove confusing 'Not authenticated' error for first-time users \u001b[90m(27/12/2025)\u001b[0m\n  - Remove setError() call from useAuthValidation() validation failure handler\n  - /me validation failure is expected for first-time/logged-out users\n  - Only login/register mutations should display error messages\n  - Update authentication.md with error handling strategy documentation",
+        "fdd07ee Add modern iOS-style blue gradient PWA icons \u001b[90m(27/12/2025)\u001b[0m\n  - Add generate-icons.ts script for creating iOS-optimized PWA icons\n  - Generate all icon sizes (72x72 to 512x512) with iOS blue gradient design\n  - Add apple-touch-icon.png and favicon-32x32.png\n  - Update manifest.json with 167x167 and 180x180 iPad/iPhone sizes\n  - Update _document.tsx with correct apple-touch-icon references\n  - Add sharp as dev dependency for icon generation\n  - Remove placeholder.txt from icons folder\n  \n  The icons feature:\n  - iOS system blue gradient (#0A84FF → #007AFF → #5856D6)\n  - 22% corner radius matching iOS app icon specifications\n  - Subtle glass highlight effect for depth\n  - Minimal white center orb design element",
+        "1aa9369 fix: loading states showing false empty state before data loads \u001b[90m(27/12/2025)\u001b[0m\n  CRITICAL UX FIX: Components were showing 'No items' empty state while\n  data was still loading, confusing users with false empty states.\n  \n  Changes:\n  - Fix Todos.tsx to check loading state before showing empty state\n  - Add 'Loading States - CRITICAL UX Pattern' section to:\n    - app-guildelines/React-components-guidelines.md\n    - docs/state-management.md\n    - docs/caching-strategy.md\n    - .cursor/rules/react-component-organization.mdc\n  \n  The correct pattern is: Loading → Error → Empty → Data\n  - isLoading=true && !data → Loading spinner\n  - error → Error message\n  - !data → Unable to load\n  - data.length === 0 → Empty state (ONLY when truly empty)\n  - data.length > 0 → Show data",
+        "2ab3bbc feat(badge): add pending variant for pending status badges \u001b[90m(25/12/2025)\u001b[0m"
+      ]
+    },
     {
       "date": "2025-12-25T10:57:48.995Z",
       "templateCommit": "4b2ae08219f2d7cbefc42b0656c18d80ba11a1f5",

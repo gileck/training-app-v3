@@ -325,7 +325,7 @@ The files are preserved with "CURRENTLY UNUSED" comments. To re-enable:
 
 ```typescript
 // Use React Query for all server data
-const { data } = useQuery({
+const { data, isLoading, error } = useQuery({
     queryKey: ['items'],
     queryFn: fetchItems,
 });
@@ -337,6 +337,19 @@ import { QUERY_DEFAULTS, STORE_DEFAULTS } from '@/client/config';
 onSuccess: (data) => {
     if (data && data.id) { /* use data */ }
 },
+
+// ✅ CORRECT: Proper loading state handling - check states in order
+{isLoading ? (
+    <LoadingSpinner />
+) : error ? (
+    <ErrorMessage />
+) : !data ? (
+    <p>Unable to load</p>
+) : items.length === 0 ? (
+    <EmptyState />  // ONLY when truly empty
+) : (
+    <ItemList items={items} />
+)}
 ```
 
 ### DON'T ❌
@@ -352,7 +365,29 @@ const cache = new Map(); // BAD - use React Query
 onSuccess: (data) => {
     cache.set(data.id); // BAD - data may be {} when offline
 },
+
+// ❌ CRITICAL BUG: Don't show empty state without checking loading first
+const items = data?.items || [];
+{items.length === 0 ? (
+    <p>No items</p>  // BUG: Shows "No items" during loading!
+) : (
+    <ItemList items={items} />
+)}
 ```
+
+### Loading State Rule
+
+**Always check states in this order: Loading → Error → Empty → Data**
+
+| Cache State | `isLoading` | `data` | Show |
+|-------------|-------------|--------|------|
+| No cache, fetching | `true` | `undefined` | Loading spinner |
+| Cache exists | `false` | cached | Cached data (instant) |
+| Revalidating | `false` | cached | Cached data |
+| Failed | `false` | `undefined` | Error message |
+| Success, empty | `false` | `[]` | Empty state |
+
+See [State Management - Loading States](./state-management.md#️-loading-states---critical-ux-pattern) for detailed patterns.
 
 ---
 
