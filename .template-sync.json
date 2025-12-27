@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "8fdc63da03162171888192413737c95a8676e996",
-  "lastProjectCommit": "bf46ff85892bde39e18ba0edc2224641c0b45fa0",
-  "lastSyncDate": "2025-12-27T09:52:07.000Z",
+  "lastSyncCommit": "47423a8771770edf77d268f184fd008f78a61e8c",
+  "lastProjectCommit": "a95b901d1c5e00d96e9b81f131282de1ec09dc70",
+  "lastSyncDate": "2025-12-27T10:17:34.315Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,19 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2025-12-27T10:17:34.315Z",
+      "templateCommit": "47423a8771770edf77d268f184fd008f78a61e8c",
+      "projectCommit": "a95b901d1c5e00d96e9b81f131282de1ec09dc70",
+      "filesApplied": 1,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "47423a8 feat: add --modified-only flag to sync-template diff-summary \u001b[90m(27/12/2025)\u001b[0m\n  Adds a new --modified-only option to show only files that differ from the\n  template, excluding:\n  - New files (in template but not in project)\n  - Ignored files (matching ignoredFiles patterns)\n  - Project-specific files (matching projectSpecificFiles patterns)\n  \n  This is useful for reviewing what has changed in existing shared files\n  without the noise of project-specific customizations or new template features.\n  \n  Usage:\n    yarn sync-template --diff-summary --modified-only\n  \n  The output will show only the \"Modified\" section with diffs of files that\n  exist in both the template and project but have diverged.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "0dbc894 feat: sync UX improvements from training-app-v3 \u001b[90m(27/12/2025)\u001b[0m\n  Toast component:\n  - Better theme-aware styling with bg-card and border-border\n  - Mobile-friendly positioning (bottom-20, left-4, right-4)\n  - Pointer-events handling for better interaction\n  - Enhanced shadow for better visibility\n  \n  Reports component:\n  - Add persistent filter state via Zustand store\n  - Fix critical loading state bug (check isLoading || data === undefined)\n  - Prevents showing \"No reports\" during data fetch\n  - Filters now survive page refresh\n  \n  This implements the critical UX pattern documented in our loading states guidelines.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "9181fd3 docs: sync documentation with training-app-v3 improvements \u001b[90m(27/12/2025)\u001b[0m\n  - Add critical loading states pattern to react-hook-organization.mdc\n  - Improve error handling documentation in authentication.md\n  - Expand loading states section in state-management.md\n  - Emphasize correct state checking order: Loading → Error → Empty → Data\n  \n  These updates prevent common UX bugs where empty states appear during loading.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2025-12-27T09:52:06.999Z",
       "templateCommit": "8fdc63da03162171888192413737c95a8676e996",

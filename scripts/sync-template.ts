@@ -14,6 +14,7 @@
  *   --force                  Force update even if there are uncommitted changes
  *   --diff-summary           Generate a diff summary file showing all template changes
  *   --skip-ignored           Skip ignored files in diff-summary output
+ *   --modified-only          Show only modified files (excludes new, ignored, project-specific)
  *   --changelog              Show template commits since last sync (no sync)
  *   --show-drift             Show total project drift with full file list (no sync)
  *   --validate               Run 'yarn checks' after sync to verify changes
@@ -103,6 +104,7 @@ interface SyncOptions {
   autoMode: AutoMode;
   diffSummary: boolean;
   skipIgnored: boolean;
+  modifiedOnly: boolean;
   changelog: boolean;
   showDrift: boolean;
   validate: boolean;
@@ -1673,9 +1675,11 @@ class TemplateSyncTool {
       
       console.log('');
 
-      // Compare files - include ignored files unless --skip-ignored is set
-      const includeIgnored = !this.options.skipIgnored;
-      if (includeIgnored) {
+      // Compare files - include ignored files unless --skip-ignored or --modified-only is set
+      const includeIgnored = !this.options.skipIgnored && !this.options.modifiedOnly;
+      if (this.options.modifiedOnly) {
+        console.log('🔍 Comparing template with project (modified files only)...');
+      } else if (includeIgnored) {
         console.log('🔍 Comparing template with project (including ignored files)...');
       } else {
         console.log('🔍 Comparing template with project (skipping ignored files)...');
@@ -1694,7 +1698,11 @@ class TemplateSyncTool {
       lines.push(`Generated: ${new Date().toISOString()}`);
       lines.push(`Template: ${this.config.templateRepo}`);
       lines.push(`Template Commit: ${templateCommit}`);
-      lines.push(includeIgnored ? '' : 'Note: Ignored files were excluded (--skip-ignored)');
+      if (this.options.modifiedOnly) {
+        lines.push('Mode: Modified files only (new, ignored, and project-specific files excluded)');
+      } else if (!includeIgnored) {
+        lines.push('Note: Ignored files were excluded (--skip-ignored)');
+      }
       lines.push('');
       lines.push('This file shows differences between the template and your current project.');
       lines.push('');
@@ -1711,7 +1719,10 @@ class TemplateSyncTool {
         if (this.shouldIgnore(change.path) || this.shouldIgnoreByProjectSpecificFiles(change.path)) {
           ignoredFiles.push(change);
         } else if (change.status === 'added') {
-          newFiles.push(change);
+          // Skip new files if --modified-only is set
+          if (!this.options.modifiedOnly) {
+            newFiles.push(change);
+          }
         } else if (change.status === 'modified') {
           modifiedFiles.push(change);
         }
@@ -1720,12 +1731,18 @@ class TemplateSyncTool {
       // Summary section
       lines.push('## Summary');
       lines.push('');
-      lines.push(`- **New in template** (not in project): ${newFiles.length} files`);
+      if (!this.options.modifiedOnly) {
+        lines.push(`- **New in template** (not in project): ${newFiles.length} files`);
+      }
       lines.push(`- **Modified** (different from template): ${modifiedFiles.length} files`);
       if (includeIgnored) {
         lines.push(`- **Ignored** (in ignore list): ${ignoredFiles.length} files`);
       }
-      lines.push(`- **Total differences**: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      if (this.options.modifiedOnly) {
+        lines.push(`- **Total**: ${modifiedFiles.length} modified files`);
+      } else {
+        lines.push(`- **Total differences**: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      }
       lines.push('');
 
       // Table of contents
@@ -1799,14 +1816,22 @@ class TemplateSyncTool {
       console.log('='.repeat(60));
       console.log(`\n✅ Output written to: ${DIFF_SUMMARY_FILE}`);
       console.log(`\n📈 Summary:`);
-      console.log(`   • New in template: ${newFiles.length} files`);
+      if (!this.options.modifiedOnly) {
+        console.log(`   • New in template: ${newFiles.length} files`);
+      }
       console.log(`   • Modified: ${modifiedFiles.length} files`);
       if (includeIgnored) {
         console.log(`   • Ignored: ${ignoredFiles.length} files`);
       }
-      console.log(`   • Total: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      if (this.options.modifiedOnly) {
+        console.log(`   • Total: ${modifiedFiles.length} modified files`);
+      } else {
+        console.log(`   • Total: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      }
       console.log('\n💡 Run "yarn sync-template" to see which changes can be safely applied.');
-      if (!includeIgnored) {
+      if (this.options.modifiedOnly) {
+        console.log('   Note: Showing modified files only. Remove --modified-only to see all changes.');
+      } else if (!includeIgnored) {
         console.log('   Note: Ignored files were excluded. Remove --skip-ignored to include them.');
       }
 
@@ -2124,6 +2149,7 @@ const options: SyncOptions = {
   autoMode,
   diffSummary: args.includes('--diff-summary'),
   skipIgnored: args.includes('--skip-ignored'),
+  modifiedOnly: args.includes('--modified-only'),
   changelog: args.includes('--changelog'),
   showDrift: args.includes('--show-drift'),
   validate: args.includes('--validate'),
