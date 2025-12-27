@@ -315,73 +315,20 @@ export function Home() {
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // Loading state for plans - show skeleton while fetching (no cached data yet)
-    // IMPORTANT: Check loading BEFORE checking for empty plans to avoid flash of empty state
-    if (plansLoading || plansData === undefined) {
-        return (
-            <div className="p-4 pb-20 space-y-4">
-                {/* Week Navigator Skeleton */}
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="text-center space-y-2">
-                                <Skeleton className="h-6 w-32 mx-auto" />
-                                <Skeleton className="h-4 w-24 mx-auto" />
-                            </div>
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                        </div>
-                    </CardContent>
-                </Card>
+    // =========================================================================
+    // UNIFIED LOADING STATE
+    // =========================================================================
+    // Show ONE loading skeleton for ALL initial data fetching to avoid flicker.
+    // This covers: plans loading, week progress loading, or any missing data.
+    // Only proceed to content when we have ALL required data.
+    
+    const isInitialLoading = 
+        // Plans haven't loaded yet
+        (plansLoading || plansData === undefined) ||
+        // Plans loaded with active plan, but week data hasn't loaded yet
+        (activePlanId && activePlan && (weekLoading || weekData === undefined));
 
-                {/* Progress Card Skeleton */}
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="p-5 space-y-4">
-                        <div className="flex justify-between items-start">
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-28" />
-                                <Skeleton className="h-8 w-16" />
-                            </div>
-                            <div className="text-right space-y-2">
-                                <Skeleton className="h-6 w-12 ml-auto" />
-                                <Skeleton className="h-4 w-16 ml-auto" />
-                            </div>
-                        </div>
-                        <Skeleton className="h-3 w-full rounded-full" />
-                        <Skeleton className="h-4 w-32 mx-auto" />
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    // No plan selected - only show AFTER we know plans have loaded (plansData is defined)
-    if (!activePlanId || !activePlan) {
-        return (
-            <div className="p-4 pb-20 space-y-4">
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                            {plans.length === 0 ? 'No training plans' : 'No active plan'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-4 text-center">
-                            {plans.length === 0
-                                ? 'Create a training plan to start tracking your workouts'
-                                : 'Set a plan as active to start tracking'}
-                        </p>
-                        <Button onClick={() => navigate('/training-plans')}>
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {plans.length === 0 ? 'Create Plan' : 'View Plans'}
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    // Loading state
-    if (weekLoading && !weekData) {
+    if (isInitialLoading) {
         return (
             <div className="p-4 pb-20 space-y-4">
                 {/* Week Navigator Skeleton */}
@@ -389,7 +336,10 @@ export function Home() {
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-4">
                             <Skeleton className="h-10 w-10 rounded-full" />
-                            <Skeleton className="h-6 w-32" />
+                            <div className="text-center space-y-2">
+                                <Skeleton className="h-6 w-32 mx-auto" />
+                                <Skeleton className="h-4 w-24 mx-auto" />
+                            </div>
                             <Skeleton className="h-10 w-10 rounded-full" />
                         </div>
                         <Skeleton className="h-3 w-full rounded-full mb-2" />
@@ -416,6 +366,31 @@ export function Home() {
                         </CardContent>
                     </Card>
                 ))}
+            </div>
+        );
+    }
+
+    // No plan selected - only show AFTER we know plans have loaded (plansData is defined)
+    if (!activePlanId || !activePlan) {
+        return (
+            <div className="p-4 pb-20 space-y-4">
+                <Card className="rounded-2xl border-0 shadow-sm">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">
+                            {plans.length === 0 ? 'No training plans' : 'No active plan'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4 text-center">
+                            {plans.length === 0
+                                ? 'Create a training plan to start tracking your workouts'
+                                : 'Set a plan as active to start tracking'}
+                        </p>
+                        <Button onClick={() => navigate('/training-plans')}>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {plans.length === 0 ? 'Create Plan' : 'View Plans'}
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
