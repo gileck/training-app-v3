@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
-  "lastProjectCommit": "577351b8f96b73dc5c770ddda964be5ec0779ea2",
-  "lastSyncDate": "2025-12-27T10:31:40.812Z",
+  "lastSyncCommit": "8992688afa9b1d87727ff7c97b7168138b777d55",
+  "lastProjectCommit": "9a8f8d521a81f4a46b906fa00893e8224bc54901",
+  "lastSyncDate": "2025-12-27T12:41:55.362Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,19 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2025-12-27T12:41:55.362Z",
+      "templateCommit": "8992688afa9b1d87727ff7c97b7168138b777d55",
+      "projectCommit": "9a8f8d521a81f4a46b906fa00893e8224bc54901",
+      "filesApplied": 2,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "8992688 docs: expand CLAUDE.md with template sync and compliance checklist \u001b[90m(27/12/2025)\u001b[0m\n  - Add Template Sync section with commands and conflict resolution\n  - Expand Guidelines Compliance Checklist with:\n    - MongoDB usage guidelines\n    - State management checks\n    - Offline/PWA support patterns\n    - UI & styling requirements\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "7f4d0a3 docs: add CLAUDE.md with project guidelines for Claude Code \u001b[90m(27/12/2025)\u001b[0m\n  Comprehensive guidelines document summarizing:\n  - Architecture overview and project structure\n  - State management (Zustand + React Query)\n  - Authentication with instant-boot pattern\n  - Caching strategy and offline/PWA support\n  - Client-server communication patterns\n  - React component organization\n  - UI/styling with shadcn/ui\n  - TypeScript guidelines\n  - Guidelines compliance checklist\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "44754e0 fix: use normal text instead of grey for existing differences \u001b[90m(27/12/2025)\u001b[0m\n  Grey text was hard to see in the terminal. Changed existing differences\n  to use normal text for better readability.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2025-12-27T10:31:40.812Z",
       "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",

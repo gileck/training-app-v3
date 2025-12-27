@@ -562,9 +562,9 @@ class TemplateSyncTool {
     // Show EXISTING safe changes (from before last sync)
     if (existingSafeChanges.length > 0) {
       console.log(`\n✅ Safe changes - existing differences (${existingSafeChanges.length} files):`);
-      console.log('   \x1b[90mDifferent from template (unchanged since last sync):\x1b[0m');
+      console.log('   Different from template (unchanged since last sync):');
       existingSafeChanges.forEach(f =>
-        console.log(`   \x1b[90m• ${f.path}\x1b[0m`)
+        console.log(`   • ${f.path}`)
       );
     }
 
@@ -582,9 +582,9 @@ class TemplateSyncTool {
 
     if (existingConflicts.length > 0) {
       console.log(`\n⚠️  Conflicts - existing differences (${existingConflicts.length} files):`);
-      console.log('   \x1b[90mChanged in both (template unchanged since last sync):\x1b[0m');
+      console.log('   Changed in both (template unchanged since last sync):');
       existingConflicts.forEach(f =>
-        console.log(`   \x1b[90m• ${f.path}\x1b[0m`)
+        console.log(`   • ${f.path}`)
       );
     }
 
