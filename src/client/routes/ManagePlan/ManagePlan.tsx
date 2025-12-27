@@ -75,12 +75,14 @@ export function ManagePlan() {
     const deleteExerciseDefMutation = useDeleteExercise();
 
     // Saved workouts
-    const { data: savedWorkoutsData } = useSavedWorkouts();
+    const { data: savedWorkoutsData, isLoading: savedWorkoutsLoading } = useSavedWorkouts();
     const createWorkoutMutation = useCreateSavedWorkout();
     const updateWorkoutMutation = useUpdateSavedWorkout();
     const deleteWorkoutMutation = useDeleteSavedWorkout();
     const reorderWorkoutsMutation = useReorderSavedWorkouts();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
+    // Check if saved workouts data has loaded (for proper empty state display)
+    const hasSavedWorkoutsData = savedWorkoutsData !== undefined;
 
     // Persistent UI state from store
     const activeTab = useManagePlanStore((state) => state.activeTab);
@@ -886,7 +888,25 @@ export function ManagePlan() {
                     </div>
 
                     {/* Workouts list */}
-                    {savedWorkouts.length === 0 ? (
+                    {/* Loading state - show skeleton while saved workouts are loading */}
+                    {(savedWorkoutsLoading || !hasSavedWorkoutsData) ? (
+                        <div className="space-y-3">
+                            {[1, 2].map((i) => (
+                                <Card key={i} className="rounded-xl border-0 shadow-sm">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-5 w-32" />
+                                                <Skeleton className="h-4 w-20" />
+                                            </div>
+                                            <Skeleton className="h-8 w-8 rounded-full" />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : savedWorkouts.length === 0 ? (
+                        /* Empty state - only show when data loaded AND truly empty */
                         <Card className="rounded-2xl border-0 shadow-sm">
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
