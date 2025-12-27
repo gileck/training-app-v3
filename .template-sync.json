@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "8992688afa9b1d87727ff7c97b7168138b777d55",
-  "lastProjectCommit": "9a8f8d521a81f4a46b906fa00893e8224bc54901",
-  "lastSyncDate": "2025-12-27T12:41:55.362Z",
+  "lastSyncCommit": "9147cbec649c9b32ed9cc709f1f4eeb9f4a0c953",
+  "lastProjectCommit": "dadbb6a2146168620da45381040a1f1b550dfe5b",
+  "lastSyncDate": "2025-12-27T16:09:33.533Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,17 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2025-12-27T16:09:33.532Z",
+      "templateCommit": "9147cbec649c9b32ed9cc709f1f4eeb9f4a0c953",
+      "projectCommit": "dadbb6a2146168620da45381040a1f1b550dfe5b",
+      "filesApplied": 6,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "9147cbe feat: add Claude Code custom slash commands \u001b[90m(27/12/2025)\u001b[0m\n  Migrate Cursor commands to .claude/commands/ for Claude Code CLI:\n  - fix-bug: systematic bug fixing workflow\n  - new-feature: feature implementation workflow\n  - review-document-and-push: code review and push workflow\n  - debug-bug-report: analyze bug/error reports\n  - sync-template: sync updates from template repo\n  - template-diff: compare project with template\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2025-12-27T12:41:55.362Z",
       "templateCommit": "8992688afa9b1d87727ff7c97b7168138b777d55",
