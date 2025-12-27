@@ -742,6 +742,102 @@ const [inputValue, setInputValue] = useState('');
 
 ---
 
+## 🚨 CRITICAL: Correct Loading State Pattern
+
+**NEVER show empty state before data is loaded.** This is a common bug that confuses users.
+
+### The Problem
+
+When using React Query, `isLoading` is only `true` during the **initial fetch with no cached data**. If the cache is empty (cache miss), React Query will:
+1. Set `isLoading = true`
+2. Fetch data
+3. Set `isLoading = false`, `data = fetched data`
+
+However, if you check only `isLoading`, you might show empty state incorrectly when:
+- Cache was restored but was empty
+- Query was enabled later
+- Data hasn't arrived yet
+
+### ❌ WRONG Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // WRONG: Only checks isLoading
+    if (isLoading) {
+        return <Skeleton />;
+    }
+
+    // BUG: Shows "No items" even if data hasn't loaded yet!
+    if (items.length === 0) {
+        return <EmptyState />;
+    }
+
+    return <ItemsList items={items} />;
+}
+```
+
+### ✅ CORRECT Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // CORRECT: Check both isLoading AND data existence
+    // Show loading when:
+    // 1. Initial fetch with no cache (isLoading)
+    // 2. OR no data exists yet (before first fetch completes)
+    if (isLoading || data === undefined) {
+        return <Skeleton />;
+    }
+
+    // Now we know data has been fetched - it's safe to check for empty
+    if (items.length === 0) {
+        return <EmptyState />;
+    }
+
+    return <ItemsList items={items} />;
+}
+```
+
+### Key Rules
+
+1. **Always check `data === undefined`** alongside `isLoading` for the loading state
+2. **Only show empty state** when `data` is defined AND the array is empty
+3. **Show cached data immediately** - if `data` exists (from cache), show it while `isFetching` refreshes in background
+4. **Use skeleton loaders** not spinners for better UX (per app design guidelines)
+
+### Helper Pattern
+
+For cleaner code, compute a `showLoading` variable:
+
+```typescript
+const { data, isLoading, error } = useMyQuery();
+
+// Determine if we should show loading state
+const showLoading = isLoading || data === undefined;
+
+// In render:
+if (showLoading) return <Skeleton />;
+if (error) return <ErrorState />;
+if (data.items.length === 0) return <EmptyState />;
+return <ItemsList items={data.items} />;
+```
+
+### Cache Behavior Summary
+
+| Cache State | `isLoading` | `data` | What to Show |
+|-------------|-------------|--------|--------------|
+| No cache, fetching | `true` | `undefined` | **Loading skeleton** |
+| Cache miss, fetch done | `false` | `{ items: [] }` | **Empty state** |
+| Cache hit (has data) | `false` | `{ items: [...] }` | **Data** |
+| Cache hit, refetching | `false` | `{ items: [...] }` | **Data** (with optional refresh indicator) |
+
+---
+
 ## Key Files Reference
 
 | File | Purpose |

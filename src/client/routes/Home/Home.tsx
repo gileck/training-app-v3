@@ -122,7 +122,7 @@ export function Home() {
     const toggleAutoStartTimer = useToggleAutoStartTimer();
 
     // Saved workouts data
-    const { data: savedWorkoutsData } = useSavedWorkouts();
+    const { data: savedWorkoutsData, isLoading: savedWorkoutsLoading } = useSavedWorkouts();
 
     // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
     // Used to position selection bar above the bottom navbar on mobile
@@ -631,8 +631,27 @@ export function Home() {
                         Manage Workouts
                     </Button>
 
-                    {/* Empty State */}
-                    {savedWorkouts.length === 0 && (
+                    {/* Loading State - show skeleton when loading without cached data */}
+                    {(savedWorkoutsLoading || savedWorkoutsData === undefined) && (
+                        <div className="space-y-3">
+                            {[1, 2].map((i) => (
+                                <Card key={i} className="rounded-xl border-0 shadow-sm">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-5 w-32" />
+                                                <Skeleton className="h-4 w-20" />
+                                            </div>
+                                            <Skeleton className="h-10 w-10 rounded-full" />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Empty State - only show when data loaded AND truly empty */}
+                    {savedWorkoutsData !== undefined && savedWorkouts.length === 0 && (
                         <Card className="rounded-2xl border-0 shadow-sm">
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
@@ -652,7 +671,7 @@ export function Home() {
                     )}
 
                     {/* Saved Workouts List */}
-                    {savedWorkouts.length > 0 && (
+                    {savedWorkoutsData !== undefined && savedWorkouts.length > 0 && (
                         <div className="space-y-3">
                             {savedWorkouts.map((workout) => (
                                 <SavedWorkoutCard

@@ -168,7 +168,10 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         deleteActivityMutation.mutate({ activityId });
     };
 
-    if (isLoading) {
+    // Show loading when:
+    // 1. Initial fetch with no cache (isLoading)
+    // 2. OR no data exists yet (before first fetch completes)
+    if (isLoading || data === undefined) {
         return (
             <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -184,6 +187,7 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         );
     }
 
+    // Only show empty state when data has been fetched and is truly empty
     if (activities.length === 0) {
         return (
             <Card className="rounded-xl">
@@ -232,7 +236,10 @@ function DailySummaries({ dateRange }: { dateRange: DateRange }) {
     const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
     const summaries = data?.summaries || [];
 
-    if (isLoading) {
+    // Show loading when:
+    // 1. Initial fetch with no cache (isLoading)
+    // 2. OR no data exists yet (before first fetch completes)
+    if (isLoading || data === undefined) {
         return (
             <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -256,6 +263,7 @@ function DailySummaries({ dateRange }: { dateRange: DateRange }) {
         );
     }
 
+    // Only show empty state when data has been fetched and is truly empty
     if (summaries.length === 0) {
         return (
             <Card className="rounded-xl">
@@ -334,7 +342,10 @@ function ProgressCharts({ dateRange }: { dateRange: DateRange }) {
     const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
     const summaries = data?.summaries || [];
 
-    if (isLoading) {
+    // Show loading when:
+    // 1. Initial fetch with no cache (isLoading)
+    // 2. OR no data exists yet (before first fetch completes)
+    if (isLoading || data === undefined) {
         return (
             <div className="space-y-4">
                 <Card className="rounded-xl">
@@ -347,6 +358,7 @@ function ProgressCharts({ dateRange }: { dateRange: DateRange }) {
         );
     }
 
+    // Only show empty state when data has been fetched and is truly empty
     if (summaries.length === 0) {
         return (
             <Card className="rounded-xl">

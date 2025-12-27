@@ -602,6 +602,11 @@ export function Reports() {
         sortOrder,
     });
 
+    // Determine if we should show loading state:
+    // - isLoading is true when fetching without cached data
+    // - reports is undefined when no data exists yet (before first fetch completes)
+    const showLoading = isLoading || reports === undefined;
+
     const deleteAllMutation = useDeleteAllReports();
 
     const handleDeleteAll = () => {
@@ -631,7 +636,7 @@ export function Reports() {
                         )}
                     </div>
                 </div>
-                {reports && reports.length > 0 && (
+                {!showLoading && reports && reports.length > 0 && (
                     <Button
                         variant="ghost"
                         size="sm"
@@ -722,7 +727,7 @@ export function Reports() {
             />
 
             {/* Reports List */}
-            {isLoading ? (
+            {showLoading ? (
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
