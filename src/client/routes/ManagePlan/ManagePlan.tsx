@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare, Copy, Bookmark } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Dumbbell, Search, ChevronUp, ChevronDown, Sparkles, ArrowUpDown, Check, X, Filter, ListChecks, MessageSquare, Copy, Bookmark, List, LayoutGrid } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -108,6 +108,8 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const setFilterType = useManagePlanStore((state) => state.setFilterType);
     const filterSource = useManagePlanStore((state) => state.filterSource);
     const setFilterSource = useManagePlanStore((state) => state.setFilterSource);
+    const exerciseViewMode = useManagePlanStore((state) => state.exerciseViewMode);
+    const setExerciseViewMode = useManagePlanStore((state) => state.setExerciseViewMode);
 
     // Update tab when query param changes (for deep linking)
     useEffect(() => {
@@ -165,6 +167,8 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const [showMultiConfig, setShowMultiConfig] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral notes dialog
     const [notesDialogExerciseId, setNotesDialogExerciseId] = useState<string | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dismiss state
+    const [showCreateExerciseBanner, setShowCreateExerciseBanner] = useState(true);
 
     // Workouts tab state - unified create/edit dialog
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -763,7 +767,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                 <ArrowUpDown className="h-4 w-4" />
                             </Button>
                         )}
-                        <Button onClick={() => setAddSheetOpen(true)} className="rounded-xl">
+                        <Button onClick={() => { setAddSheetOpen(true); setShowCreateExerciseBanner(true); }} className="rounded-xl">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Exercise
                         </Button>
@@ -778,7 +782,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                         <p className="text-sm text-muted-foreground mb-4 text-center">
                             Add exercises from the library to build your plan
                         </p>
-                        <Button onClick={() => setAddSheetOpen(true)}>
+                        <Button onClick={() => { setAddSheetOpen(true); setShowCreateExerciseBanner(true); }}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Exercise
                         </Button>
@@ -1185,19 +1189,33 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                     ) : (
                         /* Exercise library browser */
                         <div className="flex-1 overflow-hidden flex flex-col px-5 py-4">
-                            {/* Create Custom Exercise - Prominent */}
-                            <button
-                                onClick={() => setCreateExerciseOpen(true)}
-                                className="w-full mb-4 p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex items-center justify-center gap-3 group"
-                            >
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                    <Sparkles className="h-5 w-5 text-primary" />
+                            {/* Create Custom Exercise - Compact */}
+                            {showCreateExerciseBanner && (
+                                <div className="relative mb-3">
+                                    <button
+                                        onClick={() => setCreateExerciseOpen(true)}
+                                        className="w-full p-2.5 rounded-xl border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex items-center gap-2.5 group"
+                                    >
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                                            <Sparkles className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div className="text-left min-w-0 flex-1">
+                                            <p className="font-medium text-sm text-foreground">Create Custom Exercise</p>
+                                            <p className="text-xs text-muted-foreground truncate">Add your own exercise to the library</p>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowCreateExerciseBanner(false);
+                                        }}
+                                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center transition-colors"
+                                        aria-label="Dismiss"
+                                    >
+                                        <X className="h-3 w-3 text-muted-foreground" />
+                                    </button>
                                 </div>
-                                <div className="text-left">
-                                    <p className="font-semibold text-foreground">Create Custom Exercise</p>
-                                    <p className="text-sm text-muted-foreground">Add your own exercise to the library</p>
-                                </div>
-                            </button>
+                            )}
 
                             {/* Search and Filter Row */}
                             <div className="flex gap-2 mb-3">
@@ -1296,51 +1314,196 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                 </DialogContent>
                             </Dialog>
 
-                            {/* Multi-select toggle */}
+                            {/* Multi-select toggle and view mode */}
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-sm text-muted-foreground">
                                     {sortedFilteredLibrary.length} exercise{sortedFilteredLibrary.length !== 1 ? 's' : ''}
                                 </p>
-                                <button
-                                    onClick={() => {
-                                        setIsMultiSelectMode(!isMultiSelectMode);
-                                        if (isMultiSelectMode) {
-                                            setSelectedExercises(new Map());
-                                            setShowMultiConfig(false);
-                                        }
-                                    }}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                        isMultiSelectMode 
-                                            ? 'bg-primary text-primary-foreground' 
-                                            : 'bg-muted text-muted-foreground hover:text-foreground'
-                                    }`}
-                                >
-                                    <ListChecks className="h-4 w-4" />
-                                    Multi-select
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    {/* View mode toggle */}
+                                    <div className="flex items-center rounded-lg bg-muted p-0.5">
+                                        <button
+                                            onClick={() => setExerciseViewMode('list')}
+                                            className={`p-1.5 rounded-md transition-colors ${
+                                                exerciseViewMode === 'list'
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                            aria-label="List view"
+                                        >
+                                            <List className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => setExerciseViewMode('grid')}
+                                            className={`p-1.5 rounded-md transition-colors ${
+                                                exerciseViewMode === 'grid'
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                            aria-label="Grid view"
+                                        >
+                                            <LayoutGrid className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    {/* Multi-select toggle */}
+                                    <button
+                                        onClick={() => {
+                                            setIsMultiSelectMode(!isMultiSelectMode);
+                                            if (isMultiSelectMode) {
+                                                setSelectedExercises(new Map());
+                                                setShowMultiConfig(false);
+                                            }
+                                        }}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            isMultiSelectMode
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <ListChecks className="h-4 w-4" />
+                                        Multi-select
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Exercise List */}
                             <div className="flex-1 overflow-y-auto -mx-5 px-5">
                                 {libraryLoading ? (
-                                    <div className="divide-y divide-border">
-                                        {[1, 2, 3, 4, 5].map((i) => (
-                                            <div key={i} className="flex items-center gap-4 py-3">
-                                                <Skeleton className="h-14 w-14 rounded-lg" />
-                                                <div className="space-y-2">
-                                                    <Skeleton className="h-4 w-32" />
-                                                    <Skeleton className="h-3 w-24" />
+                                    exerciseViewMode === 'grid' ? (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                                <div key={i} className="rounded-xl bg-muted/50 overflow-hidden">
+                                                    <Skeleton className="aspect-square w-full" />
+                                                    <div className="p-3 space-y-2">
+                                                        <Skeleton className="h-4 w-3/4" />
+                                                        <Skeleton className="h-3 w-1/2" />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-border">
+                                            {[1, 2, 3, 4, 5].map((i) => (
+                                                <div key={i} className="flex items-center gap-4 py-3">
+                                                    <Skeleton className="h-14 w-14 rounded-lg" />
+                                                    <div className="space-y-2">
+                                                        <Skeleton className="h-4 w-32" />
+                                                        <Skeleton className="h-3 w-24" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
                                 ) : sortedFilteredLibrary.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">
                                         {searchQuery || hasActiveFilters
                                             ? 'No exercises match your filters'
                                             : 'No exercises found'}
                                     </div>
+                                ) : exerciseViewMode === 'grid' ? (
+                                    /* Grid View */
+                                    <div className="grid grid-cols-2 gap-3 py-1">
+                                        {sortedFilteredLibrary.map((exercise) => {
+                                            const isInPlan = addedExerciseIds.has(exercise._id);
+                                            const isSelected = selectedExercises.has(exercise._id);
+                                            return (
+                                                <button
+                                                    key={exercise._id}
+                                                    onClick={() => {
+                                                        if (isInPlan) return;
+                                                        if (isMultiSelectMode) {
+                                                            handleToggleMultiSelect(exercise);
+                                                        } else {
+                                                            handleSelectExercise(exercise);
+                                                        }
+                                                    }}
+                                                    disabled={isInPlan}
+                                                    className={`relative rounded-xl overflow-hidden text-left transition-all active:scale-[0.98] ring-2 ${
+                                                        isInPlan
+                                                            ? 'opacity-60 cursor-default ring-transparent'
+                                                            : isSelected
+                                                            ? 'ring-primary'
+                                                            : 'ring-transparent hover:ring-muted-foreground/20'
+                                                    }`}
+                                                >
+                                                    {/* Image */}
+                                                    <div className="aspect-square w-full bg-muted relative">
+                                                        {exercise.imageUrl ? (
+                                                            <Image
+                                                                src={exercise.imageUrl}
+                                                                alt={exercise.name}
+                                                                fill
+                                                                className="object-contain"
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <Dumbbell className="h-12 w-12 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        {/* Status overlay */}
+                                                        {(isInPlan || isSelected) && (
+                                                            <div className={`absolute inset-0 flex items-center justify-center ${
+                                                                isInPlan ? 'bg-primary/20' : 'bg-primary/30'
+                                                            }`}>
+                                                                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                                                                    <Check className="h-6 w-6 text-primary-foreground" />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {/* Custom exercise actions */}
+                                                        {!exercise.isSystem && (
+                                                            <div className="absolute top-2 right-2 flex gap-1">
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="icon"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEditExerciseDef(exercise);
+                                                                    }}
+                                                                    className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm"
+                                                                >
+                                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="icon"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteExerciseDefClick(exercise);
+                                                                    }}
+                                                                    className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm text-destructive hover:text-destructive"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {/* Info */}
+                                                    <div className="p-3 bg-card">
+                                                        <div className="flex items-start gap-1 mb-1">
+                                                            <p className="font-medium text-sm leading-tight line-clamp-2 flex-1">{exercise.name}</p>
+                                                            {isInPlan && (
+                                                                <Badge variant="outline" className="text-[10px] shrink-0 text-primary border-primary/50 px-1.5 py-0">
+                                                                    In Plan
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {exercise.primaryMuscle} • {exercise.type}
+                                                        </p>
+                                                        {!exercise.isSystem && (
+                                                            <Badge variant="secondary" className="text-[10px] mt-1.5 px-1.5 py-0">
+                                                                Custom
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 ) : (
+                                    /* List View */
                                     <div className="divide-y divide-border/50">
                                         {sortedFilteredLibrary.map((exercise) => {
                                             const isInPlan = addedExerciseIds.has(exercise._id);
