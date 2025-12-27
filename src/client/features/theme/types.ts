@@ -36,7 +36,11 @@ export interface BaseThemeColors {
     
     // Status colors
     success: string;
+    successForeground: string;
     warning: string;
+    warningForeground: string;
+    info: string;
+    infoForeground: string;
 }
 
 /**
@@ -165,7 +169,11 @@ export const colorToCssVar: Record<keyof ThemeColors, string> = {
     input: '--input',
     ring: '--ring',
     success: '--success',
+    successForeground: '--success-foreground',
     warning: '--warning',
+    warningForeground: '--warning-foreground',
+    info: '--info',
+    infoForeground: '--info-foreground',
     header: '--header',
     headerForeground: '--header-foreground',
     footer: '--footer',

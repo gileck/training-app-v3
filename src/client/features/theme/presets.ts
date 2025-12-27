@@ -35,7 +35,11 @@ const defaultTheme: ThemePreset = {
         input: '220 25% 88%',
         ring: '221 83% 53%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '222 47% 6%',
@@ -58,7 +62,11 @@ const defaultTheme: ThemePreset = {
         input: '217 33% 17%',
         ring: '217 91% 60%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -90,7 +98,11 @@ const oceanTheme: ThemePreset = {
         input: '185 28% 85%',
         ring: '175 84% 32%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '199 89% 48%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '192 47% 6%',
@@ -113,7 +125,11 @@ const oceanTheme: ThemePreset = {
         input: '187 33% 17%',
         ring: '175 70% 41%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '199 89% 48%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -145,7 +161,11 @@ const forestTheme: ThemePreset = {
         input: '140 20% 84%',
         ring: '142 71% 35%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '140 47% 6%',
@@ -168,7 +188,11 @@ const forestTheme: ThemePreset = {
         input: '137 33% 17%',
         ring: '142 70% 45%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -200,7 +224,11 @@ const sunsetTheme: ThemePreset = {
         input: '38 30% 82%',
         ring: '25 95% 53%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '30 47% 6%',
@@ -223,7 +251,11 @@ const sunsetTheme: ThemePreset = {
         input: '28 33% 17%',
         ring: '25 95% 55%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -255,7 +287,11 @@ const roseTheme: ThemePreset = {
         input: '350 30% 85%',
         ring: '346 77% 50%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '340 47% 6%',
@@ -278,7 +314,11 @@ const roseTheme: ThemePreset = {
         input: '342 33% 17%',
         ring: '346 77% 55%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -310,7 +350,11 @@ const midnightTheme: ThemePreset = {
         input: '262 25% 84%',
         ring: '263 70% 50%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '238 83% 55%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '263 47% 6%',
@@ -333,7 +377,11 @@ const midnightTheme: ThemePreset = {
         input: '262 33% 17%',
         ring: '263 70% 60%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '238 83% 65%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -365,7 +413,11 @@ const monochromeTheme: ThemePreset = {
         input: '0 0% 82%',
         ring: '0 0% 15%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '0 0% 5%',
@@ -388,7 +440,11 @@ const monochromeTheme: ThemePreset = {
         input: '0 0% 15%',
         ring: '0 0% 90%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 
@@ -420,7 +476,11 @@ const earthTheme: ThemePreset = {
         input: '32 22% 80%',
         ring: '16 65% 45%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
     dark: {
         background: '25 30% 6%',
@@ -443,7 +503,11 @@ const earthTheme: ThemePreset = {
         input: '25 25% 15%',
         ring: '16 65% 50%',
         success: '142 71% 45%',
+        successForeground: '0 0% 100%',
         warning: '48 96% 53%',
+        warningForeground: '0 0% 0%',
+        info: '217 91% 60%',
+        infoForeground: '0 0% 100%',
     },
 };
 

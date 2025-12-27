@@ -66,9 +66,13 @@ const colorGroups: {
         title: 'Status',
         colors: [
             { key: 'destructive', label: 'Error' },
-            { key: 'destructiveForeground', label: 'Error Text' },
-            { key: 'success', label: 'Success' },
             { key: 'warning', label: 'Warning' },
+            { key: 'success', label: 'Success' },
+            { key: 'info', label: 'Info' },
+            { key: 'destructiveForeground', label: 'Error Text' },
+            { key: 'warningForeground', label: 'Warning Text' },
+            { key: 'successForeground', label: 'Success Text' },
+            { key: 'infoForeground', label: 'Info Text' },
         ],
     },
 ];
@@ -121,6 +125,7 @@ function ColorGroupSection({
     onColorChange,
     isExpanded,
     onToggle,
+    twoRowLayout,
 }: {
     title: string;
     colors: { key: keyof ThemeColors; label: string }[];
@@ -128,6 +133,7 @@ function ColorGroupSection({
     onColorChange: (key: keyof ThemeColors, hex: string) => void;
     isExpanded: boolean;
     onToggle: () => void;
+    twoRowLayout?: boolean;
 }) {
     return (
         <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
@@ -144,16 +150,21 @@ function ColorGroupSection({
                     <span className="text-sm font-medium">{title}</span>
                     <span className="text-xs text-muted-foreground">({colors.length})</span>
                 </div>
-                <ChevronDown 
+                <ChevronDown
                     className={cn(
                         "h-4 w-4 text-muted-foreground transition-transform",
                         isExpanded && "rotate-180"
-                    )} 
+                    )}
                 />
             </button>
             {isExpanded && (
                 <div className="p-3 bg-background/50">
-                    <div className="flex flex-wrap gap-3">
+                    <div className={cn(
+                        "gap-3",
+                        twoRowLayout
+                            ? "grid grid-cols-4 grid-rows-2"
+                            : "flex flex-wrap"
+                    )}>
                         {colors.map(({ key, label }) => (
                             <ColorSwatch
                                 key={key}
@@ -366,6 +377,7 @@ export function ColorEditorDialog({
                                 onColorChange={handleColorChange}
                                 isExpanded={expandedGroups.has(group.title)}
                                 onToggle={() => toggleGroup(group.title)}
+                                twoRowLayout={group.title === 'Status'}
                             />
                         ))}
                     </div>

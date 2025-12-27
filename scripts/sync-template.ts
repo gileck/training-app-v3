@@ -17,11 +17,13 @@
  *   --modified-only          Show only modified files (excludes new, ignored, project-specific)
  *   --changelog              Show template commits since last sync (no sync)
  *   --show-drift             Show total project drift with full file list (no sync)
- *   --validate               Run 'yarn checks' after sync to verify changes
  *   --report                 Generate a sync report file (SYNC-REPORT.md)
  *   --quiet                  Minimal output (errors only)
  *   --verbose                Detailed output for debugging
  *   --use-https              Use HTTPS instead of SSH for cloning (SSH is default)
+ *
+ * Note: 'yarn checks' is automatically run before committing. If checks fail,
+ *       changes are applied but NOT committed - you must fix issues and commit manually.
  * 
  * Auto modes (non-interactive):
  *   --auto-safe-only         Apply only safe changes, skip all conflicts
@@ -108,7 +110,6 @@ interface SyncOptions {
   modifiedOnly: boolean;
   changelog: boolean;
   showDrift: boolean;
-  validate: boolean;
   report: boolean;
   quiet: boolean;
   verbose: boolean;
@@ -2070,11 +2071,27 @@ class TemplateSyncTool {
       // Step 8: Print results
       this.printResults(result);
 
-      // Step 9: Auto-commit synced files and update config (only if not dry-run and changes were made)
+      // Step 9: Run validation before committing (always, not just when --validate is set)
       // Get template commits for the commit message and report (before cleanup)
       const templateCommitsForReport = this.getTemplateCommitsSinceLastSync();
-      
+
       if (!this.options.dryRun && result.autoMerged.length > 0) {
+        // Run yarn checks before committing
+        this.log('\n🔍 Running yarn checks before committing...');
+        const checksPass = await this.runValidation();
+
+        if (!checksPass) {
+          this.logError('\n❌ yarn checks failed! Sync changes were applied but NOT committed.');
+          this.logError('   Please fix the issues above and commit manually.');
+
+          // Still update config to track sync state
+          this.config.lastSyncCommit = templateCommit;
+          this.config.lastSyncDate = new Date().toISOString();
+          this.saveConfig();
+
+          return;
+        }
+
         this.log('\n📦 Committing synced files...');
         
         if (templateCommitsForReport.length > 0 && !this.options.quiet) {
@@ -2144,11 +2161,6 @@ class TemplateSyncTool {
           this.log('   Safe changes committed. Review .template files for manual merges.');
         }
       }
-
-      // Run validation if requested
-      if (this.options.validate && result.autoMerged.length > 0) {
-        await this.runValidation();
-      }
     } catch (error: any) {
       this.rl.close();
       throw error;
@@ -2183,7 +2195,6 @@ const options: SyncOptions = {
   modifiedOnly: args.includes('--modified-only'),
   changelog: args.includes('--changelog'),
   showDrift: args.includes('--show-drift'),
-  validate: args.includes('--validate'),
   report: args.includes('--report'),
   quiet: args.includes('--quiet'),
   verbose: args.includes('--verbose'),

@@ -7,13 +7,22 @@ import { hslToHex, hexToHsl } from './utils';
 import type { ThemeColors } from './types';
 
 /**
- * Key colors that users can customize
+ * Key colors that users can customize - organized by category
  */
-const customizableColors: { key: keyof ThemeColors; label: string; description: string }[] = [
+const mainColors: { key: keyof ThemeColors; label: string; description: string }[] = [
     { key: 'primary', label: 'Primary', description: 'Main action color' },
     { key: 'secondary', label: 'Secondary', description: 'Secondary actions' },
     { key: 'accent', label: 'Accent', description: 'Highlights' },
     { key: 'background', label: 'Background', description: 'Page background' },
+];
+
+const statusColors: { key: keyof ThemeColors; label: string; description: string }[] = [
+    { key: 'success', label: 'Success', description: 'Success background' },
+    { key: 'successForeground', label: 'Success Text', description: 'Text on success' },
+    { key: 'warning', label: 'Warning', description: 'Warning background' },
+    { key: 'warningForeground', label: 'Warning Text', description: 'Text on warning' },
+    { key: 'info', label: 'Info', description: 'Info background' },
+    { key: 'infoForeground', label: 'Info Text', description: 'Text on info' },
 ];
 
 /**
@@ -128,8 +137,24 @@ export function ColorCustomizer() {
                 </Button>
             </div>
 
+            {/* Main Colors */}
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-                {customizableColors.map(({ key, label, description }) => (
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Main Colors</h4>
+                {mainColors.map(({ key, label, description }) => (
+                    <ColorRow
+                        key={key}
+                        label={label}
+                        description={description}
+                        value={effectiveColors[key]}
+                        onChange={(hex) => handleColorChange(key, hex)}
+                    />
+                ))}
+            </div>
+
+            {/* Status Colors */}
+            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status Colors</h4>
+                {statusColors.map(({ key, label, description }) => (
                     <ColorRow
                         key={key}
                         label={label}
