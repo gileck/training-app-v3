@@ -22,7 +22,7 @@ import type { TrainingPlanClient } from '@/server/database/collections/trainingP
 
 export function TrainingPlans() {
     // Queries and mutations
-    const { data, error } = usePlans();
+    const { data, error, isLoading } = usePlans();
     const createPlanMutation = useCreatePlan();
     const updatePlanMutation = useUpdatePlan();
     const deletePlanMutation = useDeletePlan();
@@ -150,7 +150,7 @@ export function TrainingPlans() {
     };
 
     // Loading state - show skeleton when loading without cached data
-    if (!hasData) {
+    if (isLoading || !hasData) {
         return (
             <div className="p-4 pb-20 space-y-4">
                 <div className="flex items-center justify-between mb-6">

@@ -3,7 +3,7 @@ import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import { Button } from '@/client/components/ui/button';
-import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, Trash2, RefreshCw } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActivity, useActivitySummary, useDeleteActivity } from './hooks';
@@ -78,12 +78,69 @@ function formatTime(isoString: string): string {
     });
 }
 
-function ActivityItem({ 
-    activity, 
-    onDelete 
-}: { 
-    activity: ActivityLogEntry; 
+interface ActivityGroup {
+    type: 'single' | 'grouped';
+    exerciseName: string;
+    activities: ActivityLogEntry[];
+    firstTime: string;
+}
+
+/**
+ * Groups consecutive activities by exercise name if they are within 10 minutes of each other.
+ * Non-consecutive exercises or exercises more than 10 minutes apart are not grouped.
+ */
+function groupConsecutiveActivities(activities: ActivityLogEntry[]): ActivityGroup[] {
+    if (activities.length === 0) return [];
+
+    const MAX_TIME_GAP_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
+    const groups: ActivityGroup[] = [];
+    let currentGroup: ActivityLogEntry[] = [activities[0]];
+
+    for (let i = 1; i < activities.length; i++) {
+        const current = activities[i];
+        const previous = activities[i - 1];
+
+        const currentTime = new Date(current.completedAt).getTime();
+        const previousTime = new Date(previous.completedAt).getTime();
+        const timeDiff = Math.abs(currentTime - previousTime);
+
+        const sameExercise = current.exerciseName === previous.exerciseName;
+        const withinTimeLimit = timeDiff <= MAX_TIME_GAP_MS;
+
+        if (sameExercise && withinTimeLimit) {
+            // Add to current group
+            currentGroup.push(current);
+        } else {
+            // Finalize current group and start a new one
+            groups.push({
+                type: currentGroup.length > 1 ? 'grouped' : 'single',
+                exerciseName: currentGroup[0].exerciseName,
+                activities: currentGroup,
+                firstTime: currentGroup[0].completedAt,
+            });
+            currentGroup = [current];
+        }
+    }
+
+    // Don't forget to add the last group
+    groups.push({
+        type: currentGroup.length > 1 ? 'grouped' : 'single',
+        exerciseName: currentGroup[0].exerciseName,
+        activities: currentGroup,
+        firstTime: currentGroup[0].completedAt,
+    });
+
+    return groups;
+}
+
+function ActivityItem({
+    activity,
+    onDelete,
+    showPlanName = true,
+}: {
+    activity: ActivityLogEntry;
     onDelete?: (id: string) => void;
+    showPlanName?: boolean;
 }) {
     return (
         <div className="flex items-center gap-3 py-3 border-b border-border/50 last:border-0 group">
@@ -103,9 +160,11 @@ function ActivityItem({
             </div>
             <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{activity.exerciseName}</p>
-                <p className="text-sm text-muted-foreground">
-                    Set {activity.setNumber} • {activity.planName}
-                </p>
+                {showPlanName && (
+                    <p className="text-sm text-muted-foreground">
+                        {activity.planName}
+                    </p>
+                )}
             </div>
             <div className="flex items-center gap-2">
                 <div className="text-right text-sm text-muted-foreground">
@@ -122,6 +181,92 @@ function ActivityItem({
                     </Button>
                 )}
             </div>
+        </div>
+    );
+}
+
+function GroupedActivityItem({
+    group,
+    onDelete,
+}: {
+    group: ActivityGroup;
+    onDelete?: (id: string) => void;
+}) {
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand/collapse state
+    const [isExpanded, setIsExpanded] = useState(false);
+    const firstActivity = group.activities[0];
+
+    // Single activity - no grouping UI
+    if (group.type === 'single') {
+        return <ActivityItem activity={firstActivity} onDelete={onDelete} />;
+    }
+
+    // Grouped activities
+    return (
+        <div className="border-b border-border/50 last:border-0">
+            {/* Collapsed header */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-3 py-3 w-full text-left hover:bg-muted/50 transition-colors rounded-lg -mx-2 px-2"
+            >
+                <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                    {firstActivity.exerciseImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={firstActivity.exerciseImageUrl}
+                            alt={firstActivity.exerciseName}
+                            className="h-full w-full object-contain"
+                        />
+                    ) : (
+                        <div className="h-full w-full flex items-center justify-center">
+                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                        {group.exerciseName}
+                        <span className="text-muted-foreground ml-1">(x{group.activities.length})</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        {firstActivity.planName}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="text-right text-sm text-muted-foreground">
+                        <p>{formatTime(group.firstTime)}</p>
+                    </div>
+                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                </div>
+            </button>
+
+            {/* Expanded content */}
+            {isExpanded && (
+                <div className="pl-4 border-l-2 border-muted ml-5 mb-2">
+                    {group.activities.map((activity) => (
+                        <div key={activity._id} className="flex items-center gap-3 py-2 group">
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm truncate">{activity.exerciseName}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="text-right text-sm text-muted-foreground">
+                                    <p>{formatTime(activity.completedAt)}</p>
+                                </div>
+                                {onDelete && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => onDelete(activity._id)}
+                                        className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -212,21 +357,30 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
 
     return (
         <div className="space-y-4">
-            {Object.entries(groupedByDate).map(([date, dayActivities]) => (
-                <Card key={date} className="rounded-xl">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            {date}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        {dayActivities.map((activity) => (
-                            <ActivityItem key={activity._id} activity={activity} onDelete={handleDelete} />
-                        ))}
-                    </CardContent>
-                </Card>
-            ))}
+            {Object.entries(groupedByDate).map(([date, dayActivities]) => {
+                // Group consecutive exercises within each day
+                const groupedActivities = groupConsecutiveActivities(dayActivities);
+
+                return (
+                    <Card key={date} className="rounded-xl">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {date}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            {groupedActivities.map((group, index) => (
+                                <GroupedActivityItem
+                                    key={`${group.exerciseName}-${group.firstTime}-${index}`}
+                                    group={group}
+                                    onDelete={handleDelete}
+                                />
+                            ))}
+                        </CardContent>
+                    </Card>
+                );
+            })}
         </div>
     );
 }
