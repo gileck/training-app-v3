@@ -14,14 +14,13 @@ import {
     DialogDescription,
 } from '@/client/components/ui/dialog';
 import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2 } from 'lucide-react';
-import { useRouter } from '../../router';
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan, useDuplicatePlan } from './hooks';
 import { useWorkoutStore } from '@/client/features/workout';
+import { useTrainingPlansStore } from './store';
+import { ManagePlan } from '../ManagePlan';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
 export function TrainingPlans() {
-    const { navigate } = useRouter();
-
     // Queries and mutations
     const { data, error } = usePlans();
     const createPlanMutation = useCreatePlan();
@@ -32,6 +31,10 @@ export function TrainingPlans() {
 
     // Workout store for syncing active plan
     const setActivePlan = useWorkoutStore((state) => state.setActivePlan);
+    
+    // Route-level store for persisting selected plan
+    const selectedPlanId = useTrainingPlansStore((state) => state.selectedPlanId);
+    const setSelectedPlanId = useTrainingPlansStore((state) => state.setSelectedPlanId);
 
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -89,6 +92,10 @@ export function TrainingPlans() {
                 onSuccess: () => {
                     setDeleteDialogOpen(false);
                     setPlanToDelete(null);
+                    // Clear selection if the deleted plan was selected
+                    if (selectedPlanId === planToDelete._id) {
+                        setSelectedPlanId(null);
+                    }
                 },
             }
         );
@@ -106,7 +113,11 @@ export function TrainingPlans() {
     };
 
     const handleManagePlan = (plan: TrainingPlanClient) => {
-        navigate(`/training-plans/${plan._id}`);
+        setSelectedPlanId(plan._id);
+    };
+    
+    const handleBackFromManage = () => {
+        setSelectedPlanId(null);
     };
 
     const handleEditPlan = (plan: TrainingPlanClient) => {
@@ -178,6 +189,16 @@ export function TrainingPlans() {
                     </p>
                 </Card>
             </div>
+        );
+    }
+    
+    // If a plan is selected, show the manage view
+    if (selectedPlanId) {
+        return (
+            <ManagePlan
+                planId={selectedPlanId}
+                onBack={handleBackFromManage}
+            />
         );
     }
 

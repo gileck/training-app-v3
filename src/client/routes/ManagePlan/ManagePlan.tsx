@@ -53,9 +53,24 @@ import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
 
-export function ManagePlan() {
+interface ManagePlanProps {
+    /** Optional planId - if not provided, will use routeParams.planId */
+    planId?: string;
+    /** Optional callback for back navigation - if not provided, will navigate to /training-plans */
+    onBack?: () => void;
+}
+
+export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {}) {
     const { navigate, routeParams, queryParams } = useRouter();
-    const planId = routeParams.planId || '';
+    const planId = propPlanId || routeParams.planId || '';
+    
+    const handleBack = () => {
+        if (onBack) {
+            onBack();
+        } else {
+            navigate('/training-plans');
+        }
+    };
 
     // Queries
     const { data: planData, isLoading: planLoading } = usePlan(planId);
@@ -682,7 +697,7 @@ export function ManagePlan() {
             <div className="p-4 pb-20">
                 <Button
                     variant="ghost"
-                    onClick={() => navigate('/training-plans')}
+                    onClick={handleBack}
                     className="mb-4"
                 >
                     <ChevronLeft className="h-4 w-4 mr-2" />
@@ -710,7 +725,7 @@ export function ManagePlan() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => navigate('/training-plans')}
+                    onClick={handleBack}
                     className="rounded-full"
                 >
                     <ChevronLeft className="h-5 w-5" />
