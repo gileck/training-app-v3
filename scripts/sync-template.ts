@@ -80,6 +80,7 @@ interface AnalysisResult {
   conflictChanges: FileChange[];    // Changed in BOTH - needs manual merge
   projectOnlyChanges: FileChange[]; // Only changed in project - keep as-is
   skipped: string[];
+  newChanges: Set<string>;          // Track which changes are NEW (since last sync)
 }
 
 type SyncMode = 'safe' | 'all' | 'none';
@@ -474,6 +475,7 @@ class TemplateSyncTool {
       conflictChanges: [],
       projectOnlyChanges: [],
       skipped: [],
+      newChanges: new Set<string>(),
     };
 
     for (const change of changes) {
@@ -483,25 +485,27 @@ class TemplateSyncTool {
         continue;
       }
 
+      // Track if this change is NEW (template changed since last sync)
+      const isNewChange = this.hasTemplateChanges(change.path);
+      if (isNewChange) {
+        result.newChanges.add(change.path);
+      }
+
       if (change.status === 'added') {
-        // New file - safe to add
+        // New file - safe to add (always considered "new" regardless of when it was added)
+        result.newChanges.add(change.path);
         result.safeChanges.push(change);
       } else if (change.status === 'modified') {
         // Check both sides for changes
-        const templateChanged = this.hasTemplateChanges(change.path);
         const projectChanged = this.hasProjectChanges(change.path);
 
-        if (templateChanged && projectChanged) {
-          // TRUE conflict - both sides modified the file
+        if (projectChanged) {
+          // Project has changes - this is a conflict (whether template changed recently or not)
           result.conflictChanges.push(change);
-        } else if (templateChanged && !projectChanged) {
-          // Only template changed - safe to auto-apply
+        } else {
+          // Only template is different - safe to auto-apply (whether recent or old difference)
           result.safeChanges.push(change);
-        } else if (!templateChanged && projectChanged) {
-          // Only project changed - this is a customization, NOT a conflict
-          result.projectOnlyChanges.push(change);
         }
-        // If neither changed, files should be identical (won't reach here)
       }
     }
 
@@ -515,23 +519,28 @@ class TemplateSyncTool {
 
     const aiAvailable = isAgentAvailable();
 
-    if (analysis.safeChanges.length > 0) {
-      console.log(`\n✅ Safe changes (${analysis.safeChanges.length} files):`);
+    // Separate safe changes into NEW and EXISTING
+    const newSafeChanges = analysis.safeChanges.filter(f => analysis.newChanges.has(f.path));
+    const existingSafeChanges = analysis.safeChanges.filter(f => !analysis.newChanges.has(f.path));
+
+    // Show NEW safe changes first
+    if (newSafeChanges.length > 0) {
+      console.log(`\n✅ Safe changes - NEW since last sync (${newSafeChanges.length} files):`);
       console.log('   Only changed in template, no conflicts:');
-      
+
       // Generate AI descriptions for safe changes if available
-      if (aiAvailable && analysis.safeChanges.length <= 10) {
+      if (aiAvailable && newSafeChanges.length <= 10) {
         console.log('   🤖 Generating descriptions...\n');
-        
+
         // Run all descriptions in parallel for speed
-        const descriptionsPromises = analysis.safeChanges.map(async (f) => {
+        const descriptionsPromises = newSafeChanges.map(async (f) => {
           const diffSummary = this.getFileDiffSummary(f.path);
           const description = await this.getAIDescription(diffSummary.diff, `Template changes to ${f.path}`);
           return { path: f.path, description };
         });
-        
+
         const descriptions = await Promise.all(descriptionsPromises);
-        
+
         for (const { path, description } of descriptions) {
           if (description) {
             console.log(`   • ${path}`);
@@ -541,20 +550,41 @@ class TemplateSyncTool {
           }
         }
       } else {
-        analysis.safeChanges.forEach(f =>
+        newSafeChanges.forEach(f =>
           console.log(`   • ${f.path}`)
         );
-        if (analysis.safeChanges.length > 10) {
+        if (newSafeChanges.length > 10) {
           console.log('   (AI descriptions skipped for large batch)');
         }
       }
     }
 
-    if (analysis.conflictChanges.length > 0) {
-      console.log(`\n⚠️  Potential conflicts (${analysis.conflictChanges.length} files):`);
+    // Show EXISTING safe changes (from before last sync)
+    if (existingSafeChanges.length > 0) {
+      console.log(`\n✅ Safe changes - existing differences (${existingSafeChanges.length} files):`);
+      console.log('   \x1b[90mDifferent from template (unchanged since last sync):\x1b[0m');
+      existingSafeChanges.forEach(f =>
+        console.log(`   \x1b[90m• ${f.path}\x1b[0m`)
+      );
+    }
+
+    // Separate conflicts into NEW and EXISTING
+    const newConflicts = analysis.conflictChanges.filter(f => analysis.newChanges.has(f.path));
+    const existingConflicts = analysis.conflictChanges.filter(f => !analysis.newChanges.has(f.path));
+
+    if (newConflicts.length > 0) {
+      console.log(`\n⚠️  Conflicts - NEW since last sync (${newConflicts.length} files):`);
       console.log('   Changed in both template and your project:');
-      analysis.conflictChanges.forEach(f =>
+      newConflicts.forEach(f =>
         console.log(`   • ${f.path}`)
+      );
+    }
+
+    if (existingConflicts.length > 0) {
+      console.log(`\n⚠️  Conflicts - existing differences (${existingConflicts.length} files):`);
+      console.log('   \x1b[90mChanged in both (template unchanged since last sync):\x1b[0m');
+      existingConflicts.forEach(f =>
+        console.log(`   \x1b[90m• ${f.path}\x1b[0m`)
       );
     }
 
@@ -1890,7 +1920,7 @@ class TemplateSyncTool {
       // Show total diff summary (complete picture of drift from template)
       this.displayTotalDiffSummary();
       
-      // Show template commits since last sync
+      // Show template commits since last sync (if any)
       const templateCommits = this.getTemplateCommitsSinceLastSync();
       if (templateCommits.length > 0) {
         console.log(`\n📜 Template commits since last sync (${templateCommits.length}):\n`);
@@ -1902,10 +1932,11 @@ class TemplateSyncTool {
         if (templateCommits.length > 10) {
           console.log(`\n   ... and ${templateCommits.length - 10} more`);
         }
+        console.log('');
       } else if (this.config.lastSyncCommit) {
         console.log('\n📜 No new template commits since last sync.');
+        console.log('   Checking for existing differences from previous sessions...\n');
       }
-      console.log('');
 
       // Step 4: Compare files
       console.log('🔍 Analyzing changes...');

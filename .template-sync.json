@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "47423a8771770edf77d268f184fd008f78a61e8c",
-  "lastProjectCommit": "a95b901d1c5e00d96e9b81f131282de1ec09dc70",
-  "lastSyncDate": "2025-12-27T10:17:34.315Z",
+  "lastSyncCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
+  "lastProjectCommit": "6a898960409bb565b0b9156b6affc87f1dd9e137",
+  "lastSyncDate": "2025-12-27T10:29:50.328Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,17 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2025-12-27T10:29:50.327Z",
+      "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
+      "projectCommit": "6a898960409bb565b0b9156b6affc87f1dd9e137",
+      "filesApplied": 1,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "40f2edc feat: sync-template now shows total diff with NEW/existing separation \u001b[90m(27/12/2025)\u001b[0m\n  BREAKING CHANGE: sync-template behavior changed to support incremental syncing\n  \n  Previous behavior (BROKEN):\n  - Only showed changes since last sync\n  - If you applied partial changes, unapplied changes were lost\n  - \"No new template commits\" blocked seeing existing differences\n  \n  New behavior (FIXED):\n  - Always shows TOTAL diff (current state vs current state)\n  - Separates changes into:\n    * NEW since last sync (highlighted)\n    * Existing differences (greyed out)\n  - Supports incremental workflow:\n    1. Apply safe changes first\n    2. Come back later for conflicts\n    3. Never lose track of unapplied changes\n  \n  Display changes:\n  - \"Safe changes - NEW since last sync\" (normal color)\n  - \"Safe changes - existing differences\" (grey)\n  - \"Conflicts - NEW since last sync\" (normal color)\n  - \"Conflicts - existing differences\" (grey)\n  \n  This matches --diff-summary behavior and enables proper incremental syncing.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2025-12-27T10:17:34.315Z",
       "templateCommit": "47423a8771770edf77d268f184fd008f78a61e8c",
