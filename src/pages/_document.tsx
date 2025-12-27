@@ -1,128 +1,64 @@
 import { Html, Head, Main, NextScript } from "next/document";
+import { pwaConfig } from "@/config/pwa.config";
 
 export default function Document() {
+  const { applicationName, appleWebAppTitle, description, themeColor, icons } = pwaConfig;
+
   return (
     <Html lang="en">
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <meta name="application-name" content="Training App" />
+        <meta name="application-name" content={applicationName} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        {/* 
-          Status bar style options: "default" | "black" | "black-translucent"
-          
-          IMPORTANT: Do NOT use "black-translucent" - it causes the bottom navbar 
-          to have extra space below it in iOS PWA standalone mode. This happens because 
-          black-translucent extends content under the status bar and changes how iOS 
-          calculates viewport height, causing layout issues with fixed/flex positioning.
-          
-          Use "default" for predictable viewport behavior.
-        */}
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Training" />
-        <meta name="description" content="Track your workouts, build strength, achieve your fitness goals" />
+        <meta name="apple-mobile-web-app-title" content={appleWebAppTitle} />
+        <meta name="description" content={description} />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#3B82F6" />
-        <meta name="msapplication-TileColor" content="#3B82F6" />
-        <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+        <meta name="theme-color" content={themeColor} />
 
         <link rel="manifest" href="/manifest.json" />
-        
-        {/* iOS Safari icons - Apple recommends 180x180 as the primary */}
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167x167.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-128x128.png" />
-        
-        {/* Favicon */}
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-        <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+        <link rel="apple-touch-icon" href={icons.appleTouchIcon} />
+        <link rel="apple-touch-icon" sizes="152x152" href={icons.appleTouchIcon152} />
+        <link rel="apple-touch-icon" sizes="180x180" href={icons.appleTouchIcon180} />
+        <link rel="apple-touch-icon" sizes="167x167" href={icons.appleTouchIcon167} />
+        <link rel="icon" type="image/png" sizes="32x32" href={icons.favicon32} />
 
-        {/* iOS splash screens - using properly sized icons */}
-        {/* iPhone 14 Pro Max, 15 Plus (430x932) */}
+        {/* iOS splash screens */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"
+          href={icons.splashScreen}
+          media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
         />
-        {/* iPhone 14 Pro, 15, 15 Pro (393x852) */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)"
+          href={icons.splashScreen}
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
         />
-        {/* iPhone 14, 13, 13 Pro, 12, 12 Pro (390x844) */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        {/* iPhone 14 Plus, 13 Pro Max, 12 Pro Max (428x926) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        {/* iPhone 13 mini, 12 mini (375x812) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        {/* iPhone 11 Pro, XS, X (375x812) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        {/* iPhone 11, XR (414x896) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
-        />
-        {/* iPhone 11 Pro Max, XS Max (414x896) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        {/* iPhone 8 Plus, 7 Plus, 6s Plus (414x736) */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
+          href={icons.splashScreen}
           media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)"
         />
-        {/* iPhone 8, 7, 6s, 6 (375x667) */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+          href={icons.splashScreen}
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
         />
-        {/* iPhone SE 2nd/3rd gen (375x667) */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+          href={icons.splashScreen}
+          media="(min-device-width: 768px) and (max-device-width: 1024px)"
         />
-        {/* iPad Pro 12.9" */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(min-device-width: 1024px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)"
-        />
-        {/* iPad Pro 11" */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
+          href={icons.splashScreen}
           media="(min-device-width: 834px) and (max-device-width: 834px) and (-webkit-device-pixel-ratio: 2)"
         />
-        {/* iPad Air, iPad 10.2" */}
         <link
           rel="apple-touch-startup-image"
-          href="/icons/icon-512x512.png"
-          media="(min-device-width: 768px) and (max-device-width: 1024px)"
+          href={icons.splashScreen}
+          media="(min-device-width: 1024px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)"
         />
       </Head>
       <body className="antialiased">

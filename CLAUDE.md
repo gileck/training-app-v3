@@ -23,7 +23,8 @@ This document consolidates all development guidelines for the Training App proje
 15. [Settings Usage](#settings-usage)
 16. [User Access](#user-access)
 17. [ESLint Guidelines](#eslint-guidelines)
-18. [Feature Planning](#feature-planning)
+18. [Template Sync](#template-sync)
+19. [Feature Planning](#feature-planning)
 
 ---
 
@@ -885,6 +886,68 @@ const [isOpen, setIsOpen] = useState(false);
 ### Post-Linting
 
 Always run `yarn checks` after fixing lint issues.
+
+---
+
+## Template Sync
+
+This project uses a template sync system to receive updates from the base template repository.
+
+### Key Commands
+
+```bash
+# Preview what would change (always do this first)
+yarn sync-template --dry-run
+
+# Apply template updates
+yarn sync-template
+
+# Merge specific files from template
+yarn merge-template src/pages/_document.tsx scripts/generate-icons.ts
+```
+
+### Configuration File
+
+Edit `.template-sync.json` to customize sync behavior:
+
+```json
+{
+  "ignoredFiles": [
+    "package.json",
+    "src/client/routes/index.ts",
+    "src/apis/apis.ts"
+  ],
+  "projectSpecificFiles": [
+    "public/icons/*",
+    "public/manifest.json",
+    "src/config/pwa.config.ts"
+  ]
+}
+```
+
+### Key Fields
+
+- **ignoredFiles**: Files never touched during sync (system files, registry files, example features)
+- **projectSpecificFiles**: Your custom code that shouldn't be overwritten by template updates
+
+### Glob Pattern Support
+
+Both arrays support glob patterns:
+- `*` - Matches any characters except `/`
+- `**` - Matches any characters including `/`
+
+### Workflow
+
+1. Run `yarn sync-template --dry-run` to preview changes
+2. Choose `[1] Safe only` for non-conflicting updates
+3. Test with `yarn checks && yarn dev`
+4. Run again with `[2] All changes` for conflicts
+5. Manually merge any `.template` files
+6. Commit changes
+
+### Full Documentation
+
+See `.cursor/commands/sync-template.md` for complete documentation.
 
 ---
 

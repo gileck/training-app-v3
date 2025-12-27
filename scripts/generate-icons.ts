@@ -1,66 +1,123 @@
-import sharp from 'sharp';
-import * as fs from 'fs';
-import * as path from 'path';
+/**
+ * Generate modern iOS-style blue gradient PWA icons
+ * 
+ * Run: npx tsx scripts/generate-icons.ts
+ * 
+ * Requires: npm install sharp --save-dev
+ */
 
-const ICON_SIZES = [72, 96, 128, 144, 152, 167, 180, 192, 384, 512];
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+
 const ICONS_DIR = path.join(process.cwd(), 'public', 'icons');
-const SOURCE_PNG = path.join(ICONS_DIR, 'icon.png');
-const SOURCE_SVG = path.join(ICONS_DIR, 'icon.svg');
+
+// iOS PWA icon sizes
+const ICON_SIZES = [72, 96, 128, 144, 152, 167, 180, 192, 384, 512];
+
+/**
+ * Create an SVG with iOS-style blue gradient and a modern minimal design
+ */
+function createIconSvg(size: number): string {
+  const cornerRadius = Math.round(size * 0.22);
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const circleRadius = size * 0.22;
+  
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A84FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#007AFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5856D6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.3);stop-opacity:1" />
+      <stop offset="40%" style="stop-color:rgba(255,255,255,0.05);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0);stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.4);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0);stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect x="0" y="0" width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#bgGradient)"/>
+  
+  <!-- Highlight overlay -->
+  <rect x="0" y="0" width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#highlight)"/>
+  
+  <!-- Center design element - modern dot/orb -->
+  <circle cx="${centerX}" cy="${centerY}" r="${circleRadius}" fill="rgba(255,255,255,0.95)"/>
+  <circle cx="${centerX}" cy="${centerY - circleRadius * 0.2}" r="${circleRadius * 0.3}" fill="url(#bgGradient)" opacity="0.6"/>
+</svg>`;
+}
 
 async function generateIcons() {
-    console.log('🎨 Generating app icons...\n');
+  // Ensure icons directory exists
+  if (!fs.existsSync(ICONS_DIR)) {
+    fs.mkdirSync(ICONS_DIR, { recursive: true });
+  }
 
-    // Ensure the icons directory exists
-    if (!fs.existsSync(ICONS_DIR)) {
-        fs.mkdirSync(ICONS_DIR, { recursive: true });
-    }
+  console.log('🎨 Generating modern iOS-style blue gradient PWA icons...\n');
 
-    // Determine source file (prefer PNG if exists, fallback to SVG)
-    let sourceBuffer: Buffer;
-    let sourceFile: string;
+  for (const size of ICON_SIZES) {
+    const svgContent = createIconSvg(size);
+    const outputPath = path.join(ICONS_DIR, `icon-${size}x${size}.png`);
     
-    if (fs.existsSync(SOURCE_PNG)) {
-        sourceBuffer = fs.readFileSync(SOURCE_PNG);
-        sourceFile = 'icon.png';
-        console.log('📷 Using PNG source: icon.png\n');
-    } else if (fs.existsSync(SOURCE_SVG)) {
-        sourceBuffer = fs.readFileSync(SOURCE_SVG);
-        sourceFile = 'icon.svg';
-        console.log('🎨 Using SVG source: icon.svg\n');
-    } else {
-        console.error('❌ No source icon found! Please add icon.png or icon.svg to public/icons/');
-        process.exit(1);
+    try {
+      await sharp(Buffer.from(svgContent))
+        .png({
+          quality: 100,
+          compressionLevel: 9,
+        })
+        .toFile(outputPath);
+      
+      console.log(`  ✅ Generated icon-${size}x${size}.png`);
+    } catch (error) {
+      console.error(`  ❌ Failed to generate icon-${size}x${size}.png:`, error);
     }
+  }
 
-    // Generate icons at each size
-    for (const size of ICON_SIZES) {
-        const outputPath = path.join(ICONS_DIR, `icon-${size}x${size}.png`);
-        
-        await sharp(sourceBuffer)
-            .resize(size, size, { fit: 'cover' })
-            .png()
-            .toFile(outputPath);
-        
-        console.log(`✅ Generated: icon-${size}x${size}.png`);
-    }
+  // Also generate apple-touch-icon.png (180x180 is the standard for iOS)
+  const appleTouchIconPath = path.join(ICONS_DIR, 'apple-touch-icon.png');
+  const svg180 = createIconSvg(180);
+  
+  try {
+    await sharp(Buffer.from(svg180))
+      .png({ quality: 100, compressionLevel: 9 })
+      .toFile(appleTouchIconPath);
+    console.log(`  ✅ Generated apple-touch-icon.png (180x180)`);
+  } catch (error) {
+    console.error(`  ❌ Failed to generate apple-touch-icon.png:`, error);
+  }
 
-    // Generate apple-touch-icon (180x180)
-    const appleTouchIconPath = path.join(ICONS_DIR, 'apple-touch-icon.png');
-    await sharp(sourceBuffer)
-        .resize(180, 180, { fit: 'cover' })
-        .png()
-        .toFile(appleTouchIconPath);
-    console.log('✅ Generated: apple-touch-icon.png');
+  // Generate favicon.ico alternative as PNG
+  const faviconPath = path.join(process.cwd(), 'public', 'favicon-32x32.png');
+  const svg32 = createIconSvg(32);
+  
+  try {
+    await sharp(Buffer.from(svg32))
+      .png({ quality: 100, compressionLevel: 9 })
+      .toFile(faviconPath);
+    console.log(`  ✅ Generated favicon-32x32.png`);
+  } catch (error) {
+    console.error(`  ❌ Failed to generate favicon-32x32.png:`, error);
+  }
 
-    // Generate favicon
-    const faviconPath = path.join(process.cwd(), 'public', 'favicon.png');
-    await sharp(sourceBuffer)
-        .resize(32, 32, { fit: 'cover' })
-        .png()
-        .toFile(faviconPath);
-    console.log('✅ Generated: favicon.png');
+  // Generate SVG version for reference
+  const svgPath = path.join(ICONS_DIR, 'icon.svg');
+  fs.writeFileSync(svgPath, createIconSvg(512));
+  console.log(`  ✅ Generated icon.svg (512x512 source)`);
 
-    console.log(`\n🎉 All icons generated successfully from ${sourceFile}!`);
+  console.log('\n✨ Icon generation complete!');
+  console.log('\nGenerated files:');
+  console.log('  • public/icons/icon-{size}x{size}.png (all sizes)');
+  console.log('  • public/icons/apple-touch-icon.png');
+  console.log('  • public/icons/icon.svg');
+  console.log('  • public/favicon-32x32.png');
 }
 
 generateIcons().catch(console.error);

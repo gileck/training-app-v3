@@ -38,7 +38,11 @@
     "src/server/database/collections/reports",
     "src/client/styles/project.css"
   ],
-  "projectSpecificFiles": [],
+  "projectSpecificFiles": [
+    "public/icons/*",
+    "public/manifest.json",
+    "src/config/pwa.config.ts"
+  ],
   "syncHistory": [
     {
       "date": "2025-12-27T09:52:06.999Z",
