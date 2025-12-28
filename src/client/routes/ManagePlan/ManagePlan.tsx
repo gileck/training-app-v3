@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
@@ -188,6 +188,14 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral reorder mode
     const [isWorkoutReorderMode, setIsWorkoutReorderMode] = useState(false);
 
+    // Lazy loading state - show 50 exercises initially, load more on scroll
+    const INITIAL_VISIBLE_COUNT = 50;
+    const LOAD_MORE_COUNT = 50;
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral pagination state
+    const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
     const plan = planData?.plan;
     const planExercises = exercisesData?.exercises || [];
     const exerciseLibrary = libraryData?.exercises || [];
@@ -208,14 +216,13 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
         if (filterMuscle !== 'all' && ex.primaryMuscle !== filterMuscle) return false;
         // Apply type filter
         if (filterType !== 'all' && ex.type !== filterType) return false;
-        // Apply search query
+        // Apply search query with fuzzy word matching (all words must match in exercise name)
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            if (
-                !ex.name.toLowerCase().includes(query) &&
-                !ex.primaryMuscle.toLowerCase().includes(query) &&
-                !ex.type.toLowerCase().includes(query)
-            ) {
+            const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+            const exerciseName = ex.name.toLowerCase();
+            // Every search word must appear somewhere in the exercise name
+            const allWordsMatch = searchWords.every((word) => exerciseName.includes(word));
+            if (!allWordsMatch) {
                 return false;
             }
         }
@@ -229,6 +236,42 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
         if (aInPlan !== bInPlan) return aInPlan ? 1 : -1;
         return a.name.localeCompare(b.name);
     });
+
+    // Reset visible count when search or filters change
+    useEffect(() => {
+        setVisibleCount(INITIAL_VISIBLE_COUNT);
+    }, [searchQuery, filterMuscle, filterType, filterSource]);
+
+    // Slice exercises to only show visible count
+    const visibleExercises = sortedFilteredLibrary.slice(0, visibleCount);
+    const hasMoreExercises = visibleCount < sortedFilteredLibrary.length;
+
+    // Intersection observer for infinite scroll with large margin
+    useEffect(() => {
+        if (!hasMoreExercises) return;
+
+        const currentRef = loadMoreRef.current;
+        const scrollContainer = scrollContainerRef.current;
+        if (!currentRef || !scrollContainer) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount((prev) => prev + LOAD_MORE_COUNT);
+                }
+            },
+            {
+                root: scrollContainer, // Watch scroll within the container, not viewport
+                rootMargin: '400px' // Large margin to load before reaching bottom
+            }
+        );
+
+        observer.observe(currentRef);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [hasMoreExercises, visibleCount]);
 
     const hasActiveFilters = filterMuscle !== 'all' || filterType !== 'all' || filterSource !== 'all';
 
@@ -1397,7 +1440,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                             </div>
 
                             {/* Exercise List */}
-                            <div className="flex-1 overflow-y-auto -mx-5 px-5">
+                            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto -mx-5 px-5">
                                 {libraryLoading ? (
                                     exerciseViewMode === 'grid' ? (
                                         <div className="grid grid-cols-2 gap-3">
@@ -1433,7 +1476,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                 ) : exerciseViewMode === 'grid' ? (
                                     /* Grid View */
                                     <div className="grid grid-cols-2 gap-3 py-1">
-                                        {sortedFilteredLibrary.map((exercise) => {
+                                        {visibleExercises.map((exercise) => {
                                             const isInPlan = addedExerciseIds.has(exercise._id);
                                             const isSelected = selectedExercises.has(exercise._id);
                                             return (
@@ -1465,6 +1508,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                                                 fill
                                                                 className="object-contain"
                                                                 unoptimized
+                                                                loading="lazy"
                                                             />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center">
@@ -1535,7 +1579,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                 ) : (
                                     /* List View */
                                     <div className="divide-y divide-border/50">
-                                        {sortedFilteredLibrary.map((exercise) => {
+                                        {visibleExercises.map((exercise) => {
                                             const isInPlan = addedExerciseIds.has(exercise._id);
                                             const isSelected = selectedExercises.has(exercise._id);
                                             return (
@@ -1567,6 +1611,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                                                 fill
                                                                 className="object-contain"
                                                                 unoptimized
+                                                                loading="lazy"
                                                             />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center">
@@ -1638,6 +1683,17 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                                             </div>
                                         );
                                         })}
+                                    </div>
+                                )}
+                                {/* Load more trigger for infinite scroll */}
+                                {hasMoreExercises && (
+                                    <div
+                                        ref={loadMoreRef}
+                                        className="flex justify-center py-4"
+                                    >
+                                        <span className="text-sm text-muted-foreground">
+                                            Loading more exercises...
+                                        </span>
                                     </div>
                                 )}
                             </div>
