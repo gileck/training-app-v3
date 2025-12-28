@@ -283,7 +283,8 @@ export function useDuplicateActivity() {
                 const duplicatedActivity: ActivityLogEntry = {
                     ...originalActivity,
                     _id: tempId,
-                    completedAt: variables.completedAt || new Date().toISOString(),
+                    // Use provided date, or fall back to original activity's date (not today's date)
+                    completedAt: variables.completedAt || originalActivity.completedAt,
                 };
 
                 queryClient.setQueriesData<GetActivityResponse>(

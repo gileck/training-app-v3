@@ -25,10 +25,10 @@ export async function duplicateActivity(
             return { error: 'Activity not found or unauthorized' };
         }
 
-        // Determine the completedAt date
+        // Determine the completedAt date - use provided date or original's date (not today)
         const completedAt = request.completedAt
             ? new Date(request.completedAt)
-            : new Date();
+            : original.completedAt;
 
         if (isNaN(completedAt.getTime())) {
             return { error: 'Invalid date format' };
