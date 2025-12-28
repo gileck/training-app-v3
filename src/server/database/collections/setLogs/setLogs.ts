@@ -200,6 +200,57 @@ export const findSetLogsByExerciseDefId = async (
 };
 
 /**
+ * Update a set log's completedAt date
+ */
+export const updateSetLogDate = async (
+    setLogId: ObjectId | string,
+    userId: ObjectId | string,
+    completedAt: Date
+): Promise<boolean> => {
+    const collection = await getCollection();
+    const setLogIdObj = typeof setLogId === 'string' ? new ObjectId(setLogId) : setLogId;
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+
+    const result = await collection.updateOne(
+        { _id: setLogIdObj, userId: userIdObj },
+        { $set: { completedAt } }
+    );
+    return result.modifiedCount === 1;
+};
+
+/**
+ * Delete multiple set logs by IDs
+ */
+export const deleteSetLogsBulk = async (
+    setLogIds: (ObjectId | string)[],
+    userId: ObjectId | string
+): Promise<number> => {
+    const collection = await getCollection();
+    const setLogIdObjs = setLogIds.map(id => typeof id === 'string' ? new ObjectId(id) : id);
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+
+    const result = await collection.deleteMany({
+        _id: { $in: setLogIdObjs },
+        userId: userIdObj,
+    });
+    return result.deletedCount;
+};
+
+/**
+ * Find a single set log by ID
+ */
+export const findSetLogById = async (
+    setLogId: ObjectId | string,
+    userId: ObjectId | string
+): Promise<SetLog | null> => {
+    const collection = await getCollection();
+    const setLogIdObj = typeof setLogId === 'string' ? new ObjectId(setLogId) : setLogId;
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+
+    return collection.findOne({ _id: setLogIdObj, userId: userIdObj });
+};
+
+/**
  * Get aggregated stats per day (for charts)
  */
 export const getSetStatsPerDay = async (

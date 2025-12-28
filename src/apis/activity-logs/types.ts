@@ -72,3 +72,35 @@ export interface DeleteActivityResponse {
     error?: string;
 }
 
+// Bulk Delete Activity
+export interface BulkDeleteActivityRequest {
+    activityIds: string[];
+}
+
+export interface BulkDeleteActivityResponse {
+    deletedCount?: number;
+    error?: string;
+}
+
+// Edit Activity (update date)
+export interface EditActivityRequest {
+    activityId: string;
+    completedAt: string; // ISO date string
+}
+
+export interface EditActivityResponse {
+    success?: boolean;
+    error?: string;
+}
+
+// Duplicate Activity
+export interface DuplicateActivityRequest {
+    activityId: string;
+    completedAt?: string; // Optional: new date, defaults to now
+}
+
+export interface DuplicateActivityResponse {
+    activity?: ActivityLogEntry;
+    error?: string;
+}
+
