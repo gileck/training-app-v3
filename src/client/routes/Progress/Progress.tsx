@@ -39,6 +39,7 @@ import {
     X,
     Check,
     Loader2,
+    MoreVertical,
 } from 'lucide-react';
 import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -179,39 +180,16 @@ function groupConsecutiveActivities(activities: ActivityLogEntry[]): ActivityGro
 function ActivityItem({
     activity,
     onDelete,
-    showPlanName = true,
     isSelectionMode = false,
     isSelected = false,
     onSelect,
-    onLongPress,
 }: {
     activity: ActivityLogEntry;
     onDelete?: (id: string) => void;
-    showPlanName?: boolean;
     isSelectionMode?: boolean;
     isSelected?: boolean;
     onSelect?: (id: string) => void;
-    onLongPress?: (id: string) => void;
 }) {
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral touch state
-    const [touchTimer, setTouchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-
-    const handleTouchStart = () => {
-        if (onLongPress) {
-            const timer = setTimeout(() => {
-                onLongPress(activity._id);
-            }, 500);
-            setTouchTimer(timer);
-        }
-    };
-
-    const handleTouchEnd = () => {
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            setTouchTimer(null);
-        }
-    };
-
     const handleClick = () => {
         if (isSelectionMode && onSelect) {
             onSelect(activity._id);
@@ -224,9 +202,6 @@ function ActivityItem({
                 isSelectionMode ? 'cursor-pointer' : ''
             } ${isSelected ? 'bg-primary/10' : ''}`}
             onClick={handleClick}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
         >
             {isSelectionMode && (
                 <Checkbox
@@ -251,11 +226,6 @@ function ActivityItem({
             </div>
             <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{activity.exerciseName}</p>
-                {showPlanName && (
-                    <p className="text-sm text-muted-foreground">
-                        {activity.planName}
-                    </p>
-                )}
             </div>
             <div className="flex items-center gap-2">
                 <div className="text-right text-sm text-muted-foreground">
@@ -285,14 +255,12 @@ function GroupedActivityItem({
     isSelectionMode = false,
     selectedIds,
     onSelect,
-    onLongPress,
 }: {
     group: ActivityGroup;
     onDelete?: (id: string) => void;
     isSelectionMode?: boolean;
     selectedIds?: Set<string>;
     onSelect?: (id: string) => void;
-    onLongPress?: (id: string) => void;
 }) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand/collapse state
     const [isExpanded, setIsExpanded] = useState(false);
@@ -307,7 +275,6 @@ function GroupedActivityItem({
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIds?.has(firstActivity._id) ?? false}
                 onSelect={onSelect}
-                onLongPress={onLongPress}
             />
         );
     }
@@ -364,9 +331,6 @@ function GroupedActivityItem({
                     <p className="font-medium truncate">
                         {group.exerciseName}
                         <span className="text-muted-foreground ml-1">(x{group.activities.length})</span>
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        {firstActivity.planName}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -627,6 +591,8 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
     const [isSelectionMode, setIsSelectionMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- tracks which day is in selection mode
+    const [selectionDay, setSelectionDay] = useState<string | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -664,13 +630,15 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         });
     }, []);
 
-    const handleLongPress = useCallback((id: string) => {
-        setIsSelectionMode(true);
-        setSelectedIds(new Set([id]));
-    }, []);
-
     const handleCancelSelection = () => {
         setIsSelectionMode(false);
+        setSelectionDay(null);
+        setSelectedIds(new Set());
+    };
+
+    const handleEnableDaySelection = (date: string) => {
+        setIsSelectionMode(true);
+        setSelectionDay(date);
         setSelectedIds(new Set());
     };
 
@@ -783,21 +751,6 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
 
     return (
         <>
-            {/* Select mode toggle */}
-            {!isSelectionMode && activities.length > 0 && (
-                <div className="flex justify-end mb-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsSelectionMode(true)}
-                        className="text-muted-foreground"
-                    >
-                        <Check className="h-4 w-4 mr-1" />
-                        Select
-                    </Button>
-                </div>
-            )}
-
             <div className="space-y-4">
                 {Object.entries(groupedByDate).map(([date, dayActivities]) => {
                     // Group consecutive exercises within each day
@@ -806,12 +759,14 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                     const allDaySelected = dayIds.every((id) => selectedIds.has(id));
                     const someDaySelected = dayIds.some((id) => selectedIds.has(id));
 
+                    const isDayInSelectionMode = isSelectionMode && selectionDay === date;
+
                     return (
                         <Card key={date} className="rounded-xl">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-2">
-                                        {isSelectionMode && (
+                                        {isDayInSelectionMode && (
                                             <Checkbox
                                                 checked={allDaySelected}
                                                 onCheckedChange={() => handleSelectDay(dayActivities)}
@@ -822,8 +777,25 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                                         <Calendar className="h-4 w-4" />
                                         {date}
                                     </span>
-                                    <span className="text-primary font-semibold">
-                                        {dayActivities.length} {dayActivities.length === 1 ? 'set' : 'sets'}
+                                    <span className="flex items-center gap-1">
+                                        <span className="text-primary font-semibold">
+                                            {dayActivities.length} {dayActivities.length === 1 ? 'set' : 'sets'}
+                                        </span>
+                                        {!isSelectionMode && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleEnableDaySelection(date)}>
+                                                        <Check className="h-4 w-4 mr-2" />
+                                                        Select
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </span>
                                 </CardTitle>
                             </CardHeader>
@@ -833,10 +805,9 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                                         key={`${group.exerciseName}-${group.firstTime}-${index}`}
                                         group={group}
                                         onDelete={handleDelete}
-                                        isSelectionMode={isSelectionMode}
+                                        isSelectionMode={isDayInSelectionMode}
                                         selectedIds={selectedIds}
                                         onSelect={handleSelect}
-                                        onLongPress={handleLongPress}
                                     />
                                 ))}
                             </CardContent>
