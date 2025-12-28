@@ -3,10 +3,41 @@ import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import { Button } from '@/client/components/ui/button';
-import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Checkbox } from '@/client/components/ui/checkbox';
+import { Input } from '@/client/components/ui/input';
+import { Label } from '@/client/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/client/components/ui/dialog';
+import {
+    Activity,
+    Calendar,
+    TrendingUp,
+    Dumbbell,
+    BarChart3,
+    ChevronDown,
+    ChevronRight,
+    Trash2,
+    RefreshCw,
+    Copy,
+    Pencil,
+    X,
+    Check,
+} from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useActivity, useActivitySummary, useDeleteActivity } from './hooks';
+import {
+    useActivity,
+    useActivitySummary,
+    useDeleteActivity,
+    useBulkDeleteActivity,
+    useEditActivity,
+    useDuplicateActivity,
+} from './hooks';
 import { useProgressStore } from './store';
 import type { DateRange, ProgressTab } from './store';
 import type { ActivityLogEntry, DailySummary } from '@/apis/activity-logs/types';
@@ -137,13 +168,61 @@ function ActivityItem({
     activity,
     onDelete,
     showPlanName = true,
+    isSelectionMode = false,
+    isSelected = false,
+    onSelect,
+    onLongPress,
 }: {
     activity: ActivityLogEntry;
     onDelete?: (id: string) => void;
     showPlanName?: boolean;
+    isSelectionMode?: boolean;
+    isSelected?: boolean;
+    onSelect?: (id: string) => void;
+    onLongPress?: (id: string) => void;
 }) {
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral touch state
+    const [touchTimer, setTouchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleTouchStart = () => {
+        if (onLongPress) {
+            const timer = setTimeout(() => {
+                onLongPress(activity._id);
+            }, 500);
+            setTouchTimer(timer);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            setTouchTimer(null);
+        }
+    };
+
+    const handleClick = () => {
+        if (isSelectionMode && onSelect) {
+            onSelect(activity._id);
+        }
+    };
+
     return (
-        <div className="flex items-center gap-3 py-3 border-b border-border/50 last:border-0 group">
+        <div
+            className={`flex items-center gap-3 py-3 border-b border-border/50 last:border-0 group ${
+                isSelectionMode ? 'cursor-pointer' : ''
+            } ${isSelected ? 'bg-primary/10' : ''}`}
+            onClick={handleClick}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+        >
+            {isSelectionMode && (
+                <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onSelect?.(activity._id)}
+                    className="flex-shrink-0"
+                />
+            )}
             <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                 {activity.exerciseImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -170,11 +249,14 @@ function ActivityItem({
                 <div className="text-right text-sm text-muted-foreground">
                     <p>{formatTime(activity.completedAt)}</p>
                 </div>
-                {onDelete && (
+                {!isSelectionMode && onDelete && (
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDelete(activity._id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(activity._id);
+                        }}
                         className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -188,9 +270,17 @@ function ActivityItem({
 function GroupedActivityItem({
     group,
     onDelete,
+    isSelectionMode = false,
+    selectedIds,
+    onSelect,
+    onLongPress,
 }: {
     group: ActivityGroup;
     onDelete?: (id: string) => void;
+    isSelectionMode?: boolean;
+    selectedIds?: Set<string>;
+    onSelect?: (id: string) => void;
+    onLongPress?: (id: string) => void;
 }) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand/collapse state
     const [isExpanded, setIsExpanded] = useState(false);
@@ -198,17 +288,52 @@ function GroupedActivityItem({
 
     // Single activity - no grouping UI
     if (group.type === 'single') {
-        return <ActivityItem activity={firstActivity} onDelete={onDelete} />;
+        return (
+            <ActivityItem
+                activity={firstActivity}
+                onDelete={onDelete}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedIds?.has(firstActivity._id) ?? false}
+                onSelect={onSelect}
+                onLongPress={onLongPress}
+            />
+        );
     }
+
+    // Check if all activities in group are selected
+    const allSelected = group.activities.every((a) => selectedIds?.has(a._id));
+    const someSelected = group.activities.some((a) => selectedIds?.has(a._id));
+
+    const handleGroupSelect = () => {
+        if (onSelect) {
+            // If all selected, deselect all; otherwise select all
+            group.activities.forEach((a) => onSelect(a._id));
+        }
+    };
 
     // Grouped activities
     return (
-        <div className="border-b border-border/50 last:border-0">
+        <div className={`border-b border-border/50 last:border-0 ${someSelected ? 'bg-primary/5' : ''}`}>
             {/* Collapsed header */}
             <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                    if (isSelectionMode) {
+                        handleGroupSelect();
+                    } else {
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
                 className="flex items-center gap-3 py-3 w-full text-left hover:bg-muted/50 transition-colors rounded-lg -mx-2 px-2"
             >
+                {isSelectionMode && (
+                    <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleGroupSelect}
+                        className="flex-shrink-0"
+                        // Show indeterminate state when some but not all are selected
+                        {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
+                    />
+                )}
                 <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                     {firstActivity.exerciseImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -236,15 +361,30 @@ function GroupedActivityItem({
                     <div className="text-right text-sm text-muted-foreground">
                         <p>{formatTime(group.firstTime)}</p>
                     </div>
-                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    {!isSelectionMode && (
+                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    )}
                 </div>
             </button>
 
-            {/* Expanded content */}
-            {isExpanded && (
-                <div className="pl-4 border-l-2 border-muted ml-5 mb-2">
+            {/* Expanded content - show in selection mode or when expanded */}
+            {(isExpanded || isSelectionMode) && (
+                <div className={`pl-4 border-l-2 border-muted ${isSelectionMode ? 'ml-9' : 'ml-5'} mb-2`}>
                     {group.activities.map((activity) => (
-                        <div key={activity._id} className="flex items-center gap-3 py-2 group">
+                        <div
+                            key={activity._id}
+                            className={`flex items-center gap-3 py-2 group cursor-pointer ${
+                                selectedIds?.has(activity._id) ? 'bg-primary/10' : ''
+                            }`}
+                            onClick={() => isSelectionMode && onSelect?.(activity._id)}
+                        >
+                            {isSelectionMode && (
+                                <Checkbox
+                                    checked={selectedIds?.has(activity._id) ?? false}
+                                    onCheckedChange={() => onSelect?.(activity._id)}
+                                    className="flex-shrink-0"
+                                />
+                            )}
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm truncate">{activity.exerciseName}</p>
                             </div>
@@ -252,11 +392,14 @@ function GroupedActivityItem({
                                 <div className="text-right text-sm text-muted-foreground">
                                     <p>{formatTime(activity.completedAt)}</p>
                                 </div>
-                                {onDelete && (
+                                {!isSelectionMode && onDelete && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => onDelete(activity._id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete(activity._id);
+                                        }}
                                         className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
@@ -303,14 +446,205 @@ function DaySummaryCard({ summary }: { summary: DailySummary }) {
     );
 }
 
+function EditActivityDialog({
+    open,
+    onOpenChange,
+    selectedIds,
+    activities,
+    onSave,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    selectedIds: Set<string>;
+    activities: ActivityLogEntry[];
+    onSave: (date: string) => void;
+}) {
+    // Get the first selected activity to pre-populate date
+    const selectedActivities = activities.filter((a) => selectedIds.has(a._id));
+    const firstSelected = selectedActivities[0];
+
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [dateValue, setDateValue] = useState(() => {
+        if (firstSelected) {
+            const date = new Date(firstSelected.completedAt);
+            return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+        }
+        return new Date().toISOString().slice(0, 16);
+    });
+
+    const handleSave = () => {
+        onSave(new Date(dateValue).toISOString());
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit Date & Time</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="datetime">Date & Time</Label>
+                        <Input
+                            id="datetime"
+                            type="datetime-local"
+                            value={dateValue}
+                            onChange={(e) => setDateValue(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        {selectedIds.size === 1
+                            ? 'This will update the completion time for the selected set.'
+                            : `This will update the completion time for ${selectedIds.size} selected sets.`}
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function SelectionActionBar({
+    selectedCount,
+    onDelete,
+    onDuplicate,
+    onEdit,
+    onCancel,
+}: {
+    selectedCount: number;
+    onDelete: () => void;
+    onDuplicate: () => void;
+    onEdit: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-3 z-50">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onCancel}
+                        className="h-8 w-8"
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        {selectedCount} selected
+                    </span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onEdit}
+                        className="h-8 px-3"
+                        disabled={selectedCount === 0}
+                    >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onDuplicate}
+                        className="h-8 px-3"
+                        disabled={selectedCount === 0}
+                    >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Duplicate
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onDelete}
+                        className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={selectedCount === 0}
+                    >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
     const { data, isLoading } = useActivity({ limit: 50, startDate, endDate });
     const deleteActivityMutation = useDeleteActivity();
+    const bulkDeleteMutation = useBulkDeleteActivity();
+    const editActivityMutation = useEditActivity();
+    const duplicateActivityMutation = useDuplicateActivity();
     const activities = data?.activities || [];
+
+    // Selection state
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral selection state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const handleDelete = (activityId: string) => {
         deleteActivityMutation.mutate({ activityId });
+    };
+
+    const handleSelect = useCallback((id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleLongPress = useCallback((id: string) => {
+        setIsSelectionMode(true);
+        setSelectedIds(new Set([id]));
+    }, []);
+
+    const handleCancelSelection = () => {
+        setIsSelectionMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedIds.size > 0) {
+            bulkDeleteMutation.mutate({ activityIds: Array.from(selectedIds) });
+            handleCancelSelection();
+        }
+    };
+
+    const handleBulkDuplicate = () => {
+        if (selectedIds.size > 0) {
+            // Duplicate each selected activity
+            selectedIds.forEach((id) => {
+                duplicateActivityMutation.mutate({ activityId: id });
+            });
+            handleCancelSelection();
+        }
+    };
+
+    const handleEditSave = (newDate: string) => {
+        if (selectedIds.size > 0) {
+            // Edit each selected activity
+            selectedIds.forEach((id) => {
+                editActivityMutation.mutate({ activityId: id, completedAt: newDate });
+            });
+            handleCancelSelection();
+        }
     };
 
     // Show loading when:
@@ -356,32 +690,78 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     }, {} as Record<string, ActivityLogEntry[]>);
 
     return (
-        <div className="space-y-4">
-            {Object.entries(groupedByDate).map(([date, dayActivities]) => {
-                // Group consecutive exercises within each day
-                const groupedActivities = groupConsecutiveActivities(dayActivities);
+        <>
+            {/* Select mode toggle */}
+            {!isSelectionMode && activities.length > 0 && (
+                <div className="flex justify-end mb-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsSelectionMode(true)}
+                        className="text-muted-foreground"
+                    >
+                        <Check className="h-4 w-4 mr-1" />
+                        Select
+                    </Button>
+                </div>
+            )}
 
-                return (
-                    <Card key={date} className="rounded-xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                {date}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            {groupedActivities.map((group, index) => (
-                                <GroupedActivityItem
-                                    key={`${group.exerciseName}-${group.firstTime}-${index}`}
-                                    group={group}
-                                    onDelete={handleDelete}
-                                />
-                            ))}
-                        </CardContent>
-                    </Card>
-                );
-            })}
-        </div>
+            <div className="space-y-4">
+                {Object.entries(groupedByDate).map(([date, dayActivities]) => {
+                    // Group consecutive exercises within each day
+                    const groupedActivities = groupConsecutiveActivities(dayActivities);
+
+                    return (
+                        <Card key={date} className="rounded-xl">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4" />
+                                        {date}
+                                    </span>
+                                    <span className="text-primary font-semibold">
+                                        {dayActivities.length} {dayActivities.length === 1 ? 'set' : 'sets'}
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                {groupedActivities.map((group, index) => (
+                                    <GroupedActivityItem
+                                        key={`${group.exerciseName}-${group.firstTime}-${index}`}
+                                        group={group}
+                                        onDelete={handleDelete}
+                                        isSelectionMode={isSelectionMode}
+                                        selectedIds={selectedIds}
+                                        onSelect={handleSelect}
+                                        onLongPress={handleLongPress}
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+
+            {/* Selection Action Bar */}
+            {isSelectionMode && (
+                <SelectionActionBar
+                    selectedCount={selectedIds.size}
+                    onDelete={handleBulkDelete}
+                    onDuplicate={handleBulkDuplicate}
+                    onEdit={() => setIsEditDialogOpen(true)}
+                    onCancel={handleCancelSelection}
+                />
+            )}
+
+            {/* Edit Dialog */}
+            <EditActivityDialog
+                open={isEditDialogOpen}
+                onOpenChange={setIsEditDialogOpen}
+                selectedIds={selectedIds}
+                activities={activities}
+                onSave={handleEditSave}
+            />
+        </>
     );
 }
 
