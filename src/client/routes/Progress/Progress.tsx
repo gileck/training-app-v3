@@ -3,10 +3,54 @@ import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import { Button } from '@/client/components/ui/button';
-import { Activity, Calendar, TrendingUp, Dumbbell, BarChart3, ChevronDown, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Checkbox } from '@/client/components/ui/checkbox';
+import { Input } from '@/client/components/ui/input';
+import { Label } from '@/client/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/client/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/client/components/ui/alert-dialog';
+import { toast } from '@/client/components/ui/toast';
+import {
+    Activity,
+    Calendar,
+    TrendingUp,
+    Dumbbell,
+    BarChart3,
+    ChevronDown,
+    ChevronRight,
+    Trash2,
+    RefreshCw,
+    Copy,
+    Pencil,
+    X,
+    Check,
+    Loader2,
+    MoreVertical,
+} from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useActivity, useActivitySummary, useDeleteActivity } from './hooks';
+import {
+    useActivity,
+    useActivitySummary,
+    useDeleteActivity,
+    useBulkDeleteActivity,
+    useEditActivity,
+    useDuplicateActivity,
+} from './hooks';
 import { useProgressStore } from './store';
 import type { DateRange, ProgressTab } from './store';
 import type { ActivityLogEntry, DailySummary } from '@/apis/activity-logs/types';
@@ -136,14 +180,36 @@ function groupConsecutiveActivities(activities: ActivityLogEntry[]): ActivityGro
 function ActivityItem({
     activity,
     onDelete,
-    showPlanName = true,
+    isSelectionMode = false,
+    isSelected = false,
+    onSelect,
 }: {
     activity: ActivityLogEntry;
     onDelete?: (id: string) => void;
-    showPlanName?: boolean;
+    isSelectionMode?: boolean;
+    isSelected?: boolean;
+    onSelect?: (id: string) => void;
 }) {
+    const handleClick = () => {
+        if (isSelectionMode && onSelect) {
+            onSelect(activity._id);
+        }
+    };
+
     return (
-        <div className="flex items-center gap-3 py-3 border-b border-border/50 last:border-0 group">
+        <div
+            className={`flex items-center gap-3 py-3 border-b border-border/50 last:border-0 group ${
+                isSelectionMode ? 'cursor-pointer' : ''
+            } ${isSelected ? 'bg-primary/10' : ''}`}
+            onClick={handleClick}
+        >
+            {isSelectionMode && (
+                <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onSelect?.(activity._id)}
+                    className="flex-shrink-0"
+                />
+            )}
             <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                 {activity.exerciseImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -160,21 +226,19 @@ function ActivityItem({
             </div>
             <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{activity.exerciseName}</p>
-                {showPlanName && (
-                    <p className="text-sm text-muted-foreground">
-                        {activity.planName}
-                    </p>
-                )}
             </div>
             <div className="flex items-center gap-2">
                 <div className="text-right text-sm text-muted-foreground">
                     <p>{formatTime(activity.completedAt)}</p>
                 </div>
-                {onDelete && (
+                {!isSelectionMode && onDelete && (
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDelete(activity._id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(activity._id);
+                        }}
                         className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -188,9 +252,15 @@ function ActivityItem({
 function GroupedActivityItem({
     group,
     onDelete,
+    isSelectionMode = false,
+    selectedIds,
+    onSelect,
 }: {
     group: ActivityGroup;
     onDelete?: (id: string) => void;
+    isSelectionMode?: boolean;
+    selectedIds?: Set<string>;
+    onSelect?: (id: string) => void;
 }) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand/collapse state
     const [isExpanded, setIsExpanded] = useState(false);
@@ -198,17 +268,51 @@ function GroupedActivityItem({
 
     // Single activity - no grouping UI
     if (group.type === 'single') {
-        return <ActivityItem activity={firstActivity} onDelete={onDelete} />;
+        return (
+            <ActivityItem
+                activity={firstActivity}
+                onDelete={onDelete}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedIds?.has(firstActivity._id) ?? false}
+                onSelect={onSelect}
+            />
+        );
     }
+
+    // Check if all activities in group are selected
+    const allSelected = group.activities.every((a) => selectedIds?.has(a._id));
+    const someSelected = group.activities.some((a) => selectedIds?.has(a._id));
+
+    const handleGroupSelect = () => {
+        if (onSelect) {
+            // If all selected, deselect all; otherwise select all
+            group.activities.forEach((a) => onSelect(a._id));
+        }
+    };
 
     // Grouped activities
     return (
-        <div className="border-b border-border/50 last:border-0">
+        <div className={`border-b border-border/50 last:border-0 ${someSelected ? 'bg-primary/5' : ''}`}>
             {/* Collapsed header */}
             <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                    if (isSelectionMode) {
+                        handleGroupSelect();
+                    } else {
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
                 className="flex items-center gap-3 py-3 w-full text-left hover:bg-muted/50 transition-colors rounded-lg -mx-2 px-2"
             >
+                {isSelectionMode && (
+                    <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleGroupSelect}
+                        className="flex-shrink-0"
+                        // Show indeterminate state when some but not all are selected
+                        {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
+                    />
+                )}
                 <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                     {firstActivity.exerciseImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -228,23 +332,35 @@ function GroupedActivityItem({
                         {group.exerciseName}
                         <span className="text-muted-foreground ml-1">(x{group.activities.length})</span>
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                        {firstActivity.planName}
-                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="text-right text-sm text-muted-foreground">
                         <p>{formatTime(group.firstTime)}</p>
                     </div>
-                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    {!isSelectionMode && (
+                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    )}
                 </div>
             </button>
 
-            {/* Expanded content */}
-            {isExpanded && (
-                <div className="pl-4 border-l-2 border-muted ml-5 mb-2">
+            {/* Expanded content - show in selection mode or when expanded */}
+            {(isExpanded || isSelectionMode) && (
+                <div className={`pl-4 border-l-2 border-muted ${isSelectionMode ? 'ml-9' : 'ml-5'} mb-2`}>
                     {group.activities.map((activity) => (
-                        <div key={activity._id} className="flex items-center gap-3 py-2 group">
+                        <div
+                            key={activity._id}
+                            className={`flex items-center gap-3 py-2 group cursor-pointer ${
+                                selectedIds?.has(activity._id) ? 'bg-primary/10' : ''
+                            }`}
+                            onClick={() => isSelectionMode && onSelect?.(activity._id)}
+                        >
+                            {isSelectionMode && (
+                                <Checkbox
+                                    checked={selectedIds?.has(activity._id) ?? false}
+                                    onCheckedChange={() => onSelect?.(activity._id)}
+                                    className="flex-shrink-0"
+                                />
+                            )}
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm truncate">{activity.exerciseName}</p>
                             </div>
@@ -252,11 +368,14 @@ function GroupedActivityItem({
                                 <div className="text-right text-sm text-muted-foreground">
                                     <p>{formatTime(activity.completedAt)}</p>
                                 </div>
-                                {onDelete && (
+                                {!isSelectionMode && onDelete && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => onDelete(activity._id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete(activity._id);
+                                        }}
                                         className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
@@ -303,14 +422,289 @@ function DaySummaryCard({ summary }: { summary: DailySummary }) {
     );
 }
 
+function EditActivityDialog({
+    open,
+    onOpenChange,
+    selectedIds,
+    activities,
+    onSave,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    selectedIds: Set<string>;
+    activities: ActivityLogEntry[];
+    onSave: (date: string) => void;
+}) {
+    // Get the first selected activity to pre-populate date
+    const selectedActivities = activities.filter((a) => selectedIds.has(a._id));
+    const firstSelected = selectedActivities[0];
+
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [dateValue, setDateValue] = useState(() => {
+        if (firstSelected) {
+            const date = new Date(firstSelected.completedAt);
+            return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+        }
+        return new Date().toISOString().slice(0, 16);
+    });
+
+    const handleSave = () => {
+        onSave(new Date(dateValue).toISOString());
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit Date & Time</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="datetime">Date & Time</Label>
+                        <Input
+                            id="datetime"
+                            type="datetime-local"
+                            value={dateValue}
+                            onChange={(e) => setDateValue(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        {selectedIds.size === 1
+                            ? 'This will update the completion time for the selected set.'
+                            : `This will update the completion time for ${selectedIds.size} selected sets.`}
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function SelectionActionBar({
+    selectedCount,
+    deletableCount,
+    onDelete,
+    onDuplicate,
+    onEdit,
+    onCancel,
+    isDeleting,
+    isDuplicating,
+    isEditing,
+}: {
+    selectedCount: number;
+    deletableCount: number;
+    onDelete: () => void;
+    onDuplicate: () => void;
+    onEdit: () => void;
+    onCancel: () => void;
+    isDeleting?: boolean;
+    isDuplicating?: boolean;
+    isEditing?: boolean;
+}) {
+    const isSingleSelection = selectedCount === 1;
+    const isAnyLoading = isDeleting || isDuplicating || isEditing;
+
+    return (
+        <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-2 z-50">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onCancel}
+                        className="h-8 w-8"
+                        disabled={isAnyLoading}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        {selectedCount} selected
+                    </span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onEdit}
+                        className="h-9 w-9"
+                        disabled={!isSingleSelection || isAnyLoading}
+                        title={isSingleSelection ? 'Edit date' : 'Select one item to edit'}
+                    >
+                        {isEditing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Pencil className="h-4 w-4" />
+                        )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onDuplicate}
+                        className="h-9 w-9"
+                        disabled={!isSingleSelection || isAnyLoading}
+                        title={isSingleSelection ? 'Duplicate' : 'Select one item to duplicate'}
+                    >
+                        {isDuplicating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Copy className="h-4 w-4" />
+                        )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onDelete}
+                        className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={deletableCount === 0 || isAnyLoading}
+                        title="Delete"
+                    >
+                        {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Trash2 className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
     const { data, isLoading } = useActivity({ limit: 50, startDate, endDate });
     const deleteActivityMutation = useDeleteActivity();
+    const bulkDeleteMutation = useBulkDeleteActivity();
+    const editActivityMutation = useEditActivity();
+    const duplicateActivityMutation = useDuplicateActivity();
     const activities = data?.activities || [];
+
+    // Selection state
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral selection state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- tracks which day is in selection mode
+    const [selectionDay, setSelectionDay] = useState<string | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleDelete = (activityId: string) => {
         deleteActivityMutation.mutate({ activityId });
+    };
+
+    const handleSelect = useCallback((id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleSelectDay = useCallback((dayActivities: ActivityLogEntry[]) => {
+        setSelectedIds((prev) => {
+            const dayIds = dayActivities.map((a) => a._id);
+            const allSelected = dayIds.every((id) => prev.has(id));
+            const next = new Set(prev);
+            if (allSelected) {
+                // Deselect all from this day
+                dayIds.forEach((id) => next.delete(id));
+            } else {
+                // Select all from this day
+                dayIds.forEach((id) => next.add(id));
+            }
+            return next;
+        });
+    }, []);
+
+    const handleCancelSelection = () => {
+        setIsSelectionMode(false);
+        setSelectionDay(null);
+        setSelectedIds(new Set());
+    };
+
+    const handleEnableDaySelection = (date: string) => {
+        setIsSelectionMode(true);
+        setSelectionDay(date);
+        setSelectedIds(new Set());
+    };
+
+    // Filter out temp IDs (from optimistic updates) that don't exist in database
+    const realSelectedIds = useMemo(() => {
+        return Array.from(selectedIds).filter((id) => !id.startsWith('temp-'));
+    }, [selectedIds]);
+
+    const handleBulkDelete = () => {
+        if (realSelectedIds.length > 0) {
+            const count = realSelectedIds.length;
+            bulkDeleteMutation.mutate(
+                { activityIds: realSelectedIds },
+                {
+                    onSuccess: () => {
+                        toast.success(`Deleted ${count} ${count === 1 ? 'set' : 'sets'}`);
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to delete sets');
+                    },
+                }
+            );
+            setIsDeleteDialogOpen(false);
+        }
+    };
+
+    const handleDuplicate = () => {
+        if (selectedIds.size === 1) {
+            const [id] = Array.from(selectedIds);
+            // Find the original activity to get its date
+            const originalActivity = activities.find((a) => a._id === id);
+            duplicateActivityMutation.mutate(
+                {
+                    activityId: id,
+                    completedAt: originalActivity?.completedAt, // Keep same date
+                },
+                {
+                    onSuccess: () => {
+                        toast.success('Set duplicated');
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to duplicate set');
+                    },
+                }
+            );
+        }
+    };
+
+    const handleEditSave = (newDate: string) => {
+        if (selectedIds.size === 1) {
+            const [id] = Array.from(selectedIds);
+            editActivityMutation.mutate(
+                { activityId: id, completedAt: newDate },
+                {
+                    onSuccess: () => {
+                        toast.success('Date updated');
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to update date');
+                    },
+                }
+            );
+        }
     };
 
     // Show loading when:
@@ -356,32 +750,117 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     }, {} as Record<string, ActivityLogEntry[]>);
 
     return (
-        <div className="space-y-4">
-            {Object.entries(groupedByDate).map(([date, dayActivities]) => {
-                // Group consecutive exercises within each day
-                const groupedActivities = groupConsecutiveActivities(dayActivities);
+        <>
+            <div className="space-y-4">
+                {Object.entries(groupedByDate).map(([date, dayActivities]) => {
+                    // Group consecutive exercises within each day
+                    const groupedActivities = groupConsecutiveActivities(dayActivities);
+                    const dayIds = dayActivities.map((a) => a._id);
+                    const allDaySelected = dayIds.every((id) => selectedIds.has(id));
+                    const someDaySelected = dayIds.some((id) => selectedIds.has(id));
 
-                return (
-                    <Card key={date} className="rounded-xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                {date}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            {groupedActivities.map((group, index) => (
-                                <GroupedActivityItem
-                                    key={`${group.exerciseName}-${group.firstTime}-${index}`}
-                                    group={group}
-                                    onDelete={handleDelete}
-                                />
-                            ))}
-                        </CardContent>
-                    </Card>
-                );
-            })}
-        </div>
+                    const isDayInSelectionMode = isSelectionMode && selectionDay === date;
+
+                    return (
+                        <Card key={date} className="rounded-xl">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        {isDayInSelectionMode && (
+                                            <Checkbox
+                                                checked={allDaySelected}
+                                                onCheckedChange={() => handleSelectDay(dayActivities)}
+                                                className="flex-shrink-0"
+                                                {...(someDaySelected && !allDaySelected ? { 'data-state': 'indeterminate' } : {})}
+                                            />
+                                        )}
+                                        <Calendar className="h-4 w-4" />
+                                        {date}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <span className="text-primary font-semibold">
+                                            {dayActivities.length} {dayActivities.length === 1 ? 'set' : 'sets'}
+                                        </span>
+                                        {!isSelectionMode && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleEnableDaySelection(date)}>
+                                                        <Check className="h-4 w-4 mr-2" />
+                                                        Select
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                {groupedActivities.map((group, index) => (
+                                    <GroupedActivityItem
+                                        key={`${group.exerciseName}-${group.firstTime}-${index}`}
+                                        group={group}
+                                        onDelete={handleDelete}
+                                        isSelectionMode={isDayInSelectionMode}
+                                        selectedIds={selectedIds}
+                                        onSelect={handleSelect}
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+
+            {/* Selection Action Bar */}
+            {isSelectionMode && (
+                <SelectionActionBar
+                    selectedCount={selectedIds.size}
+                    deletableCount={realSelectedIds.length}
+                    onDelete={() => setIsDeleteDialogOpen(true)}
+                    onDuplicate={handleDuplicate}
+                    onEdit={() => setIsEditDialogOpen(true)}
+                    onCancel={handleCancelSelection}
+                    isDeleting={bulkDeleteMutation.isPending}
+                    isDuplicating={duplicateActivityMutation.isPending}
+                    isEditing={editActivityMutation.isPending}
+                />
+            )}
+
+            {/* Edit Dialog */}
+            <EditActivityDialog
+                open={isEditDialogOpen}
+                onOpenChange={setIsEditDialogOpen}
+                selectedIds={selectedIds}
+                activities={activities}
+                onSave={handleEditSave}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {realSelectedIds.length} {realSelectedIds.length === 1 ? 'set' : 'sets'}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the selected {realSelectedIds.length === 1 ? 'set' : 'sets'}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleBulkDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 
