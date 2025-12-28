@@ -525,6 +525,7 @@ function EditActivityDialog({
 
 function SelectionActionBar({
     selectedCount,
+    deletableCount,
     onDelete,
     onDuplicate,
     onEdit,
@@ -534,6 +535,7 @@ function SelectionActionBar({
     isEditing,
 }: {
     selectedCount: number;
+    deletableCount: number;
     onDelete: () => void;
     onDuplicate: () => void;
     onEdit: () => void;
@@ -596,7 +598,7 @@ function SelectionActionBar({
                         size="icon"
                         onClick={onDelete}
                         className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        disabled={selectedCount === 0 || isAnyLoading}
+                        disabled={deletableCount === 0 || isAnyLoading}
                         title="Delete"
                     >
                         {isDeleting ? (
@@ -672,11 +674,16 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         setSelectedIds(new Set());
     };
 
+    // Filter out temp IDs (from optimistic updates) that don't exist in database
+    const realSelectedIds = useMemo(() => {
+        return Array.from(selectedIds).filter((id) => !id.startsWith('temp-'));
+    }, [selectedIds]);
+
     const handleBulkDelete = () => {
-        if (selectedIds.size > 0) {
-            const count = selectedIds.size;
+        if (realSelectedIds.length > 0) {
+            const count = realSelectedIds.length;
             bulkDeleteMutation.mutate(
-                { activityIds: Array.from(selectedIds) },
+                { activityIds: realSelectedIds },
                 {
                     onSuccess: () => {
                         toast.success(`Deleted ${count} ${count === 1 ? 'set' : 'sets'}`);
@@ -694,8 +701,13 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     const handleDuplicate = () => {
         if (selectedIds.size === 1) {
             const [id] = Array.from(selectedIds);
+            // Find the original activity to get its date
+            const originalActivity = activities.find((a) => a._id === id);
             duplicateActivityMutation.mutate(
-                { activityId: id },
+                {
+                    activityId: id,
+                    completedAt: originalActivity?.completedAt, // Keep same date
+                },
                 {
                     onSuccess: () => {
                         toast.success('Set duplicated');
@@ -837,6 +849,7 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
             {isSelectionMode && (
                 <SelectionActionBar
                     selectedCount={selectedIds.size}
+                    deletableCount={realSelectedIds.length}
                     onDelete={() => setIsDeleteDialogOpen(true)}
                     onDuplicate={handleDuplicate}
                     onEdit={() => setIsEditDialogOpen(true)}
@@ -860,9 +873,9 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? 'set' : 'sets'}?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete {realSelectedIds.length} {realSelectedIds.length === 1 ? 'set' : 'sets'}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the selected {selectedIds.size === 1 ? 'set' : 'sets'}.
+                            This action cannot be undone. This will permanently delete the selected {realSelectedIds.length === 1 ? 'set' : 'sets'}.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
