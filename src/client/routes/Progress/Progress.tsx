@@ -1511,8 +1511,9 @@ function DailySummaries({ dateRange }: { dateRange: DateRange }) {
     );
 }
 
-function StatsOverview() {
-    const { data, isLoading } = useActivitySummary({ period: 'week' });
+function StatsOverview({ dateRange }: { dateRange: DateRange }) {
+    const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
+    const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
 
     const totalSets = data?.totalSets ?? 0;
     const totalDays = data?.totalWorkoutDays ?? 0;
@@ -1798,7 +1799,7 @@ export function Progress() {
                 </div>
             </div>
 
-            <StatsOverview />
+            <StatsOverview dateRange={dateRange} />
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ProgressTab)}>
                 <TabsList className="w-full mb-4">
