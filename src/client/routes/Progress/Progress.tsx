@@ -524,10 +524,12 @@ function SelectionActionBar({
     onEdit: () => void;
     onCancel: () => void;
 }) {
+    const isSingleSelection = selectedCount === 1;
+
     return (
-        <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-3 z-50">
+        <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-2 z-50">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -536,40 +538,40 @@ function SelectionActionBar({
                     >
                         <X className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium">
-                        {selectedCount} selected
+                    <span className="text-sm font-medium min-w-[24px]">
+                        {selectedCount}
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={onEdit}
-                        className="h-8 px-3"
-                        disabled={selectedCount === 0}
+                        className="h-9 w-9"
+                        disabled={!isSingleSelection}
+                        title={isSingleSelection ? 'Edit date' : 'Select one item to edit'}
                     >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Edit
+                        <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={onDuplicate}
-                        className="h-8 px-3"
-                        disabled={selectedCount === 0}
+                        className="h-9 w-9"
+                        disabled={!isSingleSelection}
+                        title={isSingleSelection ? 'Duplicate' : 'Select one item to duplicate'}
                     >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Duplicate
+                        <Copy className="h-4 w-4" />
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={onDelete}
-                        className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                         disabled={selectedCount === 0}
+                        title="Delete"
                     >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
@@ -627,22 +629,18 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         }
     };
 
-    const handleBulkDuplicate = () => {
-        if (selectedIds.size > 0) {
-            // Duplicate each selected activity
-            selectedIds.forEach((id) => {
-                duplicateActivityMutation.mutate({ activityId: id });
-            });
+    const handleDuplicate = () => {
+        if (selectedIds.size === 1) {
+            const [id] = Array.from(selectedIds);
+            duplicateActivityMutation.mutate({ activityId: id });
             handleCancelSelection();
         }
     };
 
     const handleEditSave = (newDate: string) => {
-        if (selectedIds.size > 0) {
-            // Edit each selected activity
-            selectedIds.forEach((id) => {
-                editActivityMutation.mutate({ activityId: id, completedAt: newDate });
-            });
+        if (selectedIds.size === 1) {
+            const [id] = Array.from(selectedIds);
+            editActivityMutation.mutate({ activityId: id, completedAt: newDate });
             handleCancelSelection();
         }
     };
@@ -747,7 +745,7 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                 <SelectionActionBar
                     selectedCount={selectedIds.size}
                     onDelete={handleBulkDelete}
-                    onDuplicate={handleBulkDuplicate}
+                    onDuplicate={handleDuplicate}
                     onEdit={() => setIsEditDialogOpen(true)}
                     onCancel={handleCancelSelection}
                 />
