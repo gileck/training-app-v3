@@ -14,6 +14,17 @@ import {
     DialogFooter,
 } from '@/client/components/ui/dialog';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/client/components/ui/alert-dialog';
+import { toast } from '@/client/components/ui/toast';
+import {
     Activity,
     Calendar,
     TrendingUp,
@@ -27,6 +38,7 @@ import {
     Pencil,
     X,
     Check,
+    Loader2,
 } from 'lucide-react';
 import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -517,29 +529,37 @@ function SelectionActionBar({
     onDuplicate,
     onEdit,
     onCancel,
+    isDeleting,
+    isDuplicating,
+    isEditing,
 }: {
     selectedCount: number;
     onDelete: () => void;
     onDuplicate: () => void;
     onEdit: () => void;
     onCancel: () => void;
+    isDeleting?: boolean;
+    isDuplicating?: boolean;
+    isEditing?: boolean;
 }) {
     const isSingleSelection = selectedCount === 1;
+    const isAnyLoading = isDeleting || isDuplicating || isEditing;
 
     return (
         <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-2 z-50">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onCancel}
                         className="h-8 w-8"
+                        disabled={isAnyLoading}
                     >
                         <X className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium min-w-[24px]">
-                        {selectedCount}
+                    <span className="text-sm font-medium">
+                        {selectedCount} selected
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -548,30 +568,42 @@ function SelectionActionBar({
                         size="icon"
                         onClick={onEdit}
                         className="h-9 w-9"
-                        disabled={!isSingleSelection}
+                        disabled={!isSingleSelection || isAnyLoading}
                         title={isSingleSelection ? 'Edit date' : 'Select one item to edit'}
                     >
-                        <Pencil className="h-4 w-4" />
+                        {isEditing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Pencil className="h-4 w-4" />
+                        )}
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onDuplicate}
                         className="h-9 w-9"
-                        disabled={!isSingleSelection}
+                        disabled={!isSingleSelection || isAnyLoading}
                         title={isSingleSelection ? 'Duplicate' : 'Select one item to duplicate'}
                     >
-                        <Copy className="h-4 w-4" />
+                        {isDuplicating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Copy className="h-4 w-4" />
+                        )}
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onDelete}
                         className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        disabled={selectedCount === 0}
+                        disabled={selectedCount === 0 || isAnyLoading}
                         title="Delete"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Trash2 className="h-4 w-4" />
+                        )}
                     </Button>
                 </div>
             </div>
@@ -595,6 +627,8 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleDelete = (activityId: string) => {
         deleteActivityMutation.mutate({ activityId });
@@ -612,6 +646,22 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
         });
     }, []);
 
+    const handleSelectDay = useCallback((dayActivities: ActivityLogEntry[]) => {
+        setSelectedIds((prev) => {
+            const dayIds = dayActivities.map((a) => a._id);
+            const allSelected = dayIds.every((id) => prev.has(id));
+            const next = new Set(prev);
+            if (allSelected) {
+                // Deselect all from this day
+                dayIds.forEach((id) => next.delete(id));
+            } else {
+                // Select all from this day
+                dayIds.forEach((id) => next.add(id));
+            }
+            return next;
+        });
+    }, []);
+
     const handleLongPress = useCallback((id: string) => {
         setIsSelectionMode(true);
         setSelectedIds(new Set([id]));
@@ -624,24 +674,56 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
 
     const handleBulkDelete = () => {
         if (selectedIds.size > 0) {
-            bulkDeleteMutation.mutate({ activityIds: Array.from(selectedIds) });
-            handleCancelSelection();
+            const count = selectedIds.size;
+            bulkDeleteMutation.mutate(
+                { activityIds: Array.from(selectedIds) },
+                {
+                    onSuccess: () => {
+                        toast.success(`Deleted ${count} ${count === 1 ? 'set' : 'sets'}`);
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to delete sets');
+                    },
+                }
+            );
+            setIsDeleteDialogOpen(false);
         }
     };
 
     const handleDuplicate = () => {
         if (selectedIds.size === 1) {
             const [id] = Array.from(selectedIds);
-            duplicateActivityMutation.mutate({ activityId: id });
-            handleCancelSelection();
+            duplicateActivityMutation.mutate(
+                { activityId: id },
+                {
+                    onSuccess: () => {
+                        toast.success('Set duplicated');
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to duplicate set');
+                    },
+                }
+            );
         }
     };
 
     const handleEditSave = (newDate: string) => {
         if (selectedIds.size === 1) {
             const [id] = Array.from(selectedIds);
-            editActivityMutation.mutate({ activityId: id, completedAt: newDate });
-            handleCancelSelection();
+            editActivityMutation.mutate(
+                { activityId: id, completedAt: newDate },
+                {
+                    onSuccess: () => {
+                        toast.success('Date updated');
+                        setSelectedIds(new Set());
+                    },
+                    onError: () => {
+                        toast.error('Failed to update date');
+                    },
+                }
+            );
         }
     };
 
@@ -708,12 +790,23 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                 {Object.entries(groupedByDate).map(([date, dayActivities]) => {
                     // Group consecutive exercises within each day
                     const groupedActivities = groupConsecutiveActivities(dayActivities);
+                    const dayIds = dayActivities.map((a) => a._id);
+                    const allDaySelected = dayIds.every((id) => selectedIds.has(id));
+                    const someDaySelected = dayIds.some((id) => selectedIds.has(id));
 
                     return (
                         <Card key={date} className="rounded-xl">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-2">
+                                        {isSelectionMode && (
+                                            <Checkbox
+                                                checked={allDaySelected}
+                                                onCheckedChange={() => handleSelectDay(dayActivities)}
+                                                className="flex-shrink-0"
+                                                {...(someDaySelected && !allDaySelected ? { 'data-state': 'indeterminate' } : {})}
+                                            />
+                                        )}
                                         <Calendar className="h-4 w-4" />
                                         {date}
                                     </span>
@@ -744,10 +837,13 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
             {isSelectionMode && (
                 <SelectionActionBar
                     selectedCount={selectedIds.size}
-                    onDelete={handleBulkDelete}
+                    onDelete={() => setIsDeleteDialogOpen(true)}
                     onDuplicate={handleDuplicate}
                     onEdit={() => setIsEditDialogOpen(true)}
                     onCancel={handleCancelSelection}
+                    isDeleting={bulkDeleteMutation.isPending}
+                    isDuplicating={duplicateActivityMutation.isPending}
+                    isEditing={editActivityMutation.isPending}
                 />
             )}
 
@@ -759,6 +855,27 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
                 activities={activities}
                 onSave={handleEditSave}
             />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? 'set' : 'sets'}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the selected {selectedIds.size === 1 ? 'set' : 'sets'}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleBulkDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
