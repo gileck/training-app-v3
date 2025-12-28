@@ -8,6 +8,7 @@ import {
     API_BULK_DELETE_ACTIVITY,
     API_EDIT_ACTIVITY,
     API_DUPLICATE_ACTIVITY,
+    API_ADD_ACTIVITY,
 } from './index';
 import type {
     GetActivityRequest,
@@ -24,6 +25,8 @@ import type {
     EditActivityResponse,
     DuplicateActivityRequest,
     DuplicateActivityResponse,
+    AddActivityRequest,
+    AddActivityResponse,
 } from './types';
 
 export async function getActivity(request: GetActivityRequest): Promise<CacheResult<GetActivityResponse>> {
@@ -64,4 +67,10 @@ export async function duplicateActivity(
     request: DuplicateActivityRequest
 ): Promise<CacheResult<DuplicateActivityResponse>> {
     return apiClient.post(API_DUPLICATE_ACTIVITY, request);
+}
+
+export async function addActivity(
+    request: AddActivityRequest
+): Promise<CacheResult<AddActivityResponse>> {
+    return apiClient.post(API_ADD_ACTIVITY, request);
 }

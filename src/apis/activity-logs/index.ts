@@ -7,5 +7,6 @@ export const API_DELETE_ACTIVITY = 'activity-logs/delete-activity';
 export const API_BULK_DELETE_ACTIVITY = 'activity-logs/bulk-delete-activity';
 export const API_EDIT_ACTIVITY = 'activity-logs/edit-activity';
 export const API_DUPLICATE_ACTIVITY = 'activity-logs/duplicate-activity';
+export const API_ADD_ACTIVITY = 'activity-logs/add-activity';
 
 

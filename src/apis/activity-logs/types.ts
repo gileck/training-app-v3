@@ -104,3 +104,15 @@ export interface DuplicateActivityResponse {
     error?: string;
 }
 
+// Add Activity (create new set logs)
+export interface AddActivityRequest {
+    planExerciseId: string;
+    completedAt: string; // ISO date string
+    numberOfSets: number; // How many sets to create
+}
+
+export interface AddActivityResponse {
+    activities?: ActivityLogEntry[];
+    error?: string;
+}
+

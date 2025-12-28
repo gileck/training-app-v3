@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { DuplicateActivityRequest, DuplicateActivityResponse, ActivityLogEntry } from '../types';
 import { setLogs } from '@/server/database';
 import * as planExercises from '@/server/database/collections/planExercises';

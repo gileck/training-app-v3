@@ -7,6 +7,7 @@ import {
     bulkDeleteActivity,
     editActivity,
     duplicateActivity,
+    addActivity,
 } from '@/apis/activity-logs/client';
 import type {
     GetActivityResponse,
@@ -15,6 +16,7 @@ import type {
     BulkDeleteActivityRequest,
     EditActivityRequest,
     DuplicateActivityRequest,
+    AddActivityRequest,
     ActivityLogEntry,
 } from '@/apis/activity-logs/types';
 
@@ -316,4 +318,71 @@ export function useDuplicateActivity() {
     });
 }
 
+/**
+ * Hook for adding new activities (creating set logs)
+ *
+ * Uses OPTIMISTIC-ONLY pattern with refetch for proper data.
+ */
+export function useAddActivity() {
+    const queryClient = useQueryClient();
 
+    return useMutation({
+        mutationFn: async (data: AddActivityRequest) => {
+            const response = await addActivity(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data?.activities;
+        },
+        // OPTIMISTIC UPDATE: Add activities immediately with temp IDs
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: ['activity'] });
+            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
+
+            const previousQueries = queryClient.getQueriesData<GetActivityResponse>({ queryKey: ['activity'] });
+
+            // Create temp activities
+            const tempActivities: ActivityLogEntry[] = [];
+            for (let i = 0; i < variables.numberOfSets; i++) {
+                tempActivities.push({
+                    _id: `temp-${Date.now()}-${i}`,
+                    userId: '',
+                    planExerciseId: variables.planExerciseId,
+                    planId: '',
+                    weekNumber: 1,
+                    setNumber: i + 1,
+                    completedAt: variables.completedAt,
+                    exerciseName: 'Loading...',
+                    exerciseImageUrl: '',
+                    primaryMuscle: '',
+                    planName: '',
+                });
+            }
+
+            queryClient.setQueriesData<GetActivityResponse>(
+                { queryKey: ['activity'] },
+                (old) => {
+                    if (!old?.activities) return old;
+                    return {
+                        ...old,
+                        activities: [...tempActivities, ...old.activities],
+                    };
+                }
+            );
+
+            return { previousQueries };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previousQueries) {
+                context.previousQueries.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+        },
+        onSettled: () => {
+            // Refetch to get real data
+            queryClient.invalidateQueries({ queryKey: ['activity'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
+        },
+    });
+}

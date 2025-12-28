@@ -47,3 +47,4 @@ next-env.d.ts
 .template-sync-temp/
 *.template
 template-diff-summary.md
+.mcp.json

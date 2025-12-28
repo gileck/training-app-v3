@@ -10,6 +10,7 @@ import {
     API_BULK_DELETE_ACTIVITY,
     API_EDIT_ACTIVITY,
     API_DUPLICATE_ACTIVITY,
+    API_ADD_ACTIVITY,
 } from './index';
 
 // Import handlers
@@ -20,6 +21,7 @@ import { deleteActivity } from './handlers/deleteActivity';
 import { bulkDeleteActivity } from './handlers/bulkDeleteActivity';
 import { editActivity } from './handlers/editActivity';
 import { duplicateActivity } from './handlers/duplicateActivity';
+import { addActivity } from './handlers/addActivity';
 
 // Export consolidated handlers object
 export const activityLogsApiHandlers = {
@@ -30,4 +32,5 @@ export const activityLogsApiHandlers = {
     [API_BULK_DELETE_ACTIVITY]: { process: bulkDeleteActivity },
     [API_EDIT_ACTIVITY]: { process: editActivity },
     [API_DUPLICATE_ACTIVITY]: { process: duplicateActivity },
+    [API_ADD_ACTIVITY]: { process: addActivity },
 };
