@@ -14,6 +14,8 @@ export interface WorkoutSession {
     sessionSource: SessionSource | null;
     /** Whether to auto-start the rest timer after completing a set */
     autoStartTimer: boolean;
+    /** Name of saved workout (if session was saved) */
+    savedWorkoutName: string | null;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -26,6 +28,7 @@ export interface WorkoutSessionState extends WorkoutSession {
     incrementCompletedSets: () => void;
     updateExercises: (exercises: ExerciseWeekProgress[]) => void;
     toggleAutoStartTimer: () => void;
+    setSavedWorkoutName: (name: string | null) => void;
 }
 
 // Default rest times by exercise type

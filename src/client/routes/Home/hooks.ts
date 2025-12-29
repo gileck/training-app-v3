@@ -42,6 +42,13 @@ import type {
     ReorderSavedWorkoutsRequest,
     SavedWorkoutWithExercises,
 } from '@/apis/saved-workouts/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+
+// Extended request with exercise definitions for optimistic updates (client-side only)
+interface CreateSavedWorkoutWithDefs extends CreateSavedWorkoutRequest {
+    /** Exercise definitions for optimistic UI update (not sent to server) */
+    exerciseDefs: ExerciseDefinitionClient[];
+}
 
 // ============================================================================
 // Query Keys
@@ -89,8 +96,10 @@ export function useCreateSavedWorkout() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: CreateSavedWorkoutRequest) => {
-            const response = await createSavedWorkout(data);
+        mutationFn: async (data: CreateSavedWorkoutWithDefs) => {
+            // Only send what the server needs (exclude exerciseDefs)
+            const { exerciseDefs: _, ...requestData } = data;
+            const response = await createSavedWorkout(requestData);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
@@ -105,7 +114,12 @@ export function useCreateSavedWorkout() {
             // Get the next order number
             const existingWorkouts = previousWorkouts?.workouts || [];
             const nextOrder = existingWorkouts.length;
-            
+
+            // Create a map of exercise definitions for quick lookup
+            const exerciseDefMap = new Map(
+                variables.exerciseDefs.map((def) => [def._id, def])
+            );
+
             const optimisticWorkout: SavedWorkoutWithExercises = {
                 _id: `temp-${Date.now()}`,
                 userId: '',
@@ -117,10 +131,10 @@ export function useCreateSavedWorkout() {
                     weight: ex.weight,
                     durationSeconds: ex.durationSeconds ?? 0,
                     order: index,
-                    // Exercise def will be populated on next fetch
-                    exerciseDef: {
+                    // Use real exercise definition from provided data
+                    exerciseDef: exerciseDefMap.get(ex.exerciseDefId) || {
                         _id: ex.exerciseDefId,
-                        name: 'Loading...',
+                        name: 'Unknown',
                         imageUrl: '',
                         primaryMuscle: '',
                         secondaryMuscles: [] as string[],

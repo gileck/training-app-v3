@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRestTimerEndAt, useCancelRestTimer } from './session-store';
+import { useRestTimerEndAt, useRestTimerDuration, useCancelRestTimer } from './session-store';
 
 export interface RestTimerState {
     isRunning: boolean;
@@ -7,10 +7,11 @@ export interface RestTimerState {
     progress: number; // 0-100
 }
 
-export function useRestTimer(initialDuration: number = 90): RestTimerState {
+export function useRestTimer(): RestTimerState {
     const restTimerEndAt = useRestTimerEndAt();
+    const restTimerDuration = useRestTimerDuration();
     const cancelTimer = useCancelRestTimer();
-    
+
     // eslint-disable-next-line state-management/prefer-state-architecture -- timer UI state that updates frequently
     const [state, setState] = useState<RestTimerState>({
         isRunning: false,
@@ -31,7 +32,7 @@ export function useRestTimer(initialDuration: number = 90): RestTimerState {
         const updateTimer = () => {
             const now = Date.now();
             const remaining = Math.max(0, Math.ceil((restTimerEndAt - now) / 1000));
-            const totalDuration = initialDuration;
+            const totalDuration = restTimerDuration;
             const elapsed = totalDuration - remaining;
             const progress = Math.min(100, (elapsed / totalDuration) * 100);
 
@@ -43,7 +44,7 @@ export function useRestTimer(initialDuration: number = 90): RestTimerState {
                     remainingSeconds: 0,
                     progress: 100,
                 });
-                
+
                 // Optional: Play notification sound or vibrate
                 if ('vibrate' in navigator) {
                     navigator.vibrate([200, 100, 200]);
@@ -64,7 +65,7 @@ export function useRestTimer(initialDuration: number = 90): RestTimerState {
         const interval = setInterval(updateTimer, 100); // More frequent for smoother progress
 
         return () => clearInterval(interval);
-    }, [restTimerEndAt, initialDuration, cancelTimer]);
+    }, [restTimerEndAt, restTimerDuration, cancelTimer]);
 
     return state;
 }

@@ -6,6 +6,7 @@ import { toast } from '@/client/components/ui/toast';
 import { Plus, ArrowUpDown, Bookmark } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import { SavedWorkoutList } from './SavedWorkoutList';
 import { WorkoutDialog } from './WorkoutDialog';
 import { DeleteWorkoutDialog } from './DeleteWorkoutDialog';
@@ -17,7 +18,7 @@ interface WorkoutsTabProps {
     hasData: boolean;
     // Mutations
     createWorkoutMutation: {
-        mutate: (params: { name: string; exercises: Array<{ exerciseDefId: string; sets: number; reps: number; weight: number; durationSeconds?: number }> }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (params: { name: string; exercises: Array<{ exerciseDefId: string; sets: number; reps: number; weight: number; durationSeconds?: number }>; exerciseDefs: ExerciseDefinitionClient[] }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
         isPending: boolean;
     };
     updateWorkoutMutation: {
@@ -103,6 +104,7 @@ export function WorkoutsTab({
                         weight: ex.weight,
                         durationSeconds: ex.durationSeconds,
                     })),
+                    exerciseDefs: selectedPlanExercises.map((ex) => ex.exerciseDef),
                 },
                 {
                     onSuccess: () => {
@@ -150,6 +152,7 @@ export function WorkoutsTab({
                     weight: ex.weight,
                     durationSeconds: ex.durationSeconds,
                 })),
+                exerciseDefs: workout.exercises.map((ex) => ex.exerciseDef),
             },
             {
                 onSuccess: () => {

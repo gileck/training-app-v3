@@ -1,7 +1,7 @@
 /**
  * Workout feature types
  */
-export type WorkoutTab = 'exercises' | 'workouts' | 'active';
+export type WorkoutTab = 'exercises' | 'workouts';
 
 export interface WorkoutState {
     currentWeek: number;

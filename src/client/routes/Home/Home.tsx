@@ -3,8 +3,6 @@ import { Button } from '@/client/components/ui/button';
 import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
-import { Label } from '@/client/components/ui/label';
-import { Switch } from '@/client/components/ui/switch';
 import {
     ChevronLeft,
     ChevronRight,
@@ -24,10 +22,6 @@ import {
     Bookmark,
     Zap,
     X,
-    Timer,
-    Square,
-    Clock,
-    SkipForward,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useRouter } from '../../router';
@@ -46,28 +40,12 @@ import {
     useToggleSelection,
     useClearSelection,
     // Active workout session
-    useIsSessionActive,
-    useSessionExercises,
-    useCurrentExercise,
-    useCurrentExerciseIndex,
-    useCompletedSetsThisSession,
-    useSessionStartedAt,
-    useSessionSource,
     useStartSession,
-    useEndSession,
-    useSetCurrentExercise,
-    useStartRestTimer,
-    useCancelRestTimer,
-    useIncrementCompletedSets,
-    useUpdateSessionExercises,
-    useRestTimer,
-    formatTime,
-    useAutoStartTimer,
-    useToggleAutoStartTimer,
+    useSetSavedWorkoutName,
 } from '@/client/features/workout';
 import type { WorkoutTab, SessionSource } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import { useSavedWorkouts, useCreateSavedWorkout } from './hooks';
+import { useSavedWorkouts } from './hooks';
 import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 
@@ -102,24 +80,9 @@ export function Home() {
     const toggleSelection = useToggleSelection();
     const clearSelection = useClearSelection();
 
-    // Active workout session state
-    const isSessionActive = useIsSessionActive();
-    const sessionExercises = useSessionExercises();
-    const currentExercise = useCurrentExercise();
-    const currentExerciseIndex = useCurrentExerciseIndex();
-    const completedSetsThisSession = useCompletedSetsThisSession();
-    const sessionStartedAt = useSessionStartedAt();
-    const sessionSource = useSessionSource();
+    // Active workout session
     const startSession = useStartSession();
-    const endSession = useEndSession();
-    const setCurrentExerciseAction = useSetCurrentExercise();
-    const startRestTimer = useStartRestTimer();
-    const cancelRestTimer = useCancelRestTimer();
-    const incrementCompletedSets = useIncrementCompletedSets();
-    const updateSessionExercises = useUpdateSessionExercises();
-    const { remainingSeconds, isRunning: isRestTimerRunning } = useRestTimer();
-    const autoStartTimer = useAutoStartTimer();
-    const toggleAutoStartTimer = useToggleAutoStartTimer();
+    const setSavedWorkoutName = useSetSavedWorkoutName();
 
     // Saved workouts data
     const { data: savedWorkoutsData, isLoading: savedWorkoutsLoading } = useSavedWorkouts();
@@ -129,7 +92,6 @@ export function Home() {
     const isMobile = useMemo(() => {
         return typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
     }, []);
-    const createWorkoutMutation = useCreateSavedWorkout();
     const savedWorkouts = savedWorkoutsData?.workouts || [];
 
     // Local UI state
@@ -215,7 +177,7 @@ export function Home() {
     };
 
     // Start workout with selected exercises
-    const handleStartWorkout = (exercisesToStart?: ExerciseWeekProgress[], source: SessionSource = 'plan') => {
+    const handleStartWorkout = (exercisesToStart?: ExerciseWeekProgress[], source: SessionSource = 'plan', workoutName?: string) => {
         const workoutExercises = exercisesToStart ||
             (selectedExerciseIds.length > 0
                 ? exercises.filter((ex) => selectedExerciseIds.includes(ex.planExerciseId))
@@ -224,95 +186,9 @@ export function Home() {
         if (workoutExercises.length === 0) return;
 
         startSession(workoutExercises, source);
+        setSavedWorkoutName(workoutName || null);
         clearSelection();
-        setActiveTab('active');
-    };
-
-    // Handle session set completion
-    const handleSessionAddSet = () => {
-        if (!currentExercise) return;
-        if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
-
-        // Only sync to backend for plan-based sessions (saved workouts don't have real planExerciseIds)
-        if (sessionSource === 'plan' && activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'add',
-            });
-        }
-
-        // Update session state
-        incrementCompletedSets();
-
-        // Auto-start rest timer (if enabled)
-        if (autoStartTimer) {
-            startRestTimer();
-        }
-
-        // Update session exercises with new set count
-        updateSessionExercises(
-            sessionExercises.map((ex) =>
-                ex.planExerciseId === currentExercise.planExerciseId
-                    ? { ...ex, setsCompleted: ex.setsCompleted + 1 }
-                    : ex
-            )
-        );
-    };
-
-    const handleSessionRemoveSet = () => {
-        if (!currentExercise) return;
-        if (currentExercise.setsCompleted <= 0) return;
-
-        // Only sync to backend for plan-based sessions (saved workouts don't have real planExerciseIds)
-        if (sessionSource === 'plan' && activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'remove',
-            });
-        }
-
-        // Update session exercises
-        updateSessionExercises(
-            sessionExercises.map((ex) =>
-                ex.planExerciseId === currentExercise.planExerciseId
-                    ? { ...ex, setsCompleted: Math.max(0, ex.setsCompleted - 1) }
-                    : ex
-            )
-        );
-    };
-
-    const handleEndWorkout = () => {
-        endSession();
-        setActiveTab('exercises');
-    };
-
-    const handleSaveSessionAsWorkout = () => {
-        if (sessionExercises.length === 0) return;
-
-        const workoutName = `Workout ${new Date().toLocaleDateString()}`;
-        createWorkoutMutation.mutate({
-            name: workoutName,
-            exercises: sessionExercises.map((ex) => ({
-                exerciseDefId: ex.exerciseDef._id,
-                sets: ex.targetSets,
-                reps: ex.planExercise.reps,
-                weight: ex.planExercise.weight,
-                durationSeconds: ex.planExercise.durationSeconds,
-            })),
-        });
-    };
-
-    // Calculate session duration
-    const getSessionDuration = () => {
-        if (!sessionStartedAt) return '0:00';
-        const elapsed = Math.floor((Date.now() - sessionStartedAt) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        navigate('/active-workout');
     };
 
     // =========================================================================
@@ -469,9 +345,6 @@ export function Home() {
                         </TabsTrigger>
                         <TabsTrigger value="workouts" className="flex-1 rounded-lg text-sm font-medium">
                             Workouts
-                        </TabsTrigger>
-                        <TabsTrigger value="active" className="flex-1 rounded-lg text-sm font-medium">
-                            Active
                         </TabsTrigger>
                     </TabsList>
 
@@ -720,211 +593,13 @@ export function Home() {
                                             isDone: false,
                                         }));
                                         // Pass 'saved-workout' source to prevent backend sync (no real planExerciseIds)
-                                        handleStartWorkout(workoutExercises, 'saved-workout');
+                                        handleStartWorkout(workoutExercises, 'saved-workout', workout.name);
                                     }}
                                 />
                             ))}
                         </div>
                     )}
                 </TabsContent>
-
-                {/* Active Workout Tab Content */}
-                <TabsContent value="active" className="mt-4 space-y-4">
-                    {!isSessionActive ? (
-                        /* Empty state when no active session */
-                        <Card className="rounded-2xl border-0 shadow-sm">
-                            <CardContent className="flex flex-col items-center justify-center py-12">
-                                <Play className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">No Active Workout</h3>
-                                <p className="text-sm text-muted-foreground mb-4 text-center">
-                                    Start a workout session to track your exercises with rest timers
-                                </p>
-                                <Button
-                                    onClick={() => handleStartWorkout()}
-                                    disabled={exercises.length === 0}
-                                    className="h-12 px-6 rounded-xl bg-success text-success-foreground shadow-lg shadow-success/30"
-                                >
-                                    <Play className="mr-2 h-5 w-5" />
-                                    Start Workout
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        /* Active Workout Session UI */
-                        <>
-                            {/* Session Header */}
-                            <Card className="rounded-2xl border-0 shadow-sm">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="font-semibold text-lg">Active Workout</h3>
-                                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                                                <Clock className="h-4 w-4" />
-                                                {getSessionDuration()} • {completedSetsThisSession} sets done
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {/* Only show Save button for plan-based workouts (not already saved) */}
-                                            {sessionSource === 'plan' && (
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={handleSaveSessionAsWorkout}
-                                                    className="rounded-xl"
-                                                >
-                                                    <Bookmark className="mr-2 h-4 w-4" />
-                                                    Save
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleEndWorkout}
-                                                className="rounded-xl text-destructive border-destructive/50 hover:bg-destructive/10"
-                                            >
-                                                <Square className="mr-2 h-4 w-4" />
-                                                End
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Exercise Navigator */}
-                            <div className="flex items-center justify-center gap-4">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setCurrentExerciseAction(currentExerciseIndex - 1)}
-                                    disabled={currentExerciseIndex <= 0}
-                                    className="h-10 w-10 rounded-full"
-                                >
-                                    <ChevronLeft className="h-5 w-5" />
-                                </Button>
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    Exercise {currentExerciseIndex + 1} of {sessionExercises.length}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setCurrentExerciseAction(currentExerciseIndex + 1)}
-                                    disabled={currentExerciseIndex >= sessionExercises.length - 1}
-                                    className="h-10 w-10 rounded-full"
-                                >
-                                    <ChevronRight className="h-5 w-5" />
-                                </Button>
-                            </div>
-
-                            {/* Current Exercise Card */}
-                            {currentExercise && (
-                                <ActiveExerciseCard
-                                    exercise={currentExercise}
-                                    onAddSet={handleSessionAddSet}
-                                    onRemoveSet={handleSessionRemoveSet}
-                                />
-                            )}
-
-                            {/* Rest Timer */}
-                            <Card className="rounded-2xl border-0 shadow-sm">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <Timer className="h-5 w-5 text-primary" />
-                                            <span className="font-medium">Rest Timer</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {isRestTimerRunning && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={cancelRestTimer}
-                                                    className="text-muted-foreground"
-                                                >
-                                                    <SkipForward className="mr-1 h-4 w-4" />
-                                                    Skip
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Auto-start toggle */}
-                                    <div className="flex items-center justify-between py-2 mb-2 border-b border-border">
-                                        <Label htmlFor="auto-start-timer" className="text-sm text-muted-foreground cursor-pointer">
-                                            Auto-start after set
-                                        </Label>
-                                        <Switch
-                                            id="auto-start-timer"
-                                            checked={autoStartTimer}
-                                            onCheckedChange={toggleAutoStartTimer}
-                                        />
-                                    </div>
-
-                                    {/* Timer Display */}
-                                    <div className="text-center py-4">
-                                        <p className={`text-5xl font-bold tabular-nums ${isRestTimerRunning ? 'text-primary' : 'text-muted-foreground'}`}>
-                                            {formatTime(remainingSeconds)}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            {isRestTimerRunning ? 'Rest time remaining' : 'Tap a preset to start'}
-                                        </p>
-                                    </div>
-
-                                    {/* Rest Time Presets */}
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[30, 60, 90, 120].map((seconds) => (
-                                            <Button
-                                                key={seconds}
-                                                variant="outline"
-                                                onClick={() => startRestTimer(seconds)}
-                                                className="rounded-xl"
-                                            >
-                                                {seconds}s
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Exercise List Preview */}
-                            <div className="space-y-2">
-                                <p className="text-sm font-medium text-muted-foreground px-1">All Exercises</p>
-                                {sessionExercises.map((ex, index) => (
-                                    <button
-                                        key={ex.planExerciseId}
-                                        onClick={() => setCurrentExerciseAction(index)}
-                                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${index === currentExerciseIndex
-                                                ? 'bg-primary/10 ring-1 ring-primary'
-                                                : 'bg-card hover:bg-muted/50'
-                                            } ${ex.setsCompleted >= ex.targetSets ? 'opacity-60' : ''}`}
-                                    >
-                                        <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                                            {ex.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={ex.exerciseDef.imageUrl}
-                                                    alt={ex.exerciseDef.name}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 text-left min-w-0">
-                                            <p className="font-medium truncate">{ex.exerciseDef.name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {ex.setsCompleted}/{ex.targetSets} sets
-                                            </p>
-                                        </div>
-                                        {ex.setsCompleted >= ex.targetSets && (
-                                            <Check className="h-5 w-5 text-success" />
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </TabsContent>
-
             </Tabs>
 
             {/* Exercise Details Sheet */}
@@ -1290,102 +965,6 @@ function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: Save
                         ))}
                     </div>
                 )}
-            </CardContent>
-        </Card>
-    );
-}
-
-// Active Workout Exercise Card - Large format for session view
-interface ActiveExerciseCardProps {
-    exercise: ExerciseWeekProgress;
-    onAddSet: () => void;
-    onRemoveSet: () => void;
-}
-
-function ActiveExerciseCard({ exercise, onAddSet, onRemoveSet }: ActiveExerciseCardProps) {
-    const progress = (exercise.setsCompleted / exercise.targetSets) * 100;
-    const isComplete = exercise.setsCompleted >= exercise.targetSets;
-
-    return (
-        <Card className={`rounded-2xl border-0 shadow-lg ${isComplete ? 'ring-2 ring-success bg-success/5' : ''}`}>
-            <CardContent className="p-6">
-                {/* Large Exercise Image */}
-                <div className="aspect-square max-h-48 mx-auto mb-6 rounded-2xl bg-muted overflow-hidden">
-                    {exercise.exerciseDef.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={exercise.exerciseDef.imageUrl}
-                            alt={exercise.exerciseDef.name}
-                            className="w-full h-full object-contain"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <Dumbbell className="h-16 w-16 text-muted-foreground" />
-                        </div>
-                    )}
-                </div>
-
-                {/* Exercise Info */}
-                <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold mb-1">{exercise.exerciseDef.name}</h2>
-                    <p className="text-muted-foreground">
-                        {exercise.planExercise.reps} reps
-                        {exercise.planExercise.weight > 0 && ` • ${exercise.planExercise.weight}kg`}
-                    </p>
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                        <Badge
-                            variant="outline"
-                            className="bg-[hsl(210,100%,95%)] text-[hsl(210,100%,40%)] border-[hsl(210,100%,85%)] dark:bg-[hsl(210,100%,20%)] dark:text-[hsl(210,100%,80%)]"
-                        >
-                            {exercise.exerciseDef.primaryMuscle}
-                        </Badge>
-                    </div>
-                </div>
-
-                {/* Sets Progress */}
-                <div className="text-center mb-6">
-                    <p className={`text-4xl font-bold ${isComplete ? 'text-success' : ''}`}>
-                        {exercise.setsCompleted} / {exercise.targetSets}
-                    </p>
-                    <p className="text-sm text-muted-foreground">sets completed</p>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="h-3 bg-muted rounded-full overflow-hidden mb-6">
-                    <div
-                        className={`h-full rounded-full transition-all duration-300 ${isComplete
-                                ? 'bg-success'
-                                : 'bg-gradient-to-r from-primary to-primary/80'
-                            }`}
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                    />
-                </div>
-
-                {/* Large Action Buttons */}
-                <div className="flex items-center justify-center gap-4">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={onRemoveSet}
-                        disabled={exercise.setsCompleted <= 0}
-                        className="h-16 w-16 rounded-full border-2 active:scale-95 transition-transform"
-                    >
-                        <Minus className="h-8 w-8" />
-                    </Button>
-                    <Button
-                        size="lg"
-                        onClick={onAddSet}
-                        disabled={isComplete}
-                        className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-xl shadow-primary/30 active:scale-95 transition-transform"
-                    >
-                        <Plus className="h-10 w-10" />
-                    </Button>
-                    {isComplete && (
-                        <div className="h-16 w-16 rounded-full bg-success/10 border-2 border-success/50 flex items-center justify-center">
-                            <CheckCheck className="h-8 w-8 text-success" />
-                        </div>
-                    )}
-                </div>
             </CardContent>
         </Card>
     );

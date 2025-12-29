@@ -12,6 +12,7 @@ import { ManagePlan } from './ManagePlan';
 import { Progress } from './Progress';
 import { SavedWorkouts } from './SavedWorkouts';
 import { Theme } from './Theme';
+import { ActiveWorkout } from './ActiveWorkout';
 
 // Define routes
 export const routes = createRoutes({
@@ -19,6 +20,7 @@ export const routes = createRoutes({
   '/training-plans': TrainingPlans,
   '/training-plans/:planId': ManagePlan,
   '/saved-workouts': SavedWorkouts,
+  '/active-workout': ActiveWorkout,
   '/progress': Progress,
   '/ai-chat': AIChat,
   '/todos': Todos,

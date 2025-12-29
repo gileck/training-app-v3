@@ -163,6 +163,7 @@ export function SavedWorkouts() {
                 weight: ex.weight,
                 durationSeconds: ex.durationSeconds,
             })),
+            exerciseDefs: workout.exercises.map((ex) => ex.exerciseDef),
         });
     };
 
