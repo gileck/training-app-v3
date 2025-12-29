@@ -16,6 +16,8 @@ export interface WorkoutSession {
     autoStartTimer: boolean;
     /** Name of saved workout (if session was saved) */
     savedWorkoutName: string | null;
+    /** Whether user is actively performing a set (vs resting) */
+    isInSet: boolean;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -29,6 +31,7 @@ export interface WorkoutSessionState extends WorkoutSession {
     updateExercises: (exercises: ExerciseWeekProgress[]) => void;
     toggleAutoStartTimer: () => void;
     setSavedWorkoutName: (name: string | null) => void;
+    setIsInSet: (isInSet: boolean) => void;
 }
 
 // Default rest times by exercise type

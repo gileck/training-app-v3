@@ -133,13 +133,18 @@ The theming system provides:
 
 ```css
 .dark {
-    --background: 222 47% 6%;
+    --background: 222 47% 8%;
     --foreground: 210 40% 96%;
+    --card: 222 47% 12%;
+    --border: 217 22% 26%;
     --primary: 217 91% 60%;
     --secondary: 263 89% 67%;
     /* ... etc */
 }
 ```
+
+> Note: These values are **fallback defaults** defined in `src/client/styles/globals.css`.
+> At runtime, the ThemeProvider applies the active preset (and any custom overrides) by setting CSS variables directly on `document.documentElement`.
 
 ---
 

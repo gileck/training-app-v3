@@ -46,6 +46,8 @@ export {
     useAutoStartTimer,
     useSavedWorkoutName,
     useSetSavedWorkoutName,
+    useIsInSet,
+    useSetIsInSet,
 } from './session-store';
 
 // Export rest timer hook

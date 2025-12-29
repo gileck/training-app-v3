@@ -13,6 +13,7 @@ const initialSessionState: WorkoutSession = {
     sessionSource: null,
     autoStartTimer: true,
     savedWorkoutName: null,
+    isInSet: false,
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -30,6 +31,7 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             sessionSource: state.sessionSource,
             autoStartTimer: state.autoStartTimer,
             savedWorkoutName: state.savedWorkoutName,
+            isInSet: state.isInSet,
             // Don't persist restTimerEndAt as it's timestamp-based
         }),
     },
@@ -89,6 +91,10 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
         setSavedWorkoutName: (name: string | null) => {
             set({ savedWorkoutName: name });
         },
+
+        setIsInSet: (isInSet: boolean) => {
+            set({ isInSet });
+        },
     }),
 });
 
@@ -121,5 +127,7 @@ export const useToggleAutoStartTimer = () => useWorkoutSessionStore((state) => s
 export const useAutoStartTimer = () => useWorkoutSessionStore((state) => state.autoStartTimer);
 export const useSavedWorkoutName = () => useWorkoutSessionStore((state) => state.savedWorkoutName);
 export const useSetSavedWorkoutName = () => useWorkoutSessionStore((state) => state.setSavedWorkoutName);
+export const useIsInSet = () => useWorkoutSessionStore((state) => state.isInSet);
+export const useSetIsInSet = () => useWorkoutSessionStore((state) => state.setIsInSet);
 
 
