@@ -15,11 +15,12 @@ interface PlanExerciseListProps {
 interface ExerciseGroup {
     name: string;
     exercises: PlanExerciseWithDefinition[];
+    totalSets: number;
 }
 
 function groupExercises(exercises: PlanExerciseWithDefinition[], groupBy: ExerciseGroupBy): ExerciseGroup[] {
     if (groupBy === 'none') {
-        return [{ name: '', exercises }];
+        return [{ name: '', exercises, totalSets: 0 }];
     }
 
     const groups = new Map<string, PlanExerciseWithDefinition[]>();
@@ -35,10 +36,14 @@ function groupExercises(exercises: PlanExerciseWithDefinition[], groupBy: Exerci
         groups.get(key)!.push(exercise);
     }
 
-    // Sort groups alphabetically
+    // Sort groups by number of exercises (descending)
     return Array.from(groups.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([name, exercises]) => ({ name, exercises }));
+        .sort((a, b) => b[1].length - a[1].length)
+        .map(([name, exercises]) => ({
+            name,
+            exercises,
+            totalSets: exercises.reduce((sum, ex) => sum + ex.sets, 0),
+        }));
 }
 
 export function PlanExerciseList({
@@ -85,7 +90,10 @@ export function PlanExerciseList({
                             {group.name}
                         </h3>
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {group.exercises.length}
+                            {group.exercises.length} exercises
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            · {group.totalSets} sets
                         </span>
                     </div>
                     <div className="space-y-3">
