@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { toast } from '@/client/components/ui/toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select';
 import { Plus, ArrowUpDown, Dumbbell } from 'lucide-react';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import { useManagePlanStore, type ExerciseGroupBy } from '../../store';
 import { PlanExerciseList } from './PlanExerciseList';
 import { AddExerciseDialog } from './AddExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';
@@ -67,6 +69,10 @@ export function ExercisesTab({
     deleteExerciseDefMutation,
     onExerciseAdded,
 }: ExercisesTabProps) {
+    // Group by state from store
+    const exerciseGroupBy = useManagePlanStore((s) => s.exerciseGroupBy);
+    const setExerciseGroupBy = useManagePlanStore((s) => s.setExerciseGroupBy);
+
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral mode state
     const [isReorderMode, setIsReorderMode] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -264,21 +270,38 @@ export function ExercisesTab({
     return (
         <div className="space-y-4">
             {/* Add/Reorder buttons */}
-            <div className="flex gap-2 justify-end">
-                {planExercises.length > 1 && (
-                    <Button
-                        variant={isReorderMode ? 'secondary' : 'outline'}
-                        size="icon"
-                        onClick={() => setIsReorderMode(!isReorderMode)}
-                        className="rounded-xl h-10 w-10"
-                    >
-                        <ArrowUpDown className="h-4 w-4" />
+            <div className="flex gap-2 justify-between items-center">
+                {/* Group by selector */}
+                <Select
+                    value={exerciseGroupBy}
+                    onValueChange={(value: ExerciseGroupBy) => setExerciseGroupBy(value)}
+                >
+                    <SelectTrigger className="w-[140px] h-10 rounded-xl">
+                        <SelectValue placeholder="Group by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">No grouping</SelectItem>
+                        <SelectItem value="primaryMuscle">By Muscle</SelectItem>
+                        <SelectItem value="type">By Type</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <div className="flex gap-2">
+                    {planExercises.length > 1 && (
+                        <Button
+                            variant={isReorderMode ? 'secondary' : 'outline'}
+                            size="icon"
+                            onClick={() => setIsReorderMode(!isReorderMode)}
+                            className="rounded-xl h-10 w-10"
+                        >
+                            <ArrowUpDown className="h-4 w-4" />
+                        </Button>
+                    )}
+                    <Button onClick={() => setAddDialogOpen(true)} className="rounded-xl">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Exercise
                     </Button>
-                )}
-                <Button onClick={() => setAddDialogOpen(true)} className="rounded-xl">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Exercise
-                </Button>
+                </div>
             </div>
 
             {/* Exercise list or empty state */}
@@ -301,6 +324,7 @@ export function ExercisesTab({
                     exercises={planExercises}
                     isReorderMode={isReorderMode}
                     isReorderPending={reorderMutation.isPending}
+                    groupBy={exerciseGroupBy}
                     onEdit={handleEditExercise}
                     onDelete={handleDeleteExercise}
                     onMove={handleMoveExercise}
