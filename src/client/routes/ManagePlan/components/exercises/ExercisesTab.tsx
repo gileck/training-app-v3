@@ -287,7 +287,7 @@ export function ExercisesTab({
                 </Select>
 
                 <div className="flex gap-2">
-                    {planExercises.length > 1 && (
+                    {planExercises.length > 1 && exerciseGroupBy === 'none' && (
                         <Button
                             variant={isReorderMode ? 'secondary' : 'outline'}
                             size="icon"
@@ -322,7 +322,7 @@ export function ExercisesTab({
             ) : (
                 <PlanExerciseList
                     exercises={planExercises}
-                    isReorderMode={isReorderMode}
+                    isReorderMode={isReorderMode && exerciseGroupBy === 'none'}
                     isReorderPending={reorderMutation.isPending}
                     groupBy={exerciseGroupBy}
                     onEdit={handleEditExercise}
