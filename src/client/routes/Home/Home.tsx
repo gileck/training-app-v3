@@ -43,6 +43,7 @@ import {
     useStartSession,
     useSetPlanWorkoutId,
     useSetPlanWorkoutName,
+    useIsSessionActive,
 } from '@/client/features/workout';
 import type { WorkoutTab } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
@@ -85,6 +86,7 @@ export function Home() {
     const startSession = useStartSession();
     const setPlanWorkoutId = useSetPlanWorkoutId();
     const setPlanWorkoutName = useSetPlanWorkoutName();
+    const isWorkoutActive = useIsSessionActive();
 
     // Plan workouts data (scoped to active plan)
     const { data: planWorkoutsData, isLoading: planWorkoutsLoading } = usePlanWorkouts(activePlanId);
@@ -481,13 +483,18 @@ export function Home() {
 
                 {/* Selection Bar - shows when exercises are selected */}
                 {isSelectionMode && selectedExerciseIds.length > 0 && (
-                    <div 
-                        className="fixed left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t z-50"
+                    <div
+                        className="fixed left-0 right-0 p-4 bg-card/95 backdrop-blur-lg border-t z-50"
                         style={{
                             // On mobile, position above the BottomNavBar which includes safe-area-inset-bottom
                             // BottomNavBar height: pt-1 (4px) + h-14 (56px) + paddingBottom (safe-area + 4px) = 64px + safe-area
-                            // On desktop (≥640px), bottom nav is hidden, so use bottom: 0
-                            bottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
+                            // When FloatingWorkoutBar is active, add ~70px more to avoid overlap
+                            // On desktop (≥640px), bottom nav is hidden, so use bottom: 0 (or 70px if workout active)
+                            bottom: isMobile
+                                ? isWorkoutActive
+                                    ? 'calc(134px + env(safe-area-inset-bottom, 0px))'
+                                    : 'calc(64px + env(safe-area-inset-bottom, 0px))'
+                                : isWorkoutActive ? '70px' : 0,
                         }}
                     >
                         <div className="flex items-center gap-3 max-w-lg mx-auto">
