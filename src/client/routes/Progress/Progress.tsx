@@ -58,6 +58,7 @@ import type { ActivityLogEntry, DailySummary } from '@/apis/activity-logs/types'
 import { listPlanExercises } from '@/apis/plan-exercises/client';
 import { usePlans } from '@/client/features/workout/hooks';
 import { useActivePlanId } from '@/client/features/workout/store';
+import { useIsSessionActive } from '@/client/features/workout';
 import { useQueryDefaults } from '@/client/query/defaults';
 import {
     BarChart,
@@ -1031,9 +1032,13 @@ function SelectionActionBar({
 }) {
     const isSingleSelection = selectedCount === 1;
     const isAnyLoading = isDeleting || isDuplicating || isEditing;
+    // Move up when FloatingWorkoutBar is visible to avoid overlap
+    const isWorkoutActive = useIsSessionActive();
 
     return (
-        <div className="fixed bottom-20 left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-2 z-50">
+        <div className={`fixed left-4 right-4 bg-card border border-border rounded-xl shadow-lg p-2 z-50 ${
+            isWorkoutActive ? 'bottom-[150px]' : 'bottom-20'
+        }`}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Button
