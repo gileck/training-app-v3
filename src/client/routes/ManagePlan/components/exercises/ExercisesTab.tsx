@@ -2,10 +2,18 @@ import { useState } from 'react';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { toast } from '@/client/components/ui/toast';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/client/components/ui/select';
 import { Plus, ArrowUpDown, Dumbbell } from 'lucide-react';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import { useManagePlanStore, type PlanExerciseGroupBy } from '../../store';
 import { PlanExerciseList } from './PlanExerciseList';
 import { AddExerciseDialog } from './AddExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';
@@ -91,6 +99,27 @@ export function ExercisesTab({
     const [exerciseDefToDelete, setExerciseDefToDelete] = useState<ExerciseDefinitionClient | null>(null);
 
     const addedExerciseIds = new Set(planExercises.map((e) => e.exerciseDefId));
+
+    // Group by state from store
+    const planExerciseGroupBy = useManagePlanStore((state) => state.planExerciseGroupBy);
+    const setPlanExerciseGroupBy = useManagePlanStore((state) => state.setPlanExerciseGroupBy);
+
+    // Group exercises if groupBy is set
+    const groupedExercises = (() => {
+        if (planExerciseGroupBy === 'none') {
+            return null;
+        }
+        const groups: Record<string, PlanExerciseWithDefinition[]> = {};
+        planExercises.forEach((ex) => {
+            const key = ex.exerciseDef[planExerciseGroupBy] || 'Other';
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(ex);
+        });
+        // Sort groups by count (descending)
+        return Object.entries(groups).sort(([, a], [, b]) => b.length - a.length);
+    })();
 
     const handleAddExercise = (exerciseDefId: string, config: { sets: number; reps: number; weight: number; comments: string }) => {
         const exerciseName = exerciseLibrary.find((e) => e._id === exerciseDefId)?.name || 'Exercise';
@@ -263,22 +292,44 @@ export function ExercisesTab({
 
     return (
         <div className="space-y-4">
-            {/* Add/Reorder buttons */}
-            <div className="flex gap-2 justify-end">
-                {planExercises.length > 1 && (
-                    <Button
-                        variant={isReorderMode ? 'secondary' : 'outline'}
-                        size="icon"
-                        onClick={() => setIsReorderMode(!isReorderMode)}
-                        className="rounded-xl h-10 w-10"
-                    >
-                        <ArrowUpDown className="h-4 w-4" />
+            {/* Toolbar */}
+            <div className="flex gap-2 justify-between items-center">
+                {/* Group By dropdown */}
+                <div className="flex items-center gap-2">
+                    {planExercises.length > 0 && (
+                        <Select
+                            value={planExerciseGroupBy}
+                            onValueChange={(v) => setPlanExerciseGroupBy(v as PlanExerciseGroupBy)}
+                        >
+                            <SelectTrigger className="w-[140px] h-10 rounded-xl text-sm">
+                                <SelectValue placeholder="Group by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">List All</SelectItem>
+                                <SelectItem value="primaryMuscle">By Muscle</SelectItem>
+                                <SelectItem value="type">By Type</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+                {/* Add/Reorder buttons */}
+                <div className="flex gap-2">
+                    {planExercises.length > 1 && (
+                        <Button
+                            variant={isReorderMode ? 'secondary' : 'outline'}
+                            size="icon"
+                            onClick={() => setIsReorderMode(!isReorderMode)}
+                            className="rounded-xl h-10 w-10"
+                            disabled={!!groupedExercises}
+                        >
+                            <ArrowUpDown className="h-4 w-4" />
+                        </Button>
+                    )}
+                    <Button onClick={() => setAddDialogOpen(true)} className="rounded-xl">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Exercise
                     </Button>
-                )}
-                <Button onClick={() => setAddDialogOpen(true)} className="rounded-xl">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Exercise
-                </Button>
+                </div>
             </div>
 
             {/* Exercise list or empty state */}
@@ -296,6 +347,35 @@ export function ExercisesTab({
                         </Button>
                     </CardContent>
                 </Card>
+            ) : groupedExercises ? (
+                <div className="space-y-6">
+                    {groupedExercises.map(([groupName, exercises]) => {
+                        const totalSets = exercises.reduce((sum, ex) => sum + ex.sets, 0);
+                        return (
+                            <div key={groupName}>
+                                <div className="py-2 mb-2 border-b border-border flex items-center gap-2">
+                                    <h3 className="font-semibold text-sm text-foreground">
+                                        {groupName}
+                                    </h3>
+                                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                                        {exercises.length}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        · {totalSets} sets
+                                    </span>
+                                </div>
+                                <PlanExerciseList
+                                    exercises={exercises}
+                                    isReorderMode={false}
+                                    isReorderPending={false}
+                                    onEdit={handleEditExercise}
+                                    onDelete={handleDeleteExercise}
+                                    onMove={() => {}}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
             ) : (
                 <PlanExerciseList
                     exercises={planExercises}

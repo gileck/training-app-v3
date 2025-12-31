@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Badge } from '@/client/components/ui/badge';
-import { ChevronUp, ChevronDown, Edit2, Trash2, Dumbbell } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, Dumbbell } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 
 interface PlanExerciseCardProps {
@@ -30,12 +30,15 @@ export function PlanExerciseCard({
     onMoveDown,
 }: PlanExerciseCardProps) {
     return (
-        <Card className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform">
+        <Card
+            className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform cursor-pointer hover:bg-muted/50"
+            onClick={onEdit}
+        >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">
                     {/* Reorder buttons - only show in reorder mode */}
                     {isReorderMode && (
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -86,15 +89,7 @@ export function PlanExerciseCard({
                             {exercise.exerciseDef.primaryMuscle}
                         </Badge>
                     </div>
-                    <div className="flex gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onEdit}
-                            className="h-9 w-9 rounded-full"
-                        >
-                            <Edit2 className="h-4 w-4" />
-                        </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
                         <Button
                             variant="ghost"
                             size="icon"
