@@ -48,6 +48,11 @@ export {
     useSetSavedWorkoutName,
     useIsInSet,
     useSetIsInSet,
+    useSetRestTimerDuration,
+    useSupersetEnabled,
+    useSupersetExerciseIds,
+    useSetSupersetEnabled,
+    useSetSupersetExerciseIds,
 } from './session-store';
 
 // Export rest timer hook

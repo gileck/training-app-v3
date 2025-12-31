@@ -18,6 +18,9 @@ export interface WorkoutSession {
     savedWorkoutName: string | null;
     /** Whether user is actively performing a set (vs resting) */
     isInSet: boolean;
+    /** Super set mode state */
+    supersetEnabled: boolean;
+    supersetExerciseIds: string[]; // planExerciseIds (2 items when enabled)
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -26,12 +29,15 @@ export interface WorkoutSessionState extends WorkoutSession {
     endSession: () => void;
     setCurrentExercise: (index: number) => void;
     startRestTimer: (durationSeconds?: number) => void;
+    setRestTimerDuration: (durationSeconds: number) => void;
     cancelRestTimer: () => void;
     incrementCompletedSets: () => void;
     updateExercises: (exercises: ExerciseWeekProgress[]) => void;
     toggleAutoStartTimer: () => void;
     setSavedWorkoutName: (name: string | null) => void;
     setIsInSet: (isInSet: boolean) => void;
+    setSupersetEnabled: (enabled: boolean) => void;
+    setSupersetExerciseIds: (exerciseIds: string[]) => void;
 }
 
 // Default rest times by exercise type

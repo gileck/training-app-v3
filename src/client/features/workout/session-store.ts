@@ -14,6 +14,8 @@ const initialSessionState: WorkoutSession = {
     autoStartTimer: true,
     savedWorkoutName: null,
     isInSet: false,
+    supersetEnabled: false,
+    supersetExerciseIds: [],
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -32,6 +34,8 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             autoStartTimer: state.autoStartTimer,
             savedWorkoutName: state.savedWorkoutName,
             isInSet: state.isInSet,
+            supersetEnabled: state.supersetEnabled,
+            supersetExerciseIds: state.supersetExerciseIds,
             // Don't persist restTimerEndAt as it's timestamp-based
         }),
     },
@@ -70,6 +74,11 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             });
         },
 
+        setRestTimerDuration: (durationSeconds: number) => {
+            const duration = Math.max(5, Math.round(durationSeconds));
+            set({ restTimerDuration: duration });
+        },
+
         cancelRestTimer: () => {
             set({ restTimerEndAt: null });
         },
@@ -94,6 +103,20 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
 
         setIsInSet: (isInSet: boolean) => {
             set({ isInSet });
+        },
+
+        setSupersetEnabled: (enabled: boolean) => {
+            set((state) => ({
+                supersetEnabled: enabled,
+                supersetExerciseIds: enabled ? state.supersetExerciseIds.slice(0, 2) : [],
+            }));
+        },
+
+        setSupersetExerciseIds: (exerciseIds: string[]) => {
+            set({
+                supersetExerciseIds: exerciseIds.slice(0, 2),
+                supersetEnabled: exerciseIds.length >= 2,
+            });
         },
     }),
 });
@@ -129,5 +152,10 @@ export const useSavedWorkoutName = () => useWorkoutSessionStore((state) => state
 export const useSetSavedWorkoutName = () => useWorkoutSessionStore((state) => state.setSavedWorkoutName);
 export const useIsInSet = () => useWorkoutSessionStore((state) => state.isInSet);
 export const useSetIsInSet = () => useWorkoutSessionStore((state) => state.setIsInSet);
+export const useSetRestTimerDuration = () => useWorkoutSessionStore((state) => state.setRestTimerDuration);
+export const useSupersetEnabled = () => useWorkoutSessionStore((state) => state.supersetEnabled);
+export const useSupersetExerciseIds = () => useWorkoutSessionStore((state) => state.supersetExerciseIds);
+export const useSetSupersetEnabled = () => useWorkoutSessionStore((state) => state.setSupersetEnabled);
+export const useSetSupersetExerciseIds = () => useWorkoutSessionStore((state) => state.setSupersetExerciseIds);
 
 
