@@ -481,8 +481,8 @@ export function Home() {
 
                 {/* Selection Bar - shows when exercises are selected */}
                 {isSelectionMode && selectedExerciseIds.length > 0 && (
-                    <div 
-                        className="fixed left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t z-50"
+                    <div
+                        className="fixed left-0 right-0 p-4 bg-card/95 backdrop-blur-lg border-t z-50"
                         style={{
                             // On mobile, position above the BottomNavBar which includes safe-area-inset-bottom
                             // BottomNavBar height: pt-1 (4px) + h-14 (56px) + paddingBottom (safe-area + 4px) = 64px + safe-area
