@@ -2,10 +2,12 @@ import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { ChevronRight, ChevronUp, ChevronDown, Edit2, Copy, Trash2, Dumbbell } from 'lucide-react';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 
-interface SavedWorkoutCardProps {
-    workout: SavedWorkoutWithExercises;
+interface PlanWorkoutCardProps {
+    workout: PlanWorkoutClient;
+    planExercises: PlanExerciseWithDefinition[];
     index: number;
     isFirst: boolean;
     isLast: boolean;
@@ -21,8 +23,9 @@ interface SavedWorkoutCardProps {
     onMoveDown: () => void;
 }
 
-export function SavedWorkoutCard({
+export function PlanWorkoutCard({
     workout,
+    planExercises,
     isFirst,
     isLast,
     isExpanded,
@@ -35,7 +38,15 @@ export function SavedWorkoutCard({
     onDelete,
     onMoveUp,
     onMoveDown,
-}: SavedWorkoutCardProps) {
+}: PlanWorkoutCardProps) {
+    // Create a map for quick lookup of plan exercises by ID
+    const planExerciseMap = new Map(planExercises.map((pe) => [pe._id, pe]));
+
+    // Resolve workout items to plan exercises with definitions
+    const resolvedExercises = workout.items
+        .map((item) => planExerciseMap.get(item.planExerciseId))
+        .filter((ex): ex is PlanExerciseWithDefinition => ex !== undefined);
+
     return (
         <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
             <CardContent className="p-0">
@@ -76,7 +87,7 @@ export function SavedWorkoutCard({
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-semibold truncate">{workout.name}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                                    {resolvedExercises.length} exercise{resolvedExercises.length !== 1 ? 's' : ''}
                                 </p>
                             </div>
                         </div>
@@ -115,37 +126,43 @@ export function SavedWorkoutCard({
                 {/* Expandable exercise list */}
                 {isExpanded && (
                     <div className="border-t bg-muted/30">
-                        {workout.exercises.map((ex, index) => (
-                            <div
-                                key={ex.exerciseDefId}
-                                className={`flex items-center gap-3 p-3 ${index !== workout.exercises.length - 1 ? 'border-b border-border/50' : ''}`}
-                            >
-                                <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0 relative">
-                                    {ex.exerciseDef.imageUrl ? (
-                                        <Image
-                                            src={ex.exerciseDef.imageUrl}
-                                            alt={ex.exerciseDef.name}
-                                            fill
-                                            className="object-contain"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm truncate">
-                                        {ex.exerciseDef.name}
-                                    </h4>
-                                    <p className="text-xs text-muted-foreground">
-                                        {ex.sets} sets × {ex.reps} reps
-                                        {ex.weight > 0 && ` • ${ex.weight}kg`}
-                                    </p>
-                                </div>
+                        {resolvedExercises.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                                No exercises found (they may have been removed from the plan)
                             </div>
-                        ))}
+                        ) : (
+                            resolvedExercises.map((ex, index) => (
+                                <div
+                                    key={ex._id}
+                                    className={`flex items-center gap-3 p-3 ${index !== resolvedExercises.length - 1 ? 'border-b border-border/50' : ''}`}
+                                >
+                                    <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0 relative">
+                                        {ex.exerciseDef.imageUrl ? (
+                                            <Image
+                                                src={ex.exerciseDef.imageUrl}
+                                                alt={ex.exerciseDef.name}
+                                                fill
+                                                className="object-contain"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-sm truncate">
+                                            {ex.exerciseDef.name}
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            {ex.sets} sets × {ex.reps} reps
+                                            {ex.weight > 0 && ` • ${ex.weight}kg`}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 )}
             </CardContent>

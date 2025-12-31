@@ -10,9 +10,9 @@ const initialSessionState: WorkoutSession = {
     restTimerEndAt: null,
     restTimerDuration: 90,
     completedSetsThisSession: 0,
-    sessionSource: null,
     autoStartTimer: true,
-    savedWorkoutName: null,
+    planWorkoutId: null,
+    planWorkoutName: null,
     isInSet: false,
     supersetEnabled: false,
     supersetExerciseIds: [],
@@ -30,9 +30,9 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             exercises: state.exercises,
             restTimerDuration: state.restTimerDuration,
             completedSetsThisSession: state.completedSetsThisSession,
-            sessionSource: state.sessionSource,
             autoStartTimer: state.autoStartTimer,
-            savedWorkoutName: state.savedWorkoutName,
+            planWorkoutId: state.planWorkoutId,
+            planWorkoutName: state.planWorkoutName,
             isInSet: state.isInSet,
             supersetEnabled: state.supersetEnabled,
             supersetExerciseIds: state.supersetExerciseIds,
@@ -42,7 +42,7 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
     creator: (set) => ({
         ...initialSessionState,
 
-        startSession: (exercises: ExerciseWeekProgress[], source: 'plan' | 'saved-workout' = 'plan') => {
+        startSession: (exercises: ExerciseWeekProgress[]) => {
             set({
                 isActive: true,
                 startedAt: Date.now(),
@@ -50,7 +50,7 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
                 exercises,
                 restTimerEndAt: null,
                 completedSetsThisSession: 0,
-                sessionSource: source,
+                // planWorkoutId and planWorkoutName are set separately after startSession
             });
         },
 
@@ -97,8 +97,12 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             set((state) => ({ autoStartTimer: !state.autoStartTimer }));
         },
 
-        setSavedWorkoutName: (name: string | null) => {
-            set({ savedWorkoutName: name });
+        setPlanWorkoutId: (id: string | null) => {
+            set({ planWorkoutId: id });
+        },
+
+        setPlanWorkoutName: (name: string | null) => {
+            set({ planWorkoutName: name });
         },
 
         setIsInSet: (isInSet: boolean) => {
@@ -129,7 +133,8 @@ export const useRestTimerEndAt = () => useWorkoutSessionStore((state) => state.r
 export const useRestTimerDuration = () => useWorkoutSessionStore((state) => state.restTimerDuration);
 export const useCompletedSetsThisSession = () => useWorkoutSessionStore((state) => state.completedSetsThisSession);
 export const useSessionStartedAt = () => useWorkoutSessionStore((state) => state.startedAt);
-export const useSessionSource = () => useWorkoutSessionStore((state) => state.sessionSource);
+export const usePlanWorkoutId = () => useWorkoutSessionStore((state) => state.planWorkoutId);
+export const usePlanWorkoutName = () => useWorkoutSessionStore((state) => state.planWorkoutName);
 
 // Get current exercise
 export const useCurrentExercise = () => {
@@ -148,8 +153,8 @@ export const useIncrementCompletedSets = () => useWorkoutSessionStore((state) =>
 export const useUpdateSessionExercises = () => useWorkoutSessionStore((state) => state.updateExercises);
 export const useToggleAutoStartTimer = () => useWorkoutSessionStore((state) => state.toggleAutoStartTimer);
 export const useAutoStartTimer = () => useWorkoutSessionStore((state) => state.autoStartTimer);
-export const useSavedWorkoutName = () => useWorkoutSessionStore((state) => state.savedWorkoutName);
-export const useSetSavedWorkoutName = () => useWorkoutSessionStore((state) => state.setSavedWorkoutName);
+export const useSetPlanWorkoutId = () => useWorkoutSessionStore((state) => state.setPlanWorkoutId);
+export const useSetPlanWorkoutName = () => useWorkoutSessionStore((state) => state.setPlanWorkoutName);
 export const useIsInSet = () => useWorkoutSessionStore((state) => state.isInSet);
 export const useSetIsInSet = () => useWorkoutSessionStore((state) => state.setIsInSet);
 export const useSetRestTimerDuration = () => useWorkoutSessionStore((state) => state.setRestTimerDuration);

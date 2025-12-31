@@ -10,12 +10,12 @@ import {
 } from '@/client/components/ui/dialog';
 import { Check, Dumbbell } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 
 interface WorkoutDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingWorkout: SavedWorkoutWithExercises | null;
+    editingWorkout: PlanWorkoutClient | null;
     planExercises: PlanExerciseWithDefinition[];
     onSave: (name: string, exerciseIds: Set<string>) => void;
     isPending: boolean;
@@ -39,12 +39,15 @@ export function WorkoutDialog({
         if (open) {
             if (editingWorkout) {
                 setWorkoutName(editingWorkout.name);
-                // Select exercises that are in this workout AND exist in the current plan
-                const workoutExerciseDefIds = new Set(editingWorkout.exercises.map((ex) => ex.exerciseDefId));
-                const matchingPlanExerciseIds = planExercises
-                    .filter((pe) => workoutExerciseDefIds.has(pe.exerciseDefId))
+                // Select exercises that are in this workout's items
+                const workoutPlanExerciseIds = new Set(
+                    editingWorkout.items.map((item) => item.planExerciseId)
+                );
+                // Only include IDs that still exist in planExercises
+                const validIds = planExercises
+                    .filter((pe) => workoutPlanExerciseIds.has(pe._id))
                     .map((pe) => pe._id);
-                setSelectedExercises(new Set(matchingPlanExerciseIds));
+                setSelectedExercises(new Set(validIds));
             } else {
                 setWorkoutName('');
                 setSelectedExercises(new Set());

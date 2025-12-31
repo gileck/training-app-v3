@@ -53,7 +53,6 @@ import {
     useCurrentExercise,
     useCurrentExerciseIndex,
     useSessionStartedAt,
-    useSessionSource,
     useEndSession,
     useSetCurrentExercise,
     useStartRestTimer,
@@ -65,8 +64,10 @@ import {
     useActivePlanId,
     useCurrentWeek,
     formatTime,
-    useSavedWorkoutName,
-    useSetSavedWorkoutName,
+    usePlanWorkoutId,
+    usePlanWorkoutName,
+    useSetPlanWorkoutId,
+    useSetPlanWorkoutName,
     useIsInSet,
     useSetIsInSet,
     useRestTimerDuration,
@@ -77,7 +78,7 @@ import {
     useSetSupersetExerciseIds,
     useWeekProgress,
 } from '@/client/features/workout';
-import { useCreateSavedWorkout } from '../Home/hooks';
+import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 
@@ -94,7 +95,6 @@ export function ActiveWorkout() {
     const currentExercise = useCurrentExercise();
     const currentExerciseIndex = useCurrentExerciseIndex();
     const sessionStartedAt = useSessionStartedAt();
-    const sessionSource = useSessionSource();
     const endSession = useEndSession();
     const setCurrentExerciseAction = useSetCurrentExercise();
     const startRestTimer = useStartRestTimer();
@@ -115,16 +115,18 @@ export function ActiveWorkout() {
     const setSupersetEnabled = useSetSupersetEnabled();
     const setSupersetExerciseIds = useSetSupersetExerciseIds();
 
-    // Saved workout state
-    const savedWorkoutName = useSavedWorkoutName();
-    const setSavedWorkoutName = useSetSavedWorkoutName();
+    // Plan workout state (null = ad-hoc unsaved, non-null = saved plan-workout)
+    const planWorkoutId = usePlanWorkoutId();
+    const planWorkoutName = usePlanWorkoutName();
+    const setPlanWorkoutId = useSetPlanWorkoutId();
+    const setPlanWorkoutName = useSetPlanWorkoutName();
 
     // Mutations
     const updateSetsMutation = useUpdateSets();
-    const createWorkoutMutation = useCreateSavedWorkout();
+    const createPlanWorkoutMutation = useCreatePlanWorkout(activePlanId || '');
 
-    // Plan exercises (for adding exercises during an active plan-based workout)
-    const { data: weekProgressData } = useWeekProgress(sessionSource === 'plan' ? activePlanId : null, currentWeek);
+    // Plan exercises (for adding exercises during workout - always available with active plan)
+    const { data: weekProgressData } = useWeekProgress(activePlanId, currentWeek);
 
     // Local state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral timer state
@@ -204,13 +206,14 @@ export function ActiveWorkout() {
         setIsInSet,
     ]);
 
-    // Handle COMPLETE SET
+    // Handle COMPLETE SET - always syncs to backend (active plan always exists when workout is active)
     const handleCompleteSet = () => {
         if (supersetEnabled && supersetExercises.length === 2) {
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
-            if (sessionSource === 'plan' && activePlanId) {
+            // Always sync to backend
+            if (activePlanId) {
                 eligible.forEach((ex) => {
                     updateSetsMutation.mutate({
                         planId: activePlanId,
@@ -242,8 +245,8 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Only sync to backend for plan-based sessions
-        if (sessionSource === 'plan' && activePlanId) {
+        // Always sync to backend
+        if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
                 planExerciseId: currentExercise.planExerciseId,
@@ -275,13 +278,13 @@ export function ActiveWorkout() {
         }
     };
 
-    // Handle add set (same as complete but without state transitions)
+    // Handle add set (same as complete but without state transitions) - always syncs to backend
     const handleAddSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Only sync to backend for plan-based sessions
-        if (sessionSource === 'plan' && activePlanId) {
+        // Always sync to backend
+        if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
                 planExerciseId: currentExercise.planExerciseId,
@@ -300,13 +303,13 @@ export function ActiveWorkout() {
         );
     };
 
-    // Handle remove set
+    // Handle remove set - always syncs to backend
     const handleRemoveSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted <= 0) return;
 
-        // Only sync to backend for plan-based sessions
-        if (sessionSource === 'plan' && activePlanId) {
+        // Always sync to backend
+        if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
                 planExerciseId: currentExercise.planExerciseId,
@@ -336,24 +339,26 @@ export function ActiveWorkout() {
     };
 
     const handleSaveWorkout = () => {
-        if (sessionExercises.length === 0 || !workoutName.trim()) return;
+        if (sessionExercises.length === 0 || !workoutName.trim() || !activePlanId) return;
 
-        createWorkoutMutation.mutate(
+        // Create plan-workout with planExerciseId references
+        createPlanWorkoutMutation.mutate(
             {
+                planId: activePlanId,
                 name: workoutName.trim(),
-                exercises: sessionExercises.map((ex) => ({
-                    exerciseDefId: ex.exerciseDef._id,
-                    sets: ex.targetSets,
-                    reps: ex.planExercise.reps,
-                    weight: ex.planExercise.weight,
-                    durationSeconds: ex.planExercise.durationSeconds,
+                items: sessionExercises.map((ex, idx) => ({
+                    planExerciseId: ex.planExerciseId,
+                    order: idx,
                 })),
-                exerciseDefs: sessionExercises.map((ex) => ex.exerciseDef),
             },
             {
-                onSuccess: () => {
+                onSuccess: (data) => {
                     toast.success('Workout saved!');
-                    setSavedWorkoutName(workoutName.trim());
+                    // Set planWorkoutId and name so Save button disappears
+                    if (data?._id) {
+                        setPlanWorkoutId(data._id);
+                    }
+                    setPlanWorkoutName(workoutName.trim());
                     setSaveDialogOpen(false);
                     setWorkoutName('');
                 },
@@ -446,8 +451,9 @@ export function ActiveWorkout() {
     // View All Exercises overlay
     if (allExercisesOpen) {
         const planWeekExercises = weekProgressData?.exercises || [];
-        const canAddFromPlan = sessionSource === 'plan' && !!activePlanId && planWeekExercises.length > 0;
-        const isSavedWorkout = !!savedWorkoutName;
+        const canAddFromPlan = !!activePlanId && planWeekExercises.length > 0;
+        // Show notice when editing a saved plan-workout that session edits don't update the template
+        const isSavedWorkout = planWorkoutId !== null;
 
         const handleReorderExercises = (nextExercises: ExerciseWeekProgress[]) => {
             const currentId = sessionExercises[currentExerciseIndex]?.planExerciseId;
@@ -538,9 +544,9 @@ export function ActiveWorkout() {
                 <div className={`flex flex-col gap-1 min-w-0 transition-opacity duration-200 ${
                     isInSet ? 'opacity-60' : isIdle ? 'opacity-70' : 'opacity-80'
                 }`}>
-                    {savedWorkoutName ? (
+                    {planWorkoutName ? (
                         <p className="text-[18px] font-semibold text-foreground/85 truncate">
-                            {savedWorkoutName}
+                            {planWorkoutName}
                         </p>
                     ) : null}
                     <p className="text-[14px] font-normal text-foreground/60 flex items-center">
@@ -550,7 +556,8 @@ export function ActiveWorkout() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {!savedWorkoutName && (
+                    {/* Show Save button only when session is not tied to a saved plan-workout */}
+                    {planWorkoutId === null && (
                         <Button
                             variant="ghost"
                             size="icon"
@@ -589,7 +596,7 @@ export function ActiveWorkout() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            {!savedWorkoutName && (
+                            {planWorkoutId === null && (
                                 <DropdownMenuItem onClick={openSaveDialog}>
                                     <Bookmark className="mr-2 h-4 w-4" />
                                     Save workout
@@ -1068,9 +1075,9 @@ export function ActiveWorkout() {
                         </Button>
                         <Button
                             onClick={handleSaveWorkout}
-                            disabled={!workoutName.trim() || createWorkoutMutation.isPending}
+                            disabled={!workoutName.trim() || createPlanWorkoutMutation.isPending}
                         >
-                            {createWorkoutMutation.isPending ? 'Saving...' : 'Save Workout'}
+                            {createPlanWorkoutMutation.isPending ? 'Saving...' : 'Save Workout'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1190,7 +1197,7 @@ export function ActiveWorkout() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>End Workout?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {!savedWorkoutName && 'This workout is not saved. '}
+                            {planWorkoutId === null && 'This workout is not saved. '}
                             Are you sure you want to end this workout?
                         </AlertDialogDescription>
                     </AlertDialogHeader>

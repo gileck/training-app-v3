@@ -7,12 +7,12 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 
 interface DeleteWorkoutDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    workout: SavedWorkoutWithExercises | null;
+    workout: PlanWorkoutClient | null;
     onConfirm: () => void;
     isPending: boolean;
 }

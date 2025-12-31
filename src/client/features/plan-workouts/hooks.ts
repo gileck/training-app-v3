@@ -1,5 +1,5 @@
 /**
- * Home route hooks
+ * Plan Workouts hooks
  * 
  * ============================================================================
  * OPTIMISTIC-ONLY UI PATTERN (CRITICAL - READ CAREFULLY)
@@ -28,54 +28,49 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
 import {
-    listSavedWorkouts,
-    createSavedWorkout,
-    updateSavedWorkout,
-    deleteSavedWorkout,
-    reorderSavedWorkouts,
-} from '@/apis/saved-workouts/client';
+    listPlanWorkouts,
+    createPlanWorkout,
+    updatePlanWorkout,
+    deletePlanWorkout,
+    reorderPlanWorkouts,
+} from '@/apis/plan-workouts/client';
 import type {
-    ListSavedWorkoutsResponse,
-    CreateSavedWorkoutRequest,
-    UpdateSavedWorkoutRequest,
-    DeleteSavedWorkoutRequest,
-    ReorderSavedWorkoutsRequest,
-    SavedWorkoutWithExercises,
-} from '@/apis/saved-workouts/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-
-// Extended request with exercise definitions for optimistic updates (client-side only)
-interface CreateSavedWorkoutWithDefs extends CreateSavedWorkoutRequest {
-    /** Exercise definitions for optimistic UI update (not sent to server) */
-    exerciseDefs: ExerciseDefinitionClient[];
-}
+    ListPlanWorkoutsResponse,
+    CreatePlanWorkoutRequest,
+    UpdatePlanWorkoutRequest,
+    DeletePlanWorkoutRequest,
+    ReorderPlanWorkoutsRequest,
+    PlanWorkoutClient,
+} from '@/apis/plan-workouts/types';
 
 // ============================================================================
 // Query Keys
 // ============================================================================
 
-export const savedWorkoutsQueryKey = ['saved-workouts'] as const;
+export const planWorkoutsQueryKey = (planId: string | null) =>
+    ['plan-workouts', { planId }] as const;
 
 // ============================================================================
 // Query Hooks
 // ============================================================================
 
 /**
- * Hook to fetch all saved workouts
+ * Hook to fetch all plan workouts for a specific plan
  */
-export function useSavedWorkouts(options?: { enabled?: boolean }) {
+export function usePlanWorkouts(planId: string | null, options?: { enabled?: boolean }) {
     const queryDefaults = useQueryDefaults();
 
     return useQuery({
-        queryKey: savedWorkoutsQueryKey,
-        queryFn: async (): Promise<ListSavedWorkoutsResponse> => {
-            const response = await listSavedWorkouts({});
+        queryKey: planWorkoutsQueryKey(planId),
+        queryFn: async (): Promise<ListPlanWorkoutsResponse> => {
+            if (!planId) return { workouts: [] };
+            const response = await listPlanWorkouts({ planId });
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data;
         },
-        enabled: options?.enabled ?? true,
+        enabled: (options?.enabled ?? true) && !!planId,
         ...queryDefaults,
     });
 }
@@ -85,21 +80,19 @@ export function useSavedWorkouts(options?: { enabled?: boolean }) {
 // ============================================================================
 
 /**
- * Hook for creating a new saved workout
+ * Hook for creating a new plan workout
  * 
  * Uses OPTIMISTIC-ONLY pattern:
  * - UI updates immediately with temp ID in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
  */
-export function useCreateSavedWorkout() {
+export function useCreatePlanWorkout(planId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: CreateSavedWorkoutWithDefs) => {
-            // Only send what the server needs (exclude exerciseDefs)
-            const { exerciseDefs: _, ...requestData } = data;
-            const response = await createSavedWorkout(requestData);
+        mutationFn: async (data: CreatePlanWorkoutRequest) => {
+            const response = await createPlanWorkout(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
@@ -107,51 +100,29 @@ export function useCreateSavedWorkout() {
         },
         // OPTIMISTIC UPDATE: Add workout to list immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
-            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+            const queryKey = planWorkoutsQueryKey(planId);
+            await queryClient.cancelQueries({ queryKey });
+            const previousWorkouts = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
 
             // Create optimistic workout with temporary ID
-            // Get the next order number
             const existingWorkouts = previousWorkouts?.workouts || [];
             const nextOrder = existingWorkouts.length;
 
-            // Create a map of exercise definitions for quick lookup
-            const exerciseDefMap = new Map(
-                variables.exerciseDefs.map((def) => [def._id, def])
-            );
-
-            const optimisticWorkout: SavedWorkoutWithExercises = {
+            const optimisticWorkout: PlanWorkoutClient = {
                 _id: `temp-${Date.now()}`,
                 userId: '',
+                planId: variables.planId,
                 name: variables.name,
-                exercises: variables.exercises.map((ex, index) => ({
-                    exerciseDefId: ex.exerciseDefId,
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    weight: ex.weight,
-                    durationSeconds: ex.durationSeconds ?? 0,
+                items: variables.items.map((item, index) => ({
+                    planExerciseId: item.planExerciseId,
                     order: index,
-                    // Use real exercise definition from provided data
-                    exerciseDef: exerciseDefMap.get(ex.exerciseDefId) || {
-                        _id: ex.exerciseDefId,
-                        name: 'Unknown',
-                        imageUrl: '',
-                        primaryMuscle: '',
-                        secondaryMuscles: [] as string[],
-                        type: '',
-                        isBodyweight: false,
-                        isStatic: false,
-                        isSystem: true,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    },
                 })),
                 order: nextOrder,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
 
-            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+            queryClient.setQueryData<ListPlanWorkoutsResponse>(queryKey, (old) => {
                 if (!old?.workouts) return { workouts: [optimisticWorkout] };
                 return { workouts: [...old.workouts, optimisticWorkout] };
             });
@@ -161,7 +132,7 @@ export function useCreateSavedWorkout() {
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousWorkouts) {
-                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+                queryClient.setQueryData(planWorkoutsQueryKey(planId), context.previousWorkouts);
             }
         },
         // onSuccess: intentionally empty - NEVER update UI from server response
@@ -170,19 +141,19 @@ export function useCreateSavedWorkout() {
 }
 
 /**
- * Hook for updating a saved workout
+ * Hook for updating a plan workout
  * 
  * Uses OPTIMISTIC-ONLY pattern:
  * - UI updates item immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
  */
-export function useUpdateSavedWorkout() {
+export function useUpdatePlanWorkout(planId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: UpdateSavedWorkoutRequest) => {
-            const response = await updateSavedWorkout(data);
+        mutationFn: async (data: UpdatePlanWorkoutRequest) => {
+            const response = await updatePlanWorkout(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
@@ -190,54 +161,31 @@ export function useUpdateSavedWorkout() {
         },
         // OPTIMISTIC UPDATE: Update workout immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
-            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+            const queryKey = planWorkoutsQueryKey(planId);
+            await queryClient.cancelQueries({ queryKey });
+            const previousWorkouts = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
 
-            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+            queryClient.setQueryData<ListPlanWorkoutsResponse>(queryKey, (old) => {
                 if (!old?.workouts) return old;
                 return {
                     workouts: old.workouts.map((workout) => {
                         if (workout._id !== variables.workoutId) return workout;
-                        
-                        const updates: Partial<SavedWorkoutWithExercises> = {
+
+                        const updates: Partial<PlanWorkoutClient> = {
                             updatedAt: new Date().toISOString(),
                         };
-                        
+
                         if (variables.name !== undefined) {
                             updates.name = variables.name;
                         }
-                        
-                        // Handle exercises update with exercise definitions preserved
-                        if (variables.exercises !== undefined) {
-                            updates.exercises = variables.exercises.map((ex, index) => {
-                                // Try to find existing exercise def from current workout
-                                const existingEx = workout.exercises.find(
-                                    (e) => e.exerciseDefId === ex.exerciseDefId
-                                );
-                                return {
-                                    exerciseDefId: ex.exerciseDefId,
-                                    sets: ex.sets,
-                                    reps: ex.reps,
-                                    weight: ex.weight,
-                                    durationSeconds: ex.durationSeconds ?? 0,
-                                    order: index,
-                                    exerciseDef: existingEx?.exerciseDef || {
-                                        _id: ex.exerciseDefId,
-                                        name: 'Loading...',
-                                        imageUrl: '',
-                                        primaryMuscle: '',
-                                        secondaryMuscles: [] as string[],
-                                        type: '',
-                                        isBodyweight: false,
-                                        isStatic: false,
-                                        isSystem: true,
-                                        createdAt: new Date().toISOString(),
-                                        updatedAt: new Date().toISOString(),
-                                    },
-                                };
-                            });
+
+                        if (variables.items !== undefined) {
+                            updates.items = variables.items.map((item, index) => ({
+                                planExerciseId: item.planExerciseId,
+                                order: index,
+                            }));
                         }
-                        
+
                         return { ...workout, ...updates };
                     }),
                 };
@@ -248,7 +196,7 @@ export function useUpdateSavedWorkout() {
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousWorkouts) {
-                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+                queryClient.setQueryData(planWorkoutsQueryKey(planId), context.previousWorkouts);
             }
         },
         // onSuccess: intentionally empty - NEVER update UI from server response
@@ -257,19 +205,19 @@ export function useUpdateSavedWorkout() {
 }
 
 /**
- * Hook for deleting a saved workout
+ * Hook for deleting a plan workout
  * 
  * Uses OPTIMISTIC-ONLY pattern:
  * - UI removes item immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
  */
-export function useDeleteSavedWorkout() {
+export function useDeletePlanWorkout(planId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: DeleteSavedWorkoutRequest) => {
-            const response = await deleteSavedWorkout(data);
+        mutationFn: async (data: DeletePlanWorkoutRequest) => {
+            const response = await deletePlanWorkout(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
@@ -277,10 +225,11 @@ export function useDeleteSavedWorkout() {
         },
         // OPTIMISTIC UPDATE: Remove workout immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
-            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+            const queryKey = planWorkoutsQueryKey(planId);
+            await queryClient.cancelQueries({ queryKey });
+            const previousWorkouts = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
 
-            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+            queryClient.setQueryData<ListPlanWorkoutsResponse>(queryKey, (old) => {
                 if (!old?.workouts) return old;
                 return {
                     workouts: old.workouts.filter((workout) => workout._id !== variables.workoutId),
@@ -292,7 +241,7 @@ export function useDeleteSavedWorkout() {
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousWorkouts) {
-                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+                queryClient.setQueryData(planWorkoutsQueryKey(planId), context.previousWorkouts);
             }
         },
         // onSuccess: intentionally empty - NEVER update UI from server response
@@ -301,19 +250,19 @@ export function useDeleteSavedWorkout() {
 }
 
 /**
- * Hook for reordering saved workouts
+ * Hook for reordering plan workouts
  * 
  * Uses OPTIMISTIC-ONLY pattern:
  * - UI reorders items immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
  */
-export function useReorderSavedWorkouts() {
+export function useReorderPlanWorkouts(planId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: ReorderSavedWorkoutsRequest) => {
-            const response = await reorderSavedWorkouts(data);
+        mutationFn: async (data: ReorderPlanWorkoutsRequest) => {
+            const response = await reorderPlanWorkouts(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
@@ -321,10 +270,11 @@ export function useReorderSavedWorkouts() {
         },
         // OPTIMISTIC UPDATE: Reorder workouts immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: savedWorkoutsQueryKey });
-            const previousWorkouts = queryClient.getQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey);
+            const queryKey = planWorkoutsQueryKey(planId);
+            await queryClient.cancelQueries({ queryKey });
+            const previousWorkouts = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
 
-            queryClient.setQueryData<ListSavedWorkoutsResponse>(savedWorkoutsQueryKey, (old) => {
+            queryClient.setQueryData<ListPlanWorkoutsResponse>(queryKey, (old) => {
                 if (!old?.workouts) return old;
                 // Reorder workouts based on the new order from workoutIds
                 const workoutMap = new Map(old.workouts.map((w) => [w._id, w]));
@@ -336,7 +286,7 @@ export function useReorderSavedWorkouts() {
                         }
                         return null;
                     })
-                    .filter((w): w is SavedWorkoutWithExercises => w !== null);
+                    .filter((w): w is PlanWorkoutClient => w !== null);
                 return { workouts: reorderedWorkouts };
             });
 
@@ -345,11 +295,10 @@ export function useReorderSavedWorkouts() {
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousWorkouts) {
-                queryClient.setQueryData(savedWorkoutsQueryKey, context.previousWorkouts);
+                queryClient.setQueryData(planWorkoutsQueryKey(planId), context.previousWorkouts);
             }
         },
         // onSuccess: intentionally empty - NEVER update UI from server response
         // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
-

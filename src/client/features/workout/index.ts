@@ -34,7 +34,8 @@ export {
     useRestTimerDuration,
     useCompletedSetsThisSession,
     useSessionStartedAt,
-    useSessionSource,
+    usePlanWorkoutId,
+    usePlanWorkoutName,
     useStartSession,
     useEndSession,
     useSetCurrentExercise,
@@ -44,8 +45,8 @@ export {
     useUpdateSessionExercises,
     useToggleAutoStartTimer,
     useAutoStartTimer,
-    useSavedWorkoutName,
-    useSetSavedWorkoutName,
+    useSetPlanWorkoutId,
+    useSetPlanWorkoutName,
     useIsInSet,
     useSetIsInSet,
     useSetRestTimerDuration,
@@ -59,7 +60,7 @@ export {
 export { useRestTimer, formatTime } from './use-rest-timer';
 
 // Export session types and utilities
-export type { WorkoutSession, WorkoutSessionState, SessionSource } from './session-types';
+export type { WorkoutSession, WorkoutSessionState } from './session-types';
 export { DEFAULT_REST_TIMES, getRecommendedRestTime } from './session-types';
 
 // Export types

@@ -10,5 +10,5 @@ export * as planExercises from './planExercises';
 export * as weeklyProgress from './weeklyProgress';
 export * as exerciseProgress from './exerciseProgress';
 export * as setLogs from './setLogs';
-export * as savedWorkouts from './savedWorkouts';
+export * as planWorkouts from './planWorkouts';
 export * as weeklyNotes from './weeklyNotes';

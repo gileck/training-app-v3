@@ -41,12 +41,13 @@ import {
     useClearSelection,
     // Active workout session
     useStartSession,
-    useSetSavedWorkoutName,
+    useSetPlanWorkoutId,
+    useSetPlanWorkoutName,
 } from '@/client/features/workout';
-import type { WorkoutTab, SessionSource } from '@/client/features/workout';
+import type { WorkoutTab } from '@/client/features/workout';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import { useSavedWorkouts } from './hooks';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import { usePlanWorkouts } from '@/client/features/plan-workouts';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 
 export function Home() {
@@ -82,17 +83,18 @@ export function Home() {
 
     // Active workout session
     const startSession = useStartSession();
-    const setSavedWorkoutName = useSetSavedWorkoutName();
+    const setPlanWorkoutId = useSetPlanWorkoutId();
+    const setPlanWorkoutName = useSetPlanWorkoutName();
 
-    // Saved workouts data
-    const { data: savedWorkoutsData, isLoading: savedWorkoutsLoading } = useSavedWorkouts();
+    // Plan workouts data (scoped to active plan)
+    const { data: planWorkoutsData, isLoading: planWorkoutsLoading } = usePlanWorkouts(activePlanId);
 
     // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
     // Used to position selection bar above the bottom navbar on mobile
     const isMobile = useMemo(() => {
         return typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
     }, []);
-    const savedWorkouts = savedWorkoutsData?.workouts || [];
+    const planWorkoutsList = planWorkoutsData?.workouts || [];
 
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
@@ -177,7 +179,12 @@ export function Home() {
     };
 
     // Start workout with selected exercises
-    const handleStartWorkout = (exercisesToStart?: ExerciseWeekProgress[], source: SessionSource = 'plan', workoutName?: string) => {
+    // planWorkoutId/planWorkoutName are set when starting from a saved plan-workout
+    const handleStartWorkout = (
+        exercisesToStart?: ExerciseWeekProgress[],
+        planWorkoutId?: string | null,
+        planWorkoutName?: string | null
+    ) => {
         const workoutExercises = exercisesToStart ||
             (selectedExerciseIds.length > 0
                 ? exercises.filter((ex) => selectedExerciseIds.includes(ex.planExerciseId))
@@ -185,8 +192,9 @@ export function Home() {
 
         if (workoutExercises.length === 0) return;
 
-        startSession(workoutExercises, source);
-        setSavedWorkoutName(workoutName || null);
+        startSession(workoutExercises);
+        setPlanWorkoutId(planWorkoutId || null);
+        setPlanWorkoutName(planWorkoutName || null);
         clearSelection();
         navigate('/active-workout');
     };
@@ -520,7 +528,7 @@ export function Home() {
                     </Button>
 
                     {/* Loading State - show skeleton when loading without cached data */}
-                    {(savedWorkoutsLoading || savedWorkoutsData === undefined) && (
+                    {(planWorkoutsLoading || planWorkoutsData === undefined) && (
                         <div className="space-y-3">
                             {[1, 2].map((i) => (
                                 <Card key={i} className="rounded-xl border-0 shadow-sm">
@@ -539,7 +547,7 @@ export function Home() {
                     )}
 
                     {/* Empty State - only show when data loaded AND truly empty */}
-                    {savedWorkoutsData !== undefined && savedWorkouts.length === 0 && (
+                    {planWorkoutsData !== undefined && planWorkoutsList.length === 0 && (
                         <Card className="rounded-2xl border-0 shadow-sm">
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
@@ -558,42 +566,31 @@ export function Home() {
                         </Card>
                     )}
 
-                    {/* Saved Workouts List */}
-                    {savedWorkoutsData !== undefined && savedWorkouts.length > 0 && (
+                    {/* Plan Workouts List */}
+                    {planWorkoutsData !== undefined && planWorkoutsList.length > 0 && (
                         <div className="space-y-3">
-                            {savedWorkouts.map((workout) => (
-                                <SavedWorkoutCard
+                            {planWorkoutsList.map((workout) => (
+                                <PlanWorkoutCard
                                     key={workout._id}
                                     workout={workout}
+                                    exercises={exercises}
                                     isExpanded={expandedWorkoutId === workout._id}
                                     onToggleExpand={() => setExpandedWorkoutId(
                                         expandedWorkoutId === workout._id ? null : workout._id
                                     )}
                                     onStart={() => {
-                                        // Convert saved workout exercises to session format
-                                        // Note: Using exerciseDefId as planExerciseId since saved workouts aren't tied to plans
-                                        const workoutExercises: ExerciseWeekProgress[] = workout.exercises.map((workoutEx) => ({
-                                            planExerciseId: workoutEx.exerciseDefId,
-                                            exerciseDef: workoutEx.exerciseDef,
-                                            planExercise: {
-                                                _id: workoutEx.exerciseDefId,
-                                                planId: '',
-                                                exerciseDefId: workoutEx.exerciseDefId,
-                                                sets: workoutEx.sets,
-                                                reps: workoutEx.reps,
-                                                weight: workoutEx.weight,
-                                                durationSeconds: workoutEx.durationSeconds ?? 0,
-                                                comments: '',
-                                                order: 0,
-                                                createdAt: new Date().toISOString(),
-                                                updatedAt: new Date().toISOString(),
-                                            },
-                                            targetSets: workoutEx.sets,
-                                            setsCompleted: 0,
-                                            isDone: false,
-                                        }));
-                                        // Pass 'saved-workout' source to prevent backend sync (no real planExerciseIds)
-                                        handleStartWorkout(workoutExercises, 'saved-workout', workout.name);
+                                        // Map plan workout items to ExerciseWeekProgress using week data
+                                        const exerciseMap = new Map(
+                                            exercises.map((ex) => [ex.planExerciseId, ex])
+                                        );
+                                        const workoutExercises: ExerciseWeekProgress[] = workout.items
+                                            .map((item) => exerciseMap.get(item.planExerciseId))
+                                            .filter((ex): ex is ExerciseWeekProgress => ex !== undefined);
+
+                                        if (workoutExercises.length === 0) return;
+
+                                        // Start from saved plan-workout: pass planWorkoutId and name
+                                        handleStartWorkout(workoutExercises, workout._id, workout.name);
                                     }}
                                 />
                             ))}
@@ -888,15 +885,24 @@ function ExerciseCardList({
     );
 }
 
-// Saved Workout Card Component
-interface SavedWorkoutCardProps {
-    workout: SavedWorkoutWithExercises;
+// Plan Workout Card Component
+interface PlanWorkoutCardProps {
+    workout: PlanWorkoutClient;
+    exercises: ExerciseWeekProgress[];
     onStart: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
 }
 
-function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: SavedWorkoutCardProps) {
+function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpand }: PlanWorkoutCardProps) {
+    // Create a map for quick lookup of exercises by planExerciseId
+    const exerciseMap = new Map(exercises.map((ex) => [ex.planExerciseId, ex]));
+
+    // Resolve workout items to exercises with definitions
+    const resolvedExercises = workout.items
+        .map((item) => exerciseMap.get(item.planExerciseId))
+        .filter((ex): ex is ExerciseWeekProgress => ex !== undefined);
+
     return (
         <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
             <CardContent className="p-0">
@@ -913,7 +919,7 @@ function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: Save
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-semibold text-base truncate">{workout.name}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                                    {resolvedExercises.length} exercise{resolvedExercises.length !== 1 ? 's' : ''}
                                 </p>
                             </div>
                         </div>
@@ -923,6 +929,7 @@ function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: Save
                                 e.stopPropagation();
                                 onStart();
                             }}
+                            disabled={resolvedExercises.length === 0}
                             className="h-10 w-10 rounded-full bg-success text-success-foreground shadow-lg shadow-success/25"
                         >
                             <Play className="h-5 w-5" />
@@ -933,36 +940,42 @@ function SavedWorkoutCard({ workout, onStart, isExpanded, onToggleExpand }: Save
                 {/* Expandable exercise list */}
                 {isExpanded && (
                     <div className="border-t bg-muted/30">
-                        {workout.exercises.map((ex, index) => (
-                            <div
-                                key={ex.exerciseDefId}
-                                className={`flex items-center gap-3 p-3 ${index !== workout.exercises.length - 1 ? 'border-b border-border/50' : ''}`}
-                            >
-                                <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
-                                    {ex.exerciseDef.imageUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={ex.exerciseDef.imageUrl}
-                                            alt={ex.exerciseDef.name}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm truncate">
-                                        {ex.exerciseDef.name}
-                                    </h4>
-                                    <p className="text-xs text-muted-foreground">
-                                        {ex.sets} sets × {ex.reps} reps
-                                        {ex.weight > 0 && ` • ${ex.weight}kg`}
-                                    </p>
-                                </div>
+                        {resolvedExercises.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                                No exercises found (they may have been removed from the plan)
                             </div>
-                        ))}
+                        ) : (
+                            resolvedExercises.map((ex, index) => (
+                                <div
+                                    key={ex.planExerciseId}
+                                    className={`flex items-center gap-3 p-3 ${index !== resolvedExercises.length - 1 ? 'border-b border-border/50' : ''}`}
+                                >
+                                    <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
+                                        {ex.exerciseDef.imageUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={ex.exerciseDef.imageUrl}
+                                                alt={ex.exerciseDef.name}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-sm truncate">
+                                            {ex.exerciseDef.name}
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            {ex.targetSets} sets × {ex.planExercise.reps} reps
+                                            {ex.planExercise.weight > 0 && ` • ${ex.planExercise.weight}kg`}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 )}
             </CardContent>

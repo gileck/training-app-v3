@@ -1,6 +1,6 @@
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 
 // Multi-select exercise configuration
 export interface MultiSelectExerciseConfig {
@@ -20,9 +20,9 @@ export interface ExerciseActionHandlers {
 
 // Common handler types for workouts
 export interface WorkoutActionHandlers {
-    onEdit: (workout: SavedWorkoutWithExercises) => void;
-    onDelete: (workout: SavedWorkoutWithExercises) => void;
-    onDuplicate: (workout: SavedWorkoutWithExercises) => void;
+    onEdit: (workout: PlanWorkoutClient) => void;
+    onDelete: (workout: PlanWorkoutClient) => void;
+    onDuplicate: (workout: PlanWorkoutClient) => void;
     onMove: (index: number, direction: 'up' | 'down') => void;
 }
 

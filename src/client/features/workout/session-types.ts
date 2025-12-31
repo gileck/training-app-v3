@@ -1,7 +1,5 @@
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 
-export type SessionSource = 'plan' | 'saved-workout';
-
 export interface WorkoutSession {
     isActive: boolean;
     startedAt: number | null;
@@ -10,12 +8,12 @@ export interface WorkoutSession {
     restTimerEndAt: number | null;
     restTimerDuration: number; // in seconds
     completedSetsThisSession: number;
-    /** Tracks where the session originated from - affects whether sets sync to backend */
-    sessionSource: SessionSource | null;
     /** Whether to auto-start the rest timer after completing a set */
     autoStartTimer: boolean;
-    /** Name of saved workout (if session was saved) */
-    savedWorkoutName: string | null;
+    /** ID of the plan-workout this session is based on (null = ad-hoc unsaved) */
+    planWorkoutId: string | null;
+    /** Name of the plan-workout this session is based on */
+    planWorkoutName: string | null;
     /** Whether user is actively performing a set (vs resting) */
     isInSet: boolean;
     /** Super set mode state */
@@ -25,7 +23,7 @@ export interface WorkoutSession {
 
 export interface WorkoutSessionState extends WorkoutSession {
     // Actions
-    startSession: (exercises: ExerciseWeekProgress[], source?: SessionSource) => void;
+    startSession: (exercises: ExerciseWeekProgress[]) => void;
     endSession: () => void;
     setCurrentExercise: (index: number) => void;
     startRestTimer: (durationSeconds?: number) => void;
@@ -34,7 +32,8 @@ export interface WorkoutSessionState extends WorkoutSession {
     incrementCompletedSets: () => void;
     updateExercises: (exercises: ExerciseWeekProgress[]) => void;
     toggleAutoStartTimer: () => void;
-    setSavedWorkoutName: (name: string | null) => void;
+    setPlanWorkoutId: (id: string | null) => void;
+    setPlanWorkoutName: (name: string | null) => void;
     setIsInSet: (isInSet: boolean) => void;
     setSupersetEnabled: (enabled: boolean) => void;
     setSupersetExerciseIds: (exerciseIds: string[]) => void;

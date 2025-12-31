@@ -1,21 +1,24 @@
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
-import { SavedWorkoutCard } from './SavedWorkoutCard';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import { PlanWorkoutCard } from './PlanWorkoutCard';
 
-interface SavedWorkoutListProps {
-    workouts: SavedWorkoutWithExercises[];
+interface PlanWorkoutListProps {
+    workouts: PlanWorkoutClient[];
+    planExercises: PlanExerciseWithDefinition[];
     expandedWorkoutId: string | null;
     isReorderMode: boolean;
     isReorderPending: boolean;
     isDuplicatePending: boolean;
     onToggleExpand: (workoutId: string) => void;
-    onEdit: (workout: SavedWorkoutWithExercises) => void;
-    onDuplicate: (workout: SavedWorkoutWithExercises) => void;
-    onDelete: (workout: SavedWorkoutWithExercises) => void;
+    onEdit: (workout: PlanWorkoutClient) => void;
+    onDuplicate: (workout: PlanWorkoutClient) => void;
+    onDelete: (workout: PlanWorkoutClient) => void;
     onMove: (index: number, direction: 'up' | 'down') => void;
 }
 
-export function SavedWorkoutList({
+export function PlanWorkoutList({
     workouts,
+    planExercises,
     expandedWorkoutId,
     isReorderMode,
     isReorderPending,
@@ -25,13 +28,14 @@ export function SavedWorkoutList({
     onDuplicate,
     onDelete,
     onMove,
-}: SavedWorkoutListProps) {
+}: PlanWorkoutListProps) {
     return (
         <div className="space-y-3">
             {workouts.map((workout, index) => (
-                <SavedWorkoutCard
+                <PlanWorkoutCard
                     key={workout._id}
                     workout={workout}
+                    planExercises={planExercises}
                     index={index}
                     isFirst={index === 0}
                     isLast={index === workouts.length - 1}

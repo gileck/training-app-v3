@@ -5,39 +5,52 @@ import { Skeleton } from '@/client/components/ui/skeleton';
 import { toast } from '@/client/components/ui/toast';
 import { Plus, ArrowUpDown, Bookmark } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
-import type { SavedWorkoutWithExercises } from '@/apis/saved-workouts/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-import { SavedWorkoutList } from './SavedWorkoutList';
+import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import { PlanWorkoutList } from './PlanWorkoutList';
 import { WorkoutDialog } from './WorkoutDialog';
 import { DeleteWorkoutDialog } from './DeleteWorkoutDialog';
 
 interface WorkoutsTabProps {
+    planId: string;
     planExercises: PlanExerciseWithDefinition[];
-    savedWorkouts: SavedWorkoutWithExercises[];
+    planWorkouts: PlanWorkoutClient[];
     isLoading: boolean;
     hasData: boolean;
     // Mutations
     createWorkoutMutation: {
-        mutate: (params: { name: string; exercises: Array<{ exerciseDefId: string; sets: number; reps: number; weight: number; durationSeconds?: number }>; exerciseDefs: ExerciseDefinitionClient[] }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (
+            params: { planId: string; name: string; items: Array<{ planExerciseId: string; order: number }> },
+            options?: { onSuccess?: () => void; onError?: (error: Error) => void }
+        ) => void;
         isPending: boolean;
     };
     updateWorkoutMutation: {
-        mutate: (params: { workoutId: string; name: string; exercises: Array<{ exerciseDefId: string; sets: number; reps: number; weight: number; durationSeconds?: number }> }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (
+            params: { planId: string; workoutId: string; name?: string; items?: Array<{ planExerciseId: string; order: number }> },
+            options?: { onSuccess?: () => void; onError?: (error: Error) => void }
+        ) => void;
         isPending: boolean;
     };
     deleteWorkoutMutation: {
-        mutate: (params: { workoutId: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (
+            params: { planId: string; workoutId: string },
+            options?: { onSuccess?: () => void; onError?: (error: Error) => void }
+        ) => void;
         isPending: boolean;
     };
     reorderWorkoutsMutation: {
-        mutate: (params: { workoutIds: string[] }, options?: { onError?: (error: Error) => void }) => void;
+        mutate: (
+            params: { planId: string; workoutIds: string[] },
+            options?: { onError?: (error: Error) => void }
+        ) => void;
         isPending: boolean;
     };
 }
 
 export function WorkoutsTab({
+    planId,
     planExercises,
-    savedWorkouts,
+    planWorkouts,
     isLoading,
     hasData,
     createWorkoutMutation,
@@ -52,13 +65,13 @@ export function WorkoutsTab({
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [workoutDialogOpen, setWorkoutDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- null = create mode, workout = edit mode
-    const [editingWorkout, setEditingWorkout] = useState<SavedWorkoutWithExercises | null>(null);
+    const [editingWorkout, setEditingWorkout] = useState<PlanWorkoutClient | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral context
-    const [workoutToDelete, setWorkoutToDelete] = useState<SavedWorkoutWithExercises | null>(null);
+    const [workoutToDelete, setWorkoutToDelete] = useState<PlanWorkoutClient | null>(null);
 
-    const handleOpenWorkoutDialog = (workout?: SavedWorkoutWithExercises) => {
+    const handleOpenWorkoutDialog = (workout?: PlanWorkoutClient) => {
         setEditingWorkout(workout || null);
         setWorkoutDialogOpen(true);
     };
@@ -69,18 +82,19 @@ export function WorkoutsTab({
             selectedExerciseIds.has(ex._id)
         );
 
+        // Build items array with planExerciseId references
+        const items = selectedPlanExercises.map((ex, index) => ({
+            planExerciseId: ex._id,
+            order: index,
+        }));
+
         if (editingWorkout) {
             updateWorkoutMutation.mutate(
                 {
+                    planId,
                     workoutId: editingWorkout._id,
                     name,
-                    exercises: selectedPlanExercises.map((ex) => ({
-                        exerciseDefId: ex.exerciseDefId,
-                        sets: ex.sets,
-                        reps: ex.reps,
-                        weight: ex.weight,
-                        durationSeconds: ex.durationSeconds,
-                    })),
+                    items,
                 },
                 {
                     onSuccess: () => {
@@ -96,15 +110,9 @@ export function WorkoutsTab({
         } else {
             createWorkoutMutation.mutate(
                 {
+                    planId,
                     name,
-                    exercises: selectedPlanExercises.map((ex) => ({
-                        exerciseDefId: ex.exerciseDefId,
-                        sets: ex.sets,
-                        reps: ex.reps,
-                        weight: ex.weight,
-                        durationSeconds: ex.durationSeconds,
-                    })),
-                    exerciseDefs: selectedPlanExercises.map((ex) => ex.exerciseDef),
+                    items,
                 },
                 {
                     onSuccess: () => {
@@ -119,7 +127,7 @@ export function WorkoutsTab({
         }
     };
 
-    const handleDeleteWorkoutClick = (workout: SavedWorkoutWithExercises) => {
+    const handleDeleteWorkoutClick = (workout: PlanWorkoutClient) => {
         setWorkoutToDelete(workout);
         setDeleteDialogOpen(true);
     };
@@ -127,7 +135,7 @@ export function WorkoutsTab({
     const confirmDeleteWorkout = () => {
         if (!workoutToDelete) return;
         deleteWorkoutMutation.mutate(
-            { workoutId: workoutToDelete._id },
+            { planId, workoutId: workoutToDelete._id },
             {
                 onSuccess: () => {
                     setDeleteDialogOpen(false);
@@ -141,18 +149,15 @@ export function WorkoutsTab({
         );
     };
 
-    const handleDuplicateWorkout = (workout: SavedWorkoutWithExercises) => {
+    const handleDuplicateWorkout = (workout: PlanWorkoutClient) => {
         createWorkoutMutation.mutate(
             {
+                planId,
                 name: `${workout.name} (Copy)`,
-                exercises: workout.exercises.map((ex) => ({
-                    exerciseDefId: ex.exerciseDefId,
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    weight: ex.weight,
-                    durationSeconds: ex.durationSeconds,
+                items: workout.items.map((item, index) => ({
+                    planExerciseId: item.planExerciseId,
+                    order: index,
                 })),
-                exerciseDefs: workout.exercises.map((ex) => ex.exerciseDef),
             },
             {
                 onSuccess: () => {
@@ -164,13 +169,13 @@ export function WorkoutsTab({
 
     const handleMoveWorkout = (index: number, direction: 'up' | 'down') => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= savedWorkouts.length) return;
+        if (newIndex < 0 || newIndex >= planWorkouts.length) return;
 
-        const workoutIds = savedWorkouts.map((w) => w._id);
+        const workoutIds = planWorkouts.map((w) => w._id);
         [workoutIds[index], workoutIds[newIndex]] = [workoutIds[newIndex], workoutIds[index]];
 
         reorderWorkoutsMutation.mutate(
-            { workoutIds },
+            { planId, workoutIds },
             {
                 onError: (err) => {
                     toast.error(`Failed to reorder: ${err.message}`);
@@ -190,7 +195,7 @@ export function WorkoutsTab({
         <div className="space-y-4">
             {/* Create workout button and reorder toggle */}
             <div className="flex gap-2 justify-end">
-                {savedWorkouts.length > 1 && (
+                {planWorkouts.length > 1 && (
                     <Button
                         variant={isReorderMode ? 'secondary' : 'outline'}
                         size="icon"
@@ -227,7 +232,7 @@ export function WorkoutsTab({
                         </Card>
                     ))}
                 </div>
-            ) : savedWorkouts.length === 0 ? (
+            ) : planWorkouts.length === 0 ? (
                 <Card className="rounded-2xl border-0 shadow-sm">
                     <CardContent className="flex flex-col items-center justify-center py-12">
                         <Bookmark className="h-12 w-12 text-muted-foreground mb-4" />
@@ -245,8 +250,9 @@ export function WorkoutsTab({
                     </CardContent>
                 </Card>
             ) : (
-                <SavedWorkoutList
-                    workouts={savedWorkouts}
+                <PlanWorkoutList
+                    workouts={planWorkouts}
+                    planExercises={planExercises}
                     expandedWorkoutId={expandedWorkoutId}
                     isReorderMode={isReorderMode}
                     isReorderPending={reorderWorkoutsMutation.isPending}

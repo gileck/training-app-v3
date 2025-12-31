@@ -2,6 +2,4 @@
 export * from './types';
 
 // Export all functions
-export * from './savedWorkouts';
-
-
+export * from './planWorkouts';

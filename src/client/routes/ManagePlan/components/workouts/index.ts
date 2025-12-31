@@ -1,5 +1,5 @@
 export { WorkoutsTab } from './WorkoutsTab';
-export { SavedWorkoutList } from './SavedWorkoutList';
-export { SavedWorkoutCard } from './SavedWorkoutCard';
+export { PlanWorkoutList } from './PlanWorkoutList';
+export { PlanWorkoutCard } from './PlanWorkoutCard';
 export { WorkoutDialog } from './WorkoutDialog';
 export { DeleteWorkoutDialog } from './DeleteWorkoutDialog';

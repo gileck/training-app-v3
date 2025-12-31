@@ -20,12 +20,12 @@ import {
     useDeleteExercise,
 } from './hooks';
 import {
-    useSavedWorkouts,
-    useCreateSavedWorkout,
-    useUpdateSavedWorkout,
-    useDeleteSavedWorkout,
-    useReorderSavedWorkouts,
-} from '../Home/hooks';
+    usePlanWorkouts,
+    useCreatePlanWorkout,
+    useUpdatePlanWorkout,
+    useDeletePlanWorkout,
+    useReorderPlanWorkouts,
+} from '@/client/features/plan-workouts';
 import { ManagePlanHeader } from './components/ManagePlanHeader';
 import { ExercisesTab } from './components/exercises/ExercisesTab';
 import { WorkoutsTab } from './components/workouts/WorkoutsTab';
@@ -66,14 +66,14 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const updateExerciseDefMutation = useUpdateExercise();
     const deleteExerciseDefMutation = useDeleteExercise();
 
-    // Saved workouts
-    const { data: savedWorkoutsData, isLoading: savedWorkoutsLoading } = useSavedWorkouts();
-    const createWorkoutMutation = useCreateSavedWorkout();
-    const updateWorkoutMutation = useUpdateSavedWorkout();
-    const deleteWorkoutMutation = useDeleteSavedWorkout();
-    const reorderWorkoutsMutation = useReorderSavedWorkouts();
-    const savedWorkouts = savedWorkoutsData?.workouts || [];
-    const hasSavedWorkoutsData = savedWorkoutsData !== undefined;
+    // Plan workouts (scoped to this plan)
+    const { data: planWorkoutsData, isLoading: planWorkoutsLoading } = usePlanWorkouts(planId);
+    const createWorkoutMutation = useCreatePlanWorkout(planId);
+    const updateWorkoutMutation = useUpdatePlanWorkout(planId);
+    const deleteWorkoutMutation = useDeletePlanWorkout(planId);
+    const reorderWorkoutsMutation = useReorderPlanWorkouts(planId);
+    const planWorkoutsList = planWorkoutsData?.workouts || [];
+    const hasPlanWorkoutsData = planWorkoutsData !== undefined;
 
     // Persistent UI state from store
     const activeTab = useManagePlanStore((state) => state.activeTab);
@@ -189,10 +189,11 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                 {/* Workouts Tab */}
                 <TabsContent value="workouts" className="mt-4">
                     <WorkoutsTab
+                        planId={planId}
                         planExercises={planExercises}
-                        savedWorkouts={savedWorkouts}
-                        isLoading={savedWorkoutsLoading}
-                        hasData={hasSavedWorkoutsData}
+                        planWorkouts={planWorkoutsList}
+                        isLoading={planWorkoutsLoading}
+                        hasData={hasPlanWorkoutsData}
                         createWorkoutMutation={createWorkoutMutation}
                         updateWorkoutMutation={updateWorkoutMutation}
                         deleteWorkoutMutation={deleteWorkoutMutation}
