@@ -14,7 +14,7 @@ export const getTodos = async (
 
         const todoList = await todos.findTodosByUserId(context.userId);
 
-        // Convert to client format (handles both ObjectId and UUID string IDs)
+        // Convert to client format
         const todosClient = todoList.map(todo => ({
             _id: toStringId(todo._id),
             userId: toStringId(todo.userId),

@@ -1,7 +1,8 @@
 import { API_CREATE_TODO } from '../index';
 import { ApiHandlerContext, CreateTodoRequest, CreateTodoResponse } from '../types';
 import { todos } from '@/server/database';
-import { toStringId, toDocumentId } from '@/server/utils';
+import { ObjectId } from 'mongodb';
+import { toDocumentId, toStringId, toQueryId } from '@/server/utils';
 
 export const createTodo = async (
     request: CreateTodoRequest,
@@ -16,19 +17,38 @@ export const createTodo = async (
             return { error: "Title is required" };
         }
 
+        // If client provided an ID, check for idempotency (handle retries)
+        if (request._id) {
+            const existing = await todos.findTodoById(request._id, context.userId);
+            if (existing) {
+                // Return existing todo (idempotent - same ID = same result)
+                return {
+                    todo: {
+                        _id: toStringId(existing._id),
+                        userId: toStringId(existing.userId),
+                        title: existing.title,
+                        completed: existing.completed,
+                        createdAt: existing.createdAt.toISOString(),
+                        updatedAt: existing.updatedAt.toISOString()
+                    }
+                };
+            }
+        }
+
         const now = new Date();
         const todoData = {
-            _id: request._id, // Pass client-generated ID if provided
-            userId: toDocumentId(context.userId),
+            // Use client-provided ID (UUID or ObjectId format) or generate new one
+            _id: request._id ? toDocumentId(request._id) : new ObjectId(),
+            userId: toQueryId(context.userId) as ObjectId,
             title: request.title.trim(),
             completed: false,
             createdAt: now,
             updatedAt: now
         };
 
-        const newTodo = await todos.createTodo(todoData);
+        const newTodo = await todos.createTodoWithId(todoData);
 
-        // Convert to client format (handle both ObjectId and UUID string)
+        // Convert to client format
         const todoClient = {
             _id: toStringId(newTodo._id),
             userId: toStringId(newTodo.userId),
@@ -45,4 +65,4 @@ export const createTodo = async (
     }
 };
 
-export { API_CREATE_TODO };
+export { API_CREATE_TODO }; 

@@ -46,7 +46,7 @@ export const updateTodo = async (
             return { error: "Todo not found" };
         }
 
-        // Convert to client format (handles both ObjectId and UUID string IDs)
+        // Convert to client format
         const todoClient = {
             _id: toStringId(updatedTodo._id),
             userId: toStringId(updatedTodo.userId),
