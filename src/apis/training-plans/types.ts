@@ -78,4 +78,99 @@ export interface SetActivePlanResponse {
     error?: string;
 }
 
+// ============================================================================
+// AI Plan Generation Types
+// ============================================================================
+
+// Error codes for consistent client UX
+export type GeneratePlanErrorCode =
+    | 'AI_UNCLEAR_INPUT'
+    | 'AI_INVALID_OUTPUT'
+    | 'DRAFT_MISMATCH'
+    | 'VALIDATION'
+    | 'UNAUTHORIZED'
+    | 'SERVER_ERROR';
+
+// Suggested match for unresolved exercises
+export interface SuggestedMatch {
+    exerciseDefId: string;
+    name: string;
+    primaryMuscle: string;
+    imageUrl?: string;
+    score: number; // 0-100, higher is better
+}
+
+// Match status for draft exercises
+export type ExerciseMatchStatus = 'matched' | 'unresolved' | 'custom';
+
+// Draft exercise (not yet persisted)
+export interface DraftExercise {
+    draftExerciseKey: string;
+    name: string;
+    sets?: number;
+    reps?: number;
+    durationSeconds?: number;
+    weightKg?: number;
+    notes?: string;
+    
+    // Matching status
+    matchStatus: ExerciseMatchStatus;
+    matchedExerciseDefId?: string;      // Set when matched or user-resolved
+    matchedExerciseName?: string;       // Display name of matched exercise
+    suggestedMatches?: SuggestedMatch[]; // Top suggestions for unresolved
+}
+
+// Draft workout item (references exercise by key)
+export interface DraftWorkoutItem {
+    draftExerciseKey: string;
+    order: number;
+}
+
+// Draft workout (not yet persisted)
+export interface DraftWorkout {
+    name: string;
+    items: DraftWorkoutItem[];
+}
+
+// Complete draft plan structure
+export interface DraftPlan {
+    planName: string;
+    durationWeeks: number;
+    exercises: DraftExercise[];
+    workouts: DraftWorkout[];
+}
+
+// Generate plan from text (preview)
+export interface GeneratePlanFromTextRequest {
+    modelId: string;
+    planName: string;
+    durationWeeks: number;
+    text: string;
+}
+
+export interface GeneratePlanFromTextResponse {
+    preview?: DraftPlan;
+    matchedCount?: number;      // Number of auto-matched exercises
+    unresolvedCount?: number;   // Number requiring user resolution
+    cost?: { totalCost: number };
+    isFromCache?: boolean;
+    error?: string;
+    errorCode?: GeneratePlanErrorCode;
+}
+
+// Create plan from text (commit)
+export interface CreatePlanFromTextRequest {
+    planName: string;
+    durationWeeks: number;
+    draft: DraftPlan;
+}
+
+export interface CreatePlanFromTextResponse {
+    plan?: TrainingPlanClient;
+    createdExerciseCount?: number;
+    createdPlanWorkoutsCount?: number;
+    error?: string;
+    errorCode?: GeneratePlanErrorCode;
+}
+
 

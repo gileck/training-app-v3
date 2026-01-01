@@ -8,6 +8,8 @@ import {
     API_DELETE_PLAN,
     API_SET_ACTIVE_PLAN,
     API_DUPLICATE_PLAN,
+    API_GENERATE_PLAN_FROM_TEXT,
+    API_CREATE_PLAN_FROM_TEXT,
 } from './index';
 import {
     ListPlansRequest,
@@ -24,6 +26,10 @@ import {
     SetActivePlanResponse,
     DuplicatePlanRequest,
     DuplicatePlanResponse,
+    GeneratePlanFromTextRequest,
+    GeneratePlanFromTextResponse,
+    CreatePlanFromTextRequest,
+    CreatePlanFromTextResponse,
 } from './types';
 
 /**
@@ -87,6 +93,24 @@ export const setActivePlan = async (
     params: SetActivePlanRequest
 ): Promise<CacheResult<SetActivePlanResponse>> => {
     return apiClient.post(API_SET_ACTIVE_PLAN, params);
+};
+
+/**
+ * Generate a training plan preview from free-form text using AI
+ */
+export const generatePlanFromText = async (
+    params: GeneratePlanFromTextRequest
+): Promise<CacheResult<GeneratePlanFromTextResponse>> => {
+    return apiClient.post(API_GENERATE_PLAN_FROM_TEXT, params);
+};
+
+/**
+ * Create a training plan from a previewed draft (commits the plan)
+ */
+export const createPlanFromText = async (
+    params: CreatePlanFromTextRequest
+): Promise<CacheResult<CreatePlanFromTextResponse>> => {
+    return apiClient.post(API_CREATE_PLAN_FROM_TEXT, params);
 };
 
 

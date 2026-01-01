@@ -10,6 +10,8 @@ import {
     API_DELETE_PLAN,
     API_SET_ACTIVE_PLAN,
     API_DUPLICATE_PLAN,
+    API_GENERATE_PLAN_FROM_TEXT,
+    API_CREATE_PLAN_FROM_TEXT,
 } from './index';
 
 // Import handlers
@@ -20,6 +22,8 @@ import { updatePlan } from './handlers/updatePlan';
 import { deletePlan } from './handlers/deletePlan';
 import { setActivePlan } from './handlers/setActivePlan';
 import { duplicatePlan } from './handlers/duplicatePlan';
+import { generatePlanFromText } from './handlers/generatePlanFromText';
+import { createPlanFromText } from './handlers/createPlanFromText';
 
 // Export consolidated handlers object
 export const trainingPlansApiHandlers = {
@@ -30,6 +34,8 @@ export const trainingPlansApiHandlers = {
     [API_DELETE_PLAN]: { process: deletePlan },
     [API_SET_ACTIVE_PLAN]: { process: setActivePlan },
     [API_DUPLICATE_PLAN]: { process: duplicatePlan },
+    [API_GENERATE_PLAN_FROM_TEXT]: { process: generatePlanFromText },
+    [API_CREATE_PLAN_FROM_TEXT]: { process: createPlanFromText },
 };
 
 

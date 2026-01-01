@@ -13,11 +13,12 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles } from 'lucide-react';
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan, useDuplicatePlan } from './hooks';
 import { useWorkoutStore } from '@/client/features/workout';
 import { useTrainingPlansStore } from './store';
 import { ManagePlan } from '../ManagePlan';
+import { CreatePlanWithAiDialog } from './components';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
 export function TrainingPlans() {
@@ -39,6 +40,8 @@ export function TrainingPlans() {
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [aiDialogOpen, setAiDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
     const [newPlanName, setNewPlanName] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
@@ -147,6 +150,20 @@ export function TrainingPlans() {
 
     const handleDuplicatePlan = (plan: TrainingPlanClient) => {
         duplicatePlanMutation.mutate({ planId: plan._id });
+    };
+
+    const handleAiPlanSuccess = (planId: string) => {
+        // If this is the first plan, set it as active in store
+        if (plans.length === 0) {
+            setActivePlan(planId);
+        }
+        // Auto-select the new plan to show it in ManagePlan
+        setSelectedPlanId(planId);
+    };
+
+    const handleOpenAiDialog = () => {
+        setCreateDialogOpen(false);
+        setAiDialogOpen(true);
     };
 
     // Loading state - show skeleton when loading without cached data
@@ -353,21 +370,30 @@ export function TrainingPlans() {
                             </div>
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
                         <Button
-                            variant="outline"
-                            onClick={() => setCreateDialogOpen(false)}
-                            className="rounded-lg"
+                            onClick={handleOpenAiDialog}
+                            className="rounded-lg w-full sm:w-auto bg-primary hover:bg-primary/90"
                         >
-                            Cancel
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Create with AI
                         </Button>
-                        <Button
-                            onClick={handleCreatePlan}
-                            disabled={!newPlanName.trim() || createPlanMutation.isPending}
-                            className="rounded-lg"
-                        >
-                            {createPlanMutation.isPending ? 'Creating...' : 'Create'}
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCreateDialogOpen(false)}
+                                className="rounded-lg flex-1 sm:flex-none"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleCreatePlan}
+                                disabled={!newPlanName.trim() || createPlanMutation.isPending}
+                                className="rounded-lg flex-1 sm:flex-none"
+                            >
+                                {createPlanMutation.isPending ? 'Creating...' : 'Create Empty'}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -469,6 +495,14 @@ export function TrainingPlans() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Create Plan with AI Dialog */}
+            <CreatePlanWithAiDialog
+                open={aiDialogOpen}
+                onOpenChange={setAiDialogOpen}
+                onSuccess={handleAiPlanSuccess}
+                existingPlansCount={plans.length}
+            />
         </div>
     );
 }

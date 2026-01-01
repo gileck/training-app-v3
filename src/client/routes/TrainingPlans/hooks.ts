@@ -34,6 +34,8 @@ import {
     deletePlan,
     setActivePlan,
     duplicatePlan,
+    generatePlanFromText,
+    createPlanFromText,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
 import type {
@@ -43,6 +45,10 @@ import type {
     DeletePlanRequest,
     SetActivePlanRequest,
     DuplicatePlanRequest,
+    GeneratePlanFromTextRequest,
+    GeneratePlanFromTextResponse,
+    CreatePlanFromTextRequest,
+    CreatePlanFromTextResponse,
 } from '@/apis/training-plans/types';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
@@ -366,3 +372,99 @@ export function useDuplicatePlan() {
     });
 }
 
+// ============================================================================
+// AI Plan Generation Hooks
+// ============================================================================
+
+/**
+ * Hook for generating a training plan preview from text using AI
+ * 
+ * This is NOT an optimistic mutation - it fetches a preview from the server.
+ * The preview is transient and not cached in React Query.
+ */
+export function useGeneratePlanFromText() {
+    return useMutation({
+        mutationFn: async (data: GeneratePlanFromTextRequest): Promise<GeneratePlanFromTextResponse> => {
+            const response = await generatePlanFromText(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+    });
+}
+
+/**
+ * Hook for creating a training plan from an AI-generated draft
+ * 
+ * EXCEPTION to optimistic-only pattern:
+ * This operation creates multiple entities (plan + exercises + workouts) and 
+ * navigates to the new plan using the server-generated ID. We MUST replace
+ * the temp ID with the real ID to avoid ObjectId errors.
+ */
+export function useCreatePlanFromText() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: CreatePlanFromTextRequest): Promise<CreatePlanFromTextResponse> => {
+            const response = await createPlanFromText(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        // OPTIMISTIC UPDATE: Add plan to list immediately for instant feedback
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: plansQueryKey });
+            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
+
+            // Create optimistic plan with temporary ID
+            const tempId = `temp-${Date.now()}`;
+            const optimisticPlan: TrainingPlanClient = {
+                _id: tempId,
+                userId: '',
+                name: variables.planName,
+                durationWeeks: variables.durationWeeks,
+                isActive: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+
+            queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                if (!old?.plans) return { plans: [optimisticPlan] };
+                return { plans: [...old.plans, optimisticPlan] };
+            });
+
+            return { previousPlans, tempId };
+        },
+        // On success: Replace temp plan with real plan (needed for valid ObjectId)
+        onSuccess: (data, _variables, context) => {
+            if (data.plan && context?.tempId) {
+                queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                    if (!old?.plans) return old;
+                    return {
+                        plans: old.plans.map((plan) =>
+                            plan._id === context.tempId
+                                ? {
+                                      _id: data.plan!._id,
+                                      userId: data.plan!.userId,
+                                      name: data.plan!.name,
+                                      durationWeeks: data.plan!.durationWeeks,
+                                      isActive: data.plan!.isActive,
+                                      createdAt: data.plan!.createdAt,
+                                      updatedAt: data.plan!.updatedAt,
+                                  }
+                                : plan
+                        ),
+                    };
+                });
+            }
+        },
+        // On error: rollback to previous state
+        onError: (_err, _variables, context) => {
+            if (context?.previousPlans) {
+                queryClient.setQueryData(plansQueryKey, context.previousPlans);
+            }
+        },
+    });
+}
