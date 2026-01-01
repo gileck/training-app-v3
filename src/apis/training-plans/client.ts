@@ -10,6 +10,8 @@ import {
     API_DUPLICATE_PLAN,
     API_GENERATE_PLAN_FROM_TEXT,
     API_CREATE_PLAN_FROM_TEXT,
+    API_EXPORT_PLAN,
+    API_MATCH_IMPORTED_PLAN,
 } from './index';
 import {
     ListPlansRequest,
@@ -30,6 +32,10 @@ import {
     GeneratePlanFromTextResponse,
     CreatePlanFromTextRequest,
     CreatePlanFromTextResponse,
+    ExportPlanRequest,
+    ExportPlanResponse,
+    MatchImportedPlanRequest,
+    MatchImportedPlanResponse,
 } from './types';
 
 /**
@@ -113,4 +119,22 @@ export const createPlanFromText = async (
     return apiClient.post(API_CREATE_PLAN_FROM_TEXT, params);
 };
 
+/**
+ * Export a training plan to JSON format
+ */
+export const exportPlan = async (
+    params: ExportPlanRequest
+): Promise<CacheResult<ExportPlanResponse>> => {
+    return apiClient.call(API_EXPORT_PLAN, params);
+};
+
+/**
+ * Match imported plan exercises against the user's exercise library
+ * Returns a DraftPlan with matched/unresolved exercises
+ */
+export const matchImportedPlan = async (
+    params: MatchImportedPlanRequest
+): Promise<CacheResult<MatchImportedPlanResponse>> => {
+    return apiClient.post(API_MATCH_IMPORTED_PLAN, params);
+};
 

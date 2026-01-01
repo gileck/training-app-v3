@@ -174,4 +174,63 @@ export interface CreatePlanFromTextResponse {
     errorCode?: GeneratePlanErrorCode;
 }
 
+// ============================================================================
+// Plan Export/Import Types
+// ============================================================================
+
+// Error codes for export/import operations
+export type PlanExportImportErrorCode =
+    | 'PLAN_NOT_FOUND'
+    | 'UNAUTHORIZED'
+    | 'VALIDATION'
+    | 'SERVER_ERROR';
+
+// Exercise in export format (extends AI format with exerciseDefId)
+export interface ExportExercise {
+    name: string;
+    exerciseDefId?: string;  // For fast matching on import
+    sets?: number;
+    reps?: number;
+    durationSeconds?: number;
+    weightKg?: number;
+    notes?: string;
+}
+
+// Workout in export format
+export interface ExportWorkout {
+    name: string;
+    exercises: ExportExercise[];
+}
+
+// Complete export data structure
+export interface PlanExportData {
+    version: string;         // "1.0"
+    planName: string;
+    durationWeeks: number;
+    workouts: ExportWorkout[];
+}
+
+// Export plan request/response
+export interface ExportPlanRequest {
+    planId: string;
+}
+
+export interface ExportPlanResponse {
+    exportData?: PlanExportData;
+    error?: string;
+    errorCode?: PlanExportImportErrorCode;
+}
+
+// Match imported plan request/response
+export interface MatchImportedPlanRequest {
+    importData: PlanExportData;
+}
+
+export interface MatchImportedPlanResponse {
+    preview?: DraftPlan;
+    matchedCount?: number;
+    unresolvedCount?: number;
+    error?: string;
+    errorCode?: PlanExportImportErrorCode | GeneratePlanErrorCode;
+}
 

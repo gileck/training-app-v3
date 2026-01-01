@@ -11,5 +11,6 @@ export const API_SET_ACTIVE_PLAN = 'training-plans/set-active';
 export const API_DUPLICATE_PLAN = 'training-plans/duplicate';
 export const API_GENERATE_PLAN_FROM_TEXT = 'training-plans/generate-from-text';
 export const API_CREATE_PLAN_FROM_TEXT = 'training-plans/create-from-text';
-
+export const API_EXPORT_PLAN = 'training-plans/export';
+export const API_MATCH_IMPORTED_PLAN = 'training-plans/match-imported';
 

@@ -12,6 +12,8 @@ import {
     API_DUPLICATE_PLAN,
     API_GENERATE_PLAN_FROM_TEXT,
     API_CREATE_PLAN_FROM_TEXT,
+    API_EXPORT_PLAN,
+    API_MATCH_IMPORTED_PLAN,
 } from './index';
 
 // Import handlers
@@ -24,6 +26,8 @@ import { setActivePlan } from './handlers/setActivePlan';
 import { duplicatePlan } from './handlers/duplicatePlan';
 import { generatePlanFromText } from './handlers/generatePlanFromText';
 import { createPlanFromText } from './handlers/createPlanFromText';
+import { exportPlan } from './handlers/exportPlan';
+import { matchImportedPlan } from './handlers/matchImportedPlan';
 
 // Export consolidated handlers object
 export const trainingPlansApiHandlers = {
@@ -36,6 +40,8 @@ export const trainingPlansApiHandlers = {
     [API_DUPLICATE_PLAN]: { process: duplicatePlan },
     [API_GENERATE_PLAN_FROM_TEXT]: { process: generatePlanFromText },
     [API_CREATE_PLAN_FROM_TEXT]: { process: createPlanFromText },
+    [API_EXPORT_PLAN]: { process: exportPlan },
+    [API_MATCH_IMPORTED_PLAN]: { process: matchImportedPlan },
 };
 
 
