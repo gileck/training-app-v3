@@ -249,7 +249,6 @@ export function BugReportDialog() {
                         {screenshot ? (
                             <div className="relative rounded-md border p-2">
                                 <div className="flex items-center gap-2">
-                                    {/* eslint-disable-next-line @next/next/no-img-element -- base64 user-uploaded screenshot */}
                                     <img 
                                         src={screenshot} 
                                         alt="Screenshot preview" 

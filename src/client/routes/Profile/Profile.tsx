@@ -224,7 +224,6 @@ export const Profile = () => {
                             <div className="relative">
                                 <div className="flex h-28 w-28 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground">
                                     {previewImage ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={previewImage} alt="avatar" className="h-28 w-28 rounded-full object-cover" />
                                     ) : (
                                         username.charAt(0).toUpperCase()

@@ -389,7 +389,6 @@ END OF REPORT
                         {report.screenshot && (
                             <div>
                                 <h4 className="mb-2 text-sm font-medium">Screenshot</h4>
-                                {/* eslint-disable-next-line @next/next/no-img-element -- base64 user-uploaded screenshot */}
                                 <img
                                     src={report.screenshot}
                                     alt="Bug screenshot"

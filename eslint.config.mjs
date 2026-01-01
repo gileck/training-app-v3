@@ -50,6 +50,8 @@ const eslintConfig = [
     rules: {
       "restrict-api-routes/no-direct-api-routes": "error",
       "react-hooks/exhaustive-deps": "off",
+      // Allow <img> - we use base64 data URLs for user uploads where next/image doesn't help
+      "@next/next/no-img-element": "off",
       // Allow unused vars that start with underscore (common convention)
       "@typescript-eslint/no-unused-vars": ["error", {
         "argsIgnorePattern": "^_",
