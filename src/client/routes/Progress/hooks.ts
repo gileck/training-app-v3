@@ -1,3 +1,27 @@
+/**
+ * Progress route hooks
+ * 
+ * ============================================================================
+ * OPTIMISTIC-ONLY UI PATTERN (CRITICAL - READ CAREFULLY)
+ * ============================================================================
+ * 
+ * All mutations use OPTIMISTIC UPDATES for instant UI feedback.
+ * 
+ * **RULE: NEVER update UI from server responses on SUCCESS.**
+ * 
+ * Why? Race conditions:
+ *   1. User creates activity → UI shows new activity (optimistic)
+ *   2. User deletes it quickly → UI removes activity (optimistic)
+ *   3. Server response for create arrives → UI would re-add deleted item (WRONG!)
+ * 
+ * Solution:
+ *   - `onMutate`: Update UI immediately (this IS the source of truth)
+ *   - `onSuccess`: Do NOT call invalidateQueries or setQueryData
+ *   - `onError`: ONLY on error - rollback to previous state
+ *   - `onSettled`: Only invalidate summary (aggregations can't be optimistic)
+ * ============================================================================
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
 import {
@@ -19,6 +43,7 @@ import type {
     AddActivityRequest,
     ActivityLogEntry,
 } from '@/apis/activity-logs/types';
+import { generateId } from '@/client/utils/generateId';
 
 // ============================================================================
 // Query Keys
@@ -92,7 +117,11 @@ export function useActivitySummary(options?: {
 /**
  * Hook for deleting an activity record
  * 
- * Uses OPTIMISTIC-ONLY pattern for instant UI feedback.
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI removes item immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
+ * - Summary invalidation kept (aggregations can't be optimistic)
  */
 export function useDeleteActivity() {
     const queryClient = useQueryClient();
@@ -105,16 +134,12 @@ export function useDeleteActivity() {
             }
             return response.data?.success;
         },
-        // OPTIMISTIC UPDATE: Remove activity immediately
+        // OPTIMISTIC UPDATE: Remove activity immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
-            // Invalidate all activity-related queries
             await queryClient.cancelQueries({ queryKey: ['activity'] });
-            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
 
-            // Store previous data for rollback
             const previousQueries = queryClient.getQueriesData({ queryKey: ['activity'] });
 
-            // Optimistically update all activity queries
             queryClient.setQueriesData<GetActivityResponse>(
                 { queryKey: ['activity'] },
                 (old) => {
@@ -136,7 +161,7 @@ export function useDeleteActivity() {
                 });
             }
         },
-        // Invalidate summary queries on success since we can't optimistically update aggregations
+        // Summary needs refresh (aggregations can't be optimistic)
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
         },
@@ -146,7 +171,11 @@ export function useDeleteActivity() {
 /**
  * Hook for bulk deleting activity records
  *
- * Uses OPTIMISTIC-ONLY pattern for instant UI feedback.
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI removes items immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
+ * - Summary invalidation kept (aggregations can't be optimistic)
  */
 export function useBulkDeleteActivity() {
     const queryClient = useQueryClient();
@@ -159,10 +188,9 @@ export function useBulkDeleteActivity() {
             }
             return response.data?.deletedCount;
         },
-        // OPTIMISTIC UPDATE: Remove activities immediately
+        // OPTIMISTIC UPDATE: Remove activities immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: ['activity'] });
-            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
 
             const previousQueries = queryClient.getQueriesData({ queryKey: ['activity'] });
 
@@ -180,6 +208,7 @@ export function useBulkDeleteActivity() {
 
             return { previousQueries };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousQueries) {
                 context.previousQueries.forEach(([queryKey, data]) => {
@@ -187,6 +216,7 @@ export function useBulkDeleteActivity() {
                 });
             }
         },
+        // Summary needs refresh (aggregations can't be optimistic)
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
         },
@@ -196,7 +226,10 @@ export function useBulkDeleteActivity() {
 /**
  * Hook for editing an activity's date
  *
- * Uses OPTIMISTIC-ONLY pattern for instant UI feedback.
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates item immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
  */
 export function useEditActivity() {
     const queryClient = useQueryClient();
@@ -209,10 +242,9 @@ export function useEditActivity() {
             }
             return response.data?.success;
         },
-        // OPTIMISTIC UPDATE: Update activity date immediately
+        // OPTIMISTIC UPDATE: Update activity date immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: ['activity'] });
-            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
 
             const previousQueries = queryClient.getQueriesData({ queryKey: ['activity'] });
 
@@ -233,6 +265,7 @@ export function useEditActivity() {
 
             return { previousQueries };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousQueries) {
                 context.previousQueries.forEach(([queryKey, data]) => {
@@ -240,9 +273,8 @@ export function useEditActivity() {
                 });
             }
         },
+        // Summary needs refresh (date changes affect aggregations)
         onSettled: () => {
-            // Refetch to get proper sorted order and update summaries
-            queryClient.invalidateQueries({ queryKey: ['activity'] });
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
         },
     });
@@ -251,23 +283,27 @@ export function useEditActivity() {
 /**
  * Hook for duplicating an activity
  *
- * Uses OPTIMISTIC-ONLY pattern with refetch for proper data.
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUID:
+ * - Client generates stable UUID that server persists
+ * - UI updates immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
+ * - Idempotent: retries with same ID won't create duplicates
  */
 export function useDuplicateActivity() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: DuplicateActivityRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: DuplicateActivityRequest & { _id: string }) => {
             const response = await duplicateActivity(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data?.activity;
         },
-        // OPTIMISTIC UPDATE: Add duplicated activity immediately
-        onMutate: async (variables) => {
+        // OPTIMISTIC UPDATE: Add duplicated activity immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables: DuplicateActivityRequest & { _id: string }) => {
             await queryClient.cancelQueries({ queryKey: ['activity'] });
-            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
 
             const previousQueries = queryClient.getQueriesData<GetActivityResponse>({ queryKey: ['activity'] });
 
@@ -281,10 +317,9 @@ export function useDuplicateActivity() {
             });
 
             if (originalActivity) {
-                const tempId = `temp-${Date.now()}`;
                 const duplicatedActivity: ActivityLogEntry = {
                     ...originalActivity,
-                    _id: tempId,
+                    _id: variables._id,
                     // Use provided date, or fall back to original activity's date (not today's date)
                     completedAt: variables.completedAt || originalActivity.completedAt,
                 };
@@ -303,6 +338,7 @@ export function useDuplicateActivity() {
 
             return { previousQueries };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousQueries) {
                 context.previousQueries.forEach(([queryKey, data]) => {
@@ -310,42 +346,56 @@ export function useDuplicateActivity() {
                 });
             }
         },
+        // Summary needs refresh (new activity affects aggregations)
         onSettled: () => {
-            // Refetch to get real ID and proper sorted order
-            queryClient.invalidateQueries({ queryKey: ['activity'] });
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
         },
     });
+
+    // Wrap mutate to inject client-generated ID
+    return {
+        ...mutation,
+        mutate: (data: DuplicateActivityRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            return mutation.mutate({ ...data, _id: generateId() }, options);
+        },
+        mutateAsync: async (data: DuplicateActivityRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            return mutation.mutateAsync({ ...data, _id: generateId() }, options);
+        },
+    };
 }
 
 /**
  * Hook for adding new activities (creating set logs)
  *
- * Uses OPTIMISTIC-ONLY pattern with refetch for proper data.
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUIDs:
+ * - Client generates stable UUIDs for each set that server persists
+ * - UI updates immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
+ * - Idempotent: retries with same IDs won't create duplicates
  */
 export function useAddActivity() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: AddActivityRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: AddActivityRequest & { activityIds: string[] }) => {
             const response = await addActivity(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data?.activities;
         },
-        // OPTIMISTIC UPDATE: Add activities immediately with temp IDs
-        onMutate: async (variables) => {
+        // OPTIMISTIC UPDATE: Add activities immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables: AddActivityRequest & { activityIds: string[] }) => {
             await queryClient.cancelQueries({ queryKey: ['activity'] });
-            await queryClient.cancelQueries({ queryKey: ['activity-summary'] });
 
             const previousQueries = queryClient.getQueriesData<GetActivityResponse>({ queryKey: ['activity'] });
 
-            // Create temp activities
-            const tempActivities: ActivityLogEntry[] = [];
+            // Create activities with client-generated UUIDs
+            const newActivities: ActivityLogEntry[] = [];
             for (let i = 0; i < variables.numberOfSets; i++) {
-                tempActivities.push({
-                    _id: `temp-${Date.now()}-${i}`,
+                newActivities.push({
+                    _id: variables.activityIds[i],
                     userId: '',
                     planExerciseId: variables.planExerciseId,
                     planId: '',
@@ -365,13 +415,14 @@ export function useAddActivity() {
                     if (!old?.activities) return old;
                     return {
                         ...old,
-                        activities: [...tempActivities, ...old.activities],
+                        activities: [...newActivities, ...old.activities],
                     };
                 }
             );
 
             return { previousQueries };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousQueries) {
                 context.previousQueries.forEach(([queryKey, data]) => {
@@ -379,10 +430,22 @@ export function useAddActivity() {
                 });
             }
         },
+        // Summary needs refresh (new activities affect aggregations)
         onSettled: () => {
-            // Refetch to get real data
-            queryClient.invalidateQueries({ queryKey: ['activity'] });
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
         },
     });
+
+    // Wrap mutate to inject client-generated IDs
+    return {
+        ...mutation,
+        mutate: (data: AddActivityRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            const activityIds = Array.from({ length: data.numberOfSets }, () => generateId());
+            return mutation.mutate({ ...data, activityIds }, options);
+        },
+        mutateAsync: async (data: AddActivityRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            const activityIds = Array.from({ length: data.numberOfSets }, () => generateId());
+            return mutation.mutateAsync({ ...data, activityIds }, options);
+        },
+    };
 }

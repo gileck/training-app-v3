@@ -1,6 +1,7 @@
 import { ApiHandlerContext, CreatePlanRequest, CreatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { ObjectId } from 'mongodb';
+import { toStringId } from '@/server/database/utils';
 
 export const createPlan = async (
     request: CreatePlanRequest,
@@ -30,6 +31,7 @@ export const createPlan = async (
         const isFirstPlan = existingPlans.length === 0;
 
         const planData = {
+            _id: request._id, // Pass client-generated ID if provided
             userId: new ObjectId(context.userId),
             name: request.name.trim(),
             durationWeeks: request.durationWeeks,
@@ -40,10 +42,10 @@ export const createPlan = async (
 
         const newPlan = await trainingPlans.createPlan(planData);
 
-        // Convert to client format
+        // Convert to client format (handle both ObjectId and UUID string)
         const planClient = {
-            _id: newPlan._id.toHexString(),
-            userId: newPlan.userId.toHexString(),
+            _id: toStringId(newPlan._id),
+            userId: toStringId(newPlan.userId),
             name: newPlan.name,
             durationWeeks: newPlan.durationWeeks,
             isActive: newPlan.isActive,
@@ -57,5 +59,3 @@ export const createPlan = async (
         return { error: error instanceof Error ? error.message : 'Failed to create plan' };
     }
 };
-
-

@@ -47,7 +47,7 @@ import type {
     ListPlanExercisesResponse,
     AddPlanExerciseRequest,
     BulkAddPlanExercisesRequest,
-    BulkAddPlanExercisesResponse,
+    BulkAddExerciseItem,
     UpdatePlanExerciseRequest,
     DeletePlanExerciseRequest,
     ReorderPlanExercisesRequest,
@@ -59,7 +59,7 @@ import type {
     UpdateExerciseRequest,
     DeleteExerciseRequest,
 } from '@/apis/exercise-definitions/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import { generateId } from '@/client/utils/generateId';
 
 // ============================================================================
 // Query Keys
@@ -140,16 +140,18 @@ export function useExerciseLibrary(options?: { enabled?: boolean }) {
 /**
  * Hook for adding an exercise to a plan
  * 
- * Uses OPTIMISTIC-ONLY pattern:
- * - UI adds item immediately with temp ID in onMutate
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUID:
+ * - Client generates stable UUID that server persists
+ * - UI updates immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
+ * - Idempotent: retries with same ID won't create duplicates
  */
 export function useAddPlanExercise() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: AddPlanExerciseRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: AddPlanExerciseRequest & { _id: string }) => {
             const response = await addPlanExercise(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
@@ -157,7 +159,7 @@ export function useAddPlanExercise() {
             return response.data?.exercise;
         },
         // OPTIMISTIC UPDATE: Add exercise immediately - THIS IS THE SOURCE OF TRUTH
-        onMutate: async (variables) => {
+        onMutate: async (variables: AddPlanExerciseRequest & { _id: string }) => {
             await queryClient.cancelQueries({ queryKey: planExercisesQueryKey(variables.planId) });
             const previous = queryClient.getQueryData<ListPlanExercisesResponse>(
                 planExercisesQueryKey(variables.planId)
@@ -172,9 +174,9 @@ export function useAddPlanExercise() {
             );
 
             if (exerciseDef) {
-                // Create optimistic plan exercise with temporary ID
+                // Create optimistic plan exercise with client-generated UUID
                 const optimisticExercise: PlanExerciseWithDefinition = {
-                    _id: `temp-${Date.now()}`,
+                    _id: variables._id,
                     planId: variables.planId,
                     exerciseDefId: variables.exerciseDefId,
                     sets: variables.sets,
@@ -208,29 +210,42 @@ export function useAddPlanExercise() {
         // onSuccess: intentionally empty - NEVER update UI from server response
         // onSettled: intentionally empty - NEVER refetch after mutation
     });
+
+    // Wrap mutate to inject client-generated ID
+    return {
+        ...mutation,
+        mutate: (data: AddPlanExerciseRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            return mutation.mutate({ ...data, _id: generateId() }, options);
+        },
+        mutateAsync: async (data: AddPlanExerciseRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            return mutation.mutateAsync({ ...data, _id: generateId() }, options);
+        },
+    };
 }
 
 /**
  * Hook for bulk adding exercises to a plan
  * 
- * Uses OPTIMISTIC pattern:
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUIDs:
+ * - IDs are generated internally for each exercise
  * - UI adds all exercises immediately in onMutate
- * - Server response updates with real IDs on success
+ * - Server response is IGNORED on success (prevents race conditions)
  * - On error, rollback to previous state
+ * - Idempotent: retries with same IDs won't create duplicates
  */
 export function useBulkAddPlanExercises() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: BulkAddPlanExercisesRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: BulkAddPlanExercisesRequest & { exercises: (BulkAddExerciseItem & { _id: string })[] }) => {
             const response = await bulkAddPlanExercises(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
-            return response.data as BulkAddPlanExercisesResponse;
+            return response.data;
         },
-        // OPTIMISTIC UPDATE: Add all exercises immediately
-        onMutate: async (variables) => {
+        // OPTIMISTIC UPDATE: Add all exercises immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables: BulkAddPlanExercisesRequest & { exercises: (BulkAddExerciseItem & { _id: string })[] }) => {
             await queryClient.cancelQueries({ queryKey: planExercisesQueryKey(variables.planId) });
             const previous = queryClient.getQueryData<ListPlanExercisesResponse>(
                 planExercisesQueryKey(variables.planId)
@@ -247,9 +262,9 @@ export function useBulkAddPlanExercises() {
                     (ex) => ex._id === item.exerciseDefId
                 );
 
-                if (exerciseDef) {
+                if (exerciseDef && item._id) {
                     optimisticExercises.push({
-                        _id: `temp-${Date.now()}-${index}`,
+                        _id: item._id,
                         planId: variables.planId,
                         exerciseDefId: item.exerciseDefId,
                         sets: item.sets,
@@ -273,37 +288,36 @@ export function useBulkAddPlanExercises() {
                 }
             );
 
-            return { previous, optimisticExercises };
+            return { previous };
         },
-        // On success: replace temp entries with real server data
-        onSuccess: (response, variables, context) => {
-            if (response?.results && response.results.length > 0 && context?.optimisticExercises) {
-                queryClient.setQueryData<ListPlanExercisesResponse>(
-                    planExercisesQueryKey(variables.planId),
-                    (old) => {
-                        if (!old?.exercises) return old;
-                        
-                        // Remove temp entries and add server entries
-                        const nonTempExercises = old.exercises.filter(
-                            (ex) => !ex._id.startsWith('temp-')
-                        );
-                        
-                        const serverExercises = response.results!
-                            .filter((r) => r.exercise)
-                            .map((r) => r.exercise!);
-                        
-                        return { exercises: [...nonTempExercises, ...serverExercises] };
-                    }
-                );
-            }
-        },
-        // On error: rollback to previous state
+        // ONLY on error: rollback to previous state
         onError: (_err, variables, context) => {
             if (context?.previous) {
                 queryClient.setQueryData(planExercisesQueryKey(variables.planId), context.previous);
             }
         },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
+
+    // Wrap mutate to inject client-generated IDs for each exercise
+    return {
+        ...mutation,
+        mutate: (data: BulkAddPlanExercisesRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            const dataWithIds = {
+                ...data,
+                exercises: data.exercises.map((ex) => ({ ...ex, _id: generateId() })),
+            };
+            return mutation.mutate(dataWithIds, options);
+        },
+        mutateAsync: async (data: BulkAddPlanExercisesRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            const dataWithIds = {
+                ...data,
+                exercises: data.exercises.map((ex) => ({ ...ex, _id: generateId() })),
+            };
+            return mutation.mutateAsync(dataWithIds, options);
+        },
+    };
 }
 
 /**
@@ -472,10 +486,9 @@ export function useReorderPlanExercises(planId: string) {
 /**
  * Hook for creating a custom exercise
  * 
- * Uses OPTIMISTIC pattern with server ID replacement:
- * - UI adds exercise to library immediately in onMutate (with temp ID)
- * - On success, replace temp ID with real server ID (needed for adding to plan)
- * - Only on ERROR do we rollback to previous state
+ * NON-OPTIMISTIC pattern:
+ * Exercise creation may include image blob upload - server processes and stores.
+ * Component shows loading state via isPending.
  */
 export function useCreateExercise() {
     const queryClient = useQueryClient();
@@ -488,53 +501,13 @@ export function useCreateExercise() {
             }
             return response.data?.exercise;
         },
-        // OPTIMISTIC UPDATE: Add exercise immediately
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: exercisesQueryKey });
-            const previous = queryClient.getQueryData<ListExercisesResponse>(exercisesQueryKey);
-
-            // Create optimistic exercise with temp ID
-            const tempId = `temp-${Date.now()}`;
-            const optimisticExercise: ExerciseDefinitionClient = {
-                _id: tempId,
-                name: variables.name,
-                imageUrl: '', // Will be set by server if image is uploaded
-                primaryMuscle: variables.primaryMuscle,
-                secondaryMuscles: variables.secondaryMuscles || [],
-                type: variables.type || 'Strength',
-                isBodyweight: variables.isBodyweight || false,
-                isStatic: variables.isStatic || false,
-                isSystem: false,
-                userId: '', // Will be set by server
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
+        // On success: insert the returned exercise into cache
+        onSuccess: (serverExercise) => {
+            if (!serverExercise) return; // Guard for offline
             queryClient.setQueryData<ListExercisesResponse>(exercisesQueryKey, (old) => {
-                if (!old?.exercises) return { exercises: [optimisticExercise] };
-                return { exercises: [...old.exercises, optimisticExercise] };
+                if (!old?.exercises) return { exercises: [serverExercise] };
+                return { exercises: [...old.exercises, serverExercise] };
             });
-
-            return { previous, optimisticExercise, tempId };
-        },
-        // On success: replace temp entry with real server data (needed for valid ID)
-        onSuccess: (serverExercise, _variables, context) => {
-            if (serverExercise && context?.tempId) {
-                queryClient.setQueryData<ListExercisesResponse>(exercisesQueryKey, (old) => {
-                    if (!old?.exercises) return old;
-                    return {
-                        exercises: old.exercises.map((ex) =>
-                            ex._id === context.tempId ? serverExercise : ex
-                        ),
-                    };
-                });
-            }
-        },
-        // On error: rollback to previous state
-        onError: (_err, _variables, context) => {
-            if (context?.previous) {
-                queryClient.setQueryData(exercisesQueryKey, context.previous);
-            }
         },
     });
 }

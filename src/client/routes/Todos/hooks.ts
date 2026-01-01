@@ -4,6 +4,26 @@
  * These hooks are SIMPLE - no cache config here.
  * - Cache config lives in `src/client/query/defaults.ts`
  * - Offline handling is abstracted at the apiClient level
+ * 
+ * ============================================================================
+ * OPTIMISTIC-ONLY UI PATTERN (CRITICAL - READ CAREFULLY)
+ * ============================================================================
+ * 
+ * All mutations use OPTIMISTIC UPDATES for instant UI feedback.
+ * 
+ * **RULE: NEVER update UI from server responses on SUCCESS.**
+ * 
+ * Why? Race conditions:
+ *   1. User creates todo → UI shows new todo (optimistic)
+ *   2. User deletes it quickly → UI removes todo (optimistic)
+ *   3. Server response for create arrives → UI would re-add deleted todo (WRONG!)
+ * 
+ * Solution:
+ *   - `onMutate`: Update UI immediately (this IS the source of truth)
+ *   - `onSuccess`: Do NOT call invalidateQueries or setQueryData
+ *   - `onError`: ONLY on error - rollback to previous state
+ *   - `onSettled`: NEVER refetch - optimistic state is already correct
+ * ============================================================================
  */
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -17,6 +37,7 @@ import type {
     DeleteTodoRequest,
 } from '@/apis/todos/types';
 import type { TodoItemClient } from '@/server/database/collections/todos/types';
+import { generateId } from '@/client/utils/generateId';
 
 // ============================================================================
 // Query Keys
@@ -87,28 +108,36 @@ export function useInvalidateTodos() {
 
 /**
  * Hook for creating a new todo
+ * 
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUID:
+ * - Client generates stable UUID that server persists
+ * - UI updates immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
+ * - Idempotent: retries with same ID won't create duplicates
  */
 export function useCreateTodo() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: CreateTodoRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: CreateTodoRequest & { _id: string }) => {
             const response = await createTodo(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data?.todo;
         },
-        onMutate: async (variables) => {
+        // OPTIMISTIC UPDATE: Add todo immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables: CreateTodoRequest & { _id: string }) => {
             await queryClient.cancelQueries({ queryKey: todosQueryKey });
             const previousTodos = queryClient.getQueryData<GetTodosResponse>(todosQueryKey);
 
-            // Optimistic update
+            // Create optimistic todo with client-generated UUID
             const optimisticTodo: TodoItemClient = {
-                _id: `temp-${Date.now()}`,
+                _id: variables._id,
                 title: variables.title,
                 completed: false,
-                userId: 'temp',
+                userId: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
@@ -120,26 +149,35 @@ export function useCreateTodo() {
 
             return { previousTodos };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousTodos) {
                 queryClient.setQueryData(todosQueryKey, context.previousTodos);
             }
         },
-        // Guard against empty data (offline mode returns {})
-        onSuccess: (newTodo) => {
-            if (newTodo) {
-                queryClient.setQueryData<GetTodosResponse>(todosQueryKey, (old) => {
-                    if (!old?.todos) return { todos: [newTodo] };
-                    const filtered = old.todos.filter(t => !t._id.startsWith('temp-'));
-                    return { todos: [...filtered, newTodo] };
-                });
-            }
-        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
+
+    // Wrap mutate to inject client-generated ID
+    return {
+        ...mutation,
+        mutate: (data: CreateTodoRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            return mutation.mutate({ ...data, _id: generateId() }, options);
+        },
+        mutateAsync: async (data: CreateTodoRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            return mutation.mutateAsync({ ...data, _id: generateId() }, options);
+        },
+    };
 }
 
 /**
  * Hook for updating an existing todo
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates item immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
  */
 export function useUpdateTodo() {
     const queryClient = useQueryClient();
@@ -152,11 +190,11 @@ export function useUpdateTodo() {
             }
             return response.data?.todo;
         },
+        // OPTIMISTIC UPDATE: Update todo immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: todosQueryKey });
             const previousTodos = queryClient.getQueryData<GetTodosResponse>(todosQueryKey);
 
-            // Optimistic update
             queryClient.setQueryData<GetTodosResponse>(todosQueryKey, (old) => {
                 if (!old?.todos) return old;
                 return {
@@ -170,22 +208,24 @@ export function useUpdateTodo() {
 
             return { previousTodos };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousTodos) {
                 queryClient.setQueryData(todosQueryKey, context.previousTodos);
             }
         },
-        // Guard against empty data (offline mode returns {})
-        onSuccess: (updatedTodo) => {
-            if (updatedTodo) {
-                queryClient.setQueryData(todoQueryKey(updatedTodo._id), { todo: updatedTodo });
-            }
-        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 
 /**
  * Hook for deleting a todo
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI removes item immediately in onMutate
+ * - Server response is IGNORED on success (prevents race conditions)
+ * - Only on ERROR do we rollback to previous state
  */
 export function useDeleteTodo() {
     const queryClient = useQueryClient();
@@ -198,11 +238,11 @@ export function useDeleteTodo() {
             }
             return data.todoId;
         },
+        // OPTIMISTIC UPDATE: Remove todo immediately - THIS IS THE SOURCE OF TRUTH
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: todosQueryKey });
             const previousTodos = queryClient.getQueryData<GetTodosResponse>(todosQueryKey);
 
-            // Optimistic update
             queryClient.setQueryData<GetTodosResponse>(todosQueryKey, (old) => {
                 if (!old?.todos) return old;
                 return {
@@ -210,18 +250,18 @@ export function useDeleteTodo() {
                 };
             });
 
+            // Also clear single todo query
+            queryClient.removeQueries({ queryKey: todoQueryKey(variables.todoId) });
+
             return { previousTodos };
         },
+        // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
             if (context?.previousTodos) {
                 queryClient.setQueryData(todosQueryKey, context.previousTodos);
             }
         },
-        // Guard against empty data (offline mode returns {})
-        onSuccess: (deletedTodoId) => {
-            if (deletedTodoId) {
-                queryClient.removeQueries({ queryKey: todoQueryKey(deletedTodoId) });
-            }
-        },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }

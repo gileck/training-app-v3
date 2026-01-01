@@ -27,6 +27,7 @@ export interface GetPlanResponse {
 
 // Create plan
 export interface CreatePlanRequest {
+    _id?: string; // Client-generated UUID for optimistic updates
     name: string;
     durationWeeks: number;
 }

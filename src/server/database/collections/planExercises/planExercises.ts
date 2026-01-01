@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { PlanExercise, PlanExerciseCreate, PlanExerciseUpdate } from './types';
+import { toQueryId } from '../../utils';
 
 /**
  * Get a reference to the planExercises collection
@@ -17,8 +18,8 @@ export const findExercisesByPlanId = async (
     planId: ObjectId | string
 ): Promise<PlanExercise[]> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    return collection.find({ planId: planIdObj }).sort({ order: 1 }).toArray();
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    return collection.find({ planId: planIdQuery as ObjectId }).sort({ order: 1 }).toArray();
 };
 
 /**
@@ -28,8 +29,8 @@ export const findPlanExerciseById = async (
     planExerciseId: ObjectId | string
 ): Promise<PlanExercise | null> => {
     const collection = await getCollection();
-    const id = typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
-    return collection.findOne({ _id: id });
+    const idQuery = typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
+    return collection.findOne({ _id: idQuery as ObjectId });
 };
 
 /**
@@ -40,10 +41,10 @@ export const isExerciseInPlan = async (
     exerciseDefId: ObjectId | string
 ): Promise<boolean> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     const exerciseDefIdObj =
         typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
-    const count = await collection.countDocuments({ planId: planIdObj, exerciseDefId: exerciseDefIdObj });
+    const count = await collection.countDocuments({ planId: planIdQuery as ObjectId, exerciseDefId: exerciseDefIdObj });
     return count > 0;
 };
 
@@ -52,9 +53,9 @@ export const isExerciseInPlan = async (
  */
 export const getNextOrder = async (planId: ObjectId | string): Promise<number> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     const lastExercise = await collection
-        .find({ planId: planIdObj })
+        .find({ planId: planIdQuery as ObjectId })
         .sort({ order: -1 })
         .limit(1)
         .toArray();
@@ -63,18 +64,33 @@ export const getNextOrder = async (planId: ObjectId | string): Promise<number> =
 
 /**
  * Create a new plan exercise
+ * Supports client-generated UUIDs with idempotency check
  */
 export const createPlanExercise = async (
-    exercise: PlanExerciseCreate
+    exercise: PlanExerciseCreate & { _id?: string }
 ): Promise<PlanExercise> => {
     const collection = await getCollection();
-    const result = await collection.insertOne(exercise as PlanExercise);
 
-    if (!result.insertedId) {
+    // Idempotency: if client provided ID, check if already exists
+    if (exercise._id) {
+        const existing = await collection.findOne({
+            _id: toQueryId(exercise._id) as ObjectId
+        });
+        if (existing) return existing;
+    }
+
+    // Insert with client ID or let MongoDB generate
+    const doc = exercise._id
+        ? { ...exercise, _id: exercise._id as unknown as ObjectId }
+        : exercise;
+
+    const result = await collection.insertOne(doc as PlanExercise);
+
+    if (!result.insertedId && !exercise._id) {
         throw new Error('Failed to create plan exercise');
     }
 
-    return { ...exercise, _id: result.insertedId } as PlanExercise;
+    return { ...exercise, _id: exercise._id || result.insertedId } as unknown as PlanExercise;
 };
 
 /**
@@ -85,10 +101,10 @@ export const updatePlanExercise = async (
     update: PlanExerciseUpdate
 ): Promise<PlanExercise | null> => {
     const collection = await getCollection();
-    const id = typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
+    const idQuery = typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
 
     const result = await collection.findOneAndUpdate(
-        { _id: id },
+        { _id: idQuery as ObjectId },
         { $set: update },
         { returnDocument: 'after' }
     );
@@ -103,8 +119,8 @@ export const deletePlanExercise = async (
     planExerciseId: ObjectId | string
 ): Promise<boolean> => {
     const collection = await getCollection();
-    const id = typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
-    const result = await collection.deleteOne({ _id: id });
+    const idQuery = typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
+    const result = await collection.deleteOne({ _id: idQuery as ObjectId });
     return result.deletedCount === 1;
 };
 
@@ -115,8 +131,8 @@ export const deleteExercisesByPlanId = async (
     planId: ObjectId | string
 ): Promise<number> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    const result = await collection.deleteMany({ planId: planIdObj });
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    const result = await collection.deleteMany({ planId: planIdQuery as ObjectId });
     return result.deletedCount;
 };
 
@@ -128,11 +144,11 @@ export const reorderExercises = async (
     exerciseIds: string[]
 ): Promise<void> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
 
     const bulkOps = exerciseIds.map((id, index) => ({
         updateOne: {
-            filter: { _id: new ObjectId(id), planId: planIdObj },
+            filter: { _id: toQueryId(id) as ObjectId, planId: planIdQuery as ObjectId },
             update: { $set: { order: index, updatedAt: new Date() } },
         },
     }));
@@ -149,8 +165,8 @@ export const countExercisesByPlanId = async (
     planId: ObjectId | string
 ): Promise<number> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    return collection.countDocuments({ planId: planIdObj });
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    return collection.countDocuments({ planId: planIdQuery as ObjectId });
 };
 
 /**
@@ -165,4 +181,3 @@ export const findPlanExercisesByExerciseDefId = async (
         typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
     return collection.find({ exerciseDefId: exerciseDefIdObj }).toArray();
 };
-

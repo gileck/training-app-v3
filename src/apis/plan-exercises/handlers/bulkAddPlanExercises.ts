@@ -4,6 +4,7 @@ import type { BulkAddPlanExercisesRequest, BulkAddPlanExercisesResponse, BulkAdd
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
+import { toStringId } from '@/server/database/utils';
 
 export async function bulkAddPlanExercises(
     request: BulkAddPlanExercisesRequest,
@@ -42,7 +43,7 @@ export async function bulkAddPlanExercises(
         const exerciseDefsMap = new Map(
             exerciseDefsArray
                 .filter((def): def is NonNullable<typeof def> => def !== null)
-                .map(def => [def._id.toHexString(), def])
+                .map(def => [toStringId(def._id), def])
         );
 
         const results: BulkAddResult[] = [];
@@ -65,7 +66,7 @@ export async function bulkAddPlanExercises(
             }
 
             // Check if user has access to this exercise (system or own custom)
-            if (!exerciseDef.isSystem && exerciseDef.userId?.toHexString() !== context.userId) {
+            if (!exerciseDef.isSystem && (exerciseDef.userId ? toStringId(exerciseDef.userId) : undefined) !== context.userId) {
                 results.push({
                     exerciseDefId: item.exerciseDefId,
                     error: 'Unauthorized to use this exercise',
@@ -103,6 +104,7 @@ export async function bulkAddPlanExercises(
         for (const { item, exerciseDef, order } of exercisesToCreate) {
             try {
                 const exerciseData = {
+                    _id: item._id, // Pass client-generated ID if provided
                     planId: new ObjectId(request.planId),
                     exerciseDefId: new ObjectId(item.exerciseDefId),
                     sets: item.sets,
@@ -118,9 +120,9 @@ export async function bulkAddPlanExercises(
                 const created = await planExercises.createPlanExercise(exerciseData);
 
                 const planExerciseWithDef: PlanExerciseWithDefinition = {
-                    _id: created._id.toHexString(),
-                    planId: created.planId.toHexString(),
-                    exerciseDefId: created.exerciseDefId.toHexString(),
+                    _id: toStringId(created._id),
+                    planId: toStringId(created.planId),
+                    exerciseDefId: toStringId(created.exerciseDefId),
                     sets: created.sets,
                     reps: created.reps,
                     weight: created.weight,
@@ -130,7 +132,7 @@ export async function bulkAddPlanExercises(
                     createdAt: created.createdAt.toISOString(),
                     updatedAt: created.updatedAt.toISOString(),
                     exerciseDef: {
-                        _id: exerciseDef._id.toHexString(),
+                        _id: toStringId(exerciseDef._id),
                         name: exerciseDef.name,
                         imageUrl: exerciseDef.imageUrl,
                         primaryMuscle: exerciseDef.primaryMuscle,
@@ -139,7 +141,7 @@ export async function bulkAddPlanExercises(
                         isBodyweight: exerciseDef.isBodyweight,
                         isStatic: exerciseDef.isStatic,
                         isSystem: exerciseDef.isSystem,
-                        userId: exerciseDef.userId?.toHexString(),
+                        userId: exerciseDef.userId ? toStringId(exerciseDef.userId) : undefined,
                         createdAt: exerciseDef.createdAt.toISOString(),
                         updatedAt: exerciseDef.updatedAt.toISOString(),
                     },
@@ -170,4 +172,3 @@ export async function bulkAddPlanExercises(
         return { error: 'Failed to add exercises' };
     }
 }
-

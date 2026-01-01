@@ -5,6 +5,7 @@ import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
 import type { ApiHandlerContext } from '@/apis/types';
+import { toStringId } from '@/server/database/utils';
 
 export async function addActivity(
     request: AddActivityRequest,
@@ -44,7 +45,7 @@ export async function addActivity(
 
         // Verify the plan belongs to the user
         const plan = await trainingPlans.findPlanById(
-            planExercise.planId.toHexString(),
+            toStringId(planExercise.planId),
             context.userId
         );
         if (!plan) {
@@ -53,7 +54,7 @@ export async function addActivity(
 
         // Get exercise definition for response
         const exerciseDef = await exerciseDefinitions.findExerciseById(
-            planExercise.exerciseDefId.toHexString()
+            toStringId(planExercise.exerciseDefId)
         );
         const exerciseInfo = exerciseDef
             ? {
@@ -68,7 +69,11 @@ export async function addActivity(
         const userIdObj = new ObjectId(context.userId);
 
         for (let setNumber = 1; setNumber <= request.numberOfSets; setNumber++) {
+            // Get client-generated ID if provided (one per set)
+            const clientId = request.activityIds?.[setNumber - 1];
+
             const newSetLog = await setLogs.createSetLog({
+                _id: clientId, // Pass client-generated ID if provided
                 userId: userIdObj,
                 planExerciseId: planExercise._id,
                 planId: planExercise.planId,
@@ -78,10 +83,10 @@ export async function addActivity(
             });
 
             activities.push({
-                _id: newSetLog._id.toHexString(),
-                userId: newSetLog.userId.toHexString(),
-                planExerciseId: newSetLog.planExerciseId.toHexString(),
-                planId: newSetLog.planId.toHexString(),
+                _id: toStringId(newSetLog._id),
+                userId: toStringId(newSetLog.userId),
+                planExerciseId: toStringId(newSetLog.planExerciseId),
+                planId: toStringId(newSetLog.planId),
                 weekNumber: newSetLog.weekNumber,
                 setNumber: newSetLog.setNumber,
                 completedAt: newSetLog.completedAt.toISOString(),

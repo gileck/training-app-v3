@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { PlanWorkout, PlanWorkoutCreate, PlanWorkoutUpdate } from './types';
+import { toQueryId } from '../../utils';
 
 /**
  * RECOMMENDED INDEXES (not enforced at runtime):
@@ -25,9 +26,9 @@ export const listPlanWorkouts = async (
 ): Promise<PlanWorkout[]> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     return collection
-        .find({ userId: userIdObj, planId: planIdObj })
+        .find({ userId: userIdObj, planId: planIdQuery as ObjectId })
         .sort({ order: 1, updatedAt: -1 })
         .toArray();
 };
@@ -41,23 +42,32 @@ export const getPlanWorkout = async (
     planId: ObjectId | string
 ): Promise<PlanWorkout | null> => {
     const collection = await getCollection();
-    const workoutIdObj = typeof workoutId === 'string' ? new ObjectId(workoutId) : workoutId;
+    const workoutIdQuery = typeof workoutId === 'string' ? toQueryId(workoutId) : workoutId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     return collection.findOne({
-        _id: workoutIdObj,
+        _id: workoutIdQuery as ObjectId,
         userId: userIdObj,
-        planId: planIdObj,
+        planId: planIdQuery as ObjectId,
     });
 };
 
 /**
  * Create a new plan workout
  * Items order is normalized to 0..n-1
+ * Supports client-generated UUIDs with idempotency check
  */
-export const createPlanWorkout = async (workout: PlanWorkoutCreate): Promise<PlanWorkout> => {
+export const createPlanWorkout = async (workout: PlanWorkoutCreate & { _id?: string }): Promise<PlanWorkout> => {
     const collection = await getCollection();
     const now = new Date();
+
+    // Idempotency: if client provided ID, check if already exists
+    if (workout._id) {
+        const existing = await collection.findOne({
+            _id: toQueryId(workout._id) as ObjectId
+        });
+        if (existing) return existing;
+    }
 
     // Get the next order number for this plan
     const existingCount = await collection.countDocuments({
@@ -77,15 +87,20 @@ export const createPlanWorkout = async (workout: PlanWorkoutCreate): Promise<Pla
         order: workout.order ?? existingCount,
         createdAt: now,
         updatedAt: now,
-    } as PlanWorkout;
+    };
 
-    const result = await collection.insertOne(workoutWithDates);
+    // Insert with client ID or let MongoDB generate
+    const doc = workout._id
+        ? { ...workoutWithDates, _id: workout._id as unknown as ObjectId }
+        : workoutWithDates;
 
-    if (!result.insertedId) {
+    const result = await collection.insertOne(doc as PlanWorkout);
+
+    if (!result.insertedId && !workout._id) {
         throw new Error('Failed to create plan workout');
     }
 
-    return { ...workoutWithDates, _id: result.insertedId };
+    return { ...workoutWithDates, _id: workout._id || result.insertedId } as unknown as PlanWorkout;
 };
 
 /**
@@ -99,9 +114,9 @@ export const updatePlanWorkout = async (
     update: PlanWorkoutUpdate
 ): Promise<PlanWorkout | null> => {
     const collection = await getCollection();
-    const workoutIdObj = typeof workoutId === 'string' ? new ObjectId(workoutId) : workoutId;
+    const workoutIdQuery = typeof workoutId === 'string' ? toQueryId(workoutId) : workoutId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
 
     // Normalize item order if items are being updated
     const normalizedUpdate = { ...update };
@@ -113,7 +128,7 @@ export const updatePlanWorkout = async (
     }
 
     const result = await collection.findOneAndUpdate(
-        { _id: workoutIdObj, userId: userIdObj, planId: planIdObj },
+        { _id: workoutIdQuery as ObjectId, userId: userIdObj, planId: planIdQuery as ObjectId },
         { $set: normalizedUpdate },
         { returnDocument: 'after' }
     );
@@ -130,14 +145,14 @@ export const deletePlanWorkout = async (
     planId: ObjectId | string
 ): Promise<boolean> => {
     const collection = await getCollection();
-    const workoutIdObj = typeof workoutId === 'string' ? new ObjectId(workoutId) : workoutId;
+    const workoutIdQuery = typeof workoutId === 'string' ? toQueryId(workoutId) : workoutId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
 
     const result = await collection.deleteOne({
-        _id: workoutIdObj,
+        _id: workoutIdQuery as ObjectId,
         userId: userIdObj,
-        planId: planIdObj,
+        planId: planIdQuery as ObjectId,
     });
     return result.deletedCount === 1;
 };
@@ -149,8 +164,8 @@ export const deletePlanWorkoutsByPlanId = async (
     planId: ObjectId | string
 ): Promise<number> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    const result = await collection.deleteMany({ planId: planIdObj });
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    const result = await collection.deleteMany({ planId: planIdQuery as ObjectId });
     return result.deletedCount;
 };
 
@@ -164,16 +179,16 @@ export const reorderPlanWorkouts = async (
 ): Promise<boolean> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     const now = new Date();
 
     // Update each workout's order based on its position in the array
     const operations = workoutIds.map((workoutId, index) => ({
         updateOne: {
             filter: {
-                _id: new ObjectId(workoutId),
+                _id: toQueryId(workoutId) as ObjectId,
                 userId: userIdObj,
-                planId: planIdObj,
+                planId: planIdQuery as ObjectId,
             },
             update: { $set: { order: index, updatedAt: now } },
         },
@@ -192,6 +207,6 @@ export const countPlanWorkouts = async (
 ): Promise<number> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    return collection.countDocuments({ userId: userIdObj, planId: planIdObj });
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    return collection.countDocuments({ userId: userIdObj, planId: planIdQuery as ObjectId });
 };

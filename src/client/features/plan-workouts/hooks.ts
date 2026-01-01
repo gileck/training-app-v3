@@ -42,6 +42,7 @@ import type {
     ReorderPlanWorkoutsRequest,
     PlanWorkoutClient,
 } from '@/apis/plan-workouts/types';
+import { generateId } from '@/client/utils/generateId';
 
 // ============================================================================
 // Query Keys
@@ -82,16 +83,18 @@ export function usePlanWorkouts(planId: string | null, options?: { enabled?: boo
 /**
  * Hook for creating a new plan workout
  * 
- * Uses OPTIMISTIC-ONLY pattern:
- * - UI updates immediately with temp ID in onMutate
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUID:
+ * - Client generates stable UUID that server persists
+ * - UI updates immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
+ * - Idempotent: retries with same ID won't create duplicates
  */
 export function useCreatePlanWorkout(planId: string) {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: CreatePlanWorkoutRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: CreatePlanWorkoutRequest & { _id: string }) => {
             const response = await createPlanWorkout(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
@@ -99,17 +102,18 @@ export function useCreatePlanWorkout(planId: string) {
             return response.data?.workout;
         },
         // OPTIMISTIC UPDATE: Add workout to list immediately - THIS IS THE SOURCE OF TRUTH
-        onMutate: async (variables) => {
+        onMutate: async (variables: CreatePlanWorkoutRequest & { _id: string }) => {
             const queryKey = planWorkoutsQueryKey(planId);
             await queryClient.cancelQueries({ queryKey });
             const previousWorkouts = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
 
-            // Create optimistic workout with temporary ID
+            // Calculate order from existing workouts
             const existingWorkouts = previousWorkouts?.workouts || [];
             const nextOrder = existingWorkouts.length;
 
+            // Create optimistic workout with client-generated UUID
             const optimisticWorkout: PlanWorkoutClient = {
-                _id: `temp-${Date.now()}`,
+                _id: variables._id,
                 userId: '',
                 planId: variables.planId,
                 name: variables.name,
@@ -127,7 +131,7 @@ export function useCreatePlanWorkout(planId: string) {
                 return { workouts: [...old.workouts, optimisticWorkout] };
             });
 
-            return { previousWorkouts, optimisticWorkout };
+            return { previousWorkouts };
         },
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
@@ -138,6 +142,17 @@ export function useCreatePlanWorkout(planId: string) {
         // onSuccess: intentionally empty - NEVER update UI from server response
         // onSettled: intentionally empty - NEVER refetch after mutation
     });
+
+    // Wrap mutate to inject client-generated ID
+    return {
+        ...mutation,
+        mutate: (data: CreatePlanWorkoutRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            return mutation.mutate({ ...data, _id: generateId() }, options);
+        },
+        mutateAsync: async (data: CreatePlanWorkoutRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            return mutation.mutateAsync({ ...data, _id: generateId() }, options);
+        },
+    };
 }
 
 /**

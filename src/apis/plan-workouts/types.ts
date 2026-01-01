@@ -26,6 +26,7 @@ export interface ListPlanWorkoutsResponse {
 // ============================================================================
 
 export interface CreatePlanWorkoutRequest {
+    _id?: string; // Client-generated UUID for optimistic updates
     planId: string;
     name: string;
     items: { planExerciseId: string; order: number }[];

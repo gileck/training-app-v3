@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { TodoItem, TodoItemCreate, TodoItemUpdate } from './types';
+import { toQueryId } from '../../utils';
 
 /**
  * Get a reference to the todos collection
@@ -35,27 +36,41 @@ export const findTodoById = async (
     userId: ObjectId | string
 ): Promise<TodoItem | null> => {
     const collection = await getTodosCollection();
-    const todoIdObj = typeof todoId === 'string' ? new ObjectId(todoId) : todoId;
+    const todoIdQuery = typeof todoId === 'string' ? toQueryId(todoId) : todoId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
-    return collection.findOne({ _id: todoIdObj, userId: userIdObj });
+    return collection.findOne({ _id: todoIdQuery as ObjectId, userId: userIdObj });
 };
 
 /**
  * Create a new todo item
+ * Supports client-generated UUIDs with idempotency check
  * @param todo - The todo data to create
  * @returns The created todo item
  */
-export const createTodo = async (todo: TodoItemCreate): Promise<TodoItem> => {
+export const createTodo = async (todo: TodoItemCreate & { _id?: string }): Promise<TodoItem> => {
     const collection = await getTodosCollection();
 
-    const result = await collection.insertOne(todo as TodoItem);
+    // Idempotency: if client provided ID, check if already exists
+    if (todo._id) {
+        const existing = await collection.findOne({
+            _id: toQueryId(todo._id) as ObjectId
+        });
+        if (existing) return existing;
+    }
 
-    if (!result.insertedId) {
+    // Insert with client ID or let MongoDB generate
+    const doc = todo._id
+        ? { ...todo, _id: todo._id as unknown as ObjectId }
+        : todo;
+
+    const result = await collection.insertOne(doc as TodoItem);
+
+    if (!result.insertedId && !todo._id) {
         throw new Error('Failed to create todo item');
     }
 
-    return { ...todo, _id: result.insertedId } as TodoItem;
+    return { ...todo, _id: todo._id || result.insertedId } as unknown as TodoItem;
 };
 
 /**
@@ -71,11 +86,11 @@ export const updateTodo = async (
     update: TodoItemUpdate
 ): Promise<TodoItem | null> => {
     const collection = await getTodosCollection();
-    const todoIdObj = typeof todoId === 'string' ? new ObjectId(todoId) : todoId;
+    const todoIdQuery = typeof todoId === 'string' ? toQueryId(todoId) : todoId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
     const result = await collection.findOneAndUpdate(
-        { _id: todoIdObj, userId: userIdObj },
+        { _id: todoIdQuery as ObjectId, userId: userIdObj },
         { $set: update },
         { returnDocument: 'after' }
     );
@@ -94,9 +109,9 @@ export const deleteTodo = async (
     userId: ObjectId | string
 ): Promise<boolean> => {
     const collection = await getTodosCollection();
-    const todoIdObj = typeof todoId === 'string' ? new ObjectId(todoId) : todoId;
+    const todoIdQuery = typeof todoId === 'string' ? toQueryId(todoId) : todoId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
-    const result = await collection.deleteOne({ _id: todoIdObj, userId: userIdObj });
+    const result = await collection.deleteOne({ _id: todoIdQuery as ObjectId, userId: userIdObj });
     return result.deletedCount === 1;
-}; 
+};

@@ -4,6 +4,7 @@ import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
 import type { ApiHandlerContext } from '@/apis/types';
+import { toStringId } from '@/server/database/utils';
 
 export async function duplicateActivity(
     request: DuplicateActivityRequest,
@@ -35,6 +36,7 @@ export async function duplicateActivity(
 
         // Create a new set log with the same details but new date
         const newSetLog = await setLogs.createSetLog({
+            _id: request._id, // Pass client-generated ID if provided
             userId: original.userId,
             planExerciseId: original.planExerciseId,
             planId: original.planId,
@@ -45,13 +47,13 @@ export async function duplicateActivity(
 
         // Enrich with exercise and plan info for response
         const planExercise = await planExercises.findPlanExerciseById(
-            newSetLog.planExerciseId.toHexString()
+            toStringId(newSetLog.planExerciseId)
         );
 
         let exerciseInfo = { name: 'Unknown Exercise', imageUrl: '', primaryMuscle: '' };
         if (planExercise) {
             const exerciseDef = await exerciseDefinitions.findExerciseById(
-                planExercise.exerciseDefId.toHexString()
+                toStringId(planExercise.exerciseDefId)
             );
             if (exerciseDef) {
                 exerciseInfo = {
@@ -63,16 +65,16 @@ export async function duplicateActivity(
         }
 
         const plan = await trainingPlans.findPlanById(
-            newSetLog.planId.toHexString(),
+            toStringId(newSetLog.planId),
             context.userId
         );
         const planName = plan?.name || 'Unknown Plan';
 
         const activity: ActivityLogEntry = {
-            _id: newSetLog._id.toHexString(),
-            userId: newSetLog.userId.toHexString(),
-            planExerciseId: newSetLog.planExerciseId.toHexString(),
-            planId: newSetLog.planId.toHexString(),
+            _id: toStringId(newSetLog._id),
+            userId: toStringId(newSetLog.userId),
+            planExerciseId: toStringId(newSetLog.planExerciseId),
+            planId: toStringId(newSetLog.planId),
             weekNumber: newSetLog.weekNumber,
             setNumber: newSetLog.setNumber,
             completedAt: newSetLog.completedAt.toISOString(),

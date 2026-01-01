@@ -5,6 +5,7 @@ import {
     AddPlanExerciseResponse,
 } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
+import { toStringId } from '@/server/database/utils';
 
 export const addPlanExercise = async (
     request: AddPlanExerciseRequest,
@@ -44,7 +45,7 @@ export const addPlanExercise = async (
         }
 
         // Check if user has access (system exercises OR their own custom)
-        if (!exerciseDef.isSystem && exerciseDef.userId?.toHexString() !== context.userId) {
+        if (!exerciseDef.isSystem && toStringId(exerciseDef.userId!) !== context.userId) {
             return { error: 'Exercise not found' };
         }
 
@@ -53,6 +54,7 @@ export const addPlanExercise = async (
 
         const now = new Date();
         const exerciseData = {
+            _id: request._id, // Pass client-generated ID if provided
             planId: new ObjectId(request.planId),
             exerciseDefId: new ObjectId(request.exerciseDefId),
             sets: request.sets,
@@ -67,11 +69,11 @@ export const addPlanExercise = async (
 
         const newExercise = await planExercises.createPlanExercise(exerciseData);
 
-        // Return with exercise definition
+        // Return with exercise definition (handle both ObjectId and UUID string)
         const result = {
-            _id: newExercise._id.toHexString(),
-            planId: newExercise.planId.toHexString(),
-            exerciseDefId: newExercise.exerciseDefId.toHexString(),
+            _id: toStringId(newExercise._id),
+            planId: toStringId(newExercise.planId),
+            exerciseDefId: toStringId(newExercise.exerciseDefId),
             sets: newExercise.sets,
             reps: newExercise.reps,
             weight: newExercise.weight,
@@ -81,7 +83,7 @@ export const addPlanExercise = async (
             createdAt: newExercise.createdAt.toISOString(),
             updatedAt: newExercise.updatedAt.toISOString(),
             exerciseDef: {
-                _id: exerciseDef._id.toHexString(),
+                _id: toStringId(exerciseDef._id),
                 name: exerciseDef.name,
                 imageUrl: exerciseDef.imageUrl,
                 primaryMuscle: exerciseDef.primaryMuscle,
@@ -90,7 +92,7 @@ export const addPlanExercise = async (
                 isBodyweight: exerciseDef.isBodyweight,
                 isStatic: exerciseDef.isStatic,
                 isSystem: exerciseDef.isSystem,
-                userId: exerciseDef.userId?.toHexString(),
+                userId: exerciseDef.userId ? toStringId(exerciseDef.userId) : undefined,
                 createdAt: exerciseDef.createdAt.toISOString(),
                 updatedAt: exerciseDef.updatedAt.toISOString(),
             },
@@ -102,5 +104,3 @@ export const addPlanExercise = async (
         return { error: error instanceof Error ? error.message : 'Failed to add exercise to plan' };
     }
 };
-
-

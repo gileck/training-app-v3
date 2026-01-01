@@ -23,6 +23,7 @@ export interface ListPlanExercisesResponse {
 
 // Add exercise to plan
 export interface AddPlanExerciseRequest {
+    _id?: string; // Client-generated UUID for optimistic updates
     planId: string;
     exerciseDefId: string;
     sets: number;
@@ -75,6 +76,7 @@ export interface ReorderPlanExercisesResponse {
 
 // Bulk add exercises to plan
 export interface BulkAddExerciseItem {
+    _id?: string; // Client-generated UUID for optimistic updates
     exerciseDefId: string;
     sets: number;
     reps: number;

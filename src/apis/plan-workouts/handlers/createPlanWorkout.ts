@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, CreatePlanWorkoutRequest, CreatePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans, planExercises } from '@/server/database';
+import { toStringId } from '@/server/database/utils';
 
 export const createPlanWorkout = async (
     request: CreatePlanWorkoutRequest,
@@ -35,12 +36,13 @@ export const createPlanWorkout = async (
             if (!planExercise) {
                 return { error: `Exercise ${item.planExerciseId} not found` };
             }
-            if (planExercise.planId.toHexString() !== request.planId) {
+            if (toStringId(planExercise.planId) !== request.planId) {
                 return { error: `Exercise ${item.planExerciseId} does not belong to this plan` };
             }
         }
 
         const workoutData = {
+            _id: request._id, // Pass client-generated ID if provided
             userId: new ObjectId(context.userId),
             planId: new ObjectId(request.planId),
             name: request.name.trim(),
@@ -52,14 +54,14 @@ export const createPlanWorkout = async (
 
         const newWorkout = await planWorkouts.createPlanWorkout(workoutData);
 
-        // Convert to client format
+        // Convert to client format (handle both ObjectId and UUID string)
         const workoutClient = {
-            _id: newWorkout._id.toHexString(),
-            userId: newWorkout.userId.toHexString(),
-            planId: newWorkout.planId.toHexString(),
+            _id: toStringId(newWorkout._id),
+            userId: toStringId(newWorkout.userId),
+            planId: toStringId(newWorkout.planId),
             name: newWorkout.name,
             items: newWorkout.items.map((item) => ({
-                planExerciseId: item.planExerciseId.toHexString(),
+                planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
             })),
             order: newWorkout.order,

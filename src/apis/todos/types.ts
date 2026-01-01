@@ -23,6 +23,7 @@ export interface GetTodoResponse {
 
 // Create todo
 export interface CreateTodoRequest {
+    _id?: string; // Client-generated UUID for optimistic updates
     title: string;
 }
 

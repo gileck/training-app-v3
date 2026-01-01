@@ -95,6 +95,7 @@ export interface EditActivityResponse {
 
 // Duplicate Activity
 export interface DuplicateActivityRequest {
+    _id?: string; // Client-generated UUID for optimistic updates
     activityId: string;
     completedAt?: string; // Optional: new date, defaults to now
 }
@@ -106,6 +107,7 @@ export interface DuplicateActivityResponse {
 
 // Add Activity (create new set logs)
 export interface AddActivityRequest {
+    activityIds?: string[]; // Client-generated UUIDs for optimistic updates (one per set)
     planExerciseId: string;
     completedAt: string; // ISO date string
     numberOfSets: number; // How many sets to create

@@ -57,6 +57,14 @@ function useExerciseNotes(planId: string | undefined, exerciseDefId: string | un
     });
 }
 
+/**
+ * Hook for updating an exercise note
+ * 
+ * Uses OPTIMISTIC-ONLY pattern:
+ * - UI updates immediately in onMutate
+ * - Server response is IGNORED on success
+ * - Only on ERROR do we rollback to previous state
+ */
 function useUpdateExerciseNote() {
     const queryClient = useQueryClient();
     
@@ -68,14 +76,28 @@ function useUpdateExerciseNote() {
             }
             return response.data;
         },
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: ['exercise-notes', variables.planId, variables.exerciseDefId, variables.weekNumber],
+        // OPTIMISTIC UPDATE: Update note immediately - THIS IS THE SOURCE OF TRUTH
+        onMutate: async (variables) => {
+            const queryKey = ['exercise-notes', variables.planId, variables.exerciseDefId, variables.weekNumber];
+            await queryClient.cancelQueries({ queryKey });
+            const previous = queryClient.getQueryData(queryKey);
+
+            queryClient.setQueryData(queryKey, (old: { currentNote?: string; previousNotes?: unknown[] } | undefined) => {
+                if (!old) return { currentNote: variables.content, previousNotes: [] };
+                return { ...old, currentNote: variables.content };
             });
+
+            return { previous, queryKey };
         },
-        onError: (error) => {
+        // ONLY on error: rollback to previous state
+        onError: (error, _variables, context) => {
+            if (context?.previous && context?.queryKey) {
+                queryClient.setQueryData(context.queryKey, context.previous);
+            }
             toast.error(`Failed to save note: ${error.message}`);
         },
+        // onSuccess: intentionally empty - NEVER update UI from server response
+        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 

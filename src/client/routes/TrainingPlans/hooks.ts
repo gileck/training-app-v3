@@ -38,6 +38,7 @@ import {
     createPlanFromText,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
+import { generateId } from '@/client/utils/generateId';
 import type {
     ListPlansResponse,
     CreatePlanRequest,
@@ -112,20 +113,18 @@ export function usePlanExercises(planId: string, options?: { enabled?: boolean }
 /**
  * Hook for creating a new training plan
  * 
- * Uses OPTIMISTIC-ONLY pattern:
- * - UI updates immediately with temp ID in onMutate
+ * Uses OPTIMISTIC-ONLY pattern with client-generated UUID:
+ * - Client generates stable UUID that server persists
+ * - UI updates immediately in onMutate
  * - Server response is IGNORED on success (prevents race conditions)
  * - Only on ERROR do we rollback to previous state
- * 
- * Note: The temp ID stays in UI - this is fine because:
- * - Next page load will fetch fresh data with real IDs
- * - User can still interact with the plan normally
+ * - Idempotent: retries with same ID won't create duplicates
  */
 export function useCreatePlan() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (data: CreatePlanRequest) => {
+    const mutation = useMutation({
+        mutationFn: async (data: CreatePlanRequest & { _id: string }) => {
             const response = await createPlan(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
@@ -133,17 +132,21 @@ export function useCreatePlan() {
             return response.data?.plan;
         },
         // OPTIMISTIC UPDATE: Add plan to list immediately - THIS IS THE SOURCE OF TRUTH
-        onMutate: async (variables) => {
+        onMutate: async (variables: CreatePlanRequest & { _id: string }) => {
             await queryClient.cancelQueries({ queryKey: plansQueryKey });
             const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
 
-            // Create optimistic plan with temporary ID
+            // Determine if this will be the first plan (and thus active)
+            const existingPlans = previousPlans?.plans || [];
+            const isFirstPlan = existingPlans.length === 0;
+
+            // Create optimistic plan with client-generated UUID
             const optimisticPlan: TrainingPlanClient = {
-                _id: `temp-${Date.now()}`,
+                _id: variables._id,
                 userId: '',
                 name: variables.name,
                 durationWeeks: variables.durationWeeks,
-                isActive: false,
+                isActive: isFirstPlan,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
@@ -153,7 +156,7 @@ export function useCreatePlan() {
                 return { plans: [...old.plans, optimisticPlan] };
             });
 
-            return { previousPlans, optimisticPlan };
+            return { previousPlans };
         },
         // ONLY on error: rollback to previous state
         onError: (_err, _variables, context) => {
@@ -164,6 +167,17 @@ export function useCreatePlan() {
         // onSuccess: intentionally empty - NEVER update UI from server response
         // onSettled: intentionally empty - NEVER refetch after mutation
     });
+
+    // Wrap mutate to inject client-generated ID
+    return {
+        ...mutation,
+        mutate: (data: CreatePlanRequest, options?: Parameters<typeof mutation.mutate>[1]) => {
+            return mutation.mutate({ ...data, _id: generateId() }, options);
+        },
+        mutateAsync: async (data: CreatePlanRequest, options?: Parameters<typeof mutation.mutateAsync>[1]) => {
+            return mutation.mutateAsync({ ...data, _id: generateId() }, options);
+        },
+    };
 }
 
 /**
@@ -317,10 +331,10 @@ export function useUpdatePlan() {
 /**
  * Hook for duplicating a training plan
  * 
- * Uses OPTIMISTIC-ONLY pattern:
- * - UI adds duplicate plan immediately in onMutate
- * - Server response is IGNORED on success (prevents race conditions)
- * - Only on ERROR do we rollback to previous state
+ * NON-OPTIMISTIC pattern:
+ * Server duplicates the plan with all exercises and workouts.
+ * This is complex cascade copy - we wait for server to complete.
+ * Component shows loading state via isPending.
  */
 export function useDuplicatePlan() {
     const queryClient = useQueryClient();
@@ -333,42 +347,14 @@ export function useDuplicatePlan() {
             }
             return response.data?.plan;
         },
-        // OPTIMISTIC UPDATE: Add duplicated plan immediately - THIS IS THE SOURCE OF TRUTH
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: plansQueryKey });
-            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
-
-            // Find the original plan to duplicate
-            const originalPlan = previousPlans?.plans?.find((p) => p._id === variables.planId);
-
-            if (originalPlan) {
-                // Create optimistic duplicate with temporary ID
-                const optimisticPlan: TrainingPlanClient = {
-                    _id: `temp-${Date.now()}`,
-                    userId: originalPlan.userId,
-                    name: `${originalPlan.name} (Copy)`,
-                    durationWeeks: originalPlan.durationWeeks,
-                    isActive: false,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-
-                queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
-                    if (!old?.plans) return { plans: [optimisticPlan] };
-                    return { plans: [...old.plans, optimisticPlan] };
-                });
-            }
-
-            return { previousPlans };
+        // On success: insert the returned plan into cache
+        onSuccess: (newPlan) => {
+            if (!newPlan) return; // Guard for offline
+            queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
+                if (!old?.plans) return { plans: [newPlan] };
+                return { plans: [...old.plans, newPlan] };
+            });
         },
-        // ONLY on error: rollback to previous state
-        onError: (_err, _variables, context) => {
-            if (context?.previousPlans) {
-                queryClient.setQueryData(plansQueryKey, context.previousPlans);
-            }
-        },
-        // onSuccess: intentionally empty - NEVER update UI from server response
-        // onSettled: intentionally empty - NEVER refetch after mutation
     });
 }
 
@@ -397,10 +383,9 @@ export function useGeneratePlanFromText() {
 /**
  * Hook for creating a training plan from an AI-generated draft
  * 
- * EXCEPTION to optimistic-only pattern:
- * This operation creates multiple entities (plan + exercises + workouts) and 
- * navigates to the new plan using the server-generated ID. We MUST replace
- * the temp ID with the real ID to avoid ObjectId errors.
+ * NON-OPTIMISTIC pattern:
+ * AI generates complex plan structure - server creates multiple entities.
+ * Component already shows AI processing state.
  */
 export function useCreatePlanFromText() {
     const queryClient = useQueryClient();
@@ -413,58 +398,13 @@ export function useCreatePlanFromText() {
             }
             return response.data;
         },
-        // OPTIMISTIC UPDATE: Add plan to list immediately for instant feedback
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: plansQueryKey });
-            const previousPlans = queryClient.getQueryData<ListPlansResponse>(plansQueryKey);
-
-            // Create optimistic plan with temporary ID
-            const tempId = `temp-${Date.now()}`;
-            const optimisticPlan: TrainingPlanClient = {
-                _id: tempId,
-                userId: '',
-                name: variables.planName,
-                durationWeeks: variables.durationWeeks,
-                isActive: false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
+        // On success: insert the returned plan into cache
+        onSuccess: (data) => {
+            if (!data.plan) return; // Guard for offline
             queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
-                if (!old?.plans) return { plans: [optimisticPlan] };
-                return { plans: [...old.plans, optimisticPlan] };
+                if (!old?.plans) return { plans: [data.plan!] };
+                return { plans: [...old.plans, data.plan!] };
             });
-
-            return { previousPlans, tempId };
-        },
-        // On success: Replace temp plan with real plan (needed for valid ObjectId)
-        onSuccess: (data, _variables, context) => {
-            if (data.plan && context?.tempId) {
-                queryClient.setQueryData<ListPlansResponse>(plansQueryKey, (old) => {
-                    if (!old?.plans) return old;
-                    return {
-                        plans: old.plans.map((plan) =>
-                            plan._id === context.tempId
-                                ? {
-                                      _id: data.plan!._id,
-                                      userId: data.plan!.userId,
-                                      name: data.plan!.name,
-                                      durationWeeks: data.plan!.durationWeeks,
-                                      isActive: data.plan!.isActive,
-                                      createdAt: data.plan!.createdAt,
-                                      updatedAt: data.plan!.updatedAt,
-                                  }
-                                : plan
-                        ),
-                    };
-                });
-            }
-        },
-        // On error: rollback to previous state
-        onError: (_err, _variables, context) => {
-            if (context?.previousPlans) {
-                queryClient.setQueryData(plansQueryKey, context.previousPlans);
-            }
         },
     });
 }

@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { SetLog, SetLogCreate } from './types';
+import { toQueryId } from '../../utils';
 
 /**
  * Get a reference to the setLogs collection
@@ -12,16 +13,31 @@ const getCollection = async (): Promise<Collection<SetLog>> => {
 
 /**
  * Create a new set log (when user taps to complete a set)
+ * Supports client-generated UUIDs with idempotency check
  */
-export const createSetLog = async (log: SetLogCreate): Promise<SetLog> => {
+export const createSetLog = async (log: SetLogCreate & { _id?: string }): Promise<SetLog> => {
     const collection = await getCollection();
-    const result = await collection.insertOne(log as SetLog);
 
-    if (!result.insertedId) {
+    // Idempotency: if client provided ID, check if already exists
+    if (log._id) {
+        const existing = await collection.findOne({
+            _id: toQueryId(log._id) as ObjectId
+        });
+        if (existing) return existing;
+    }
+
+    // Insert with client ID or let MongoDB generate
+    const doc = log._id
+        ? { ...log, _id: log._id as unknown as ObjectId }
+        : log;
+
+    const result = await collection.insertOne(doc as SetLog);
+
+    if (!result.insertedId && !log._id) {
         throw new Error('Failed to create set log');
     }
 
-    return { ...log, _id: result.insertedId } as SetLog;
+    return { ...log, _id: log._id || result.insertedId } as unknown as SetLog;
 };
 
 /**
@@ -34,12 +50,12 @@ export const deleteLatestSetLog = async (
 ): Promise<boolean> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planExerciseIdObj =
-        typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
+    const planExerciseIdQuery =
+        typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
 
     // Find the most recent log
     const latestLog = await collection
-        .find({ userId: userIdObj, planExerciseId: planExerciseIdObj, weekNumber })
+        .find({ userId: userIdObj, planExerciseId: planExerciseIdQuery as ObjectId, weekNumber })
         .sort({ completedAt: -1 })
         .limit(1)
         .toArray();
@@ -62,12 +78,12 @@ export const countSetsForExerciseWeek = async (
 ): Promise<number> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planExerciseIdObj =
-        typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
+    const planExerciseIdQuery =
+        typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
 
     return collection.countDocuments({
         userId: userIdObj,
-        planExerciseId: planExerciseIdObj,
+        planExerciseId: planExerciseIdQuery as ObjectId,
         weekNumber,
     });
 };
@@ -82,10 +98,10 @@ export const findSetLogsByPlanWeek = async (
 ): Promise<SetLog[]> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
 
     return collection
-        .find({ userId: userIdObj, planId: planIdObj, weekNumber })
+        .find({ userId: userIdObj, planId: planIdQuery as ObjectId, weekNumber })
         .sort({ completedAt: 1 })
         .toArray();
 };
@@ -126,10 +142,10 @@ export const deleteSetLog = async (
     userId: ObjectId | string
 ): Promise<boolean> => {
     const collection = await getCollection();
-    const setLogIdObj = typeof setLogId === 'string' ? new ObjectId(setLogId) : setLogId;
+    const setLogIdQuery = typeof setLogId === 'string' ? toQueryId(setLogId) : setLogId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
-    const result = await collection.deleteOne({ _id: setLogIdObj, userId: userIdObj });
+    const result = await collection.deleteOne({ _id: setLogIdQuery as ObjectId, userId: userIdObj });
     return result.deletedCount === 1;
 };
 
@@ -140,9 +156,9 @@ export const deleteSetLogsByPlanExerciseId = async (
     planExerciseId: ObjectId | string
 ): Promise<number> => {
     const collection = await getCollection();
-    const planExerciseIdObj =
-        typeof planExerciseId === 'string' ? new ObjectId(planExerciseId) : planExerciseId;
-    const result = await collection.deleteMany({ planExerciseId: planExerciseIdObj });
+    const planExerciseIdQuery =
+        typeof planExerciseId === 'string' ? toQueryId(planExerciseId) : planExerciseId;
+    const result = await collection.deleteMany({ planExerciseId: planExerciseIdQuery as ObjectId });
     return result.deletedCount;
 };
 
@@ -151,8 +167,8 @@ export const deleteSetLogsByPlanExerciseId = async (
  */
 export const deleteSetLogsByPlanId = async (planId: ObjectId | string): Promise<number> => {
     const collection = await getCollection();
-    const planIdObj = typeof planId === 'string' ? new ObjectId(planId) : planId;
-    const result = await collection.deleteMany({ planId: planIdObj });
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    const result = await collection.deleteMany({ planId: planIdQuery as ObjectId });
     return result.deletedCount;
 };
 
@@ -187,12 +203,12 @@ export const findSetLogsByExerciseDefId = async (
 ): Promise<SetLog[]> => {
     const collection = await getCollection();
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    const planExerciseObjectIds = planExerciseIds.map(id => new ObjectId(id));
+    const planExerciseIdQueries = planExerciseIds.map(id => toQueryId(id));
 
     return collection
         .find({
             userId: userIdObj,
-            planExerciseId: { $in: planExerciseObjectIds },
+            planExerciseId: { $in: planExerciseIdQueries as ObjectId[] },
         })
         .sort({ completedAt: -1 })
         .limit(limit)
@@ -208,11 +224,11 @@ export const updateSetLogDate = async (
     completedAt: Date
 ): Promise<boolean> => {
     const collection = await getCollection();
-    const setLogIdObj = typeof setLogId === 'string' ? new ObjectId(setLogId) : setLogId;
+    const setLogIdQuery = typeof setLogId === 'string' ? toQueryId(setLogId) : setLogId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
     const result = await collection.updateOne(
-        { _id: setLogIdObj, userId: userIdObj },
+        { _id: setLogIdQuery as ObjectId, userId: userIdObj },
         { $set: { completedAt } }
     );
     return result.modifiedCount === 1;
@@ -226,11 +242,11 @@ export const deleteSetLogsBulk = async (
     userId: ObjectId | string
 ): Promise<number> => {
     const collection = await getCollection();
-    const setLogIdObjs = setLogIds.map(id => typeof id === 'string' ? new ObjectId(id) : id);
+    const setLogIdQueries = setLogIds.map(id => typeof id === 'string' ? toQueryId(id) : id);
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
     const result = await collection.deleteMany({
-        _id: { $in: setLogIdObjs },
+        _id: { $in: setLogIdQueries as ObjectId[] },
         userId: userIdObj,
     });
     return result.deletedCount;
@@ -244,10 +260,10 @@ export const findSetLogById = async (
     userId: ObjectId | string
 ): Promise<SetLog | null> => {
     const collection = await getCollection();
-    const setLogIdObj = typeof setLogId === 'string' ? new ObjectId(setLogId) : setLogId;
+    const setLogIdQuery = typeof setLogId === 'string' ? toQueryId(setLogId) : setLogId;
     const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
 
-    return collection.findOne({ _id: setLogIdObj, userId: userIdObj });
+    return collection.findOne({ _id: setLogIdQuery as ObjectId, userId: userIdObj });
 };
 
 /**
@@ -294,4 +310,3 @@ export const getSetStatsPerDay = async (
 
     return collection.aggregate<{ date: string; count: number }>(pipeline).toArray();
 };
-
