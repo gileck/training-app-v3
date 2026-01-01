@@ -4,7 +4,7 @@ import type { GetActivitySummaryRequest, GetActivitySummaryResponse, DailySummar
 import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
-import { toStringId } from '@/server/utils';
+import { toStringId, toQueryId } from '@/server/utils';
 
 export async function getActivitySummary(
     request: GetActivitySummaryRequest,
@@ -21,7 +21,7 @@ export async function getActivitySummary(
         const filter: Record<string, unknown> = { userId };
 
         if (request.planId) {
-            filter.planId = new ObjectId(request.planId);
+            filter.planId = toQueryId(request.planId); // Handles both ObjectId and UUID formats
         }
 
         // Default date range based on period if not specified

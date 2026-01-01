@@ -1,10 +1,9 @@
-import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { BulkAddPlanExercisesRequest, BulkAddPlanExercisesResponse, BulkAddResult, PlanExerciseWithDefinition } from '../types';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export async function bulkAddPlanExercises(
     request: BulkAddPlanExercisesRequest,
@@ -105,8 +104,8 @@ export async function bulkAddPlanExercises(
             try {
                 const exerciseData = {
                     _id: item._id, // Pass client-generated ID if provided
-                    planId: new ObjectId(request.planId),
-                    exerciseDefId: new ObjectId(item.exerciseDefId),
+                    planId: toDocumentId(request.planId), // Handles both ObjectId and UUID formats
+                    exerciseDefId: toDocumentId(item.exerciseDefId),
                     sets: item.sets,
                     reps: item.reps,
                     weight: item.weight || 0,

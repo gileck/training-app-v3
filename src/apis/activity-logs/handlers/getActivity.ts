@@ -5,7 +5,7 @@ import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
-import { toStringId } from '@/server/utils';
+import { toStringId, toQueryId } from '@/server/utils';
 
 export async function getActivity(
     request: GetActivityRequest,
@@ -23,7 +23,7 @@ export async function getActivity(
         const filter: Record<string, unknown> = { userId };
 
         if (request.planId) {
-            filter.planId = new ObjectId(request.planId);
+            filter.planId = toQueryId(request.planId); // Handles both ObjectId and UUID formats
         }
 
         if (request.startDate || request.endDate) {

@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import {
     GetExerciseHistoryRequest,
     GetExerciseHistoryResponse,
@@ -6,7 +5,7 @@ import {
 } from '../types';
 import { planExercises, setLogs, trainingPlans } from '@/server/database';
 import type { ApiHandlerContext } from '@/apis/types';
-import { toStringId } from '@/server/utils';
+import { toStringId, toQueryId } from '@/server/utils';
 
 export async function getExerciseHistory(
     request: GetExerciseHistoryRequest,
@@ -23,9 +22,9 @@ export async function getExerciseHistory(
 
         const limit = request.limit || 20;
 
-        // Find all plan exercises that use this exercise definition
-        const exerciseDefIdObj = new ObjectId(request.exerciseDefId);
-        const planExercisesList = await planExercises.findPlanExercisesByExerciseDefId(exerciseDefIdObj);
+        // Find all plan exercises that use this exercise definition (handles both ObjectId and UUID)
+        const exerciseDefId = toQueryId(request.exerciseDefId);
+        const planExercisesList = await planExercises.findPlanExercisesByExerciseDefId(exerciseDefId);
 
         if (planExercisesList.length === 0) {
             return { history: [] };

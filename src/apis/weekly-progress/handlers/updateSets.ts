@@ -12,7 +12,7 @@ import {
     atomicDecrementSets,
     findOrCreateExerciseProgress,
 } from '@/server/database/collections/exerciseProgress';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export const updateSets = async (
     request: UpdateSetsRequest,
@@ -80,11 +80,11 @@ export const updateSets = async (
                 setsCompleted = updated.setsCompleted;
                 isDone = setsCompleted >= exercise.sets;
 
-                // Create set log entry
+                // Create set log entry (handles both ObjectId and UUID formats)
                 await setLogs.createSetLog({
                     userId: new ObjectId(context.userId),
-                    planExerciseId: new ObjectId(request.planExerciseId),
-                    planId: new ObjectId(request.planId),
+                    planExerciseId: toDocumentId(request.planExerciseId),
+                    planId: toDocumentId(request.planId),
                     weekNumber: request.weekNumber,
                     setNumber: setsCompleted,
                     completedAt: new Date(),
@@ -146,14 +146,14 @@ export const updateSets = async (
             const remaining = exercise.sets - currentSets;
 
             if (remaining > 0) {
-                // Create set log entries for all remaining sets
+                // Create set log entries for all remaining sets (handles both ObjectId and UUID formats)
                 const setLogPromises = [];
                 for (let i = 1; i <= remaining; i++) {
                     setLogPromises.push(
                         setLogs.createSetLog({
                             userId: new ObjectId(context.userId),
-                            planExerciseId: new ObjectId(request.planExerciseId),
-                            planId: new ObjectId(request.planId),
+                            planExerciseId: toDocumentId(request.planExerciseId),
+                            planId: toDocumentId(request.planId),
                             weekNumber: request.weekNumber,
                             setNumber: currentSets + i,
                             completedAt: new Date(),

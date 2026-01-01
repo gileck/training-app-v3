@@ -2,19 +2,21 @@ import { ObjectId } from 'mongodb';
 
 /**
  * An item within a plan workout, referencing a planExercise
+ * Accepts both ObjectId and string (UUID) to support client-generated IDs
  */
 export interface PlanWorkoutItem {
-    planExerciseId: ObjectId;
+    planExerciseId: ObjectId | string;
     order: number;
 }
 
 /**
  * A named, ordered group of planExerciseIds within a specific plan
+ * Accepts both ObjectId and string (UUID) for ID fields to support client-generated IDs
  */
 export interface PlanWorkout {
-    _id: ObjectId;
+    _id: ObjectId | string;
     userId: ObjectId;
-    planId: ObjectId;
+    planId: ObjectId | string;
     name: string;
     items: PlanWorkoutItem[];
     order: number;

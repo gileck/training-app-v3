@@ -4,9 +4,9 @@ import { ObjectId } from 'mongodb';
  * Represents an exercise configuration within a training plan
  */
 export interface PlanExercise {
-    _id: ObjectId;
-    planId: ObjectId;
-    exerciseDefId: ObjectId;
+    _id: ObjectId | string;
+    planId: ObjectId | string;
+    exerciseDefId: ObjectId | string;
     sets: number;
     reps: number;
     weight: number; // in kg
@@ -19,6 +19,7 @@ export interface PlanExercise {
 
 /**
  * Type for creating a new plan exercise
+ * Accepts both ObjectId and string (UUID) for ID fields to support client-generated IDs
  */
 export type PlanExerciseCreate = Omit<PlanExercise, '_id'>;
 
