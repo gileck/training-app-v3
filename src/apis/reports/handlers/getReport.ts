@@ -1,6 +1,7 @@
 import { API_GET_REPORT } from '../index';
 import { GetReportRequest, GetReportResponse } from '../types';
 import { reports } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const getReport = async (
     request: GetReportRequest
@@ -18,7 +19,7 @@ export const getReport = async (
 
         // Convert to client format
         const reportClient = {
-            _id: reportDoc._id.toHexString(),
+            _id: toStringId(reportDoc._id),
             type: reportDoc.type,
             status: reportDoc.status,
             description: reportDoc.description,

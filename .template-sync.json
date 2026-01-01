@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
-  "lastProjectCommit": "a6f9b68f6fcd6ff3a1a985cae927e42e18584ba8",
-  "lastSyncDate": "2026-01-01T13:16:40.909Z",
+  "lastSyncCommit": "b02845965db07262ece9915324c261edf972f16b",
+  "lastProjectCommit": "bad6df7ff469e6da6e119b81484bbd865c80be8c",
+  "lastSyncDate": "2026-01-01T13:22:52.269Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,17 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-01T13:22:52.269Z",
+      "templateCommit": "b02845965db07262ece9915324c261edf972f16b",
+      "projectCommit": "bad6df7ff469e6da6e119b81484bbd865c80be8c",
+      "filesApplied": 6,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "b028459 refactor: replace .toHexString() with toStringId() utility \u001b[90m(01/01/2026)\u001b[0m\n  Fixed all ESLint warnings from prefer-id-utilities rule:\n  - auth handlers: loginUser.ts, registerUser.ts\n  - reports handlers: createReport.ts, getReport.ts, getReports.ts, updateReportStatus.ts\n  - todos handlers: createTodo.ts, getTodo.ts, getTodos.ts, updateTodo.ts\n  \n  All API handlers now use toStringId() from @/server/utils for\n  consistent ID string conversion that works with both ObjectId and UUID formats."
+      ]
+    },
     {
       "date": "2026-01-01T13:16:40.908Z",
       "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
@@ -273,17 +284,6 @@
       "templateCommits": [
         "3c850a5 update docs \u001b[90m(24/12/2025)\u001b[0m",
         "f55851c feat: Add project.css for project-specific styles \u001b[90m(24/12/2025)\u001b[0m\n  - Created src/client/styles/project.css for project customizations\n  - Imported after globals.css so it can override template styles\n  - Added to default ignored files so it won't conflict with template updates\n  - Projects should put custom CSS variables and styles here instead of globals.css\n  \n  This solves the divergence problem when template updates globals.css"
-      ]
-    },
-    {
-      "date": "2025-12-24T17:28:21.366Z",
-      "templateCommit": "c785aadb99b3223ad459534ab44f587adfe30cbd",
-      "projectCommit": "7a788d4905e90af67b04c7edd1ad6b1d769f46e0",
-      "filesApplied": 3,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "c785aad fix: Remove .cursor from default ignored files \u001b[90m(24/12/2025)\u001b[0m\n  Cursor commands and rules will now sync from template to projects.\n  This allows template improvements to cursor workflows to propagate."
       ]
     }
   ]
