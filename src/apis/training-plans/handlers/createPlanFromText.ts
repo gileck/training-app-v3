@@ -10,7 +10,7 @@
 import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext, CreatePlanFromTextRequest, CreatePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 // Validation limits
 const MAX_EXERCISES = 200;
@@ -30,8 +30,8 @@ function buildPlanExerciseData(
     now: Date
 ) {
     return {
-        planId: new ObjectId(planId),
-        exerciseDefId: new ObjectId(exerciseDefId),
+        planId: toDocumentId(planId), // Handle both ObjectId and UUID formats
+        exerciseDefId: toDocumentId(exerciseDefId), // Handle both ObjectId and UUID formats
         sets: exercise.sets ?? 3,
         reps: exercise.reps ?? 0,
         weight: exercise.weightKg ?? 0,
@@ -291,13 +291,13 @@ export async function createPlanFromText(
             
             for (const workout of draft.workouts) {
                 const items = workout.items.map((item, index) => ({
-                    planExerciseId: new ObjectId(planExerciseMap.get(item.draftExerciseKey)!),
+                    planExerciseId: toDocumentId(planExerciseMap.get(item.draftExerciseKey)!),
                     order: index,
                 }));
                 
                 const workoutData = {
                     userId: new ObjectId(context.userId),
-                    planId: new ObjectId(planId),
+                    planId: toDocumentId(planId), // Handle both ObjectId and UUID formats
                     name: workout.name.trim(),
                     items,
                 };

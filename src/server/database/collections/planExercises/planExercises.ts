@@ -42,9 +42,8 @@ export const isExerciseInPlan = async (
 ): Promise<boolean> => {
     const collection = await getCollection();
     const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
-    const exerciseDefIdObj =
-        typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
-    const count = await collection.countDocuments({ planId: planIdQuery as ObjectId, exerciseDefId: exerciseDefIdObj });
+    const exerciseDefIdQuery = typeof exerciseDefId === 'string' ? toQueryId(exerciseDefId) : exerciseDefId;
+    const count = await collection.countDocuments({ planId: planIdQuery as ObjectId, exerciseDefId: exerciseDefIdQuery });
     return count > 0;
 };
 
@@ -177,7 +176,6 @@ export const findPlanExercisesByExerciseDefId = async (
     exerciseDefId: ObjectId | string
 ): Promise<PlanExercise[]> => {
     const collection = await getCollection();
-    const exerciseDefIdObj =
-        typeof exerciseDefId === 'string' ? new ObjectId(exerciseDefId) : exerciseDefId;
-    return collection.find({ exerciseDefId: exerciseDefIdObj }).toArray();
+    const exerciseDefIdQuery = typeof exerciseDefId === 'string' ? toQueryId(exerciseDefId) : exerciseDefId;
+    return collection.find({ exerciseDefId: exerciseDefIdQuery }).toArray();
 };
