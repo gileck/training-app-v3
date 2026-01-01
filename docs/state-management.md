@@ -305,6 +305,12 @@ export function useItems(options?: { enabled?: boolean }) {
 - **Offline support**: UI works when network is unavailable
 - **Native-like UX**: App feels as responsive as native mobile apps
 
+📚 **Detailed Guidelines**: [react-query-mutations.md](./react-query-mutations.md)
+
+#### 🚨 CRITICAL: Optimistic-only mutation pattern
+
+**Never update UI from the server response on success.** The UI/cache is updated **only** in `onMutate`, and **only** rolled back in `onError`.
+
 ```typescript
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateItem } from '@/apis/items/client';
@@ -348,12 +354,12 @@ export function useUpdateItem() {
             }
             toast.error('Failed to update item');
         },
-        
-        // STEP 3: INVALIDATE ONLY - Do NOT update UI from server response
-        onSuccess: () => {
-            // Only invalidate - background refetch will sync final state
-            queryClient.invalidateQueries({ queryKey: itemsQueryKey });
-        },
+
+        // STEP 3: NOTHING - never update from server response (prevents races)
+        onSuccess: () => {},
+
+        // STEP 4: NOTHING - never invalidate from mutations (prevents overwriting optimistic state)
+        onSettled: () => {},
     });
 }
 ```
@@ -372,9 +378,8 @@ onSuccess: (data) => {
     queryClient.invalidateQueries({ queryKey: itemsQueryKey });
 },
 
-// ✅ CORRECT: Only invalidate, let background refetch handle sync
+// ✅ CORRECT: Do nothing (optimistic-only)
 onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: itemsQueryKey });
 },
 ```
 
@@ -384,14 +389,73 @@ onSuccess: () => {
 3. First server response returns "A" → **UI incorrectly shows "A"**
 4. Second response returns "B" → UI finally shows "B"
 
-By only invalidating queries, the background refetch gets the final correct state.
+By not applying server responses (and not invalidating from mutations), the UI remains consistent with user intent.
+
+#### Creates vs edits/deletes (guideline)
+
+**1) Edits / deletes → optimistic-only**
+
+- Update cache immediately in `onMutate`
+- Rollback only on `onError`
+- `onSuccess` and `onSettled` should be empty (no server-driven updates, no invalidations)
+
+**Examples (safe optimistic-only):**
+
+- Edit: toggle a todo `completed`, rename a todo title, update a setting-like entity
+- Delete: delete a todo (rollback if forbidden), remove a saved item
+
+**2) Creates**
+
+**2.1 Optimistic-only create ONLY if all are true:**
+
+- The client can **safely generate a stable ID** (strong random IDs like UUID/ULID/nanoid are fine)
+- The server accepts and **persists that ID** as the entity’s public ID (idempotent retries: same `id` must not create duplicates)
+- The client can render the new entity immediately without needing important server-derived fields
+
+**Examples (optimistic-only create):**
+
+- Create todo: client generates `id`, immediately inserts `{ id, title, completed:false }`, server stores by `id`
+- Create simple note/comment where server mainly persists the payload and validates permissions
+
+**2.2 Otherwise: do NOT do optimistic create**
+
+- Show loader / disable submit during create
+- On success: insert the returned entity (or refetch) and render it
+
+**Examples (no optimistic create):**
+
+- Create order/invoice/booking where server computes totals, availability, discounts, permissions, numbering
+- Create entity with uniqueness you can’t safely enforce client-side (because the client lacks the full dataset)
+
+#### Pattern: optimistic create + async enrichment (partial loading)
+
+When the entity itself is safe to create optimistically (client-generated ID), but a small server-side enrichment is needed, use **optimistic create for the base entity**, and **loading state only for the enriched field(s)**.
+
+**Example: user comment + AI tags**
+
+1. User writes comment
+2. Client generates `commentId` and inserts the comment card immediately (name/text/etc.)
+3. Render the AI tags area in a **loading** state
+4. Send create-comment request with the client-generated `commentId`
+5. When tags arrive, update **only** the tags area (do not overwrite the base comment)
+
+**Error handling rules:**
+
+- If **create comment** fails → remove the optimistic comment card + show error
+- If **AI tags** fail → keep the comment card; show “Tags unavailable” + allow retry
+
+**Stale response guard (required):**
+
+Store a `tagsRequestId` (or `tagsVersion`) on the comment when starting tags generation, and only apply a tags response if:
+- the comment still exists, and
+- the response matches the latest `tagsRequestId`
 
 #### Offline Mode Behavior
 
 | Mode | `onMutate` | `onError` | `onSuccess` |
 |------|------------|-----------|-------------|
-| **Online** | Updates UI immediately | Rollback + show error | Invalidate queries |
-| **Offline** | Updates UI immediately | Never called (request queued) | Called with `{}` data |
+| **Online** | Updates UI immediately | Rollback + show error | **Empty (optimistic-only)** |
+| **Offline** | Updates UI immediately | Never called (request queued) | **Empty (optimistic-only)** |
 
 When offline, mutations are queued and synced later via batch updates
 ```
@@ -498,22 +562,8 @@ When offline, `apiClient.post`:
 2. Returns `{ data: {}, isFromCache: false }` immediately
 3. Does NOT throw an error
 
-**⚠️ CRITICAL**: All mutation `onSuccess` callbacks must handle empty data:
-
-```typescript
-// ✅ CORRECT: Guard against empty data
-onSuccess: (data) => {
-    if (data && data.item) {
-        queryClient.setQueryData(['items', data.item._id], { item: data.item });
-    }
-    queryClient.invalidateQueries({ queryKey: ['items'] });
-},
-
-// ❌ WRONG: Will crash when offline
-onSuccess: (data) => {
-    queryClient.setQueryData(['items', data.item._id], data); // data.item is undefined!
-},
-```
+**⚠️ CRITICAL**: In this app, mutation `onSuccess` should generally be empty (optimistic-only).  
+If you do have a special-case `onSuccess`, it must handle empty data when offline (the offline queue returns `{}` immediately).
 
 ### Batch Sync
 
@@ -680,10 +730,8 @@ onMutate: async (newData) => {
     return { previous };
 },
 
-// Only invalidate in onSuccess - never update UI from server response
-onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['items'] });
-},
+// Do nothing on success (optimistic-only)
+onSuccess: () => {},
 
 // Use centralized config
 const isValid = createTTLValidator(STORE_DEFAULTS.TTL);

@@ -98,10 +98,10 @@ export const Todos = () => {
 ```
 
 **Key points:**
-- Data loads instantly from IndexedDB cache (React Query persistence)
+- Data loads instantly from localStorage cache (React Query persistence)
 - Background revalidation keeps data fresh
 - Use `isLoading && !data` to show loading only on initial load (not cache)
-- See `state-management-guidelines.mdc` for full React Query patterns
+- See `state-management-guidelines.mdc` and `docs/react-query-mutations.md` for React Query patterns
 
 ### 2. Register the Route in the Routes Configuration
 

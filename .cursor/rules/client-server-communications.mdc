@@ -125,7 +125,9 @@ export function useTodos() {
 
 ### Mutation Hooks (POST requests)
 
-Create mutation hooks with optimistic updates:
+Create mutation hooks with optimistic updates.
+
+📚 **Mutation Guidelines (Required)**: [docs/react-query-mutations.md](mdc:docs/react-query-mutations.md)
 
 ```typescript
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -157,13 +159,9 @@ export function useUpdateTodo() {
                 queryClient.setQueryData(todosQueryKey, context.previousTodos);
             }
         },
-        // ⚠️ CRITICAL: Guard against empty data (offline mode returns {})
-        onSuccess: (data) => {
-            if (data) {
-                queryClient.setQueryData(todoQueryKey(data._id), { todo: data });
-            }
-            queryClient.invalidateQueries({ queryKey: todosQueryKey });
-        },
+        // Optimistic-only: never update from server response, never invalidate from mutations
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 ```
@@ -171,22 +169,8 @@ export function useUpdateTodo() {
 ### ⚠️ Offline Mode Behavior
 
 When offline, `apiClient.post` returns `{ data: {}, isFromCache: false }` (empty object).
-**All mutation `onSuccess` callbacks MUST guard against empty/undefined data:**
-
-```typescript
-// ✅ CORRECT: Guard against empty data
-onSuccess: (data) => {
-    if (data && data.todo) {
-        queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo });
-    }
-    queryClient.invalidateQueries({ queryKey: ['todos'] });
-},
-
-// ❌ WRONG: Will crash when offline
-onSuccess: (data) => {
-    queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo }); // data.todo is undefined!
-},
-```
+Prefer `onSuccess: () => {}` (optimistic-only).  
+If you have a special-case `onSuccess` (e.g., non-optimistic create), it must guard against empty/undefined data.
 
 ## Key Guidelines Summary (Reiteration)
 
@@ -198,7 +182,7 @@ onSuccess: (data) => {
     4.  `/<domain>/client.ts`: Imports API names from `./index.ts`. Imports types from `./types.ts`. Exports client-callable functions.
     5.  `/apis/apis.ts`: Imports `domainApiHandlers` object from `/<domain>/server.ts`.
 *   **Client Access**: Components use **React Query hooks** that wrap client functions. Never call client functions directly in components.
-*   **Caching**: React Query handles caching with IndexedDB persistence. Client functions return `CacheResult<T>`.
+*   **Caching**: React Query handles caching with localStorage persistence. Client functions return `CacheResult<T>`.
 *   **Error Handling**: Server handlers should throw errors for issues; `processApiCall.ts` and `apiClient` handle packaging these.
 *   **Type Safety**: Strict typing, no `any`. Types defined in `/<domain>/types.ts`.
 *   **Separation of Concerns**: No client code in server files, no server code in client files. `index.ts` is for names/types only.

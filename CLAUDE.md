@@ -55,7 +55,7 @@ const useMyStore = createStore<MyState>({
 });
 ```
 
-**Docs:** [docs/state-management.md](docs/state-management.md), [docs/zustand-stores.md](docs/zustand-stores.md)
+**Docs:** [docs/state-management.md](docs/state-management.md), [docs/react-query-mutations.md](docs/react-query-mutations.md), [docs/zustand-stores.md](docs/zustand-stores.md)
 
 **Rules:** [.cursor/rules/state-management-guidelines.mdc](.cursor/rules/state-management-guidelines.mdc)
 

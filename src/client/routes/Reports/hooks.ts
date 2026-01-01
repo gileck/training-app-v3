@@ -9,11 +9,13 @@ import { getReports, updateReportStatus, deleteReport, deleteAllReports } from '
 import type { GetReportsRequest, ReportStatus } from '@/apis/reports/types';
 import { useQueryDefaults } from '@/client/query';
 
+const reportsBaseQueryKey = ['reports'] as const;
+
 export function useReports(filters?: GetReportsRequest) {
     const queryDefaults = useQueryDefaults();
 
     return useQuery({
-        queryKey: ['reports', filters],
+        queryKey: [...reportsBaseQueryKey, filters],
         queryFn: async () => {
             const result = await getReports(filters);
             if (result.data.error) {
@@ -36,10 +38,26 @@ export function useUpdateReportStatus() {
             }
             return result.data.report;
         },
-        onSuccess: () => {
-            // Invalidate reports query to refresh the list
-            queryClient.invalidateQueries({ queryKey: ['reports'] });
+        onMutate: async ({ reportId, status }) => {
+            await queryClient.cancelQueries({ queryKey: reportsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: reportsBaseQueryKey });
+
+            queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map((report) => (report.id === reportId ? { ...report, status } : report));
+            });
+
+            return { previous };
         },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+        },
+        // Optimistic-only: never update from server response, never invalidate from mutations
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 
@@ -54,10 +72,25 @@ export function useDeleteReport() {
             }
             return result.data;
         },
-        onSuccess: () => {
-            // Invalidate reports query to refresh the list
-            queryClient.invalidateQueries({ queryKey: ['reports'] });
+        onMutate: async (reportId) => {
+            await queryClient.cancelQueries({ queryKey: reportsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: reportsBaseQueryKey });
+
+            queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter((report) => report.id !== reportId);
+            });
+
+            return { previous };
         },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 
@@ -72,10 +105,20 @@ export function useDeleteAllReports() {
             }
             return result.data;
         },
-        onSuccess: () => {
-            // Invalidate reports query to refresh the list
-            queryClient.invalidateQueries({ queryKey: ['reports'] });
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: reportsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: reportsBaseQueryKey });
+            queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, () => []);
+            return { previous };
         },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 

@@ -62,7 +62,7 @@ Follow these best practices for route components:
 ### Using React Query for Data Fetching
 
 Use React Query hooks for data fetching. This provides:
-- **Instant boot**: Data loads from IndexedDB cache immediately
+- **Instant boot**: Data loads from localStorage cache immediately
 - **Background revalidation**: Fresh data fetches in the background
 - **Optimistic updates**: UI updates immediately on mutations
 - **Automatic error handling**: Built-in error and loading states
@@ -219,10 +219,10 @@ export function useCreateItem() {
             }
             return response.data;
         },
-        onSuccess: () => {
-            // Invalidate items list to refetch
-            queryClient.invalidateQueries({ queryKey: itemsQueryKey });
-        },
+        // Mutations: follow optimistic-only pattern.
+        // See docs/react-query-mutations.md for required guidelines (edits/deletes vs creates).
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 ```

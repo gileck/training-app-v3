@@ -55,7 +55,21 @@ export function useDeleteUser() {
             if (response.data?.error) throw new Error(response.data.error);
             return response.data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    // Optimistic-only: update in onMutate, rollback on error, never invalidate from mutations
+    onMutate: async (userId) => {
+      await queryClient.cancelQueries({ queryKey: ['users'] });
+      const previous = queryClient.getQueryData(['users']);
+      queryClient.setQueryData(['users'], (old: any) => {
+        if (!old?.users) return old;
+        return { ...old, users: old.users.filter((u: any) => u.id !== userId) };
+      });
+      return { previous };
+    },
+    onError: (_err, _userId, context) => {
+      if (context?.previous) queryClient.setQueryData(['users'], context.previous);
+    },
+    onSuccess: () => {},
+    onSettled: () => {},
     });
 }
 
@@ -87,7 +101,7 @@ const UserList = () => {
 
 ### 3. State Management Pattern
 
-- **Server State**: Use React Query for data from APIs (cached in IndexedDB)
+- **Server State**: Use React Query for data from APIs (cached in localStorage)
 - **Client State**: Use Zustand stores for app-wide state (persisted to localStorage)
 - **Local State**: Use useState for component-specific UI state
 
@@ -201,7 +215,21 @@ export function useFeatureAction() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (params) => { /* ... */ },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: featureQueryKey }),
+        // Optimistic-only: update in onMutate, rollback on error, never invalidate from mutations
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: featureQueryKey });
+            const previous = queryClient.getQueryData(featureQueryKey);
+            queryClient.setQueryData(featureQueryKey, (old) => {
+                // Apply optimistic update...
+                return old;
+            });
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previous) queryClient.setQueryData(featureQueryKey, context.previous);
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 

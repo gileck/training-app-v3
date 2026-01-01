@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "417575881ef4dc0a9649474c8a4196efbf1e95f5",
+  "lastSyncCommit": "d0dd5ff8989369088b12ba8da49216c433079207",
   "lastProjectCommit": "d648fcb33564e278755b09f96df51b2ace513c78",
-  "lastSyncDate": "2025-12-27T18:42:24.464Z",
+  "lastSyncDate": "2026-01-01T10:44:35.569Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",

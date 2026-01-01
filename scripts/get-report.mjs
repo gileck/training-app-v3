@@ -14,12 +14,13 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { appConfig } from '../src/app.config.js';
 
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env') });
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
-const DB_NAME = 'app_template_db';
+const DB_NAME = appConfig.dbName;
 
 if (!MONGODB_URI) {
     console.error('Error: MONGODB_URI or MONGO_URI environment variable is not set');

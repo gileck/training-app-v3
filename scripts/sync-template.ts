@@ -215,11 +215,20 @@ class TemplateSyncTool {
 
   private exec(command: string, options: { cwd?: string; silent?: boolean } = {}): string {
     try {
-      return execSync(command, {
+      const result = execSync(command, {
         cwd: options.cwd || this.projectRoot,
         encoding: 'utf-8',
         stdio: options.silent ? 'pipe' : 'inherit',
-      }).toString().trim();
+      });
+
+      // NOTE:
+      // When stdio is 'inherit', execSync returns null (output is streamed directly),
+      // so we must not call .toString() on it.
+      if (result == null) {
+        return '';
+      }
+
+      return result.toString().trim();
     } catch (error: any) {
       if (!options.silent) {
         throw error;

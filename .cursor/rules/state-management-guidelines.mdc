@@ -6,6 +6,7 @@ alwaysApply: true
 # State Management Guidelines
 
 📚 **Full Documentation**: [docs/state-management.md](mdc:docs/state-management.md)
+📚 **React Query Mutations**: [docs/react-query-mutations.md](mdc:docs/react-query-mutations.md)
 📚 **Store Factory**: [docs/zustand-stores.md](mdc:docs/zustand-stores.md)
 
 ## Quick Decision

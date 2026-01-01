@@ -99,15 +99,9 @@ export function useUpdateTodo() {
             }
         },
         
-        // ⚠️ CRITICAL: Guard against empty data (offline returns {})
-        onSuccess: (data) => {
-            // Only update cache if we got real data back
-            if (data && data._id) {
-                queryClient.setQueryData(todoQueryKey(data._id), { todo: data });
-            }
-            // Always invalidate to ensure consistency
-            queryClient.invalidateQueries({ queryKey: todosQueryKey });
-        },
+        // Optimistic-only: never update from server response, never invalidate from mutations
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 }
 ```
@@ -116,22 +110,8 @@ export function useUpdateTodo() {
 
 When offline, `apiClient.post` returns `{ data: {}, isFromCache: false }`.
 
-**All mutation `onSuccess` callbacks MUST guard against empty data:**
-
-```typescript
-// ✅ CORRECT
-onSuccess: (data) => {
-    if (data && data.todo) {
-        queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo });
-    }
-    queryClient.invalidateQueries({ queryKey: ['todos'] });
-},
-
-// ❌ WRONG - Will crash when offline
-onSuccess: (data) => {
-    queryClient.setQueryData(['todos', data.todo._id], { todo: data.todo });
-},
-```
+Prefer `onSuccess: () => {}` (optimistic-only).  
+If you have a special-case `onSuccess` (e.g., non-optimistic create), it must guard against empty/undefined data.
 
 ## Hook File Organization
 
@@ -160,7 +140,7 @@ export function useCreateEntity() { /* ... */ }
 export function useUpdateEntity() { /* ... */ }
 export function useDeleteEntity() { /* ... */ }
 
-// Utility Hooks (for cache invalidation)
+// Utility Hooks (manual refresh / special-cases)
 export function useInvalidateEntities() {
     const queryClient = useQueryClient();
     return {

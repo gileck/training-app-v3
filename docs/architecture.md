@@ -67,7 +67,7 @@ This document provides a high-level overview of the application architecture, de
 
 1. **Offline-First**: App works without network, syncs when online
 2. **Fast Boot**: App renders quickly using cached state (localStorage) and background validation
-3. **Optimistic Updates (Required)**: All mutations MUST update UI immediately before server confirms. Server responses should NOT update UI (only trigger error rollback or background invalidation)
+3. **Optimistic Updates (Required)**: Mutations should feel instant. For edits/deletes we use an **optimistic-only** pattern (update in `onMutate`, rollback on `onError`, and do **not** apply server responses or invalidate from the mutation).
 4. **Feature-Based Organization**: Code is organized by feature, not type
 
 ---
@@ -217,7 +217,7 @@ const { data, isLoading } = useQuery({
 // Mutating server data
 const mutation = useMutation({
     mutationFn: createTodo,
-    onSuccess: () => queryClient.invalidateQueries(['todos']),
+    onSuccess: () => {},
 });
 ```
 
@@ -369,12 +369,10 @@ useMutation({
         queryClient.setQueryData(['todos'], context.previous);
         toast.error('Failed to update');
     },
-    
-    // 3. INVALIDATE ONLY: Do NOT update UI from server response
-    onSuccess: () => {
-        // Just invalidate to refetch in background - UI is already correct
-        queryClient.invalidateQueries({ queryKey: ['todos'] });
-    },
+
+    // 3. NOTHING: optimistic-only (no server-driven updates, no invalidation)
+    onSuccess: () => {},
+    onSettled: () => {},
 });
 ```
 
@@ -389,9 +387,8 @@ onSuccess: (data) => {
     queryClient.setQueryData(['todos', data.id], data);
 },
 
-// ✅ CORRECT: Only invalidate, let background refetch handle sync
+// ✅ CORRECT: Do nothing (optimistic-only)
 onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['todos'] });
 },
 ```
 
@@ -401,22 +398,22 @@ onSuccess: () => {
 3. First server response arrives → **overwrites to ✓** (stale data!)
 4. Second server response arrives → finally shows ○
 
-By only invalidating, the background refetch gets the final correct state.
+By not applying server responses (and not invalidating from mutations), the UI remains consistent with user intent.
 
 #### Offline Mode Behavior
 
 | Mode | `onMutate` | `onError` | `onSuccess` |
 |------|------------|-----------|-------------|
-| **Online** | Updates UI | Rollback + show error | Invalidate queries |
-| **Offline** | Updates UI | Never called (queued) | Called with `{}` data |
+| **Online** | Updates UI | Rollback + show error | **Empty (optimistic-only)** |
+| **Offline** | Updates UI | Never called (queued) | **Empty (optimistic-only)** |
 
 When offline:
 - Mutations are queued to localStorage (not sent to server)
-- `onSuccess` is called immediately with empty `{}` data
 - UI stays updated from `onMutate`
 - When online, batch sync sends queued requests
 
 📚 **Detailed Documentation**: [offline-pwa-support.md](./offline-pwa-support.md)
+📚 **React Query mutation guidelines**: [react-query-mutations.md](./react-query-mutations.md)
 
 ---
 
@@ -600,7 +597,9 @@ This architecture enables:
 ✅ **Instant startup** - App renders immediately from cache  
 ✅ **Offline-first** - Full functionality without network  
 ✅ **Native-like UX** - Required optimistic updates, no loading spinners  
-✅ **No race conditions** - Server responses don't update UI, only invalidate  
+✅ **No race conditions** - Server responses don't update UI, and mutations don't invalidate  
 ✅ **Maintainable code** - Feature-based organization  
 ✅ **Type safety** - End-to-end TypeScript  
 ✅ **Enforced patterns** - ESLint rules ensure consistency
+
+📚 **React Query mutation guidelines**: [react-query-mutations.md](./react-query-mutations.md)
