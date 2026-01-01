@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "dbcfe8fa32250f14c04a0035cad0d70d6a02a442",
-  "lastProjectCommit": "782cbcd0a61a510dcb19b121f1c572755fb7ec52",
-  "lastSyncDate": "2026-01-01T10:48:02.834Z",
+  "lastSyncCommit": "72de7db8882dcb9985619747ac0dd02498e43b9b",
+  "lastProjectCommit": "343eb9822cdb3d1dd3e01f3d8c875f94f9039ff2",
+  "lastSyncDate": "2026-01-01T11:01:15.496Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,18 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-01T11:01:15.496Z",
+      "templateCommit": "72de7db8882dcb9985619747ac0dd02498e43b9b",
+      "projectCommit": "343eb9822cdb3d1dd3e01f3d8c875f94f9039ff2",
+      "filesApplied": 8,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "72de7db fix: move audit command to .cursor/commands folder \u001b[90m(01/01/2026)\u001b[0m\n  Moved audit-react-query-mutations from rules/ to commands/ folder\n  with .md extension to match other commands.",
+        "45195eb feat: add cursor command for auditing React Query mutations \u001b[90m(01/01/2026)\u001b[0m\n  New command: audit-react-query-mutations.mdc\n  - Step-by-step guide for AI agents to audit all mutations\n  - Classifies mutations as edit/delete/create\n  - Checks compliance with optimistic-only guidelines\n  - Explains UX impact when changing creates to non-optimistic\n  - Requires user approval before making changes\n  - Lists flows for manual verification\n  - Commits only after user confirms everything works"
+      ]
+    },
     {
       "date": "2026-01-01T10:48:02.833Z",
       "templateCommit": "dbcfe8fa32250f14c04a0035cad0d70d6a02a442",
@@ -283,18 +295,6 @@
         "ce0978c fix(ios): prevent double-compensation for safe area inset \u001b[90m(2025-12-23)\u001b[0m\n  Root cause: After keyboard closes in iOS PWA mode, visualViewport.height\n  is 68px smaller than innerHeight due to the home indicator safe area.\n  Our calculation saw this as a 68px offset, but CSS already handles\n  safe area via paddingBottom: env(safe-area-inset-bottom).\n  \n  Fix: Measure safe-area-inset-bottom and subtract it from the calculated\n  offset to prevent double-compensation. When offset equals safe area\n  (and keyboard is not active), set offset to 0.",
         "46e96b3 fix: resolve TypeScript errors \u001b[90m(2025-12-23)\u001b[0m\n  - Add explicit types array to tsconfig.json to avoid @types/minimatch stub issue\n  - Fix null return type in getViewportMeasurements function",
         "a260f1a fix(ios): improved navbar positioning for iOS viewport issues \u001b[90m(2025-12-23)\u001b[0m\n  - New offset calculation using document coordinates (pageTop + height)\n  - Added requestAnimationFrame polling during keyboard animations\n  - Added comprehensive debug logging (enable with window.enableLogs('ios-viewport'))\n  - Handles both browser toolbar show/hide and PWA keyboard scenarios\n  - Added touch event handlers for iOS scroll momentum"
-      ]
-    },
-    {
-      "date": "2025-12-20T15:22:02.191Z",
-      "templateCommit": "3474ab194f4b6890097635b8c4fe5b03a0381d4d",
-      "projectCommit": "fe75ea0c48adef7e4dfa1945271cc74e08f1e91e",
-      "filesApplied": 7,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "3474ab1 chore: migrate from ts-node to tsx for faster script execution \u001b[90m(2025-12-20)\u001b[0m\n  - Replace ts-node with tsx (faster TypeScript execution)\n  - Update init-template.ts defaults: lastSyncCommit=null for first sync\n  - Add clarifying comments for template sync config",
-        "7b8175c fix(auth): fix login dialog not showing and revalidate not working \u001b[90m(2025-12-20)\u001b[0m\n  - Fix validation failure not setting isValidated=true (login never showed)\n  - Fix setValidating(true) to reset isValidated=false (enables revalidate)\n  - Fix clearAuth() to set isValidated=true (login shows after logout)\n  - Simplify AuthWrapper: remove loaders, use isValidated for showLogin\n  - Remove unnecessary queryClient.invalidateQueries from login/register\n  - Update docs to reflect new auth flow (brief blank screen vs loader)"
       ]
     }
   ]

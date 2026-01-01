@@ -14,5 +14,4 @@ export * from './session-logs';
 export * from './bug-report';
 export * from './error-tracking';
 export * from './theme';
-export * from './plan-workouts';
 

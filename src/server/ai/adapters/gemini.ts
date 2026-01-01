@@ -8,7 +8,7 @@ import {
 export class GeminiAdapter implements AIModel {
   static provider = 'gemini';
   private genAI: GoogleGenAI;
-  private static readonly defaultConfig = { maxOutputTokens: 8000, temperature: 0.7 } as const;
+  private static readonly defaultConfig = { maxOutputTokens: 1000, temperature: 0.7 } as const;
 
   constructor() {
     // Get API key from environment variable
@@ -63,36 +63,6 @@ export class GeminiAdapter implements AIModel {
     }
   }
 
-  /**
-   * Extract JSON from response text, handling common AI quirks like markdown code fences
-   */
-  private extractJSON(text: string): string {
-    let cleaned = text.trim();
-    
-    // Remove markdown code fences if present
-    // Match ```json ... ``` or ``` ... ```
-    const codeBlockMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-    if (codeBlockMatch) {
-      cleaned = codeBlockMatch[1].trim();
-    }
-    
-    // Sometimes AI adds explanation before/after JSON - try to extract just the JSON object/array
-    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-      const jsonStart = cleaned.search(/[\[{]/);
-      if (jsonStart !== -1) {
-        cleaned = cleaned.substring(jsonStart);
-      }
-    }
-    
-    // Trim any trailing text after JSON
-    const lastBracket = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
-    if (lastBracket !== -1 && lastBracket < cleaned.length - 1) {
-      cleaned = cleaned.substring(0, lastBracket + 1);
-    }
-    
-    return cleaned;
-  }
-
   // Make an API call to the Gemini model and return parsed JSON
   async processPromptToJSON<T>(
     prompt: string,
@@ -101,15 +71,12 @@ export class GeminiAdapter implements AIModel {
     try {
       const result = await this.generate(modelId, prompt, { responseMimeType: 'application/json' });
       const responseText = (result as { text?: string }).text ?? '';
-      
-      // Try to extract and parse JSON
+      // Parse JSON
       let json: T;
       try {
-        const cleanedText = this.extractJSON(responseText);
-        json = JSON.parse(cleanedText) as T;
+        json = JSON.parse(responseText) as T;
       } catch (e) {
-        console.error('[Gemini] Failed to parse JSON response:', e);
-        console.error('[Gemini] Full response text:', responseText);
+        console.error('Failed to parse JSON response:', e);
         throw new Error('Failed to parse JSON response from Gemini API');
       }
       // Return the formatted response
