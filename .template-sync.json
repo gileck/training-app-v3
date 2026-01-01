@@ -3,8 +3,8 @@
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
-  "lastProjectCommit": "9231a7b1c2d06e34903181357c83cb7a71b4cde6",
-  "lastSyncDate": "2026-01-01T13:15:39.955Z",
+  "lastProjectCommit": "a6f9b68f6fcd6ff3a1a985cae927e42e18584ba8",
+  "lastSyncDate": "2026-01-01T13:16:40.909Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,15 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-01T13:16:40.908Z",
+      "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
+      "projectCommit": "a6f9b68f6fcd6ff3a1a985cae927e42e18584ba8",
+      "filesApplied": 6,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2026-01-01T13:15:39.955Z",
       "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
@@ -275,17 +284,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "c785aad fix: Remove .cursor from default ignored files \u001b[90m(24/12/2025)\u001b[0m\n  Cursor commands and rules will now sync from template to projects.\n  This allows template improvements to cursor workflows to propagate."
-      ]
-    },
-    {
-      "date": "2025-12-24T17:22:29.509Z",
-      "templateCommit": "8298f4e64fc4b4afb28f1db8f2d234bb55c9b6dd",
-      "projectCommit": "86244f90c6d1c4943d6e25857f109f4ee709cc6c",
-      "filesApplied": 1,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "8298f4e fix: Include ignored files in --diff-summary output \u001b[90m(24/12/2025)\u001b[0m\n  - Added includeIgnored parameter to getAllFiles and compareFiles\n  - diff-summary now shows ALL files including those in ignoredFiles\n  - Explicitly skip .git directory to avoid including git internals\n  - This allows reviewing what's different in ignored files too"
       ]
     }
   ]

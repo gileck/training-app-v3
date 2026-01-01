@@ -8,7 +8,6 @@ import {
 } from '../types';
 import * as users from '@/server/database/collections/users/users';
 import { UserCreate } from '@/server/database/collections/users/types';
-import { toStringId } from '@/server/utils';
 import {
     COOKIE_NAME,
     COOKIE_OPTIONS,
@@ -51,7 +50,7 @@ export const registerUser = async (
 
         // Generate JWT token
         const token = jwt.sign(
-            { userId: toStringId(newUser._id) },
+            { userId: newUser._id.toHexString() },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
         );
@@ -59,7 +58,7 @@ export const registerUser = async (
         // Set auth cookie
         context.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
 
-        const isAdmin = !!process.env.ADMIN_USER_ID && toStringId(newUser._id) === process.env.ADMIN_USER_ID;
+        const isAdmin = !!process.env.ADMIN_USER_ID && newUser._id.toHexString() === process.env.ADMIN_USER_ID;
         return { user: { ...sanitizeUser(newUser), isAdmin } };
     } catch (error: unknown) {
         console.error("Registration error:", error);
