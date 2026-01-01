@@ -3,7 +3,6 @@ import { CreateReportRequest, CreateReportResponse } from '../types';
 import { reports } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { fileStorageAPI } from '@/server/blob';
-import { toStringId } from '@/server/utils';
 
 export const createReport = async (
     request: CreateReportRequest,
@@ -51,9 +50,9 @@ export const createReport = async (
 
         const newReport = await reports.createReport(reportData);
 
-        // Convert to client format (handles both ObjectId and UUID)
+        // Convert to client format
         const reportClient = {
-            _id: toStringId(newReport._id),
+            _id: newReport._id.toHexString(),
             type: newReport.type,
             status: newReport.status,
             description: newReport.description,

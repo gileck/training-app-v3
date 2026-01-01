@@ -16,7 +16,6 @@ import {
     SALT_ROUNDS,
     sanitizeUser,
 } from "../shared";
-import { toStringId } from '@/server/utils';
 
 // Register endpoint
 export const registerUser = async (
@@ -49,10 +48,9 @@ export const registerUser = async (
 
         const newUser = await users.insertUser(userData);
 
-        // Generate JWT token (handles both ObjectId and UUID string IDs)
-        const userIdStr = toStringId(newUser._id);
+        // Generate JWT token
         const token = jwt.sign(
-            { userId: userIdStr },
+            { userId: newUser._id.toHexString() },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
         );
@@ -60,7 +58,7 @@ export const registerUser = async (
         // Set auth cookie
         context.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
 
-        const isAdmin = !!process.env.ADMIN_USER_ID && userIdStr === process.env.ADMIN_USER_ID;
+        const isAdmin = !!process.env.ADMIN_USER_ID && newUser._id.toHexString() === process.env.ADMIN_USER_ID;
         return { user: { ...sanitizeUser(newUser), isAdmin } };
     } catch (error: unknown) {
         console.error("Registration error:", error);

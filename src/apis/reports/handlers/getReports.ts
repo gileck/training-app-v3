@@ -2,7 +2,6 @@ import { API_GET_REPORTS } from '../index';
 import { GetReportsRequest, GetReportsResponse } from '../types';
 import { reports } from '@/server/database';
 import { ReportFilters } from '@/server/database/collections/reports/types';
-import { toStringId } from '@/server/utils';
 
 export const getReports = async (
     request: GetReportsRequest
@@ -31,9 +30,9 @@ export const getReports = async (
 
         const reportDocs = await reports.findReports(filters, sortBy, sortOrder);
 
-        // Convert to client format (handles both ObjectId and UUID)
+        // Convert to client format
         const reportsClient = reportDocs.map((doc) => ({
-            _id: toStringId(doc._id),
+            _id: doc._id.toHexString(),
             type: doc.type,
             status: doc.status,
             description: doc.description,

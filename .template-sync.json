@@ -3,8 +3,8 @@
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
-  "lastProjectCommit": "c94522fb0630bcf163420d4840304cb48c0ab172",
-  "lastSyncDate": "2026-01-01T12:59:13.224Z",
+  "lastProjectCommit": "367f0abd16830ea29062107d5ba02c44bb593b0a",
+  "lastSyncDate": "2026-01-01T12:59:51.188Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,15 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-01T12:59:51.188Z",
+      "templateCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
+      "projectCommit": "367f0abd16830ea29062107d5ba02c44bb593b0a",
+      "filesApplied": 7,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2026-01-01T12:59:13.223Z",
       "templateCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
@@ -278,23 +287,6 @@
       "templateCommits": [
         "c1a7f2a feat: Add template-diff cursor command for summarizing template differences \u001b[90m(24/12/2025)\u001b[0m",
         "47ebc73 fix: Make --diff-summary show full template comparison regardless of commits \u001b[90m(24/12/2025)\u001b[0m\n  - Changed diff-summary to compare current files directly (not commit-based)\n  - Simplified categorization: new files, modified files, ignored files\n  - Shows ALL differences between template and project\n  - Updated documentation to reflect the change"
-      ]
-    },
-    {
-      "date": "2025-12-24T17:05:48.286Z",
-      "templateCommit": "2e50ae1370634b5c8ef234867677a70db7f16808",
-      "projectCommit": "792e5476d8b1f4a5a717b364822c5f418fb21c6b",
-      "filesApplied": 37,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "2e50ae1 chore: Add .playwright-mcp to gitignore \u001b[90m(24/12/2025)\u001b[0m",
-        "4b2248e refactor: Simplify FontSelector - remove preview, add font icon \u001b[90m(24/12/2025)\u001b[0m",
-        "0acb9f0 feat: Add Theme & Appearance feature with customizable themes \u001b[90m(24/12/2025)\u001b[0m\n  - Add theme presets: Default, Ocean, Forest, Sunset, Rose, Midnight, Monochrome, Earth\n  - Add custom theme creation and editing with color picker dialog\n  - Add header and footer color customization via CSS variables\n  - Support both light and dark mode variants per theme\n  - Add font family customization with Google Fonts\n  - Add theming guidelines documentation and cursor rules\n  - Fix header/footer theming with inline styles for proper reactivity\n  - Improve color editor dialog with persistent expanded state\n  - Remove emojis from color group panels for cleaner UI",
-        "d9059b4 feat(sync-template): use SSH by default for template cloning \u001b[90m(24/12/2025)\u001b[0m\n  - Change default from HTTPS to SSH for better authentication\n  - Add --use-https flag for those who prefer HTTPS\n  - Automatically convert HTTPS URLs to SSH format (e.g., https://github.com/user/repo.git -> git@github.com:user/repo.git)\n  - Update init-template.ts to store SSH URL by default\n  - Update documentation to reflect new SSH default behavior\n  \n  This allows users with SSH keys configured to sync templates without entering passwords.",
-        "61b66b1 refactor(settings): improve Cache Behavior UI/UX \u001b[90m(24/12/2025)\u001b[0m\n  - Make Cache Behavior section collapsible with chevron indicator\n  - Show only the relevant description based on SWR toggle state\n  - Make cache configuration inputs mobile-friendly (responsive grid)\n  - Add divider between Cache Behavior and AI Model sections\n  - Add merge function to settings store for new field compatibility",
-        "1d34382 feat: Add user-configurable React Query cache settings \u001b[90m(24/12/2025)\u001b[0m\n  - Add 3 new cache settings to Settings panel (only shown when SWR is ON):\n    - Stale Time (seconds): How long data is fresh before refetching (default: 30)\n    - Memory Cache (minutes): How long to keep data in memory (default: 30)\n    - Persist Cache (days): How long to keep cache in localStorage (default: 7)\n  \n  - Simplify SWR behavior:\n    - SWR ON: Caching enabled with user-configurable values, offline works\n    - SWR OFF: No caching (staleTime=0, gcTime=0), offline won't work\n  \n  - Update useQueryDefaults() to use user settings instead of hardcoded values\n  - Update QueryProvider and persister to use user-configured persist days\n  - Fix inconsistency: QueryProvider was using 24h, now uses setting (default 7 days)\n  - Update docs: architecture.md, caching-strategy.md, state-management.md",
-        "0b26961 refactor: Simplify SWR to React Query only, default cache ON \u001b[90m(24/12/2025)\u001b[0m\n  - Change staleWhileRevalidate default from false to true\n  - useQueryDefaults() is now single point of control for RQ caching:\n    - SWR ON: staleTime=30s, gcTime=30min (serve cached, refresh in background)\n    - SWR OFF: staleTime=0, gcTime=0 (always fresh, no caching)\n  - Remove unused server-side SWR code from common/cache:\n    - Removed staleWhileRevalidate, isStaleTTL, maxStaleAge options\n    - Removed SWR branch from withCache() function\n    - Removed MAX_STALE_AGE from QUERY_DEFAULTS\n  - Update Settings UI label to 'Use Cache (Stale While Revalidate)'\n  - Delete outdated feature-plan/cache-feature.md\n  - Update docs: architecture.md, caching-strategy.md, state-management.md"
       ]
     }
   ]

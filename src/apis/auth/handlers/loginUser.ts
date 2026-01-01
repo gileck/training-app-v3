@@ -14,7 +14,6 @@ import {
     JWT_SECRET,
     sanitizeUser,
 } from "../shared";
-import { toStringId } from '@/server/utils';
 
 // Login endpoint
 export const loginUser = async (
@@ -39,10 +38,9 @@ export const loginUser = async (
             return { error: "Invalid username or password" };
         }
 
-        // Generate JWT token (handles both ObjectId and UUID string IDs)
-        const userIdStr = toStringId(user._id);
+        // Generate JWT token
         const token = jwt.sign(
-            { userId: userIdStr },
+            { userId: user._id.toHexString() },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
         );
@@ -50,7 +48,7 @@ export const loginUser = async (
         // Set auth cookie
         context.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
 
-        const isAdmin = !!process.env.ADMIN_USER_ID && userIdStr === process.env.ADMIN_USER_ID;
+        const isAdmin = !!process.env.ADMIN_USER_ID && user._id.toHexString() === process.env.ADMIN_USER_ID;
         return { user: { ...sanitizeUser(user), isAdmin } };
     } catch (error: unknown) {
         console.error("Login error:", error);

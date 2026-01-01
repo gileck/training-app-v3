@@ -38,6 +38,39 @@ If you apply server responses on success:
 - Edit: toggle todo `completed`, rename a todo title, change a user preference entity
 - Delete: delete a todo (rollback if forbidden), remove a saved item
 
+### ⚠️ UX Rule: All Related UI Must Be Instant
+
+If an operation is optimistic, **all UI should feel instant** - not just the list/data display.
+
+**Common mistake**: Showing loading states in confirmation dialogs for optimistic operations.
+
+```typescript
+// ❌ WRONG - Dialog shows "Removing..." even though list updates instantly
+const handleConfirmDelete = async () => {
+    setIsDeleting(true);  // Shows loading spinner
+    await deleteMutation.mutateAsync({ id });
+    setIsDeleting(false);
+    closeDialog();  // Dialog closes AFTER server responds
+};
+
+// ✅ CORRECT - Dialog closes immediately, mutation runs in background
+const handleConfirmDelete = () => {
+    closeDialog();  // Close immediately
+    deleteMutation.mutate({ id });  // Optimistic update happens, server in background
+};
+```
+
+**The principle**: With optimistic updates, the user's action is "done" the moment they click. Don't make them wait for the server.
+
+| Component | Optimistic Behavior |
+|-----------|---------------------|
+| List/data display | Updates instantly ✓ |
+| Confirmation dialog | Closes instantly ✓ |
+| Action button | No loading state needed ✓ |
+| Form inputs | Clear/reset instantly ✓ |
+
+**Exception**: Show loading only for operations that are NOT optimistic (e.g., creates that require server-generated IDs).
+
 ## Pattern: creates (no temp IDs + replace flows)
 
 We **do not** implement “temp IDs → server IDs replacement” flows (too complex/bug-prone).
@@ -328,7 +361,59 @@ return { _id: toStringId(item._id), ...item };
 - ✅ Single `_id` field (no separate `clientId`)
 - ✅ MongoDB indexes work on both formats
 
-#### 4. Collision Handling (Extremely Rare)
+#### 4. ⚠️ Always Use Server Utilities - Never Direct ObjectId Methods
+
+When IDs can be either ObjectId format (legacy) or UUID strings (new), direct ObjectId methods will fail.
+
+##### Error 1: `.toHexString()` on UUID strings
+
+```
+TypeError: item._id.toHexString is not a function
+```
+
+```typescript
+// ❌ WRONG - Breaks on UUID strings
+const clientId = item._id.toHexString(); // TypeError if _id is a UUID string!
+
+// ✅ CORRECT - Works for both ObjectId and string
+import { toStringId } from '@/server/utils';
+const clientId = toStringId(item._id); // Always returns string
+```
+
+##### Error 2: `new ObjectId()` on UUID strings
+
+```
+BSONError: input must be a 24 character hex string, 12 byte Uint8Array, or an integer
+```
+
+```typescript
+// ❌ WRONG - Breaks on UUID strings
+const docId = new ObjectId(clientProvidedId); // BSONError if it's a UUID!
+
+// ✅ CORRECT - Works for both formats
+import { toDocumentId } from '@/server/utils';
+const docId = toDocumentId(clientProvidedId); // ObjectId or string as appropriate
+```
+
+##### Error 3: Direct ObjectId in queries
+
+```typescript
+// ❌ WRONG - Breaks on UUID strings
+const item = await collection.findOne({ _id: new ObjectId(id) });
+
+// ✅ CORRECT - Works for both formats
+import { toQueryId } from '@/server/utils';
+const item = await collection.findOne({ _id: toQueryId(id) });
+```
+
+**Rule**: In API handlers and database code, **always use the server utilities** instead of direct ObjectId methods:
+
+| Instead of | Use |
+|------------|-----|
+| `id.toHexString()` | `toStringId(id)` |
+| `new ObjectId(id)` | `toDocumentId(id)` or `toQueryId(id)` |
+
+#### 5. Collision Handling (Extremely Rare)
 
 UUID v4 collision probability is ~1 in 2^122. You'll never see one. But if paranoid:
 
