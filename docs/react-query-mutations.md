@@ -13,7 +13,56 @@ This document defines the **required mutation patterns** for this application.
 
 This avoids race conditions when users interact faster than the server responds.
 
-## Why “optimistic-only” (race condition example)
+### ✅ Allowed Exception: Invalidating Separate Aggregation Queries
+
+The rule "no invalidateQueries" applies to **the data you just optimistically updated**. However, you **may** invalidate a **separate** query that contains server-computed aggregations the client cannot calculate.
+
+**Example**: Activity list + activity summary
+
+```typescript
+// ✅ ALLOWED - invalidating a DIFFERENT query for server-computed aggregations
+useMutation({
+    mutationFn: deleteActivity,
+    
+    onMutate: async (activityId) => {
+        // Optimistically remove from activities list
+        queryClient.setQueryData(['activities'], (old) => ({
+            activities: old.activities.filter(a => a._id !== activityId)
+        }));
+        return { previous };
+    },
+    
+    onError: (_err, _vars, context) => {
+        queryClient.setQueryData(['activities'], context.previous);
+    },
+    
+    onSuccess: () => {},  // Empty - don't update activities from server
+    
+    onSettled: () => {
+        // ✅ OK - 'activity-summary' is a SEPARATE query we can't compute client-side
+        queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
+        
+        // ❌ BAD - This would cause race condition with optimistic data
+        // queryClient.invalidateQueries({ queryKey: ['activities'] });
+    },
+});
+```
+
+**Why this is acceptable UX:**
+
+| Component | Behavior | Timing |
+|-----------|----------|--------|
+| **Activity list** | Item disappears instantly | Immediate (optimistic) |
+| **Summary card** (e.g., "Today: 15 sets") | Shows stale data briefly → refreshes | ~200-500ms delay |
+
+The user's primary focus is on the list they just modified. The summary is peripheral - a brief delay updating derived aggregations is imperceptible and doesn't cause jarring "jump back" behavior.
+
+**When NOT to use this exception:**
+- If the summary is the **primary focus** of the interaction (user drills down into summary)
+- If staleness would confuse the user's next action
+- For the **same data** you're optimistically updating (always causes race conditions)
+
+## Why "optimistic-only" (race condition example)
 
 If you apply server responses on success:
 

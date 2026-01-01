@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
-  "lastProjectCommit": "367f0abd16830ea29062107d5ba02c44bb593b0a",
-  "lastSyncDate": "2026-01-01T12:59:51.188Z",
+  "lastSyncCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
+  "lastProjectCommit": "9231a7b1c2d06e34903181357c83cb7a71b4cde6",
+  "lastSyncDate": "2026-01-01T13:15:39.955Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,17 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-01T13:15:39.955Z",
+      "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
+      "projectCommit": "9231a7b1c2d06e34903181357c83cb7a71b4cde6",
+      "filesApplied": 1,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "608a105 docs: add allowed exception for invalidating separate aggregation queries \u001b[90m(01/01/2026)\u001b[0m\n  Added documentation explaining that invalidating a DIFFERENT query for\n  server-computed aggregations is acceptable, while the optimistic data\n  stays as source of truth.\n  \n  Example: Activity list (optimistic) + Activity summary (invalidated)\n  - List updates instantly (optimistic)\n  - Summary refreshes after ~200-500ms (server aggregation)\n  - No race condition because they're separate queries"
+      ]
+    },
     {
       "date": "2026-01-01T12:59:51.188Z",
       "templateCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
@@ -275,18 +286,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "8298f4e fix: Include ignored files in --diff-summary output \u001b[90m(24/12/2025)\u001b[0m\n  - Added includeIgnored parameter to getAllFiles and compareFiles\n  - diff-summary now shows ALL files including those in ignoredFiles\n  - Explicitly skip .git directory to avoid including git internals\n  - This allows reviewing what's different in ignored files too"
-      ]
-    },
-    {
-      "date": "2025-12-24T17:12:38.927Z",
-      "templateCommit": "c1a7f2a21a60c55148db96fa5a6dac3ec5069ef3",
-      "projectCommit": "244558a6598f4518fbfb5231f252366e04c07f97",
-      "filesApplied": 2,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "c1a7f2a feat: Add template-diff cursor command for summarizing template differences \u001b[90m(24/12/2025)\u001b[0m",
-        "47ebc73 fix: Make --diff-summary show full template comparison regardless of commits \u001b[90m(24/12/2025)\u001b[0m\n  - Changed diff-summary to compare current files directly (not commit-based)\n  - Simplified categorization: new files, modified files, ignored files\n  - Shows ALL differences between template and project\n  - Updated documentation to reflect the change"
       ]
     }
   ]
