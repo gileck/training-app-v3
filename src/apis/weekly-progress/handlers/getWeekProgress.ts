@@ -66,7 +66,7 @@ export const getWeekProgress = async (
         const exerciseDefMap = new Map(exerciseDefs.map((def) => [toStringId(def._id), def]));
 
         // Get all exercise progress for this week
-        const allProgress = await exerciseProgress.findExerciseProgressByWeekId(weekProgress._id);
+        const allProgress = await exerciseProgress.findExerciseProgressByWeekId(toStringId(weekProgress._id));
         const progressMap = new Map(allProgress.map((p) => [toStringId(p.planExerciseId), p]));
 
         // Calculate totals and build response

@@ -2,11 +2,12 @@ import { ObjectId } from 'mongodb';
 
 /**
  * Represents progress for a specific exercise within a week
+ * Accepts both ObjectId and string (UUID) for ID fields to support client-generated IDs
  */
 export interface ExerciseProgress {
-    _id: ObjectId;
-    weeklyProgressId: ObjectId;
-    planExerciseId: ObjectId;
+    _id: ObjectId | string;
+    weeklyProgressId: ObjectId | string;
+    planExerciseId: ObjectId | string;
     setsCompleted: number;
     isDone: boolean;
     updatedAt: Date;

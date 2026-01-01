@@ -63,7 +63,8 @@ export const updateSets = async (
         );
 
         // Ensure exercise progress document exists before atomic operations
-        await findOrCreateExerciseProgress(weekProgress._id, request.planExerciseId);
+        const weekProgressId = toStringId(weekProgress._id);
+        await findOrCreateExerciseProgress(weekProgressId, request.planExerciseId);
 
         let setsCompleted: number;
         let isDone: boolean;
@@ -71,7 +72,7 @@ export const updateSets = async (
         if (request.action === 'add') {
             // Use atomic increment to prevent race conditions from rapid clicks
             const updated = await atomicIncrementSets(
-                weekProgress._id,
+                weekProgressId,
                 request.planExerciseId,
                 exercise.sets
             );
@@ -93,7 +94,7 @@ export const updateSets = async (
                 // Update isDone flag if needed
                 if (isDone) {
                     await exerciseProgress.updateExerciseProgress(
-                        weekProgress._id,
+                        weekProgressId,
                         request.planExerciseId,
                         { isDone: true }
                     );
@@ -101,7 +102,7 @@ export const updateSets = async (
             } else {
                 // Already at max sets, return current state
                 const current = await exerciseProgress.findExerciseProgress(
-                    weekProgress._id,
+                    weekProgressId,
                     request.planExerciseId
                 );
                 setsCompleted = current?.setsCompleted || exercise.sets;
@@ -110,7 +111,7 @@ export const updateSets = async (
         } else if (request.action === 'remove') {
             // Use atomic decrement to prevent race conditions from rapid clicks
             const updated = await atomicDecrementSets(
-                weekProgress._id,
+                weekProgressId,
                 request.planExerciseId
             );
 
@@ -127,7 +128,7 @@ export const updateSets = async (
 
                 // Update isDone flag if it changed
                 await exerciseProgress.updateExerciseProgress(
-                    weekProgress._id,
+                    weekProgressId,
                     request.planExerciseId,
                     { isDone }
                 );
@@ -139,7 +140,7 @@ export const updateSets = async (
         } else {
             // complete-all action - get current state first
             const currentProgress = await exerciseProgress.findExerciseProgress(
-                weekProgress._id,
+                weekProgressId,
                 request.planExerciseId
             );
             const currentSets = currentProgress?.setsCompleted || 0;
@@ -168,7 +169,7 @@ export const updateSets = async (
 
             // Update to full completion
             await exerciseProgress.updateExerciseProgress(
-                weekProgress._id,
+                weekProgressId,
                 request.planExerciseId,
                 { setsCompleted, isDone }
             );

@@ -6,6 +6,7 @@ import {
     exerciseProgress,
     setLogs,
 } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const deletePlan = async (
     request: DeletePlanRequest,
@@ -33,7 +34,7 @@ export const deletePlan = async (
         // 2. Get all weekly progress for this plan and delete exercise progress
         const weeklyProgressList = await weeklyProgress.findAllWeeklyProgress(request.planId);
         for (const wp of weeklyProgressList) {
-            await exerciseProgress.deleteExerciseProgressByWeekId(wp._id);
+            await exerciseProgress.deleteExerciseProgressByWeekId(toStringId(wp._id));
         }
 
         // 3. Delete all weekly progress
