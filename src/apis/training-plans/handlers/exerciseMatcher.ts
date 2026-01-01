@@ -54,10 +54,15 @@ function normalizeExerciseName(name: string): string {
         .replace(/\btrap\b/gi, 'traps')
         .replace(/\blat\b/gi, 'lats')
         .replace(/\bab\b/gi, 'abs')
-        // Normalize common exercise name variations
+        // Normalize common exercise name variations (hyphenated → non-hyphenated)
         .replace(/\bpull-up\b/gi, 'pullup')
+        .replace(/\bpull-down\b/gi, 'pulldown')
         .replace(/\bpush-up\b/gi, 'pushup')
-        .replace(/\bsit-up\b/gi, 'situp');
+        .replace(/\bsit-up\b/gi, 'situp')
+        .replace(/\bstep-up\b/gi, 'stepup')
+        .replace(/\bface-pull\b/gi, 'facepull')
+        // Remove remaining hyphens between words (general fallback)
+        .replace(/-/g, '');
 }
 
 /**
