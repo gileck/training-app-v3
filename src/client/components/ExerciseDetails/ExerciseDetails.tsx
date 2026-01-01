@@ -189,7 +189,6 @@ export function ExerciseDetails({
                 {/* Exercise image header */}
                 <div className="relative w-full h-52 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
                     {exercise.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={exercise.imageUrl}
                             alt={exercise.name}

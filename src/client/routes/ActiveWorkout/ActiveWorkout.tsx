@@ -797,7 +797,6 @@ export function ActiveWorkout() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex items-center justify-center ring-1 ring-border/40">
                                                         {exercise.exerciseDef.imageUrl ? (
-                                                            // eslint-disable-next-line @next/next/no-img-element
                                                             <img
                                                                 src={exercise.exerciseDef.imageUrl}
                                                                 alt=""
@@ -894,7 +893,6 @@ export function ActiveWorkout() {
                                     <div className="relative mb-4">
                                         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-md ring-1 ring-border/25">
                                             {currentExercise.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img
                                                     src={currentExercise.exerciseDef.imageUrl}
                                                     alt=""
@@ -1048,7 +1046,6 @@ export function ActiveWorkout() {
                                     >
                                         <div className="w-8 h-8 rounded bg-muted overflow-hidden flex-shrink-0">
                                             {exercise.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img
                                                     src={exercise.exerciseDef.imageUrl}
                                                     alt=""
@@ -1147,7 +1144,6 @@ export function ActiveWorkout() {
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center ring-1 ring-border/40">
                                             {exercise.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img
                                                     src={exercise.exerciseDef.imageUrl}
                                                     alt=""
@@ -1338,7 +1334,6 @@ function AllExercisesOverlay({
                             ) : null}
                             <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                                 {exercise.exerciseDef.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                         src={exercise.exerciseDef.imageUrl}
                                         alt=""
@@ -1414,7 +1409,6 @@ function AllExercisesOverlay({
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center ring-1 ring-border/40 flex-shrink-0">
                                             {exercise.exerciseDef.imageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img
                                                     src={exercise.exerciseDef.imageUrl}
                                                     alt=""

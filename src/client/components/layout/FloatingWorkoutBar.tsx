@@ -78,7 +78,6 @@ export function FloatingWorkoutBar() {
                 {/* Exercise Icon */}
                 <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {currentExercise?.exerciseDef.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={currentExercise.exerciseDef.imageUrl}
                             alt={currentExercise.exerciseDef.name}

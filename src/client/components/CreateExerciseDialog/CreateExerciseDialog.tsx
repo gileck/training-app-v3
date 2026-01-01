@@ -226,7 +226,6 @@ export function CreateExerciseDialog({
                         <Label>Image (optional)</Label>
                         {imagePreview ? (
                             <div className="relative w-full h-40 rounded-lg bg-muted overflow-hidden">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={imagePreview}
                                     alt="Exercise preview"

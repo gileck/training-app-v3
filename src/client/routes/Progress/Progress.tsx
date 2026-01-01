@@ -218,7 +218,6 @@ function ActivityItem({
             )}
             <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                 {activity.exerciseImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={activity.exerciseImageUrl}
                         alt={activity.exerciseName}
@@ -319,14 +318,13 @@ function GroupedActivityItem({
                         {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
                     />
                 )}
-                <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                    {firstActivity.exerciseImageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={firstActivity.exerciseImageUrl}
-                            alt={firstActivity.exerciseName}
-                            className="h-full w-full object-contain"
-                        />
+            <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                {firstActivity.exerciseImageUrl ? (
+                    <img
+                        src={firstActivity.exerciseImageUrl}
+                        alt={firstActivity.exerciseName}
+                        className="h-full w-full object-contain"
+                    />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center">
                             <Dumbbell className="h-5 w-5 text-muted-foreground" />

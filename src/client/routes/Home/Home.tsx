@@ -663,14 +663,13 @@ function ExerciseCardGrid({
                 <div className="flex gap-4 mb-3">
                     {/* Image with completion/selection badge */}
                     <div className="relative flex-shrink-0">
-                        <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden">
-                            {exercise.exerciseDef.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={exercise.exerciseDef.imageUrl}
-                                    alt={exercise.exerciseDef.name}
-                                    className="w-full h-full object-contain"
-                                />
+                    <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden">
+                        {exercise.exerciseDef.imageUrl ? (
+                            <img
+                                src={exercise.exerciseDef.imageUrl}
+                                alt={exercise.exerciseDef.name}
+                                className="w-full h-full object-contain"
+                            />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <Dumbbell className="h-8 w-8 text-muted-foreground" />
@@ -815,7 +814,6 @@ function ExerciseCardList({
                             className="w-12 h-12 rounded-lg bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                         >
                             {exercise.exerciseDef.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={exercise.exerciseDef.imageUrl}
                                     alt={exercise.exerciseDef.name}
@@ -959,7 +957,6 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
                                 >
                                     <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
                                         {ex.exerciseDef.imageUrl ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={ex.exerciseDef.imageUrl}
                                                 alt={ex.exerciseDef.name}
