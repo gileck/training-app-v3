@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, CreatePlanWorkoutRequest, CreatePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans, planExercises } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/utils';
@@ -43,7 +42,7 @@ export const createPlanWorkout = async (
 
         const workoutData = {
             _id: request._id, // Pass client-generated ID if provided
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             planId: toDocumentId(request.planId), // Handles both ObjectId and UUID formats
             name: request.name.trim(),
             items: request.items.map((item, index) => ({

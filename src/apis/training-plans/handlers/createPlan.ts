@@ -1,7 +1,6 @@
 import { ApiHandlerContext, CreatePlanRequest, CreatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
-import { ObjectId } from 'mongodb';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export const createPlan = async (
     request: CreatePlanRequest,
@@ -32,7 +31,7 @@ export const createPlan = async (
 
         const planData = {
             _id: request._id, // Pass client-generated ID if provided
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             name: request.name.trim(),
             durationWeeks: request.durationWeeks,
             isActive: isFirstPlan, // First plan is automatically active

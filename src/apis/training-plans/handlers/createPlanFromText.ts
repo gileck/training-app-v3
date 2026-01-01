@@ -7,7 +7,6 @@
  * This handler does NOT call AI - it uses the draft from the preview step.
  */
 
-import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext, CreatePlanFromTextRequest, CreatePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/utils';
@@ -163,7 +162,7 @@ async function createCustomExercise(
         isBodyweight: false,
         isStatic,
         isSystem: false,
-        userId: new ObjectId(userId),
+        userId: toDocumentId(userId),
         createdAt: now,
         updatedAt: now,
     };
@@ -213,7 +212,7 @@ export async function createPlanFromText(
         const isFirstPlan = existingPlans.length === 0;
         
         const planData = {
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             name: draft.planName.trim(),
             durationWeeks: draft.durationWeeks,
             isActive: isFirstPlan, // First plan is automatically active
@@ -296,7 +295,7 @@ export async function createPlanFromText(
                 }));
                 
                 const workoutData = {
-                    userId: new ObjectId(context.userId),
+                    userId: toDocumentId(context.userId),
                     planId: toDocumentId(planId), // Handle both ObjectId and UUID formats
                     name: workout.name.trim(),
                     items,

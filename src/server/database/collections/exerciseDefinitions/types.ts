@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
  * Can be a system exercise (shared) or user-created custom exercise
  */
 export interface ExerciseDefinition {
-    _id: ObjectId;
+    _id: ObjectId | string;
     name: string;
     imageUrl: string;
     primaryMuscle: string;
@@ -14,7 +14,7 @@ export interface ExerciseDefinition {
     isBodyweight: boolean;
     isStatic: boolean;
     isSystem: boolean;
-    userId?: ObjectId; // Only set for custom user exercises
+    userId?: ObjectId | string; // Only set for custom user exercises
     createdAt: Date;
     updatedAt: Date;
 }
@@ -22,7 +22,7 @@ export interface ExerciseDefinition {
 /**
  * Type for creating a new exercise definition
  */
-export type ExerciseDefinitionCreate = Omit<ExerciseDefinition, '_id'>;
+export type ExerciseDefinitionCreate = Omit<ExerciseDefinition, '_id'> & { _id?: ObjectId | string };
 
 /**
  * Type for updating an exercise definition

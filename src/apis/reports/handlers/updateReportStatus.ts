@@ -1,6 +1,7 @@
 import { API_UPDATE_REPORT_STATUS } from '../index';
 import { UpdateReportStatusRequest, UpdateReportStatusResponse } from '../types';
 import { reports } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const updateReportStatus = async (
     request: UpdateReportStatusRequest
@@ -27,7 +28,7 @@ export const updateReportStatus = async (
 
         // Convert to client format
         const reportClient = {
-            _id: reportDoc._id.toHexString(),
+            _id: toStringId(reportDoc._id),
             type: reportDoc.type,
             status: reportDoc.status,
             description: reportDoc.description,

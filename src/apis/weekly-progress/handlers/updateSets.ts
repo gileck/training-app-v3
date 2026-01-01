@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, UpdateSetsRequest, UpdateSetsResponse } from '../types';
 import {
     trainingPlans,
@@ -83,7 +82,7 @@ export const updateSets = async (
 
                 // Create set log entry (handles both ObjectId and UUID formats)
                 await setLogs.createSetLog({
-                    userId: new ObjectId(context.userId),
+                    userId: toDocumentId(context.userId),
                     planExerciseId: toDocumentId(request.planExerciseId),
                     planId: toDocumentId(request.planId),
                     weekNumber: request.weekNumber,
@@ -152,7 +151,7 @@ export const updateSets = async (
                 for (let i = 1; i <= remaining; i++) {
                     setLogPromises.push(
                         setLogs.createSetLog({
-                            userId: new ObjectId(context.userId),
+                            userId: toDocumentId(context.userId),
                             planExerciseId: toDocumentId(request.planExerciseId),
                             planId: toDocumentId(request.planId),
                             weekNumber: request.weekNumber,

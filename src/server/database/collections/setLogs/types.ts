@@ -7,7 +7,7 @@ import { ObjectId } from 'mongodb';
  */
 export interface SetLog {
     _id: ObjectId | string;
-    userId: ObjectId;
+    userId: ObjectId | string;
     planExerciseId: ObjectId | string;
     planId: ObjectId | string;
     weekNumber: number;
@@ -18,7 +18,7 @@ export interface SetLog {
 /**
  * Type for creating a new set log
  */
-export type SetLogCreate = Omit<SetLog, '_id'>;
+export type SetLogCreate = Omit<SetLog, '_id'> & { _id?: ObjectId | string };
 
 /**
  * Client-friendly set log with string IDs

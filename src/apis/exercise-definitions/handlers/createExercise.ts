@@ -1,9 +1,8 @@
-import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { CreateExerciseRequest, CreateExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import { fileStorageAPI, isBase64Data } from '@/server/blob';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export async function createExercise(
     request: CreateExerciseRequest,
@@ -57,7 +56,7 @@ export async function createExercise(
             isBodyweight: request.isBodyweight || false,
             isStatic: request.isStatic || false,
             isSystem: false,
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             createdAt: now,
             updatedAt: now,
         };

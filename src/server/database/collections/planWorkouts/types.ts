@@ -15,7 +15,7 @@ export interface PlanWorkoutItem {
  */
 export interface PlanWorkout {
     _id: ObjectId | string;
-    userId: ObjectId;
+    userId: ObjectId | string;
     planId: ObjectId | string;
     name: string;
     items: PlanWorkoutItem[];
@@ -26,6 +26,7 @@ export interface PlanWorkout {
 
 export type PlanWorkoutCreate = Omit<PlanWorkout, '_id' | 'createdAt' | 'updatedAt' | 'order'> & {
     order?: number;
+    _id?: ObjectId | string;
 };
 
 export type PlanWorkoutUpdate = Partial<Omit<PlanWorkout, '_id' | 'userId' | 'planId' | 'createdAt'>> & {

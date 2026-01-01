@@ -1,7 +1,6 @@
 import { ApiHandlerContext, DuplicatePlanRequest, DuplicatePlanResponse } from '../types';
 import { trainingPlans, planExercises } from '@/server/database';
-import { ObjectId } from 'mongodb';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export const duplicatePlan = async (
     request: DuplicatePlanRequest,
@@ -26,7 +25,7 @@ export const duplicatePlan = async (
 
         // Create the new plan with "(Copy)" suffix
         const newPlanData = {
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             name: `${originalPlan.name} (Copy)`,
             durationWeeks: originalPlan.durationWeeks,
             isActive: false, // Duplicated plan is not active by default

@@ -1,11 +1,10 @@
-import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { GetActivityRequest, GetActivityResponse, ActivityLogEntry } from '../types';
 import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
-import { toStringId, toQueryId } from '@/server/utils';
+import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
 
 export async function getActivity(
     request: GetActivityRequest,
@@ -16,7 +15,7 @@ export async function getActivity(
             return { error: 'Unauthorized' };
         }
 
-        const userId = new ObjectId(context.userId);
+        const userId = toDocumentId(context.userId);
         const limit = Math.min(request.limit || 50, 200); // Cap at 200
 
         // Build filter

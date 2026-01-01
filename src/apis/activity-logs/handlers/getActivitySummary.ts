@@ -1,10 +1,9 @@
-import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { GetActivitySummaryRequest, GetActivitySummaryResponse, DailySummary } from '../types';
 import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
-import { toStringId, toQueryId } from '@/server/utils';
+import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
 
 export async function getActivitySummary(
     request: GetActivitySummaryRequest,
@@ -15,7 +14,7 @@ export async function getActivitySummary(
             return { error: 'Unauthorized' };
         }
 
-        const userId = new ObjectId(context.userId);
+        const userId = toDocumentId(context.userId);
 
         // Build filter
         const filter: Record<string, unknown> = { userId };

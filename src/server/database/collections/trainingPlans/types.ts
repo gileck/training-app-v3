@@ -4,8 +4,8 @@ import { ObjectId } from 'mongodb';
  * Represents a training plan in the system
  */
 export interface TrainingPlan {
-    _id: ObjectId;
-    userId: ObjectId;
+    _id: ObjectId | string;
+    userId: ObjectId | string;
     name: string;
     durationWeeks: number;
     isActive: boolean;
@@ -16,7 +16,7 @@ export interface TrainingPlan {
 /**
  * Type for creating a new training plan
  */
-export type TrainingPlanCreate = Omit<TrainingPlan, '_id'>;
+export type TrainingPlanCreate = Omit<TrainingPlan, '_id'> & { _id?: ObjectId | string };
 
 /**
  * Type for updating a training plan

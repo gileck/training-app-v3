@@ -1,11 +1,10 @@
-import { ObjectId } from 'mongodb';
 import { AddActivityRequest, AddActivityResponse, ActivityLogEntry } from '../types';
 import { setLogs } from '@/server/database';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
 import type { ApiHandlerContext } from '@/apis/types';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export async function addActivity(
     request: AddActivityRequest,
@@ -66,7 +65,7 @@ export async function addActivity(
 
         // Create set logs for each set
         const activities: ActivityLogEntry[] = [];
-        const userIdObj = new ObjectId(context.userId);
+        const userIdObj = toDocumentId(context.userId);
 
         for (let setNumber = 1; setNumber <= request.numberOfSets; setNumber++) {
             // Get client-generated ID if provided (one per set)

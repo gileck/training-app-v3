@@ -1,8 +1,7 @@
 import { API_CREATE_TODO } from '../index';
 import { ApiHandlerContext, CreateTodoRequest, CreateTodoResponse } from '../types';
 import { todos } from '@/server/database';
-import { ObjectId } from 'mongodb';
-import { toStringId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/utils';
 
 export const createTodo = async (
     request: CreateTodoRequest,
@@ -20,7 +19,7 @@ export const createTodo = async (
         const now = new Date();
         const todoData = {
             _id: request._id, // Pass client-generated ID if provided
-            userId: new ObjectId(context.userId),
+            userId: toDocumentId(context.userId),
             title: request.title.trim(),
             completed: false,
             createdAt: now,
