@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -47,6 +47,15 @@ export function AddExerciseDialog({
     const [showMultiConfig, setShowMultiConfig] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dismiss state
     const [showCreateExerciseBanner, setShowCreateExerciseBanner] = useState(true);
+
+    // Reset state when dialog closes (handles both user interaction and programmatic close)
+    useEffect(() => {
+        if (!open) {
+            setSelectedExercise(null);
+            setSelectedExercises(new Map());
+            setShowMultiConfig(false);
+        }
+    }, [open]);
 
     const handleSelectExercise = (exercise: ExerciseDefinitionClient) => {
         setSelectedExercise(exercise);
