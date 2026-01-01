@@ -14,7 +14,6 @@ interface DeleteWorkoutDialogProps {
     onOpenChange: (open: boolean) => void;
     workout: PlanWorkoutClient | null;
     onConfirm: () => void;
-    isPending: boolean;
 }
 
 export function DeleteWorkoutDialog({
@@ -22,7 +21,6 @@ export function DeleteWorkoutDialog({
     onOpenChange,
     workout,
     onConfirm,
-    isPending,
 }: DeleteWorkoutDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,10 +42,9 @@ export function DeleteWorkoutDialog({
                     <Button
                         variant="destructive"
                         onClick={onConfirm}
-                        disabled={isPending}
                         className="rounded-lg"
                     >
-                        {isPending ? 'Deleting...' : 'Delete'}
+                        Delete
                     </Button>
                 </DialogFooter>
             </DialogContent>

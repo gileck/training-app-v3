@@ -134,14 +134,15 @@ export function WorkoutsTab({
 
     const confirmDeleteWorkout = () => {
         if (!workoutToDelete) return;
+        const workoutId = workoutToDelete._id;
+
+        // Close dialog immediately - optimistic update already removed from list
+        setDeleteDialogOpen(false);
+        setWorkoutToDelete(null);
+
         deleteWorkoutMutation.mutate(
-            { planId, workoutId: workoutToDelete._id },
+            { planId, workoutId },
             {
-                onSuccess: () => {
-                    setDeleteDialogOpen(false);
-                    setWorkoutToDelete(null);
-                    toast.success('Workout deleted');
-                },
                 onError: (err) => {
                     toast.error(`Failed to delete: ${err.message}`);
                 },
@@ -280,7 +281,6 @@ export function WorkoutsTab({
                 onOpenChange={setDeleteDialogOpen}
                 workout={workoutToDelete}
                 onConfirm={confirmDeleteWorkout}
-                isPending={deleteWorkoutMutation.isPending}
             />
         </div>
     );

@@ -5,6 +5,7 @@ import { Input } from '@/client/components/ui/input';
 import { Label } from '@/client/components/ui/label';
 import { Badge } from '@/client/components/ui/badge';
 import { Skeleton } from '@/client/components/ui/skeleton';
+import { toast } from '@/client/components/ui/toast';
 import {
     Dialog,
     DialogContent,
@@ -88,17 +89,23 @@ export function TrainingPlans() {
 
     const confirmDelete = () => {
         if (!planToDelete) return;
+        const planId = planToDelete._id;
+
+        // Close dialog immediately - optimistic update already removed from list
+        setDeleteDialogOpen(false);
+        
+        // Clear selection if the deleted plan was selected
+        if (selectedPlanId === planId) {
+            setSelectedPlanId(null);
+        }
+        
+        setPlanToDelete(null);
 
         deletePlanMutation.mutate(
-            { planId: planToDelete._id },
+            { planId },
             {
-                onSuccess: () => {
-                    setDeleteDialogOpen(false);
-                    setPlanToDelete(null);
-                    // Clear selection if the deleted plan was selected
-                    if (selectedPlanId === planToDelete._id) {
-                        setSelectedPlanId(null);
-                    }
+                onError: (error) => {
+                    toast.error(`Failed to delete plan: ${error.message}`);
                 },
             }
         );
@@ -419,10 +426,9 @@ export function TrainingPlans() {
                         <Button
                             variant="destructive"
                             onClick={confirmDelete}
-                            disabled={deletePlanMutation.isPending}
                             className="rounded-lg"
                         >
-                            {deletePlanMutation.isPending ? 'Deleting...' : 'Delete'}
+                            Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>
