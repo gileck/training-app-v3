@@ -195,13 +195,15 @@ export function ExercisesTab({
 
     const confirmDelete = () => {
         if (!exerciseToDelete) return;
+        const exerciseId = exerciseToDelete._id;
+        
+        // Close dialog immediately - optimistic update already removed from list
+        setDeleteDialogOpen(false);
+        setExerciseToDelete(null);
+        
         deleteExerciseMutation.mutate(
-            { planExerciseId: exerciseToDelete._id },
+            { planExerciseId: exerciseId },
             {
-                onSuccess: () => {
-                    setDeleteDialogOpen(false);
-                    setExerciseToDelete(null);
-                },
                 onError: (error) => {
                     toast.error(`Failed to delete exercise: ${error.message}`);
                 },
@@ -279,15 +281,13 @@ export function ExercisesTab({
 
     const confirmDeleteExerciseDef = () => {
         if (!exerciseDefToDelete) return;
-        deleteExerciseDefMutation.mutate(
-            { exerciseId: exerciseDefToDelete._id },
-            {
-                onSuccess: () => {
-                    setDeleteExerciseDefDialogOpen(false);
-                    setExerciseDefToDelete(null);
-                },
-            }
-        );
+        const exerciseId = exerciseDefToDelete._id;
+        
+        // Close dialog immediately - optimistic update already removed from list
+        setDeleteExerciseDefDialogOpen(false);
+        setExerciseDefToDelete(null);
+        
+        deleteExerciseDefMutation.mutate({ exerciseId });
     };
 
     return (
@@ -416,7 +416,6 @@ export function ExercisesTab({
                 onOpenChange={setDeleteDialogOpen}
                 exercise={exerciseToDelete}
                 onConfirm={confirmDelete}
-                isPending={deleteExerciseMutation.isPending}
             />
 
             {/* Custom Exercise Dialogs */}
@@ -449,7 +448,6 @@ export function ExercisesTab({
                 onOpenChange={setDeleteExerciseDefDialogOpen}
                 exercise={exerciseDefToDelete ? { exerciseDef: exerciseDefToDelete } as PlanExerciseWithDefinition : null}
                 onConfirm={confirmDeleteExerciseDef}
-                isPending={deleteExerciseDefMutation.isPending}
             />
         </div>
     );
