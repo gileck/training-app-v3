@@ -1,5 +1,6 @@
 import { ApiHandlerContext, ListPlansRequest, ListPlansResponse } from '../types';
 import { trainingPlans } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const listPlans = async (
     _: ListPlansRequest,
@@ -12,10 +13,10 @@ export const listPlans = async (
 
         const planList = await trainingPlans.findPlansByUserId(context.userId);
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const plansClient = planList.map((plan) => ({
-            _id: plan._id.toHexString(),
-            userId: plan.userId.toHexString(),
+            _id: toStringId(plan._id),
+            userId: toStringId(plan.userId),
             name: plan.name,
             durationWeeks: plan.durationWeeks,
             isActive: plan.isActive,

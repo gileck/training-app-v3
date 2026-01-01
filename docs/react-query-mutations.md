@@ -96,6 +96,408 @@ Store a `tagsRequestId` / `tagsVersion` when starting generation and only apply 
 - the comment still exists, and
 - the response matches the latest `tagsRequestId`
 
+## How to Generate Client IDs
+
+When implementing optimistic creates, you need client-generated IDs that are:
+- **Globally unique** - no collisions with other clients or server-generated IDs
+- **Stable** - same ID used throughout the request lifecycle
+- **Accepted by server** - server must persist this ID, not generate its own
+
+### Use the `generateId()` Utility
+
+This app provides a standard utility for ID generation:
+
+```typescript
+import { generateId } from '@/client/utils/id';
+
+const id = generateId();
+// → "550e8400-e29b-41d4-a716-446655440000" (UUID v4)
+```
+
+**Location**: `src/client/utils/id.ts`
+
+**Implementation**: Uses `crypto.randomUUID()` internally - built into all modern browsers, no dependencies, extremely low collision probability (1 in 2^122).
+
+### Alternative: `nanoid` (If You Need Shorter IDs)
+
+```bash
+npm install nanoid
+```
+
+```typescript
+import { nanoid } from 'nanoid';
+
+const id = nanoid();
+// → "V1StGXR8_Z5jdHi6B-myT" (21 chars, URL-safe)
+```
+
+### Implementation Pattern
+
+**⚠️ Important**: The ID must be generated ONCE and used consistently. A common mistake is generating different IDs in `mutationFn` vs `onMutate`.
+
+#### Pattern A: Helper Hook (Recommended)
+
+Create a wrapper hook that handles ID generation internally:
+
+```typescript
+// hooks.ts
+import { generateId } from '@/client/utils/id';
+
+// Base mutation hook (expects _id in input)
+export function useCreateTodo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: { _id: string; title: string }) => {
+            const response = await createTodo(data);
+            if (response.data?.error) throw new Error(response.data.error);
+            return response.data?.todo;
+        },
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: todosQueryKey });
+            const previous = queryClient.getQueryData(todosQueryKey);
+            
+            // Use the same _id from variables
+            queryClient.setQueryData(todosQueryKey, (old) => ({
+                todos: [...(old?.todos || []), { _id: variables._id, ...variables }]
+            }));
+            
+            return { previous };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previous) queryClient.setQueryData(todosQueryKey, context.previous);
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
+    });
+}
+
+// Helper hook that generates ID internally
+export function useCreateTodoWithId() {
+    const mutation = useCreateTodo();
+
+    return {
+        ...mutation,
+        mutate: (data: { title: string }) => {
+            const _id = generateId();
+            mutation.mutate({ ...data, _id });
+        },
+        mutateAsync: async (data: { title: string }) => {
+            const _id = generateId();
+            return mutation.mutateAsync({ ...data, _id });
+        },
+    };
+}
+```
+
+**Usage in component**:
+
+```typescript
+const createMutation = useCreateTodoWithId();
+
+// Simple - ID is generated internally
+createMutation.mutate({ title: 'New todo' });
+```
+
+#### Pattern B: Generate ID in Component
+
+If you need access to the ID before calling mutate:
+
+```typescript
+// Component
+import { generateId } from '@/client/utils/id';
+
+function CreateItemForm() {
+    const createMutation = useCreateItem();
+    
+    const handleSubmit = (formData: FormData) => {
+        const _id = generateId(); // Generate once
+        createMutation.mutate({ ...formData, _id }); // Pass to mutation
+    };
+}
+
+// Hook
+export function useCreateItem() {
+    return useMutation({
+        mutationFn: async (data: CreateItemInput & { id: string }) => {
+            // Use the passed ID
+            const response = await createItem(data);
+            // ...
+        },
+        
+        onMutate: async (variables) => {
+            // Use variables.id - same ID from component
+            queryClient.setQueryData(['items'], (old) => ({
+                items: [...(old?.items || []), { _id: variables.id, ...variables }]
+            }));
+        },
+    });
+}
+```
+
+### Edge Cases and Gotchas
+
+#### 1. Server Must Accept Client IDs
+
+Your API handler must use the client-provided ID, not generate its own.
+
+**Use the server utilities** from `@/server/utils`:
+
+```typescript
+import { toDocumentId, toStringId, toQueryId } from '@/server/utils';
+
+// ❌ WRONG - Server ignores client ID
+const newItem = await collection.insertOne({
+    ...data,
+    // MongoDB generates _id automatically - client ID is lost!
+});
+
+// ✅ CORRECT - Server uses client ID (handles both ObjectId and UUID formats)
+const newItem = await collection.insertOne({
+    _id: toDocumentId(data._id), // Converts UUID string or ObjectId format appropriately
+    ...data,
+});
+
+// For API responses, always convert to string
+return { 
+    item: { 
+        ...newItem, 
+        _id: toStringId(newItem._id) 
+    } 
+};
+```
+
+**Available server utilities** (`src/server/utils/id.ts`):
+
+| Utility | Use Case |
+|---------|----------|
+| `toDocumentId(id)` | Insert documents - converts to ObjectId or keeps as UUID string |
+| `toQueryId(id)` | Query documents - handles both ID formats |
+| `toStringId(id)` | API responses - always returns string |
+| `isObjectIdFormat(id)` | Check if ID is legacy ObjectId format |
+| `isUuidFormat(id)` | Check if ID is UUID format |
+
+#### 2. Idempotency: Handle Retries
+
+If the client retries with the same ID (network timeout, offline sync), the server must not create duplicates:
+
+```typescript
+import { toQueryId, toDocumentId, toStringId } from '@/server/utils';
+
+// Server handler
+async function createItem(data: CreateItemInput) {
+    // Check if already exists (idempotent) - toQueryId handles both formats
+    const existing = await collection.findOne({ _id: toQueryId(data._id) });
+    if (existing) {
+        return { item: { ...existing, _id: toStringId(existing._id) } };
+    }
+    
+    // Create new - toDocumentId handles both formats
+    await collection.insertOne({ _id: toDocumentId(data._id), ...data });
+    return { item: { ...data, _id: data._id } };
+}
+```
+
+#### 3. MongoDB ObjectId Compatibility
+
+This app uses **Option C (Recommended)**: Store UUID strings directly as `_id`.
+
+The server utilities handle both formats seamlessly:
+
+```typescript
+import { toDocumentId, toQueryId, toStringId } from '@/server/utils';
+
+// Insert - toDocumentId handles both formats
+await collection.insertOne({
+    _id: toDocumentId(clientId), // UUID stays as string, ObjectId format converts
+    ...data,
+});
+
+// Query - toQueryId handles both formats  
+const item = await collection.findOne({ 
+    _id: toQueryId(clientId) // Works for both legacy ObjectIds and new UUIDs
+});
+
+// Response - toStringId normalizes to string
+return { _id: toStringId(item._id), ...item };
+```
+
+**Why this approach:**
+- ✅ Backward compatible with existing ObjectId documents
+- ✅ Forward compatible with new UUID documents
+- ✅ Single `_id` field (no separate `clientId`)
+- ✅ MongoDB indexes work on both formats
+
+#### 4. Collision Handling (Extremely Rare)
+
+UUID v4 collision probability is ~1 in 2^122. You'll never see one. But if paranoid:
+
+```typescript
+import { toQueryId } from '@/server/utils';
+
+// Server can reject with specific error
+if (await collection.findOne({ _id: toQueryId(data._id) })) {
+    throw new Error('ID_COLLISION'); // Client should regenerate and retry
+}
+```
+
+---
+
+## When NOT to Use Optimistic Creates (Give Up and Show Loader)
+
+Optimistic creates add complexity. Default to **non-optimistic** (show loader) unless you have a strong reason for instant feedback.
+
+### ❌ Do NOT use optimistic create when:
+
+#### 1. Server Generates the ID
+
+If the entity ID is a server-generated MongoDB ObjectId, database auto-increment, or any ID the client can't know beforehand:
+
+```typescript
+// Server generates ID - can't be optimistic
+const result = await collection.insertOne(data);
+const newId = result.insertedId; // Only known after insert
+```
+
+**Why**: You'd need temp ID → real ID replacement, which we explicitly avoid.
+
+#### 2. Server Computes Critical Display Fields
+
+If the server calculates fields that are immediately visible and important:
+
+- **Order total** (after discounts, taxes, shipping)
+- **Assigned number** (invoice #, ticket #, order #)
+- **Computed status** (based on business rules)
+- **Derived timestamps** (server time, not client time)
+- **Permissions/visibility** (what the user can see)
+
+**Why**: Showing wrong data then correcting it is worse UX than a brief loader.
+
+#### 3. Server Validates Against Global State
+
+If uniqueness or validity depends on data the client doesn't have:
+
+- **Unique usernames/emails** (must check against all users)
+- **Unique slugs** (must check against all posts)
+- **Inventory availability** (must check current stock)
+- **Time slot booking** (must check against all bookings)
+
+**Why**: Client can't reliably check; optimistic insert might show something that will be rejected.
+
+#### 4. Entity Immediately Affects Multiple Caches
+
+If creating an entity requires updating multiple query caches:
+
+- Creating a "project" that should appear in: projects list, sidebar, recent projects, user's projects, team's projects
+- Creating a "transaction" that affects: transactions list, account balance, monthly summary, category totals
+
+**Why**: Coordinating optimistic updates across many caches is complex and error-prone.
+
+#### 5. Complex Relationships Are Created
+
+If the create triggers server-side relationship creation:
+
+- Creating a "team membership" that also creates notification preferences, permissions, etc.
+- Creating an "order" that creates line items, reserves inventory, creates payment intent
+
+**Why**: The returned entity has related data the client couldn't predict.
+
+#### 6. The Form Has Validation That Requires Server
+
+If submission might fail validation:
+
+- **Rate limiting** (too many creates)
+- **Quota exceeded** (max items reached)
+- **Complex business rules** (can't create X because of Y)
+
+**Why**: Optimistically showing an item that gets rejected is confusing.
+
+### ✅ Safe to use optimistic create when:
+
+- Client generates stable ID (UUID/nanoid)
+- Server accepts and persists that ID
+- Entity is simple (no computed fields needed for display)
+- Single cache to update
+- Validation is client-side (title required, etc.)
+- Failure is rare (just rollback on the rare error)
+
+### Decision Flowchart
+
+```
+Can client generate the ID?
+├── NO → Non-optimistic (show loader)
+└── YES ↓
+
+Does server compute important display fields?
+├── YES → Non-optimistic (show loader)
+└── NO ↓
+
+Does validation require server/global state?
+├── YES → Non-optimistic (show loader)  
+└── NO ↓
+
+Multiple caches need updating?
+├── YES → Probably non-optimistic (or carefully consider)
+└── NO ↓
+
+✅ Safe to use optimistic create
+```
+
+### Non-Optimistic Create Pattern (The Safe Default)
+
+```typescript
+// Hook - no onMutate, insert on success
+export function useCreateItem() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: CreateItemInput) => {
+            const response = await createItem(data);
+            if (response.data?.error) throw new Error(response.data.error);
+            return response.data?.item;
+        },
+        
+        // No onMutate - not optimistic
+        
+        onSuccess: (newItem) => {
+            if (!newItem) return; // Guard for offline
+            queryClient.setQueryData(['items'], (old) => ({
+                items: [...(old?.items || []), newItem]
+            }));
+        },
+        
+        onError: () => {
+            toast.error('Failed to create item');
+        },
+    });
+}
+
+// Component - show loading state
+function CreateItemButton({ data }: { data: CreateItemInput }) {
+    const createMutation = useCreateItem();
+    
+    return (
+        <Button 
+            onClick={() => createMutation.mutate(data)}
+            disabled={createMutation.isPending}
+        >
+            {createMutation.isPending ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                </>
+            ) : (
+                'Create Item'
+            )}
+        </Button>
+    );
+}
+```
+
+**UX Note**: With a fast server (~200-500ms), the loading state is barely noticeable. This is often better UX than optimistic + potential rollback.
+
+---
+
 ## Offline behavior note (this app)
 
 When offline, `apiClient.post` queues the request and returns `{ data: {}, isFromCache: false }` immediately.
@@ -104,4 +506,3 @@ Implications:
 
 - Prefer `onSuccess: () => {}` for mutations (optimistic-only)
 - If you have a special-case `onSuccess`, it **must** guard against empty `data` while offline
-

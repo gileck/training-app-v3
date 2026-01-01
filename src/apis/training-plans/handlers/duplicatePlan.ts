@@ -1,6 +1,7 @@
 import { ApiHandlerContext, DuplicatePlanRequest, DuplicatePlanResponse } from '../types';
 import { trainingPlans, planExercises } from '@/server/database';
 import { ObjectId } from 'mongodb';
+import { toStringId } from '@/server/utils';
 
 export const duplicatePlan = async (
     request: DuplicatePlanRequest,
@@ -54,10 +55,10 @@ export const duplicatePlan = async (
             });
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const planClient = {
-            _id: newPlan._id.toHexString(),
-            userId: newPlan.userId.toHexString(),
+            _id: toStringId(newPlan._id),
+            userId: toStringId(newPlan.userId),
             name: newPlan.name,
             durationWeeks: newPlan.durationWeeks,
             isActive: newPlan.isActive,

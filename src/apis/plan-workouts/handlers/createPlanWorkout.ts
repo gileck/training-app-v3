@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, CreatePlanWorkoutRequest, CreatePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans, planExercises } from '@/server/database';
-import { toStringId } from '@/server/database/utils';
+import { toStringId } from '@/server/utils';
 
 export const createPlanWorkout = async (
     request: CreatePlanWorkoutRequest,

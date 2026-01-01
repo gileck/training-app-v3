@@ -59,7 +59,7 @@ import type {
     UpdateExerciseRequest,
     DeleteExerciseRequest,
 } from '@/apis/exercise-definitions/types';
-import { generateId } from '@/client/utils/generateId';
+import { generateId } from '@/client/utils/id';
 
 // ============================================================================
 // Query Keys

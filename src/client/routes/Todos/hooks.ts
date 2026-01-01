@@ -37,7 +37,7 @@ import type {
     DeleteTodoRequest,
 } from '@/apis/todos/types';
 import type { TodoItemClient } from '@/server/database/collections/todos/types';
-import { generateId } from '@/client/utils/generateId';
+import { generateId } from '@/client/utils/id';
 
 // ============================================================================
 // Query Keys

@@ -1,5 +1,6 @@
 import { ApiHandlerContext, ListPlanWorkoutsRequest, ListPlanWorkoutsResponse } from '../types';
 import { planWorkouts, trainingPlans } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const listPlanWorkouts = async (
     request: ListPlanWorkoutsRequest,
@@ -22,14 +23,14 @@ export const listPlanWorkouts = async (
 
         const workoutList = await planWorkouts.listPlanWorkouts(context.userId, request.planId);
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const workoutsClient = workoutList.map((workout) => ({
-            _id: workout._id.toHexString(),
-            userId: workout.userId.toHexString(),
-            planId: workout.planId.toHexString(),
+            _id: toStringId(workout._id),
+            userId: toStringId(workout.userId),
+            planId: toStringId(workout.planId),
             name: workout.name,
             items: workout.items.map((item) => ({
-                planExerciseId: item.planExerciseId.toHexString(),
+                planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
             })),
             order: workout.order,

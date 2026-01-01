@@ -10,6 +10,7 @@
 import { ObjectId } from 'mongodb';
 import type { ApiHandlerContext, CreatePlanFromTextRequest, CreatePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 // Validation limits
 const MAX_EXERCISES = 200;
@@ -168,7 +169,7 @@ async function createCustomExercise(
     };
     
     const created = await exerciseDefinitions.createExercise(exerciseData);
-    return created._id.toHexString();
+    return toStringId(created._id);
 }
 
 /**
@@ -221,7 +222,7 @@ export async function createPlanFromText(
         };
         
         const newPlan = await trainingPlans.createPlan(planData);
-        const planId = newPlan._id.toHexString();
+        const planId = toStringId(newPlan._id);
         
         try {
             // Step 2: Ensure all exercise definitions exist
@@ -262,7 +263,7 @@ export async function createPlanFromText(
                                     exercise, planId, exerciseDefId, orderCounter++, now
                                 );
                                 const created = await planExercises.createPlanExercise(planExerciseData);
-                                planExerciseMap.set(exercise.draftExerciseKey, created._id.toHexString());
+                                planExerciseMap.set(exercise.draftExerciseKey, toStringId(created._id));
                             }
                         }
                     }
@@ -280,7 +281,7 @@ export async function createPlanFromText(
                             exercise, planId, exerciseDefId, orderCounter++, now
                         );
                         const created = await planExercises.createPlanExercise(planExerciseData);
-                        planExerciseMap.set(exercise.draftExerciseKey, created._id.toHexString());
+                        planExerciseMap.set(exercise.draftExerciseKey, toStringId(created._id));
                     }
                 }
             }
@@ -305,10 +306,10 @@ export async function createPlanFromText(
                 createdPlanWorkoutsCount++;
             }
             
-            // Return success response
+            // Return success response (handles both ObjectId and UUID)
             const planClient = {
-                _id: newPlan._id.toHexString(),
-                userId: newPlan.userId.toHexString(),
+                _id: toStringId(newPlan._id),
+                userId: toStringId(newPlan.userId),
                 name: newPlan.name,
                 durationWeeks: newPlan.durationWeeks,
                 isActive: newPlan.isActive,

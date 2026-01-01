@@ -1,6 +1,7 @@
 import { API_GET_TODO } from '../index';
 import { ApiHandlerContext, GetTodoRequest, GetTodoResponse } from '../types';
 import { todos } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const getTodo = async (
     request: GetTodoRequest,
@@ -21,10 +22,10 @@ export const getTodo = async (
             return { error: "Todo not found" };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const todoClient = {
-            _id: todo._id.toHexString(),
-            userId: todo.userId.toHexString(),
+            _id: toStringId(todo._id),
+            userId: toStringId(todo.userId),
             title: todo.title,
             completed: todo.completed,
             createdAt: todo.createdAt.toISOString(),

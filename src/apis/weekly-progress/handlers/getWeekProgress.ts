@@ -11,6 +11,7 @@ import {
     weeklyProgress,
     exerciseProgress,
 } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const getWeekProgress = async (
     request: GetWeekProgressRequest,
@@ -59,14 +60,14 @@ export const getWeekProgress = async (
             request.weekNumber
         );
 
-        // Get exercise definitions
+        // Get exercise definitions (handles both ObjectId and UUID)
         const exerciseDefIds = exerciseList.map((e) => e.exerciseDefId);
         const exerciseDefs = await exerciseDefinitions.findExercisesByIds(exerciseDefIds);
-        const exerciseDefMap = new Map(exerciseDefs.map((def) => [def._id.toHexString(), def]));
+        const exerciseDefMap = new Map(exerciseDefs.map((def) => [toStringId(def._id), def]));
 
         // Get all exercise progress for this week
         const allProgress = await exerciseProgress.findExerciseProgressByWeekId(weekProgress._id);
-        const progressMap = new Map(allProgress.map((p) => [p.planExerciseId.toHexString(), p]));
+        const progressMap = new Map(allProgress.map((p) => [toStringId(p.planExerciseId), p]));
 
         // Calculate totals and build response
         let totalSets = 0;
@@ -74,10 +75,10 @@ export const getWeekProgress = async (
 
         const exercises: ExerciseWeekProgress[] = [];
         for (const exercise of exerciseList) {
-            const def = exerciseDefMap.get(exercise.exerciseDefId.toHexString());
+            const def = exerciseDefMap.get(toStringId(exercise.exerciseDefId));
             if (!def) continue;
 
-            const progress = progressMap.get(exercise._id.toHexString());
+            const progress = progressMap.get(toStringId(exercise._id));
             const setsCompleted = progress?.setsCompleted || 0;
             const isDone = progress?.isDone || setsCompleted >= exercise.sets;
 
@@ -85,12 +86,12 @@ export const getWeekProgress = async (
             completedSets += Math.min(setsCompleted, exercise.sets);
 
             exercises.push({
-                planExerciseId: exercise._id.toHexString(),
+                planExerciseId: toStringId(exercise._id),
                 targetSets: exercise.sets,
                 setsCompleted,
                 isDone,
                 exerciseDef: {
-                    _id: def._id.toHexString(),
+                    _id: toStringId(def._id),
                     name: def.name,
                     imageUrl: def.imageUrl,
                     primaryMuscle: def.primaryMuscle,
@@ -99,14 +100,14 @@ export const getWeekProgress = async (
                     isBodyweight: def.isBodyweight,
                     isStatic: def.isStatic,
                     isSystem: def.isSystem,
-                    userId: def.userId?.toHexString(),
+                    userId: def.userId ? toStringId(def.userId) : undefined,
                     createdAt: def.createdAt.toISOString(),
                     updatedAt: def.updatedAt.toISOString(),
                 },
                 planExercise: {
-                    _id: exercise._id.toHexString(),
-                    planId: exercise.planId.toHexString(),
-                    exerciseDefId: exercise.exerciseDefId.toHexString(),
+                    _id: toStringId(exercise._id),
+                    planId: toStringId(exercise.planId),
+                    exerciseDefId: toStringId(exercise.exerciseDefId),
                     sets: exercise.sets,
                     reps: exercise.reps,
                     weight: exercise.weight,

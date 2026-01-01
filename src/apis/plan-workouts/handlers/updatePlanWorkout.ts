@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, UpdatePlanWorkoutRequest, UpdatePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans, planExercises } from '@/server/database';
+import { toStringId, isObjectIdFormat, isUuidFormat } from '@/server/utils';
 
 export const updatePlanWorkout = async (
     request: UpdatePlanWorkoutRequest,
@@ -20,7 +21,8 @@ export const updatePlanWorkout = async (
         }
 
         // Handle temp IDs from optimistic updates - can't update a workout that wasn't persisted yet
-        if (request.workoutId.startsWith('temp-') || !ObjectId.isValid(request.workoutId)) {
+        // Accept both ObjectId format (legacy) and UUID format (new client-generated IDs)
+        if (request.workoutId.startsWith('temp-') || (!isObjectIdFormat(request.workoutId) && !isUuidFormat(request.workoutId))) {
             return { error: 'Cannot update a workout that is still being created' };
         }
 
@@ -56,7 +58,7 @@ export const updatePlanWorkout = async (
                 if (!planExercise) {
                     return { error: `Exercise ${item.planExerciseId} not found` };
                 }
-                if (planExercise.planId.toHexString() !== request.planId) {
+                if (toStringId(planExercise.planId) !== request.planId) {
                     return { error: `Exercise ${item.planExerciseId} does not belong to this plan` };
                 }
             }
@@ -93,14 +95,14 @@ export const updatePlanWorkout = async (
             return { error: 'Failed to update workout' };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const workoutClient = {
-            _id: updatedWorkout._id.toHexString(),
-            userId: updatedWorkout.userId.toHexString(),
-            planId: updatedWorkout.planId.toHexString(),
+            _id: toStringId(updatedWorkout._id),
+            userId: toStringId(updatedWorkout.userId),
+            planId: toStringId(updatedWorkout.planId),
             name: updatedWorkout.name,
             items: updatedWorkout.items.map((item) => ({
-                planExerciseId: item.planExerciseId.toHexString(),
+                planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
             })),
             order: updatedWorkout.order,

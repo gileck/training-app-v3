@@ -2,6 +2,7 @@ import type { ApiHandlerContext } from '@/apis/types';
 import type { UpdateExerciseRequest, UpdateExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import { fileStorageAPI, isBase64Data } from '@/server/blob';
+import { toStringId } from '@/server/utils';
 
 export async function updateExercise(
     request: UpdateExerciseRequest,
@@ -26,7 +27,7 @@ export async function updateExercise(
             return { error: 'Cannot modify system exercises' };
         }
 
-        if (existingExercise.userId?.toHexString() !== context.userId) {
+        if ((existingExercise.userId ? toStringId(existingExercise.userId) : undefined) !== context.userId) {
             return { error: 'You can only modify your own exercises' };
         }
 
@@ -90,7 +91,7 @@ export async function updateExercise(
 
         return {
             exercise: {
-                _id: updatedExercise._id.toHexString(),
+                _id: toStringId(updatedExercise._id),
                 name: updatedExercise.name,
                 imageUrl: updatedExercise.imageUrl,
                 primaryMuscle: updatedExercise.primaryMuscle,
@@ -99,7 +100,7 @@ export async function updateExercise(
                 isBodyweight: updatedExercise.isBodyweight,
                 isStatic: updatedExercise.isStatic,
                 isSystem: updatedExercise.isSystem,
-                userId: updatedExercise.userId?.toHexString(),
+                userId: updatedExercise.userId ? toStringId(updatedExercise.userId) : undefined,
                 createdAt: updatedExercise.createdAt.toISOString(),
                 updatedAt: updatedExercise.updatedAt.toISOString(),
             },

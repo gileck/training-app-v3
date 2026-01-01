@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { PlanWorkout, PlanWorkoutCreate, PlanWorkoutUpdate } from './types';
-import { toQueryId } from '../../utils';
+import { toQueryId } from '@/server/utils';
 
 /**
  * RECOMMENDED INDEXES (not enforced at runtime):

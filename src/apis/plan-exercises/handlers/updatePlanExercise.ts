@@ -4,6 +4,7 @@ import {
     UpdatePlanExerciseResponse,
 } from '../types';
 import { trainingPlans, planExercises } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const updatePlanExercise = async (
     request: UpdatePlanExerciseRequest,
@@ -55,11 +56,11 @@ export const updatePlanExercise = async (
             return { error: 'Failed to update exercise' };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const exerciseClient = {
-            _id: updated._id.toHexString(),
-            planId: updated.planId.toHexString(),
-            exerciseDefId: updated.exerciseDefId.toHexString(),
+            _id: toStringId(updated._id),
+            planId: toStringId(updated.planId),
+            exerciseDefId: toStringId(updated.exerciseDefId),
             sets: updated.sets,
             reps: updated.reps,
             weight: updated.weight,

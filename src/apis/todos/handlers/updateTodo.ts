@@ -1,6 +1,7 @@
 import { API_UPDATE_TODO } from '../index';
 import { ApiHandlerContext, UpdateTodoRequest, UpdateTodoResponse } from '../types';
 import { todos } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const updateTodo = async (
     request: UpdateTodoRequest,
@@ -45,10 +46,10 @@ export const updateTodo = async (
             return { error: "Todo not found" };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const todoClient = {
-            _id: updatedTodo._id.toHexString(),
-            userId: updatedTodo.userId.toHexString(),
+            _id: toStringId(updatedTodo._id),
+            userId: toStringId(updatedTodo.userId),
             title: updatedTodo.title,
             completed: updatedTodo.completed,
             createdAt: updatedTodo.createdAt.toISOString(),

@@ -1,7 +1,7 @@
 import { ApiHandlerContext, CreatePlanRequest, CreatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { ObjectId } from 'mongodb';
-import { toStringId } from '@/server/database/utils';
+import { toStringId } from '@/server/utils';
 
 export const createPlan = async (
     request: CreatePlanRequest,

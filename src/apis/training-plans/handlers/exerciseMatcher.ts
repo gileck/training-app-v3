@@ -7,6 +7,7 @@
 
 import type { ExerciseDefinition } from '@/server/database/collections/exerciseDefinitions/types';
 import type { SuggestedMatch, ExerciseMatchStatus } from '../types';
+import { toStringId } from '@/server/utils';
 
 export interface MatchResult {
     status: ExerciseMatchStatus;
@@ -206,7 +207,7 @@ export function matchExercise(
         if (name.toLowerCase().trim() === def.name.toLowerCase().trim()) {
             return {
                 status: 'matched',
-                exerciseDefId: def._id.toHexString(),
+                exerciseDefId: toStringId(def._id),
                 exerciseName: def.name,
             };
         }
@@ -218,7 +219,7 @@ export function matchExercise(
         if (normalizedInput === normalizedDef) {
             return {
                 status: 'matched',
-                exerciseDefId: def._id.toHexString(),
+                exerciseDefId: toStringId(def._id),
                 exerciseName: def.name,
             };
         }
@@ -240,11 +241,11 @@ export function matchExercise(
     // Sort by score descending
     scoredExercises.sort((a, b) => b.score - a.score);
     
-    // Take top N suggestions
+    // Take top N suggestions (handles both ObjectId and UUID)
     const suggestions: SuggestedMatch[] = scoredExercises
         .slice(0, MAX_SUGGESTIONS)
         .map(({ def, score }) => ({
-            exerciseDefId: def._id.toHexString(),
+            exerciseDefId: toStringId(def._id),
             name: def.name,
             primaryMuscle: def.primaryMuscle,
             imageUrl: def.imageUrl,

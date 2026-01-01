@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { TodoItem, TodoItemCreate, TodoItemUpdate } from './types';
-import { toQueryId } from '../../utils';
+import { toQueryId } from '@/server/utils';
 
 /**
  * Get a reference to the todos collection

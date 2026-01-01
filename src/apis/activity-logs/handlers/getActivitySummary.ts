@@ -4,6 +4,7 @@ import type { GetActivitySummaryRequest, GetActivitySummaryResponse, DailySummar
 import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
+import { toStringId } from '@/server/utils';
 
 export async function getActivitySummary(
     request: GetActivitySummaryRequest,
@@ -105,18 +106,19 @@ export async function getActivitySummary(
 
             const entry = dailyMap.get(dateKey)!;
             entry.sets += 1;
-            entry.exerciseIds.add(log.planExerciseId.toHexString());
+            const planExerciseIdStr = toStringId(log.planExerciseId);
+            entry.exerciseIds.add(planExerciseIdStr);
 
-            // Get primary muscle for this exercise
-            let primaryMuscle = exerciseCache.get(log.planExerciseId.toHexString());
+            // Get primary muscle for this exercise (handles both ObjectId and UUID)
+            let primaryMuscle = exerciseCache.get(planExerciseIdStr);
             if (!primaryMuscle) {
                 // Get exercise def ID from plan exercise
-                let exerciseDefId = planExerciseToDefCache.get(log.planExerciseId.toHexString());
+                let exerciseDefId = planExerciseToDefCache.get(planExerciseIdStr);
                 if (!exerciseDefId) {
-                    const planExercise = await planExercises.findPlanExerciseById(log.planExerciseId.toHexString());
+                    const planExercise = await planExercises.findPlanExerciseById(planExerciseIdStr);
                     if (planExercise) {
-                        exerciseDefId = planExercise.exerciseDefId.toHexString();
-                        planExerciseToDefCache.set(log.planExerciseId.toHexString(), exerciseDefId);
+                        exerciseDefId = toStringId(planExercise.exerciseDefId);
+                        planExerciseToDefCache.set(planExerciseIdStr, exerciseDefId);
                     }
                 }
 
@@ -124,7 +126,7 @@ export async function getActivitySummary(
                     const exerciseDef = await exerciseDefinitions.findExerciseById(exerciseDefId);
                     if (exerciseDef) {
                         primaryMuscle = exerciseDef.primaryMuscle;
-                        exerciseCache.set(log.planExerciseId.toHexString(), primaryMuscle);
+                        exerciseCache.set(planExerciseIdStr, primaryMuscle);
                     }
                 }
             }

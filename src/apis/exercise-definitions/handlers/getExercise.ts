@@ -1,5 +1,6 @@
 import { ApiHandlerContext, GetExerciseRequest, GetExerciseResponse } from '../types';
 import { exerciseDefinitions } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const getExercise = async (
     request: GetExerciseRequest,
@@ -22,13 +23,13 @@ export const getExercise = async (
 
         // Check if user has access to this exercise
         // User can access system exercises OR their own custom exercises
-        if (!exercise.isSystem && exercise.userId?.toHexString() !== context.userId) {
+        if (!exercise.isSystem && (exercise.userId ? toStringId(exercise.userId) : undefined) !== context.userId) {
             return { error: 'Exercise not found' };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const exerciseClient = {
-            _id: exercise._id.toHexString(),
+            _id: toStringId(exercise._id),
             name: exercise.name,
             imageUrl: exercise.imageUrl,
             primaryMuscle: exercise.primaryMuscle,
@@ -37,7 +38,7 @@ export const getExercise = async (
             isBodyweight: exercise.isBodyweight,
             isStatic: exercise.isStatic,
             isSystem: exercise.isSystem,
-            userId: exercise.userId?.toHexString(),
+            userId: exercise.userId ? toStringId(exercise.userId) : undefined,
             createdAt: exercise.createdAt.toISOString(),
             updatedAt: exercise.updatedAt.toISOString(),
         };

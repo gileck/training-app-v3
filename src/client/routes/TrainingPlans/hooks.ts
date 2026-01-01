@@ -38,7 +38,7 @@ import {
     createPlanFromText,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
-import { generateId } from '@/client/utils/generateId';
+import { generateId } from '@/client/utils/id';
 import type {
     ListPlansResponse,
     CreatePlanRequest,

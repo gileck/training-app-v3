@@ -3,6 +3,7 @@ import type { ApiHandlerContext } from '@/apis/types';
 import type { CreateExerciseRequest, CreateExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import { fileStorageAPI, isBase64Data } from '@/server/blob';
+import { toStringId } from '@/server/utils';
 
 export async function createExercise(
     request: CreateExerciseRequest,
@@ -65,7 +66,7 @@ export async function createExercise(
 
         return {
             exercise: {
-                _id: exercise._id.toHexString(),
+                _id: toStringId(exercise._id),
                 name: exercise.name,
                 imageUrl: exercise.imageUrl,
                 primaryMuscle: exercise.primaryMuscle,
@@ -74,7 +75,7 @@ export async function createExercise(
                 isBodyweight: exercise.isBodyweight,
                 isStatic: exercise.isStatic,
                 isSystem: exercise.isSystem,
-                userId: exercise.userId?.toHexString(),
+                userId: exercise.userId ? toStringId(exercise.userId) : undefined,
                 createdAt: exercise.createdAt.toISOString(),
                 updatedAt: exercise.updatedAt.toISOString(),
             },

@@ -5,6 +5,7 @@ import {
     PlanExerciseWithDefinition,
 } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const listPlanExercises = async (
     request: ListPlanExercisesRequest,
@@ -32,19 +33,19 @@ export const listPlanExercises = async (
         const exerciseDefIds = exerciseList.map((e) => e.exerciseDefId);
         const exerciseDefs = await exerciseDefinitions.findExercisesByIds(exerciseDefIds);
 
-        // Create a map for quick lookup
-        const exerciseDefMap = new Map(exerciseDefs.map((def) => [def._id.toHexString(), def]));
+        // Create a map for quick lookup (handles both ObjectId and UUID string IDs)
+        const exerciseDefMap = new Map(exerciseDefs.map((def) => [toStringId(def._id), def]));
 
         // Combine plan exercises with their definitions
         const exercisesWithDefs: PlanExerciseWithDefinition[] = [];
         for (const exercise of exerciseList) {
-            const def = exerciseDefMap.get(exercise.exerciseDefId.toHexString());
+            const def = exerciseDefMap.get(toStringId(exercise.exerciseDefId));
             if (!def) continue;
 
             exercisesWithDefs.push({
-                _id: exercise._id.toHexString(),
-                planId: exercise.planId.toHexString(),
-                exerciseDefId: exercise.exerciseDefId.toHexString(),
+                _id: toStringId(exercise._id),
+                planId: toStringId(exercise.planId),
+                exerciseDefId: toStringId(exercise.exerciseDefId),
                 sets: exercise.sets,
                 reps: exercise.reps,
                 weight: exercise.weight,
@@ -54,7 +55,7 @@ export const listPlanExercises = async (
                 createdAt: exercise.createdAt.toISOString(),
                 updatedAt: exercise.updatedAt.toISOString(),
                 exerciseDef: {
-                    _id: def._id.toHexString(),
+                    _id: toStringId(def._id),
                     name: def.name,
                     imageUrl: def.imageUrl,
                     primaryMuscle: def.primaryMuscle,
@@ -63,7 +64,7 @@ export const listPlanExercises = async (
                     isBodyweight: def.isBodyweight,
                     isStatic: def.isStatic,
                     isSystem: def.isSystem,
-                    userId: def.userId?.toHexString(),
+                    userId: def.userId ? toStringId(def.userId) : undefined,
                     createdAt: def.createdAt.toISOString(),
                     updatedAt: def.updatedAt.toISOString(),
                 },

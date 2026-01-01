@@ -1,5 +1,6 @@
 import { ApiHandlerContext, UpdatePlanRequest, UpdatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const updatePlan = async (
     request: UpdatePlanRequest,
@@ -52,10 +53,10 @@ export const updatePlan = async (
             return { error: 'Plan not found' };
         }
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const planClient = {
-            _id: updatedPlan._id.toHexString(),
-            userId: updatedPlan.userId.toHexString(),
+            _id: toStringId(updatedPlan._id),
+            userId: toStringId(updatedPlan.userId),
             name: updatedPlan.name,
             durationWeeks: updatedPlan.durationWeeks,
             isActive: updatedPlan.isActive,

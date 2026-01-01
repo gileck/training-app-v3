@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { planExercises, setLogs, trainingPlans } from '@/server/database';
 import type { ApiHandlerContext } from '@/apis/types';
+import { toStringId } from '@/server/utils';
 
 export async function getExerciseHistory(
     request: GetExerciseHistoryRequest,
@@ -30,7 +31,7 @@ export async function getExerciseHistory(
             return { history: [] };
         }
 
-        const planExerciseIds = planExercisesList.map(pe => pe._id.toHexString());
+        const planExerciseIds = planExercisesList.map(pe => toStringId(pe._id));
 
         // Get set logs for all these plan exercises
         const logs = await setLogs.findSetLogsByExerciseDefId(
@@ -44,25 +45,27 @@ export async function getExerciseHistory(
             return { history: [] };
         }
 
-        // Create maps for lookups
+        // Create maps for lookups (handles both ObjectId and UUID)
         const planExerciseMap = new Map(
-            planExercisesList.map(pe => [pe._id.toHexString(), pe])
+            planExercisesList.map(pe => [toStringId(pe._id), pe])
         );
 
         // Get all plan IDs
-        const planIds = [...new Set(planExercisesList.map(pe => pe.planId.toHexString()))];
+        const planIds = [...new Set(planExercisesList.map(pe => toStringId(pe.planId)))];
         const plans = await trainingPlans.findPlansByIds(planIds);
-        const planMap = new Map(plans.map(p => [p._id.toHexString(), p]));
+        const planMap = new Map(plans.map(p => [toStringId(p._id), p]));
 
         // Aggregate logs by date and week
         const aggregated = new Map<string, ExerciseHistoryEntry>();
 
         for (const log of logs) {
             const date = new Date(log.completedAt).toISOString().split('T')[0];
-            const planExercise = planExerciseMap.get(log.planExerciseId.toHexString());
-            const plan = planExercise ? planMap.get(planExercise.planId.toHexString()) : null;
+            const planExerciseIdStr = toStringId(log.planExerciseId);
+            const planIdStr = toStringId(log.planId);
+            const planExercise = planExerciseMap.get(planExerciseIdStr);
+            const plan = planExercise ? planMap.get(toStringId(planExercise.planId)) : null;
             
-            const key = `${date}-${log.weekNumber}-${log.planId.toHexString()}`;
+            const key = `${date}-${log.weekNumber}-${planIdStr}`;
             
             const existing = aggregated.get(key);
             if (existing) {

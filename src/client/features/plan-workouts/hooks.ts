@@ -42,7 +42,7 @@ import type {
     ReorderPlanWorkoutsRequest,
     PlanWorkoutClient,
 } from '@/apis/plan-workouts/types';
-import { generateId } from '@/client/utils/generateId';
+import { generateId } from '@/client/utils/id';
 
 // ============================================================================
 // Query Keys

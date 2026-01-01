@@ -12,6 +12,7 @@ import {
     atomicDecrementSets,
     findOrCreateExerciseProgress,
 } from '@/server/database/collections/exerciseProgress';
+import { toStringId } from '@/server/utils';
 
 export const updateSets = async (
     request: UpdateSetsRequest,
@@ -49,9 +50,9 @@ export const updateSets = async (
             return { error: 'Week number exceeds plan duration' };
         }
 
-        // Verify exercise exists in plan
+        // Verify exercise exists in plan (handles both ObjectId and UUID)
         const exercise = await planExercises.findPlanExerciseById(request.planExerciseId);
-        if (!exercise || exercise.planId.toHexString() !== request.planId) {
+        if (!exercise || toStringId(exercise.planId) !== request.planId) {
             return { error: 'Exercise not found in plan' };
         }
 

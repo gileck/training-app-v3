@@ -5,6 +5,7 @@ import * as setLogs from '@/server/database/collections/setLogs';
 import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/trainingPlans';
+import { toStringId } from '@/server/utils';
 
 export async function getActivity(
     request: GetActivityRequest,
@@ -52,13 +53,14 @@ export async function getActivity(
         const planCache = new Map<string, string>(); // planId -> planName
 
         for (const log of logs) {
-            // Get exercise definition ID from plan exercise
-            let exerciseDefId = planExerciseCache.get(log.planExerciseId.toHexString());
+            // Get exercise definition ID from plan exercise (handles both ObjectId and UUID)
+            const planExerciseIdStr = toStringId(log.planExerciseId);
+            let exerciseDefId = planExerciseCache.get(planExerciseIdStr);
             if (!exerciseDefId) {
-                const planExercise = await planExercises.findPlanExerciseById(log.planExerciseId.toHexString());
+                const planExercise = await planExercises.findPlanExerciseById(planExerciseIdStr);
                 if (planExercise) {
-                    exerciseDefId = planExercise.exerciseDefId.toHexString();
-                    planExerciseCache.set(log.planExerciseId.toHexString(), exerciseDefId);
+                    exerciseDefId = toStringId(planExercise.exerciseDefId);
+                    planExerciseCache.set(planExerciseIdStr, exerciseDefId);
                 }
             }
 
@@ -76,21 +78,22 @@ export async function getActivity(
                 }
             }
 
-            // Get plan name
-            let planName = planCache.get(log.planId.toHexString());
+            // Get plan name (handles both ObjectId and UUID)
+            const planIdStr = toStringId(log.planId);
+            let planName = planCache.get(planIdStr);
             if (!planName) {
-                const plan = await trainingPlans.findPlanById(log.planId.toHexString(), context.userId);
+                const plan = await trainingPlans.findPlanById(planIdStr, context.userId);
                 if (plan) {
                     planName = plan.name;
-                    planCache.set(log.planId.toHexString(), planName);
+                    planCache.set(planIdStr, planName);
                 }
             }
 
             activities.push({
-                _id: log._id.toHexString(),
-                userId: log.userId.toHexString(),
-                planExerciseId: log.planExerciseId.toHexString(),
-                planId: log.planId.toHexString(),
+                _id: toStringId(log._id),
+                userId: toStringId(log.userId),
+                planExerciseId: planExerciseIdStr,
+                planId: planIdStr,
                 weekNumber: log.weekNumber,
                 setNumber: log.setNumber,
                 completedAt: log.completedAt.toISOString(),

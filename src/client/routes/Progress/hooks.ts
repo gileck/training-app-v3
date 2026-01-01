@@ -43,7 +43,7 @@ import type {
     AddActivityRequest,
     ActivityLogEntry,
 } from '@/apis/activity-logs/types';
-import { generateId } from '@/client/utils/generateId';
+import { generateId } from '@/client/utils/id';
 
 // ============================================================================
 // Query Keys

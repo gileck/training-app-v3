@@ -3,6 +3,7 @@ import type { DeleteExerciseRequest, DeleteExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import * as planExercises from '@/server/database/collections/planExercises';
 import { fileStorageAPI } from '@/server/blob';
+import { toStringId } from '@/server/utils';
 
 export async function deleteExercise(
     request: DeleteExerciseRequest,
@@ -27,7 +28,7 @@ export async function deleteExercise(
             return { error: 'Cannot delete system exercises' };
         }
 
-        if (existingExercise.userId?.toHexString() !== context.userId) {
+        if ((existingExercise.userId ? toStringId(existingExercise.userId) : undefined) !== context.userId) {
             return { error: 'You can only delete your own exercises' };
         }
 

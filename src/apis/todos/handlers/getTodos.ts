@@ -1,6 +1,7 @@
 import { API_GET_TODOS } from '../index';
 import { ApiHandlerContext, GetTodosRequest, GetTodosResponse } from '../types';
 import { todos } from '@/server/database';
+import { toStringId } from '@/server/utils';
 
 export const getTodos = async (
     _: GetTodosRequest,
@@ -13,10 +14,10 @@ export const getTodos = async (
 
         const todoList = await todos.findTodosByUserId(context.userId);
 
-        // Convert to client format
+        // Convert to client format (handles both ObjectId and UUID string IDs)
         const todosClient = todoList.map(todo => ({
-            _id: todo._id.toHexString(),
-            userId: todo.userId.toHexString(),
+            _id: toStringId(todo._id),
+            userId: toStringId(todo.userId),
             title: todo.title,
             completed: todo.completed,
             createdAt: todo.createdAt.toISOString(),
