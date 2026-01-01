@@ -20,6 +20,7 @@ import {
   printAllStores,
   type CacheSizeInfo,
 } from '@/client/stores';
+import { useClearAllPlanData } from '@/client/features/plan-data';
 import { formatBytes } from '@/client/lib/utils';
 
 // React Query cache key (not managed by store registry)
@@ -126,6 +127,7 @@ export function Settings() {
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const queryClient = useQueryClient();
+  const clearAllPlanData = useClearAllPlanData();
 
   // eslint-disable-next-line state-management/prefer-state-architecture -- static data from sync function, not API
   const [models] = useState<AIModelDefinition[]>(getAllModels());
@@ -272,6 +274,28 @@ export function Settings() {
           <Button variant="outline" onClick={printCacheToConsole}>Print to Console</Button>
         </div>
         {isClearing && <LinearProgress className="mt-2" />}
+
+        {/* Clear Plan Cache Section */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <h3 className="text-sm font-medium mb-2">Plan Data Cache</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Clear locally cached plan data (exercises, weekly progress). Data will be fetched fresh from the server on next load.
+          </p>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              clearAllPlanData();
+              refreshCacheSize();
+              setSnackbar({
+                open: true,
+                message: 'Plan data cache cleared. Data will be fetched from server on next load.',
+                severity: 'success'
+              });
+            }}
+          >
+            Clear Plan Cache
+          </Button>
+        </div>
 
         <Separator className="my-3" />
 

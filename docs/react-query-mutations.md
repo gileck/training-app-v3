@@ -2,6 +2,23 @@
 
 This document defines the **required mutation patterns** for this application.
 
+## When to Use React Query vs Zustand Local-First
+
+This app uses **two state management approaches** depending on the data type:
+
+| Data Type | Approach | Why |
+|-----------|----------|-----|
+| **Plan exercises, Weekly progress** | Zustand local-first | Frequently edited, benefits from instant localStorage persistence |
+| **Activity logs** | React Query optimistic | Append-only history, server is canonical source |
+| **Training plans list** | React Query optimistic | Infrequent changes, shared reference data |
+| **Exercise library** | React Query with cache | Reference data, rarely changes |
+
+**📚 See [Local-First Plan Data Architecture](./local-first-plan-data.md)** for the Zustand approach.
+
+The rest of this document covers the **React Query optimistic pattern** used for activity logs and other server-synced data.
+
+---
+
 ## Core Rule: Optimistic-only
 
 **The UI is the source of truth.**

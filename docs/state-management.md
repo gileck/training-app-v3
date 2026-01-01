@@ -147,6 +147,35 @@ const useModalStore = createStore<ModalState>({
 
 📚 **Full Documentation**: [zustand-stores.md](./zustand-stores.md)
 
+### 🚨 CRITICAL: Selector Fallback Values
+
+**Never use inline `[]` or `{}` as fallback values in Zustand selectors.** This causes infinite render loops.
+
+```typescript
+// ❌ BAD - Creates new array/object on every render → infinite loop!
+const items = useMyStore((s) => s.items[id] ?? []);
+const data = useMyStore((s) => s.data[id] ?? {});
+```
+
+**Error you'll see:**
+```
+The result of getSnapshot should be cached to avoid an infinite loop
+Error: Maximum update depth exceeded.
+```
+
+**Fix: Use stable module-level constants:**
+
+```typescript
+// ✅ GOOD - Same reference every time → no infinite loop
+const EMPTY_ITEMS: Item[] = [];
+const EMPTY_DATA: Record<string, Data> = {};
+
+const items = useMyStore((s) => s.items[id] ?? EMPTY_ITEMS);
+const data = useMyStore((s) => s.data[id] ?? EMPTY_DATA);
+```
+
+**Why?** Each `[]` or `{}` creates a new object reference. React's `useSyncExternalStore` (used by Zustand) sees different references as "state changed" and re-renders, which creates another new reference, causing an infinite loop.
+
 ### Philosophy: Many Small Stores
 
 Zustand recommends **separate, focused stores** over a single large store:
@@ -719,6 +748,10 @@ import { createStore } from '@/client/stores';
 // Use selector hooks for fine-grained subscriptions
 const theme = useSettingsStore((s) => s.settings.theme);
 
+// Use stable constants for fallback values in selectors (prevents infinite loops)
+const EMPTY_ARRAY: Item[] = [];
+const items = useMyStore((s) => s.items ?? EMPTY_ARRAY);
+
 // Export query keys for external invalidation
 export const todosQueryKey = ['todos'] as const;
 
@@ -748,6 +781,10 @@ import { create } from 'zustand'; // ERROR!
 
 // Don't subscribe to entire store (causes unnecessary re-renders)
 const store = useSettingsStore(); // BAD
+
+// Don't use inline fallbacks in selectors (causes infinite loops!)
+const items = useMyStore((s) => s.items ?? []); // BAD - new [] every render!
+const data = useMyStore((s) => s.data ?? {});   // BAD - new {} every render!
 
 // Don't hardcode cache times
 staleTime: 30000, // BAD - use QUERY_DEFAULTS.STALE_TIME

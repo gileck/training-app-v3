@@ -32,8 +32,6 @@ import {
     useViewMode,
     useActiveTab,
     useSyncActivePlan,
-    useWeekProgress,
-    useUpdateSets,
     // Selection mode
     useSelectedExerciseIds,
     useIsSelectionMode,
@@ -46,7 +44,16 @@ import {
     useIsSessionActive,
 } from '@/client/features/workout';
 import type { WorkoutTab } from '@/client/features/workout';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import {
+    useLoadPlan,
+    useLoadWeekProgress,
+    useWeekProgressFromStoreData,
+    usePlanDataStore,
+    syncPlanToServer,
+    usePlanLoading,
+    type ExerciseWeekProgressFromStore,
+} from '@/client/features/plan-data';
+import { useAddActivity, useDeleteRecentActivity } from './hooks';
 import { usePlanWorkouts } from '@/client/features/plan-workouts';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
@@ -66,15 +73,22 @@ export function Home() {
     // Sync active plan from server
     const { activePlan, plans, isLoading: plansLoading, plansData } = useSyncActivePlan();
 
-    // Week progress data
-    const {
-        data: weekData,
-        isLoading: weekLoading,
-        isFetching,
-    } = useWeekProgress(activePlanId, currentWeek);
+    // Load plan data into store (local-first)
+    useLoadPlan(activePlanId, currentWeek);
+    useLoadWeekProgress(activePlanId, currentWeek);
+    const storeLoading = usePlanLoading(activePlanId);
 
-    // Update sets mutation
-    const updateSetsMutation = useUpdateSets();
+    // Week progress from store (local-first)
+    const weekData = useWeekProgressFromStoreData(activePlanId, currentWeek);
+
+    // Store actions for updating sets
+    const incrementSet = usePlanDataStore((s) => s.incrementSet);
+    const decrementSet = usePlanDataStore((s) => s.decrementSet);
+    const completeAllSets = usePlanDataStore((s) => s.completeAllSets);
+
+    // Activity log mutations
+    const addActivityMutation = useAddActivity();
+    const deleteRecentActivityMutation = useDeleteRecentActivity();
 
     // Selection mode state
     const selectedExerciseIds = useSelectedExerciseIds();
@@ -104,7 +118,7 @@ export function Home() {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
-    const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgress | null>(null);
+    const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgressFromStore | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
     const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
@@ -129,44 +143,54 @@ export function Home() {
     };
 
 
-    const handleAddSet = (exercise: ExerciseWeekProgress) => {
+    const handleAddSet = (exercise: ExerciseWeekProgressFromStore) => {
         if (!activePlanId || exercise.setsCompleted >= exercise.targetSets) return;
 
-        updateSetsMutation.mutate({
-            planId: activePlanId,
+        // Update store (local-first)
+        incrementSet(activePlanId, currentWeek, exercise.planExerciseId, exercise.targetSets);
+        syncPlanToServer(activePlanId);
+
+        // Create activity log
+        addActivityMutation.mutate({
             planExerciseId: exercise.planExerciseId,
-            weekNumber: currentWeek,
-            action: 'add',
+            completedAt: new Date().toISOString(),
+            numberOfSets: 1,
         });
     };
 
-    const handleRemoveSet = (exercise: ExerciseWeekProgress) => {
+    const handleRemoveSet = (exercise: ExerciseWeekProgressFromStore) => {
         if (!activePlanId || exercise.setsCompleted <= 0) return;
 
-        updateSetsMutation.mutate({
-            planId: activePlanId,
+        // Update store (local-first)
+        decrementSet(activePlanId, currentWeek, exercise.planExerciseId);
+        syncPlanToServer(activePlanId);
+
+        // Try to delete most recent activity log - ignore silently if none exists
+        deleteRecentActivityMutation.mutate({
             planExerciseId: exercise.planExerciseId,
-            weekNumber: currentWeek,
-            action: 'remove',
+            date: new Date().toISOString().split('T')[0],
         });
     };
 
-    const handleCompleteAll = (exercise: ExerciseWeekProgress) => {
+    const handleCompleteAll = (exercise: ExerciseWeekProgressFromStore) => {
         if (!activePlanId) return;
 
         const remaining = exercise.targetSets - exercise.setsCompleted;
         if (remaining > 0) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
+            // Update store (local-first)
+            completeAllSets(activePlanId, currentWeek, exercise.planExerciseId, exercise.targetSets);
+            syncPlanToServer(activePlanId);
+
+            // Create activity logs for remaining sets
+            addActivityMutation.mutate({
                 planExerciseId: exercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'complete-all',
-                targetSets: exercise.targetSets,
+                completedAt: new Date().toISOString(),
+                numberOfSets: remaining,
             });
         }
     };
 
-    const handleOpenExerciseDetails = (exercise: ExerciseWeekProgress) => {
+    const handleOpenExerciseDetails = (exercise: ExerciseWeekProgressFromStore) => {
         setSelectedExerciseForDetails(exercise);
         setExerciseDetailsOpen(true);
     };
@@ -183,7 +207,7 @@ export function Home() {
     // Start workout with selected exercises
     // planWorkoutId/planWorkoutName are set when starting from a saved plan-workout
     const handleStartWorkout = (
-        exercisesToStart?: ExerciseWeekProgress[],
+        exercisesToStart?: ExerciseWeekProgressFromStore[],
         planWorkoutId?: string | null,
         planWorkoutName?: string | null
     ) => {
@@ -211,8 +235,8 @@ export function Home() {
     const isInitialLoading = 
         // Plans haven't loaded yet
         (plansLoading || plansData === undefined) ||
-        // Plans loaded with active plan, but week data hasn't loaded yet
-        (activePlanId && activePlan && (weekLoading || weekData === undefined));
+        // Plans loaded with active plan, but store data hasn't loaded yet
+        (activePlanId && activePlan && (storeLoading || weekData === null));
 
     if (isInitialLoading) {
         return (
@@ -293,7 +317,7 @@ export function Home() {
                             variant="ghost"
                             size="icon"
                             onClick={handlePrevWeek}
-                            disabled={currentWeek <= 1 || isFetching}
+                            disabled={currentWeek <= 1}
                             className="h-10 w-10 rounded-full"
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -314,7 +338,7 @@ export function Home() {
                             variant="ghost"
                             size="icon"
                             onClick={handleNextWeek}
-                            disabled={currentWeek >= activePlan.durationWeeks || isFetching}
+                            disabled={currentWeek >= activePlan.durationWeeks}
                             className="h-10 w-10 rounded-full"
                         >
                             <ChevronRight className="h-5 w-5" />
@@ -586,13 +610,13 @@ export function Home() {
                                         expandedWorkoutId === workout._id ? null : workout._id
                                     )}
                                     onStart={() => {
-                                        // Map plan workout items to ExerciseWeekProgress using week data
+                                        // Map plan workout items to exercises using week data
                                         const exerciseMap = new Map(
                                             exercises.map((ex) => [ex.planExerciseId, ex])
                                         );
-                                        const workoutExercises: ExerciseWeekProgress[] = workout.items
+                                        const workoutExercises: ExerciseWeekProgressFromStore[] = workout.items
                                             .map((item) => exerciseMap.get(item.planExerciseId))
-                                            .filter((ex): ex is ExerciseWeekProgress => ex !== undefined);
+                                            .filter((ex): ex is ExerciseWeekProgressFromStore => ex !== undefined);
 
                                         if (workoutExercises.length === 0) return;
 
@@ -625,7 +649,7 @@ export function Home() {
 
 // Exercise Card Components
 interface ExerciseCardProps {
-    exercise: ExerciseWeekProgress;
+    exercise: ExerciseWeekProgressFromStore;
     onAddSet: () => void;
     onRemoveSet: () => void;
     onCompleteAll: () => void;
@@ -893,7 +917,7 @@ function ExerciseCardList({
 // Plan Workout Card Component
 interface PlanWorkoutCardProps {
     workout: PlanWorkoutClient;
-    exercises: ExerciseWeekProgress[];
+    exercises: ExerciseWeekProgressFromStore[];
     onStart: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
@@ -906,7 +930,7 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
     // Resolve workout items to exercises with definitions
     const resolvedExercises = workout.items
         .map((item) => exerciseMap.get(item.planExerciseId))
-        .filter((ex): ex is ExerciseWeekProgress => ex !== undefined);
+        .filter((ex): ex is ExerciseWeekProgressFromStore => ex !== undefined);
 
     return (
         <Card className="rounded-xl border-0 shadow-sm overflow-hidden">

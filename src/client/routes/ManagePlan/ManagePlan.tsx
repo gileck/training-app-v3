@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/client/components/ui/button';
 import { Card } from '@/client/components/ui/card';
 import { Skeleton } from '@/client/components/ui/skeleton';
@@ -8,17 +8,22 @@ import { useRouter } from '../../router';
 import { useManagePlanStore } from './store';
 import {
     usePlan,
-    usePlanExercises,
     useExerciseLibrary,
-    useAddPlanExercise,
-    useBulkAddPlanExercises,
-    useUpdatePlanExercise,
-    useDeletePlanExercise,
-    useReorderPlanExercises,
     useCreateExercise,
     useUpdateExercise,
     useDeleteExercise,
 } from './hooks';
+import {
+    useLoadPlan,
+    usePlanExercisesFromStore,
+    useAddPlanExerciseAdapter,
+    useBulkAddPlanExercisesAdapter,
+    useUpdatePlanExerciseAdapter,
+    useDeletePlanExerciseAdapter,
+    useReorderPlanExercisesAdapter,
+    useSyncFromCloud,
+    usePlanLoading,
+} from '@/client/features/plan-data';
 import {
     usePlanWorkouts,
     useCreatePlanWorkout,
@@ -49,17 +54,27 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
         }
     };
 
-    // Queries
+    // Queries (React Query - kept for plan metadata and exercise library)
     const { data: planData, isLoading: planLoading } = usePlan(planId);
-    const { data: exercisesData, isLoading: exercisesLoading } = usePlanExercises(planId);
     const { data: libraryData, isLoading: libraryLoading } = useExerciseLibrary();
 
-    // Mutations
-    const addExerciseMutation = useAddPlanExercise();
-    const bulkAddMutation = useBulkAddPlanExercises();
-    const updateExerciseMutation = useUpdatePlanExercise(planId);
-    const deleteExerciseMutation = useDeletePlanExercise(planId);
-    const reorderMutation = useReorderPlanExercises(planId);
+    // Plan data from local-first store
+    useLoadPlan(planId, 1); // Load plan data on mount
+    const planExercisesFromStore = usePlanExercisesFromStore(planId);
+    const storeLoading = usePlanLoading(planId);
+
+    // Get exercise library for adapters
+    const exerciseLibrary = libraryData?.exercises || [];
+
+    // Mutations via store adapters (local-first)
+    const addExerciseMutation = useAddPlanExerciseAdapter(planId, exerciseLibrary);
+    const bulkAddMutation = useBulkAddPlanExercisesAdapter(planId, exerciseLibrary);
+    const updateExerciseMutation = useUpdatePlanExerciseAdapter(planId);
+    const deleteExerciseMutation = useDeletePlanExerciseAdapter(planId);
+    const reorderMutation = useReorderPlanExercisesAdapter(planId);
+
+    // Sync from cloud
+    const { sync: syncFromCloud, isSyncing } = useSyncFromCloud(planId, 1);
 
     // Custom exercise mutations
     const createExerciseMutation = useCreateExercise();
@@ -95,10 +110,14 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     };
 
     const plan = planData?.plan;
-    const planExercises = exercisesData?.exercises || [];
-    const exerciseLibrary = libraryData?.exercises || [];
+    const planExercises = planExercisesFromStore;
 
-    const isLoading = planLoading || exercisesLoading;
+    const isLoading = planLoading || storeLoading;
+
+    // Wrap sync for the header
+    const handleSyncFromCloud = useCallback(async () => {
+        await syncFromCloud();
+    }, [syncFromCloud]);
 
     // Loading state
     if (isLoading && !plan) {
@@ -152,7 +171,12 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
             )}
 
             {/* Header */}
-            <ManagePlanHeader plan={plan} onBack={handleBack} />
+            <ManagePlanHeader 
+                plan={plan} 
+                onBack={handleBack}
+                onSyncFromCloud={handleSyncFromCloud}
+                isSyncing={isSyncing}
+            />
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'exercises' | 'workouts')} className="w-full">
