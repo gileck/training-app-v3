@@ -17,6 +17,9 @@ module.exports = {
         'no-direct-api-client-call': require('./rules/no-direct-api-client-call'),
         'export-name-from-index': require('./rules/export-name-from-index'),
         'no-export-process-from-index': require('./rules/no-export-process-from-index'),
+        
+        // ID handling
+        'prefer-id-utilities': require('./rules/prefer-id-utilities'),
     },
     configs: {
         recommended: {
@@ -36,6 +39,8 @@ module.exports = {
                 'api-guidelines/no-direct-api-client-call': 'error',
                 'api-guidelines/export-name-from-index': 'error',
                 'api-guidelines/no-export-process-from-index': 'error',
+                // Warning only - suggests using @/server/utils for ID conversion
+                'api-guidelines/prefer-id-utilities': 'warn',
             }
         }
     }

@@ -11,6 +11,7 @@ alwaysApply: false
 2. **No Direct MongoDB Imports**: Direct imports of `mongodb` libraries outside the database layer are STRICTLY PROHIBITED.
 3. **Clean API Layer**: The API layer (`src/apis`) must ONLY interact with the database through functions exported from the database layer.
 4. **Type Safety**: All database operations should use TypeScript interfaces for type safety.
+5. **Use ID Utilities**: Always use `@/server/utils` for ID conversion - never direct ObjectId methods.
 
 ## Required Structure
 
@@ -18,12 +19,45 @@ Database operations must follow this structure:
 ```
 /src
   /server
+    /utils
+      /id.ts                - ID conversion utilities (toStringId, toQueryId, toDocumentId)
+      /index.ts             - Exports all utilities
     /database
       /index.ts             - Exports shared utilities and collection modules
       /collections
         /<collection-name>  - One folder per MongoDB collection
           /types.ts         - TypeScript interfaces for the collection
           /<collection-name>.ts - Database operations for the collection
+```
+
+## ID Handling (ObjectId vs UUID)
+
+This app supports both MongoDB ObjectId (legacy) and UUID strings (client-generated) for `_id` fields.
+
+### Required: Use Server Utilities
+
+```typescript
+import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
+```
+
+| Utility | Use Case | Example |
+|---------|----------|---------|
+| `toStringId(id)` | API responses | `{ _id: toStringId(doc._id) }` |
+| `toQueryId(id)` | MongoDB queries | `{ _id: toQueryId(clientId) }` |
+| `toDocumentId(id)` | Document insertion | `{ _id: toDocumentId(clientId) }` |
+
+### ❌ NEVER use direct ObjectId methods:
+
+```typescript
+// ❌ WRONG - Breaks on UUID strings
+doc._id.toHexString()          // TypeError if UUID string
+new ObjectId(clientId)          // BSONError if UUID string
+{ _id: new ObjectId(id) }       // BSONError in queries
+
+// ✅ CORRECT - Works for both formats
+toStringId(doc._id)
+toDocumentId(clientId)
+{ _id: toQueryId(id) }
 ```
 
 ## Correct Usage Examples
@@ -34,7 +68,7 @@ Database operations must follow this structure:
 import { ObjectId } from 'mongodb';
 
 export interface Exercise {
-  _id: ObjectId;
+  _id: ObjectId;  // Can be ObjectId or string in practice (for UUIDs)
   userId: ObjectId;
   // Other properties...
 }
@@ -48,6 +82,7 @@ export type ExerciseUpdate = Partial<Omit<Exercise, '_id' | 'userId'>>;
 // src/server/database/collections/exercises/exercises.ts
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
+import { toQueryId } from '@/server/utils';
 import { Exercise } from './types';
 
 // Private function to get collection reference
@@ -57,31 +92,44 @@ const getExercisesCollection = async (): Promise<Collection<Exercise>> => {
 };
 
 // Public functions for database operations
-export const findExercisesForPlan = async (
-  planId: ObjectId | string, 
+export const findExerciseById = async (
+  exerciseId: string, 
   userId: ObjectId | string
-): Promise<Exercise[]> => {
+): Promise<Exercise | null> => {
   const collection = await getExercisesCollection();
-  // Implementation...
+  // Use toQueryId to handle both ObjectId and UUID formats
+  return collection.findOne({ 
+    _id: toQueryId(exerciseId) as any,
+    userId: typeof userId === 'string' ? new ObjectId(userId) : userId
+  });
 };
 ```
 
 ### 3. Using in API layer:
 ```typescript
-// src/apis/exercises/server.ts
-import { ObjectId } from 'mongodb'; // Only import types, not functionality
+// src/apis/exercises/handlers/getExercise.ts
 import { exercises } from '@/server/database';
-import { GetExercisesRequest, GetExercisesResponse } from './types';
+import { toStringId } from '@/server/utils';
+import { GetExerciseRequest, GetExerciseResponse } from '../types';
 
-export const getExercisesForPlan = async (
-  params: GetExercisesRequest
-): Promise<GetExercisesResponse> => {
+export const getExercise = async (
+  params: GetExerciseRequest,
+  context: { userId: string }
+): Promise<GetExerciseResponse> => {
   try {
-    // Use the database layer to get exercises
-    const exercisesList = await exercises.findExercisesForPlan(params.planId, context.userId);
-    return { exercises: exercisesList };
+    const exercise = await exercises.findExerciseById(params.exerciseId, context.userId);
+    if (!exercise) return { error: "Exercise not found" };
+    
+    // Use toStringId for response - works for both ObjectId and UUID
+    return { 
+      exercise: {
+        ...exercise,
+        _id: toStringId(exercise._id),
+        userId: toStringId(exercise.userId),
+      }
+    };
   } catch (error) {
-    return { error: "Failed to fetch exercises" };
+    return { error: "Failed to fetch exercise" };
   }
 };
 ```
@@ -114,3 +162,31 @@ const getExercises = async () => {
   return collection.find().toArray();
 };
 ```
+
+### ❌ NEVER use direct ObjectId methods on IDs that could be UUIDs:
+```typescript
+// WRONG - Will crash on UUID strings from client-generated IDs
+const response = {
+  _id: doc._id.toHexString(),  // TypeError: toHexString is not a function
+};
+
+const item = await collection.findOne({
+  _id: new ObjectId(clientId),  // BSONError: invalid ObjectId
+});
+
+// CORRECT - Use server utilities
+import { toStringId, toQueryId } from '@/server/utils';
+
+const response = {
+  _id: toStringId(doc._id),  // Works for both ObjectId and string
+};
+
+const item = await collection.findOne({
+  _id: toQueryId(clientId),  // Works for both formats
+});
+```
+
+## Reference
+
+- **Server Utilities**: `src/server/utils/id.ts`
+- **Mutation Guidelines**: `docs/react-query-mutations.md` (client-generated IDs)

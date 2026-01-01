@@ -81,6 +81,8 @@ const eslintConfig = [
           '**/actions/index.ts'
         ]
       }],
+      // Warn about direct ObjectId methods that fail on UUID strings
+      "api-guidelines/prefer-id-utilities": "warn",
       // Block direct zustand imports - use createStore from @/client/stores
       "no-restricted-imports": ["error", {
         "paths": [
