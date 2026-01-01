@@ -100,8 +100,8 @@ export function AddExerciseDialog({
     const handleAddSingleExercise = (config: { sets: number; reps: number; weight: number; comments: string }) => {
         if (!selectedExercise) return;
         onAddExercise(selectedExercise._id, config);
-        // Reset state after successful add (handled by parent via onOpenChange)
-        setSelectedExercise(null);
+        // Don't reset selectedExercise here - the dialog closing via handleOpenChange 
+        // will reset all state. Resetting here causes a flash of "Add Exercise" view.
     };
 
     const handleAddAllExercises = () => {
