@@ -371,6 +371,10 @@ The local-first architecture **never** auto-invalidates cache:
 7. Device B now has latest data
 ```
 
+**Note on Week Progress**: Sync from Cloud only fetches the current week's progress.
+Progress for other weeks is preserved from local storage to prevent data loss. If you
+need to sync a specific week, navigate to that week before syncing.
+
 ### Multi-Device Conflict (Edit Without Syncing First)
 
 ```
@@ -388,13 +392,16 @@ The local-first architecture **never** auto-invalidates cache:
 
 ```
 1. User goes offline
-2. User can still edit plan (localStorage)
-3. Sync attempts fail silently
-4. Plan is marked as dirty
+2. User can still edit plan (localStorage updates immediately)
+3. Sync attempts are queued (not marked as synced)
+4. Plan remains marked as dirty
 5. User comes back online
-6. Next change triggers sync
-7. Server receives all changes
+6. Queued syncs are flushed via batch-updates
+7. On success, plan is marked as synced
 ```
+
+**Important**: When offline, sync requests return empty `{}` response. The system only
+marks the plan as synced when `success: true` is explicitly returned from the server.
 
 ### Server Sync Failure
 

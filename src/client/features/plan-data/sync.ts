@@ -203,9 +203,15 @@ async function doSyncToServer(planId: string, forceSync: boolean = false): Promi
             return;
         }
         
-        // Sync successful - clear any conflict and mark as synced
-        store._clearConflict(planId);
-        store._markSynced(planId);
+        // Only mark synced if server confirmed success
+        // When offline, result.data is empty {} and request is queued for later
+        if (result.data?.success) {
+            store._clearConflict(planId);
+            store._markSynced(planId);
+        } else {
+            // Offline or unexpected response - request is queued, will sync later
+            console.log('Sync queued (offline or pending)');
+        }
     } catch (error) {
         console.error('Sync to server error:', error);
         // Will retry on next change
@@ -250,6 +256,9 @@ export async function forceSyncToServer(planId: string): Promise<void> {
  * Show a confirmation dialog before calling this.
  * Also clears any conflict state.
  * 
+ * Note: Only the specified week's progress is fetched. Progress for other weeks
+ * is preserved from local storage to avoid data loss.
+ * 
  * @param planId The plan ID to sync
  * @param weekNumber Current week number to load progress for
  */
@@ -259,15 +268,37 @@ export async function syncFromCloud(planId: string, weekNumber: number): Promise
     store._setSyncing(planId, true);
     
     try {
-        // Clear local data and conflict state first
-        store._clearPlan(planId);
+        // Preserve local progress for other weeks (we only fetch specified week)
+        const existingPlan = store.plans[planId];
+        const preservedWeekProgress: Record<number, Record<string, ExerciseProgress>> = {};
+        
+        if (existingPlan?.weekProgress) {
+            for (const [week, progress] of Object.entries(existingPlan.weekProgress)) {
+                const weekNum = parseInt(week, 10);
+                // Keep progress for weeks OTHER than the one we're fetching
+                if (weekNum !== weekNumber) {
+                    preservedWeekProgress[weekNum] = progress;
+                }
+            }
+        }
+        
+        // Clear conflict state
         store._clearConflict(planId);
         
         // Fetch fresh from server
         const planData = await fetchPlanFromServer(planId, weekNumber);
         
+        // Merge preserved progress with fetched progress
+        const mergedWeekProgress = {
+            ...preservedWeekProgress,
+            ...planData.weekProgress,
+        };
+        
         // Save to store (which persists to localStorage)
-        store._setPlanData(planId, planData);
+        store._setPlanData(planId, {
+            ...planData,
+            weekProgress: mergedWeekProgress,
+        });
     } catch (error) {
         console.error('Failed to sync from cloud:', error);
         throw error;
@@ -329,13 +360,22 @@ export async function loadWeekProgress(planId: string, weekNumber: number): Prom
 }
 
 // ============================================================================
-// Subscribe to Changes
+// Subscribe to Changes (Alternative Pattern)
 // ============================================================================
 
 /**
  * Subscribe to store changes and trigger sync on dirty state.
  * 
- * Call this once at app initialization.
+ * ALTERNATIVE PATTERN - Currently not used.
+ * 
+ * The current implementation uses direct `syncPlanToServer()` calls in adapter hooks.
+ * This subscription-based approach is an alternative that would auto-trigger syncs
+ * whenever `isDirty` becomes true, without needing to call sync after each action.
+ * 
+ * To use: Call once at app initialization (e.g., in _app.tsx or a provider).
+ * Returns an unsubscribe function for cleanup.
+ * 
+ * @returns Unsubscribe function
  */
 export function initPlanDataSync(): () => void {
     return usePlanDataStore.subscribe(

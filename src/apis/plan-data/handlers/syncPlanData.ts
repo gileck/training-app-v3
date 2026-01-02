@@ -70,7 +70,8 @@ export const syncPlanData = async (
         // Sync Exercises
         // ====================================================================
         
-        if (request.exercises && request.exercises.length > 0) {
+        // Always sync exercises - even empty array means "delete all"
+        if (request.exercises) {
             await syncExercises(request.planId, request.exercises);
         }
 
