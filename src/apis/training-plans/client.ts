@@ -12,6 +12,7 @@ import {
     API_CREATE_PLAN_FROM_TEXT,
     API_EXPORT_PLAN,
     API_MATCH_IMPORTED_PLAN,
+    API_GET_SHARED_PLAN,
 } from './index';
 import {
     ListPlansRequest,
@@ -36,6 +37,8 @@ import {
     ExportPlanResponse,
     MatchImportedPlanRequest,
     MatchImportedPlanResponse,
+    GetSharedPlanRequest,
+    GetSharedPlanResponse,
 } from './types';
 
 /**
@@ -138,3 +141,12 @@ export const matchImportedPlan = async (
     return apiClient.post(API_MATCH_IMPORTED_PLAN, params);
 };
 
+/**
+ * Get a shared plan by token (PUBLIC API - no auth required)
+ * Returns the plan in export format for preview
+ */
+export const getSharedPlan = async (
+    params: GetSharedPlanRequest
+): Promise<CacheResult<GetSharedPlanResponse>> => {
+    return apiClient.call(API_GET_SHARED_PLAN, params);
+};

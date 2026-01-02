@@ -10,6 +10,7 @@ import { ManagePlan } from './ManagePlan';
 import { Progress } from './Progress';
 import { Theme } from './Theme';
 import { ActiveWorkout } from './ActiveWorkout';
+import { SharedPlan } from './SharedPlan';
 
 // Define routes
 export const routes = createRoutes({
@@ -24,4 +25,5 @@ export const routes = createRoutes({
   '/not-found': NotFound,
   '/profile': Profile,
   '/admin/reports': Reports,
+  '/share/:token': SharedPlan,
 });

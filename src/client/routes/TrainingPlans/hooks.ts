@@ -37,7 +37,6 @@ import {
     generatePlanFromText,
     createPlanFromText,
     exportPlan,
-    matchImportedPlan,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
 import { generateId } from '@/client/utils/id';
@@ -54,8 +53,6 @@ import type {
     CreatePlanFromTextResponse,
     ExportPlanRequest,
     ExportPlanResponse,
-    MatchImportedPlanRequest,
-    MatchImportedPlanResponse,
 } from '@/apis/training-plans/types';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
@@ -428,24 +425,6 @@ export function useExportPlan() {
     return useMutation({
         mutationFn: async (data: ExportPlanRequest): Promise<ExportPlanResponse> => {
             const response = await exportPlan(data);
-            if (response.data?.error) {
-                throw new Error(response.data.error);
-            }
-            return response.data;
-        },
-    });
-}
-
-/**
- * Hook for matching imported plan exercises against the user's exercise library
- * 
- * This is NOT an optimistic mutation - it fetches a preview from the server.
- * The preview is transient and used for the import preview UI.
- */
-export function useMatchImportedPlan() {
-    return useMutation({
-        mutationFn: async (data: MatchImportedPlanRequest): Promise<MatchImportedPlanResponse> => {
-            const response = await matchImportedPlan(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }

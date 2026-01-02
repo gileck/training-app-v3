@@ -237,6 +237,66 @@ const showLogin = isValidated && !isAuthenticated && !isProbablyLoggedIn;
 
 **Key insight**: Using `isValidated` (not `!isValidating`) prevents login dialog flickering during Zustand hydration race conditions.
 
+## Public Routes
+
+Some routes need to be accessible without authentication (e.g., shared plan preview). These are configured using a hardcoded `PUBLIC_ROUTES` array in `AuthWrapper.tsx`:
+
+```typescript
+// Public routes that render without requiring authentication
+// To add a new public route: add the path prefix here
+const PUBLIC_ROUTES = ['/share'];
+```
+
+### How Public Routes Work
+
+1. **AuthWrapper** checks `currentPath` against `PUBLIC_ROUTES`
+2. If the path starts with any public route prefix, the app renders immediately without auth check
+3. Components on public routes handle their own auth logic (e.g., showing "Login to Add" button)
+
+### Adding a New Public Route
+
+1. Add the path prefix to `PUBLIC_ROUTES` array in `src/client/features/auth/AuthWrapper.tsx`
+2. Ensure the route's API endpoints don't require `context.userId` (or handle the unauthenticated case)
+3. Handle optional authentication in the component (e.g., show login modal when needed)
+
+### Example: Shared Plan Route (`/share/:token`)
+
+```typescript
+// In AuthWrapper.tsx
+const PUBLIC_ROUTES = ['/share'];
+
+// In SharedPlan.tsx - handles its own auth
+const { isAuthenticated } = useAuthValidation();
+
+{isAuthenticated ? (
+    <Button onClick={handleAddPlan}>Add to My Plans</Button>
+) : (
+    <Button onClick={handleLoginToAdd}>Login to Add Plan</Button>
+)}
+```
+
+### Dismissible Auth Modal
+
+Public routes may show a login modal that users can dismiss:
+
+```typescript
+// IOSAuthModal with onOpenChange prop for dismissibility
+<IOSAuthModal 
+    isOpen={showLoginModal} 
+    onOpenChange={handleModalClose}  // Optional - makes modal dismissible
+>
+    <LoginForm />
+</IOSAuthModal>
+```
+
+When `onOpenChange` is provided, clicking the backdrop closes the modal. The global auth modal (in `AuthWrapper`) doesn't pass this prop, so it remains non-dismissible.
+
+### Current Public Routes
+
+| Route Pattern | Component | Description |
+|---------------|-----------|-------------|
+| `/share/:token` | `SharedPlan` | Shared plan preview (requires login to add plan) |
+
 ## Admin Flag (`isAdmin`)
 
 Authentication responses include `user.isAdmin` so the client can enable admin-only UI immediately after login.

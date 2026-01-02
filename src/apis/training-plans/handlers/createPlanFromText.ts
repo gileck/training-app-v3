@@ -44,8 +44,9 @@ function buildPlanExerciseData(
 
 /**
  * Validate the draft payload integrity
+ * @param autoResolveUnmatched - When true, 'unresolved' exercises are allowed (will be auto-created as custom)
  */
-function validateDraft(draft: DraftPlan): string | null {
+function validateDraft(draft: DraftPlan, autoResolveUnmatched: boolean = false): string | null {
     // Validate plan name
     if (!draft.planName || draft.planName.trim() === '') {
         return 'Plan name is required';
@@ -99,16 +100,17 @@ function validateDraft(draft: DraftPlan): string | null {
             return `Invalid duration for ${exercise.name}: must be 0-3600 seconds`;
         }
         
-        // Validate matchStatus - all exercises must be resolved before commit
+        // Validate matchStatus - all exercises must be resolved before commit (unless autoResolveUnmatched is true)
         if (!exercise.matchStatus) {
             return `Exercise "${exercise.name}" is missing matchStatus`;
         }
-        if (exercise.matchStatus === 'unresolved') {
-            return `Exercise "${exercise.name}" is not resolved. Please match it to a library exercise or mark as custom.`;
-        }
-        // matched/custom require appropriate fields
+        // matched exercises require matchedExerciseDefId
         if (exercise.matchStatus === 'matched' && !exercise.matchedExerciseDefId) {
             return `Matched exercise "${exercise.name}" is missing matchedExerciseDefId`;
+        }
+        // Check for unresolved exercises (reject unless autoResolveUnmatched is true)
+        if (exercise.matchStatus === 'unresolved' && !autoResolveUnmatched) {
+            return `Exercise "${exercise.name}" is not resolved. Please match it to a library exercise or mark as custom.`;
         }
     }
     
@@ -196,7 +198,8 @@ export async function createPlanFromText(
         }
         
         // Validate draft integrity
-        const validationError = validateDraft(request.draft);
+        const autoResolve = request.autoResolveUnmatched ?? false;
+        const validationError = validateDraft(request.draft, autoResolve);
         if (validationError) {
             return {
                 error: validationError,
@@ -233,13 +236,13 @@ export async function createPlanFromText(
                 if (exercise.matchStatus === 'matched' && exercise.matchedExerciseDefId) {
                     // Use existing exercise from library
                     exerciseDefMap.set(exercise.draftExerciseKey, exercise.matchedExerciseDefId);
-                } else if (exercise.matchStatus === 'custom') {
-                    // Create custom exercise
+                } else if (exercise.matchStatus === 'custom' || (exercise.matchStatus === 'unresolved' && autoResolve)) {
+                    // Create custom exercise (or auto-resolve unresolved as custom)
                     const newExerciseId = await createCustomExercise(exercise, context.userId);
                     exerciseDefMap.set(exercise.draftExerciseKey, newExerciseId);
                     createdExerciseCount++;
                 }
-                // Note: 'unresolved' exercises are rejected in validateDraft
+                // Note: 'unresolved' exercises without autoResolve are rejected in validateDraft
             }
             
             // Step 3: Create plan exercises (ordered by first appearance in workouts)

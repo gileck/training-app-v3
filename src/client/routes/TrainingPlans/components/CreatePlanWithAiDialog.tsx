@@ -41,7 +41,7 @@ import { useEffectiveOffline } from '@/client/features/settings';
 import { useGeneratePlanFromText, useCreatePlanFromText } from '../hooks';
 import type { DraftPlan } from '@/apis/training-plans/types';
 import { toast } from '@/client/components/ui/toast';
-import { AiPlanPreview } from './AiPlanPreview';
+import { PlanPreview } from './PlanPreview';
 import type { ExerciseResolution } from './ExerciseResolver';
 
 // Input validation limits (matching server)
@@ -304,7 +304,7 @@ export function CreatePlanWithAiDialog({
                 {/* Preview Step */}
                 {step === 'preview' && preview && (
                     <>
-                        <AiPlanPreview 
+                        <PlanPreview 
                             preview={preview} 
                             previewCost={previewCost}
                             onExerciseResolved={handleExerciseResolved}

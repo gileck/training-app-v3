@@ -164,6 +164,12 @@ export interface CreatePlanFromTextRequest {
     planName: string;
     durationWeeks: number;
     draft: DraftPlan;
+    /** 
+     * When true, unresolved exercises are auto-created as custom exercises.
+     * When false (default), unresolved exercises cause validation to fail.
+     * Use true for share/import flows, false for AI flow (requires user resolution).
+     */
+    autoResolveUnmatched?: boolean;
 }
 
 export interface CreatePlanFromTextResponse {
@@ -234,3 +240,24 @@ export interface MatchImportedPlanResponse {
     errorCode?: PlanExportImportErrorCode | GeneratePlanErrorCode;
 }
 
+// ============================================================================
+// Shared Plan Types (Public API - no auth required)
+// ============================================================================
+
+// Error codes for shared plan operations
+export type SharedPlanErrorCode =
+    | 'INVALID_TOKEN'
+    | 'PLAN_NOT_FOUND'
+    | 'SERVER_ERROR';
+
+// Get shared plan request/response
+export interface GetSharedPlanRequest {
+    token: string;  // base64url encoded { u: userId, p: planId }
+}
+
+export interface GetSharedPlanResponse {
+    exportData?: PlanExportData;
+    ownerName?: string;  // Plan owner's display name (for UI)
+    error?: string;
+    errorCode?: SharedPlanErrorCode;
+}

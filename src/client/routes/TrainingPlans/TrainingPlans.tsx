@@ -14,7 +14,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles, MoreVertical, Download, FileJson, ChevronDown, Save, Clipboard } from 'lucide-react';
+import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles, MoreVertical, Download, FileJson, ChevronDown, Save, Clipboard, Share2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,7 +26,7 @@ import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan
 import { useWorkoutStore } from '@/client/features/workout';
 import { useTrainingPlansStore } from './store';
 import { ManagePlan } from '../ManagePlan';
-import { CreatePlanWithAiDialog, ImportPlanDialog } from './components';
+import { CreatePlanWithAiDialog, ImportPlanDialog, SharePlanDialog } from './components';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
 export function TrainingPlans() {
@@ -73,6 +73,10 @@ export function TrainingPlans() {
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [planToExport, setPlanToExport] = useState<TrainingPlanClient | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [planToShare, setPlanToShare] = useState<TrainingPlanClient | null>(null);
 
     const plans = (data?.plans || []).slice().sort((a, b) => {
         // Active plan always first
@@ -181,6 +185,11 @@ export function TrainingPlans() {
     const handleExportPlan = (plan: TrainingPlanClient) => {
         setPlanToExport(plan);
         setExportDialogOpen(true);
+    };
+
+    const handleSharePlan = (plan: TrainingPlanClient) => {
+        setPlanToShare(plan);
+        setShareDialogOpen(true);
     };
 
     const handleExportAsFile = () => {
@@ -437,6 +446,10 @@ export function TrainingPlans() {
                                                 <Download className="h-4 w-4 mr-2" />
                                                 Export JSON
                                             </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleSharePlan(plan)}>
+                                                <Share2 className="h-4 w-4 mr-2" />
+                                                Share
+                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem 
                                                 onClick={() => handleDeletePlan(plan)}
@@ -691,6 +704,19 @@ export function TrainingPlans() {
                 onOpenChange={setImportDialogOpen}
                 onSuccess={handleImportSuccess}
             />
+
+            {/* Share Plan Dialog */}
+            {planToShare && (
+                <SharePlanDialog
+                    open={shareDialogOpen}
+                    onOpenChange={(open) => {
+                        setShareDialogOpen(open);
+                        if (!open) setPlanToShare(null);
+                    }}
+                    planId={planToShare._id}
+                    planName={planToShare.name}
+                />
+            )}
         </div>
     );
 }

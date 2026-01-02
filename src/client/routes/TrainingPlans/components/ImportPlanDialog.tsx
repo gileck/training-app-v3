@@ -1,11 +1,16 @@
 /**
  * Import Plan Dialog
  * 
- * Two-step dialog: JSON input → preview
- * Allows user to paste or upload JSON and preview the imported plan before committing.
+ * Two-step dialog: JSON input → preview & import
+ * 
+ * Simplified flow (same as Share):
+ * 1. User pastes/uploads JSON
+ * 2. Client-side conversion to DraftPlan (no server matching)
+ * 3. Preview plan (no resolution UI needed)
+ * 4. Single click to import with autoResolveUnmatched=true
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/client/components/ui/button';
 import { Textarea } from '@/client/components/ui/textarea';
 import {
@@ -18,19 +23,16 @@ import {
 } from '@/client/components/ui/dialog';
 import {
     Upload,
-    ArrowLeft,
     ClipboardPaste,
     X,
     Check,
     AlertCircle,
-    Loader2,
     FileJson,
 } from 'lucide-react';
-import { useMatchImportedPlan, useCreatePlanFromText } from '../hooks';
-import type { DraftPlan, PlanExportData } from '@/apis/training-plans/types';
+import type { PlanExportData } from '@/apis/training-plans/types';
 import { toast } from '@/client/components/ui/toast';
-import { AiPlanPreview } from './AiPlanPreview';
-import type { ExerciseResolution } from './ExerciseResolver';
+import { PlanPreviewCommit } from './PlanPreviewCommit';
+import { exportDataToDraftPlan } from '../utils';
 
 // Validation limits (matching server)
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
@@ -152,10 +154,6 @@ export function ImportPlanDialog({
     onOpenChange,
     onSuccess,
 }: ImportPlanDialogProps) {
-    // Mutation hooks
-    const matchMutation = useMatchImportedPlan();
-    const createMutation = useCreatePlanFromText();
-    
     // File input ref
     const fileInputRef = useRef<HTMLInputElement>(null);
     
@@ -172,14 +170,12 @@ export function ImportPlanDialog({
     // Dialog step state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [step, setStep] = useState<DialogStep>('input');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral preview data
-    const [preview, setPreview] = useState<DraftPlan | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral error state
-    const [error, setError] = useState<string | null>(null);
     
-    // Derived loading states
-    const isMatching = matchMutation.isPending;
-    const isCommitting = createMutation.isPending;
+    // Convert parsed data to draft plan (client-side, no API call)
+    const draftPlan = useMemo(() => {
+        if (!parsedData) return null;
+        return exportDataToDraftPlan(parsedData);
+    }, [parsedData]);
     
     // Reset dialog state
     const resetDialog = useCallback(() => {
@@ -188,17 +184,11 @@ export function ImportPlanDialog({
         setIsValidJson(false);
         setParsedData(null);
         setStep('input');
-        setPreview(null);
-        setError(null);
-        matchMutation.reset();
-        createMutation.reset();
-    }, [matchMutation, createMutation]);
+    }, []);
     
     // Handle dialog close
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
-            // Don't allow closing while committing
-            if (isCommitting) return;
             resetDialog();
         }
         onOpenChange(newOpen);
@@ -286,82 +276,21 @@ export function ImportPlanDialog({
     
     // Handle continue to preview
     const handleContinue = () => {
-        if (!parsedData) return;
-        
-        setError(null);
-        
-        matchMutation.mutate(
-            { importData: parsedData },
-            {
-                onSuccess: (data) => {
-                    if (data.preview) {
-                        setPreview(data.preview);
-                        setStep('preview');
-                    }
-                },
-                onError: (err) => {
-                    setError(err.message || 'Failed to process plan. Please try again.');
-                },
-            }
-        );
+        if (!parsedData || !draftPlan) return;
+        setStep('preview');
     };
     
     // Handle back to input
     const handleBackToInput = () => {
         setStep('input');
-        setError(null);
     };
     
-    // Handle exercise resolution
-    const handleExerciseResolved = useCallback((exerciseKey: string, resolution: ExerciseResolution) => {
-        if (!preview) return;
-        
-        setPreview({
-            ...preview,
-            exercises: preview.exercises.map(ex => 
-                ex.draftExerciseKey === exerciseKey
-                    ? {
-                        ...ex,
-                        matchStatus: resolution.matchStatus,
-                        matchedExerciseDefId: resolution.matchedExerciseDefId,
-                        matchedExerciseName: resolution.matchedExerciseName,
-                        suggestedMatches: undefined, // Clear suggestions after resolution
-                    }
-                    : ex
-            ),
-        });
-    }, [preview]);
-    
-    // Handle commit plan
-    const handleCommit = () => {
-        if (!preview) return;
-        
-        setError(null);
-        
-        createMutation.mutate(
-            {
-                planName: preview.planName,
-                durationWeeks: preview.durationWeeks,
-                draft: preview,
-            },
-            {
-                onSuccess: (data) => {
-                    if (data.plan) {
-                        toast.success(`Plan "${data.plan.name}" imported successfully!`);
-                        onSuccess(data.plan._id);
-                        handleOpenChange(false);
-                    }
-                },
-                onError: (err) => {
-                    setError(err.message || 'Failed to create plan. Please try again.');
-                },
-            }
-        );
+    // Handle plan import success
+    const handleImportSuccess = (planId: string) => {
+        toast.success('Plan imported successfully!');
+        onSuccess(planId);
+        handleOpenChange(false);
     };
-    
-    // Check if all exercises are resolved (no 'unresolved' status)
-    const hasUnresolvedExercises = preview?.exercises.some(e => e.matchStatus === 'unresolved') ?? false;
-    const canCommit = !hasUnresolvedExercises;
     
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -463,108 +392,40 @@ export function ImportPlanDialog({
                                 )}
                             </div>
                         )}
-                        
-                        {/* API Error Display */}
-                        {error && (
-                            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                <span>{error}</span>
-                            </div>
-                        )}
                     </div>
                 )}
                 
-                {/* Preview Step */}
-                {step === 'preview' && preview && (
-                    <>
-                        <AiPlanPreview 
-                            preview={preview} 
-                            previewCost={null}
-                            onExerciseResolved={handleExerciseResolved}
-                        />
-                        
-                        {/* Error Display */}
-                        {error && (
-                            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                <span>{error}</span>
-                            </div>
-                        )}
-                    </>
+                {/* Preview Step - uses shared PlanPreviewCommit component */}
+                {step === 'preview' && draftPlan && (
+                    <PlanPreviewCommit
+                        initialPreview={draftPlan}
+                        onSuccess={handleImportSuccess}
+                        onBack={handleBackToInput}
+                        submitLabel="Import Plan"
+                        showMatchStatus={false}
+                        autoResolveUnmatched={true}
+                    />
                 )}
                 
-                {/* Loading Overlay */}
-                {isMatching && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 rounded-2xl">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <div className="text-center">
-                            <p className="font-medium">Matching exercises...</p>
-                            <p className="text-sm text-muted-foreground">
-                                Finding matches in your exercise library
-                            </p>
-                        </div>
-                    </div>
+                {/* Footer only for input step */}
+                {step === 'input' && (
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => handleOpenChange(false)}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleContinue}
+                            disabled={!isValidJson}
+                            className="rounded-lg"
+                        >
+                            Continue
+                        </Button>
+                    </DialogFooter>
                 )}
-                
-                <DialogFooter className="gap-2">
-                    {step === 'input' && (
-                        <>
-                            <Button
-                                variant="outline"
-                                onClick={() => handleOpenChange(false)}
-                                className="rounded-lg"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleContinue}
-                                disabled={!isValidJson || isMatching}
-                                className="rounded-lg"
-                            >
-                                {isMatching ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    'Continue'
-                                )}
-                            </Button>
-                        </>
-                    )}
-                    
-                    {step === 'preview' && (
-                        <>
-                            <Button
-                                variant="outline"
-                                onClick={handleBackToInput}
-                                className="rounded-lg"
-                                disabled={isCommitting}
-                            >
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back
-                            </Button>
-                            <Button
-                                onClick={handleCommit}
-                                disabled={isCommitting || !canCommit}
-                                className="rounded-lg"
-                                title={!canCommit ? 'Resolve all exercises before importing' : undefined}
-                            >
-                                {isCommitting ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Importing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="h-4 w-4 mr-2" />
-                                        Import Plan
-                                    </>
-                                )}
-                            </Button>
-                        </>
-                    )}
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

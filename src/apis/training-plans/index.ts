@@ -13,4 +13,5 @@ export const API_GENERATE_PLAN_FROM_TEXT = 'training-plans/generate-from-text';
 export const API_CREATE_PLAN_FROM_TEXT = 'training-plans/create-from-text';
 export const API_EXPORT_PLAN = 'training-plans/export';
 export const API_MATCH_IMPORTED_PLAN = 'training-plans/match-imported';
+export const API_GET_SHARED_PLAN = 'training-plans/get-shared';
 
