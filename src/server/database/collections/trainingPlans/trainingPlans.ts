@@ -148,3 +148,36 @@ export const deletePlan = async (
     const result = await collection.deleteOne({ _id: planIdQuery as ObjectId, userId: userIdObj });
     return result.deletedCount === 1;
 };
+
+/**
+ * Update the lastDataSyncedAt timestamp for a plan
+ */
+export const updateLastDataSyncedAt = async (
+    planId: ObjectId | string,
+    timestamp: number
+): Promise<void> => {
+    const collection = await getCollection();
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    
+    await collection.updateOne(
+        { _id: planIdQuery as ObjectId },
+        { $set: { lastDataSyncedAt: timestamp } }
+    );
+};
+
+/**
+ * Get the lastDataSyncedAt timestamp for a plan
+ */
+export const getLastDataSyncedAt = async (
+    planId: ObjectId | string
+): Promise<number | null> => {
+    const collection = await getCollection();
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    
+    const plan = await collection.findOne(
+        { _id: planIdQuery as ObjectId },
+        { projection: { lastDataSyncedAt: 1 } }
+    );
+    
+    return plan?.lastDataSyncedAt ?? null;
+};

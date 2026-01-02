@@ -3,6 +3,11 @@
  * 
  * Bulk upserts plan exercises and weekly progress from client.
  * This is the server-side handler for local-first sync.
+ * 
+ * Conflict Detection:
+ * - Client sends `clientLastSyncedAt` (when it last synced from server)
+ * - Server compares with `lastDataSyncedAt` (when data was last modified)
+ * - If server is newer, returns conflict (unless `forceSync` is true)
  */
 
 import {
@@ -41,6 +46,27 @@ export const syncPlanData = async (
         }
 
         // ====================================================================
+        // Conflict Detection
+        // ====================================================================
+        
+        const serverLastSyncedAt = plan.lastDataSyncedAt ?? null;
+        const clientLastSyncedAt = request.clientLastSyncedAt ?? null;
+        
+        // Check for conflict: server has newer data than client knows about
+        // Only check if both timestamps exist and forceSync is not set
+        if (
+            !request.forceSync &&
+            serverLastSyncedAt !== null &&
+            clientLastSyncedAt !== null &&
+            serverLastSyncedAt > clientLastSyncedAt
+        ) {
+            return {
+                conflict: true,
+                serverLastSyncedAt,
+            };
+        }
+
+        // ====================================================================
         // Sync Exercises
         // ====================================================================
         
@@ -56,9 +82,16 @@ export const syncPlanData = async (
             await syncWeekProgress(request.planId, request.weekProgress);
         }
 
+        // ====================================================================
+        // Update lastDataSyncedAt
+        // ====================================================================
+        
+        const syncedAt = Date.now();
+        await trainingPlans.updateLastDataSyncedAt(request.planId, syncedAt);
+
         return {
             success: true,
-            syncedAt: new Date().toISOString(),
+            syncedAt: new Date(syncedAt).toISOString(),
         };
     } catch (error: unknown) {
         console.error('Sync plan data error:', error);

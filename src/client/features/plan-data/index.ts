@@ -25,6 +25,8 @@ export {
     usePlanSyncing,
     usePlanHasData,
     usePlanIsDirty,
+    usePlanConflict,
+    usePlanHasConflict,
 } from './store';
 
 // Sync functions
@@ -32,6 +34,7 @@ export {
     loadPlan,
     syncPlanToServer,
     syncFromCloud,
+    forceSyncToServer,
     loadWeekProgress,
     initPlanDataSync,
 } from './sync';
@@ -68,4 +71,5 @@ export type {
     ExerciseProgress,
     ExerciseUpdates,
     NewExercise,
+    PlanConflict,
 } from './types';

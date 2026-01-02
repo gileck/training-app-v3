@@ -44,10 +44,18 @@ export interface SyncPlanDataRequest {
     planId: string;
     exercises: ExerciseSyncData[];
     weekProgress: WeekProgressSyncData;
+    /** Client's last known sync timestamp (for conflict detection) */
+    clientLastSyncedAt?: number | null;
+    /** Force sync even if conflict detected */
+    forceSync?: boolean;
 }
 
 export interface SyncPlanDataResponse {
     success?: boolean;
     syncedAt?: string;
     error?: string;
+    /** Conflict detected - server has newer changes */
+    conflict?: boolean;
+    /** Server's last sync timestamp (when conflict detected) */
+    serverLastSyncedAt?: number;
 }

@@ -23,6 +23,8 @@ import {
     useReorderPlanExercisesAdapter,
     useSyncFromCloud,
     usePlanLoading,
+    usePlanConflict,
+    forceSyncToServer,
 } from '@/client/features/plan-data';
 import {
     usePlanWorkouts,
@@ -73,8 +75,9 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const deleteExerciseMutation = useDeletePlanExerciseAdapter(planId);
     const reorderMutation = useReorderPlanExercisesAdapter(planId);
 
-    // Sync from cloud
+    // Sync from cloud and conflict state
     const { sync: syncFromCloud, isSyncing } = useSyncFromCloud(planId, 1);
+    const conflict = usePlanConflict(planId);
 
     // Custom exercise mutations
     const createExerciseMutation = useCreateExercise();
@@ -118,6 +121,11 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const handleSyncFromCloud = useCallback(async () => {
         await syncFromCloud();
     }, [syncFromCloud]);
+
+    // Force sync to server (override server changes)
+    const handleForceSyncToServer = useCallback(async () => {
+        await forceSyncToServer(planId);
+    }, [planId]);
 
     // Loading state
     if (isLoading && !plan) {
@@ -175,7 +183,9 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                 plan={plan} 
                 onBack={handleBack}
                 onSyncFromCloud={handleSyncFromCloud}
+                onForceSyncToServer={handleForceSyncToServer}
                 isSyncing={isSyncing}
+                conflict={conflict}
             />
 
             {/* Tabs */}

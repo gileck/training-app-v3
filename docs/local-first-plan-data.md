@@ -119,6 +119,35 @@ graph TD
 - **Only triggered manually** by user
 - Shows confirmation dialog before proceeding
 
+### Sync Conflict Detection
+
+When syncing TO server, if the server has newer changes from another device:
+
+```mermaid
+graph TD
+    A[Local change triggers sync] --> B[Send to server with lastSyncedAt]
+    B --> C{Server has newer data?}
+    C -->|No| D[Sync successful]
+    C -->|Yes| E[Conflict detected]
+    E --> F[Show conflict banner + dialog]
+    F --> G{User choice}
+    G -->|Sync Anyway| H[Force sync - override server]
+    G -->|Sync from Cloud| I[Discard local - use server]
+    G -->|Decide Later| J[Pause sync until resolved]
+    H --> D
+    I --> D
+```
+
+**Conflict Resolution Options:**
+1. **Sync Anyway** - Keep local changes, overwrite server data
+2. **Sync from Cloud** - Discard local changes, fetch server data
+3. **Decide Later** - Pause automatic syncing until user resolves
+
+**Conflict UI:**
+- Yellow warning icon in header when conflict exists
+- Banner below header with quick-action buttons
+- Full dialog with details when clicking the warning icon
+
 ## Store Structure
 
 ### State Shape
@@ -131,6 +160,15 @@ interface PlanDataState {
     loading: Record<string, boolean>;
     // Syncing state per plan (true when syncing to/from cloud)
     syncing: Record<string, boolean>;
+    // Conflict state per plan (when server has newer changes)
+    conflicts: Record<string, PlanConflict>;
+}
+
+interface PlanConflict {
+    // Server's last sync timestamp
+    serverLastSyncedAt: number;
+    // When the conflict was detected
+    detectedAt: number;
 }
 
 interface PlanData {
@@ -321,7 +359,7 @@ The local-first architecture **never** auto-invalidates cache:
 6. Display data
 ```
 
-### Multi-Device Sync
+### Multi-Device Sync (Proactive - Sync from Cloud)
 
 ```
 1. User edits plan on Device A
@@ -331,6 +369,19 @@ The local-first architecture **never** auto-invalidates cache:
 5. User clicks "Sync from Cloud" on Device B
 6. Device B fetches fresh data from server
 7. Device B now has latest data
+```
+
+### Multi-Device Conflict (Edit Without Syncing First)
+
+```
+1. User edits plan on Device A → syncs to server
+2. User opens Device B (has stale cache) → makes changes
+3. Device B tries to sync → CONFLICT DETECTED
+4. User sees conflict banner with options:
+   - "Keep Mine" → Device B overwrites server (A's changes lost)
+   - "Use Cloud" → Device B discards local, uses server data
+   - "Decide Later" → Sync paused, banner remains
+5. User resolves conflict → Normal syncing resumes
 ```
 
 ### Offline Usage

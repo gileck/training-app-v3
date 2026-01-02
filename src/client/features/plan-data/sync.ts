@@ -18,6 +18,7 @@
 
 import { usePlanDataStore } from './store';
 import type { PlanData, PlanExerciseWithDefinition, ExerciseProgress } from './types';
+import type { SyncPlanDataResponse } from '@/apis/plan-data/types';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
 import { getWeekProgress } from '@/apis/weekly-progress/client';
 import apiClient from '@/client/utils/apiClient';
@@ -136,8 +137,11 @@ export function syncPlanToServer(planId: string): void {
 
 /**
  * Actually perform the sync to server
+ * 
+ * @param planId The plan ID to sync
+ * @param forceSync If true, overwrite server even if conflict detected
  */
-async function doSyncToServer(planId: string): Promise<void> {
+async function doSyncToServer(planId: string, forceSync: boolean = false): Promise<void> {
     // Prevent multiple simultaneous syncs
     if (syncInProgress[planId]) {
         // If already syncing, schedule another sync after current one completes
@@ -148,14 +152,20 @@ async function doSyncToServer(planId: string): Promise<void> {
     const store = usePlanDataStore.getState();
     const plan = store.plans[planId];
     
+    // Don't sync if no plan, not dirty, or has conflict (unless forcing)
     if (!plan || !plan.isDirty) {
+        return;
+    }
+    
+    // If there's a conflict and not forcing, don't sync
+    if (store.conflicts[planId] && !forceSync) {
         return;
     }
     
     syncInProgress[planId] = true;
     
     try {
-        // Prepare sync payload
+        // Prepare sync payload with conflict detection data
         const payload = {
             planId,
             exercises: plan.exercises.map((ex) => ({
@@ -169,19 +179,32 @@ async function doSyncToServer(planId: string): Promise<void> {
                 order: ex.order,
             })),
             weekProgress: plan.weekProgress,
+            clientLastSyncedAt: plan.lastSyncedAt,
+            forceSync,
         };
         
-        // Send to server
-        const result = await apiClient.post(API_SYNC_PLAN_DATA, payload);
+        // Send to server (complex payload requires type assertion)
+        const result = await apiClient.post<SyncPlanDataResponse, typeof payload>(
+            API_SYNC_PLAN_DATA, 
+            payload
+        );
+        
+        // Check for conflict
+        if (result.data?.conflict && result.data.serverLastSyncedAt) {
+            console.warn('Sync conflict detected - server has newer data');
+            store._setConflict(planId, result.data.serverLastSyncedAt);
+            return;
+        }
         
         // Check for errors (but don't throw - local is source of truth)
-        if (result.data && typeof result.data === 'object' && 'error' in result.data) {
+        if (result.data?.error) {
             console.error('Sync to server failed:', result.data.error);
             // Will retry on next change
             return;
         }
         
-        // Mark as synced
+        // Sync successful - clear any conflict and mark as synced
+        store._clearConflict(planId);
         store._markSynced(planId);
     } catch (error) {
         console.error('Sync to server error:', error);
@@ -189,6 +212,31 @@ async function doSyncToServer(planId: string): Promise<void> {
     } finally {
         syncInProgress[planId] = false;
     }
+}
+
+/**
+ * Force sync to server, overwriting any server changes.
+ * 
+ * Use this when user explicitly chooses to keep their local changes
+ * despite server having newer data.
+ * 
+ * @param planId The plan ID to sync
+ */
+export async function forceSyncToServer(planId: string): Promise<void> {
+    const store = usePlanDataStore.getState();
+    const plan = store.plans[planId];
+    
+    if (!plan) {
+        return;
+    }
+    
+    // Mark as dirty to ensure it syncs
+    if (!plan.isDirty) {
+        store._markDirty(planId);
+    }
+    
+    // Force sync immediately (bypass debounce)
+    await doSyncToServer(planId, true);
 }
 
 // ============================================================================
@@ -200,6 +248,7 @@ async function doSyncToServer(planId: string): Promise<void> {
  * 
  * This is a destructive operation - local changes will be lost.
  * Show a confirmation dialog before calling this.
+ * Also clears any conflict state.
  * 
  * @param planId The plan ID to sync
  * @param weekNumber Current week number to load progress for
@@ -210,8 +259,9 @@ export async function syncFromCloud(planId: string, weekNumber: number): Promise
     store._setSyncing(planId, true);
     
     try {
-        // Clear local data first
+        // Clear local data and conflict state first
         store._clearPlan(planId);
+        store._clearConflict(planId);
         
         // Fetch fresh from server
         const planData = await fetchPlanFromServer(planId, weekNumber);

@@ -11,6 +11,8 @@ export interface TrainingPlan {
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
+    /** Timestamp of last plan data sync (exercises + progress) */
+    lastDataSyncedAt?: number;
 }
 
 /**

@@ -37,6 +37,16 @@ export interface PlanData {
 }
 
 /**
+ * Conflict state for a plan (when server has newer changes)
+ */
+export interface PlanConflict {
+    /** Server's last sync timestamp */
+    serverLastSyncedAt: number;
+    /** When the conflict was detected */
+    detectedAt: number;
+}
+
+/**
  * Updates for an exercise (partial)
  */
 export interface ExerciseUpdates {

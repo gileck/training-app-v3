@@ -15,6 +15,7 @@ import type {
     ExerciseUpdates, 
     NewExercise,
     ExerciseProgress,
+    PlanConflict,
 } from './types';
 
 // ============================================================================
@@ -28,6 +29,8 @@ interface PlanDataState {
     loading: Record<string, boolean>;
     /** Syncing state per plan (true when syncing to/from cloud) */
     syncing: Record<string, boolean>;
+    /** Conflict state per plan (when server has newer changes) */
+    conflicts: Record<string, PlanConflict>;
 
     // ========================================================================
     // Internal setters (used by sync module)
@@ -45,6 +48,10 @@ interface PlanDataState {
     _markSynced: (planId: string) => void;
     /** Clear plan data (for sync from cloud) */
     _clearPlan: (planId: string) => void;
+    /** Set conflict state */
+    _setConflict: (planId: string, serverLastSyncedAt: number) => void;
+    /** Clear conflict state */
+    _clearConflict: (planId: string) => void;
 
     // ========================================================================
     // Exercise Actions (used by ManagePlan)
@@ -100,6 +107,7 @@ export const usePlanDataStore = createStore<PlanDataState>({
         plans: {},
         loading: {},
         syncing: {},
+        conflicts: {},
 
         // ====================================================================
         // Internal setters
@@ -157,6 +165,25 @@ export const usePlanDataStore = createStore<PlanDataState>({
             set((state) => {
                 const { [planId]: _, ...rest } = state.plans;
                 return { plans: rest };
+            });
+        },
+
+        _setConflict: (planId, serverLastSyncedAt) => {
+            set((state) => ({
+                conflicts: {
+                    ...state.conflicts,
+                    [planId]: {
+                        serverLastSyncedAt,
+                        detectedAt: Date.now(),
+                    },
+                },
+            }));
+        },
+
+        _clearConflict: (planId) => {
+            set((state) => {
+                const { [planId]: _, ...rest } = state.conflicts;
+                return { conflicts: rest };
             });
         },
 
@@ -360,7 +387,7 @@ export const usePlanDataStore = createStore<PlanDataState>({
         // ====================================================================
 
         clearAllPlanData: () => {
-            set({ plans: {}, loading: {}, syncing: {} });
+            set({ plans: {}, loading: {}, syncing: {}, conflicts: {} });
         },
     }),
     persistOptions: {
@@ -441,5 +468,23 @@ export function usePlanHasData(planId: string | null): boolean {
 export function usePlanIsDirty(planId: string | null): boolean {
     return usePlanDataStore((state) => 
         planId ? state.plans[planId]?.isDirty ?? false : false
+    );
+}
+
+/**
+ * Get conflict state for a plan (null if no conflict)
+ */
+export function usePlanConflict(planId: string | null): PlanConflict | null {
+    return usePlanDataStore((state) => 
+        planId ? state.conflicts[planId] ?? null : null
+    );
+}
+
+/**
+ * Check if plan has a sync conflict
+ */
+export function usePlanHasConflict(planId: string | null): boolean {
+    return usePlanDataStore((state) => 
+        planId ? !!state.conflicts[planId] : false
     );
 }
