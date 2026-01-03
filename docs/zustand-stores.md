@@ -124,6 +124,87 @@ import {
 | `clearPersistedStore(key)` | `boolean` | Clear specific store |
 | `printAllStores()` | `void` | Debug output to console |
 
+## Hydration Timing
+
+### The Problem
+
+Zustand's persist middleware provides a `hasHydrated()` method that returns `true` when localStorage data has been loaded. However, **`hasHydrated() = true` does NOT mean React hooks will return the hydrated values**.
+
+There's a timing gap:
+
+```
+Step 1: Persist middleware reads localStorage
+Step 2: Persist sets hasHydrated() = true     ← Flag is set
+Step 3: Persist calls setState() with data    ← Store updates
+Step 4: React propagates to selector hooks    ← Hooks update (async!)
+```
+
+If you render components after Step 2 but before Step 4, hooks will return **default values**, not the hydrated data.
+
+### The Solution
+
+Use `useAllPersistedStoresHydrated()` from `@/client/stores`. This hook waits for:
+
+1. All persisted stores to report `hasHydrated() = true`
+2. One animation frame (`requestAnimationFrame`) for React to propagate values to hooks
+
+```typescript
+import { useAllPersistedStoresHydrated } from '@/client/stores';
+
+function MyComponent() {
+  const isHydrated = useAllPersistedStoresHydrated();
+  
+  if (!isHydrated) {
+    return null; // Or a loading spinner
+  }
+  
+  // Safe to read from stores - values are guaranteed to be hydrated
+  return <App />;
+}
+```
+
+### BootGate Pattern
+
+The app uses a `BootGate` component in `_app.tsx` to block rendering until hydration is complete:
+
+```tsx
+function BootGate({ children }: { children: ReactNode }) {
+  const isHydrated = useAllPersistedStoresHydrated();
+  
+  if (!isHydrated) return null;
+  return <>{children}</>;
+}
+
+// Usage in _app.tsx
+<QueryProvider>
+  <BootGate>
+    <AppThemeProvider>
+      <AuthWrapper>
+        {/* All components here can trust store values */}
+      </AuthWrapper>
+    </AppThemeProvider>
+  </BootGate>
+</QueryProvider>
+```
+
+This ensures all child components reading from stores get the **actual hydrated values**, not defaults.
+
+### Why Not Just Check `hasHydrated()`?
+
+```typescript
+// ❌ DON'T do this - race condition!
+const store = useMyStore as any;
+if (store.persist.hasHydrated()) {
+  // Store data is loaded, but React hooks might still return defaults
+}
+
+// ✅ DO use the hook
+const isHydrated = useAllPersistedStoresHydrated();
+if (isHydrated) {
+  // Safe - React has propagated values to all hooks
+}
+```
+
 ## When to Use Each Mode
 
 ### Use Persisted Store When:
@@ -321,6 +402,14 @@ Make sure you're using the correct config type:
 ### subscribeWithSelector not working
 
 For in-memory stores, explicitly enable it with `withSelector: true`.
+
+### Store values are defaults even though localStorage has data
+
+This is the hydration timing issue. React hooks don't immediately reflect the hydrated store values. Ensure your component renders **after** `useAllPersistedStoresHydrated()` returns `true`. See [Hydration Timing](#hydration-timing) above.
+
+### Component renders with wrong values on first load
+
+Make sure your component is inside `BootGate` (or uses `useAllPersistedStoresHydrated()` directly). Components that render before hydration completes will see default values.
 
 ### 🚨 Infinite Loop: "The result of getSnapshot should be cached"
 

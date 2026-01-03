@@ -25,5 +25,5 @@ export const routes = createRoutes({
   '/not-found': NotFound,
   '/profile': Profile,
   '/admin/reports': Reports,
-  '/share/:token': SharedPlan,
+  '/share/:token': { component: SharedPlan, public: true },
 });
