@@ -17,16 +17,14 @@ export const deleteAllReports = async (
             .map(report => report.screenshot!)
             .filter(url => url.startsWith('http://') || url.startsWith('https://'));
 
-        // Delete all screenshots from storage
-        let deletedFilesCount = 0;
-        for (const url of screenshotUrls) {
-            try {
-                await fileStorageAPI.delete(url);
-                deletedFilesCount++;
-            } catch (error) {
-                console.error(`Failed to delete screenshot from storage: ${url}`, error);
-                // Continue with next file
-            }
+        // Delete all screenshots from storage in parallel
+        const deleteResults = await Promise.allSettled(
+            screenshotUrls.map(url => fileStorageAPI.delete(url))
+        );
+        const deletedFilesCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+        const failedDeletes = deleteResults.filter(r => r.status === 'rejected');
+        if (failedDeletes.length > 0) {
+            console.error(`Failed to delete ${failedDeletes.length} screenshots from storage`);
         }
 
         // Delete all reports from database

@@ -49,10 +49,52 @@ import { generateId } from '@/client/utils/id';
 // Query Keys
 // ============================================================================
 
-export const activityQueryKey = (planId?: string, startDate?: string, endDate?: string) => 
-    ['activity', planId ?? 'all', startDate ?? 'none', endDate ?? 'none'] as const;
-export const activitySummaryQueryKey = (period: string, planId?: string, startDate?: string, endDate?: string) =>
-    ['activity-summary', period, planId ?? 'all', startDate ?? 'none', endDate ?? 'none'] as const;
+/**
+ * Query keys use relative period (e.g., '7days') instead of actual dates.
+ * This enables cache hits across days - yesterday's cached data is shown instantly
+ * while fresh data loads in background (stale-while-revalidate pattern).
+ */
+export const activityQueryKey = (period: string, planId?: string) =>
+    ['activity', period, planId ?? 'all'] as const;
+export const activitySummaryQueryKey = (aggregation: string, period: string, planId?: string) =>
+    ['activity-summary', aggregation, period, planId ?? 'all'] as const;
+
+// ============================================================================
+// Date Range Helper
+// ============================================================================
+
+type DateRangePeriod = '7days' | '14days' | '30days' | '90days' | 'all';
+
+/**
+ * Convert relative period to actual date range for API requests.
+ * Dates are computed at query time, not cached in the key.
+ */
+function getDateRangeFromPeriod(period: DateRangePeriod): { startDate?: string; endDate?: string } {
+    if (period === 'all') return {};
+
+    const endDate = new Date();
+    const startDate = new Date();
+
+    switch (period) {
+        case '7days':
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+        case '14days':
+            startDate.setDate(startDate.getDate() - 14);
+            break;
+        case '30days':
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+        case '90days':
+            startDate.setDate(startDate.getDate() - 90);
+            break;
+    }
+
+    return {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+    };
+}
 
 // ============================================================================
 // Query Hooks
@@ -60,19 +102,23 @@ export const activitySummaryQueryKey = (period: string, planId?: string, startDa
 
 export function useActivity(options?: {
     planId?: string;
-    startDate?: string;
-    endDate?: string;
+    /** Relative period like '7days', '30days'. Used in cache key for cross-day cache hits. */
+    period?: DateRangePeriod;
     limit?: number;
     enabled?: boolean;
 }) {
     const queryDefaults = useQueryDefaults();
+    const period = options?.period ?? '30days';
+
     return useQuery({
-        queryKey: activityQueryKey(options?.planId, options?.startDate, options?.endDate),
+        queryKey: activityQueryKey(period, options?.planId),
         queryFn: async (): Promise<GetActivityResponse> => {
+            // Compute actual dates at query time
+            const { startDate, endDate } = getDateRangeFromPeriod(period);
             const response = await getActivity({
                 planId: options?.planId,
-                startDate: options?.startDate,
-                endDate: options?.endDate,
+                startDate,
+                endDate,
                 limit: options?.limit ?? 50,
             });
             if (response.data?.error) throw new Error(response.data.error);
@@ -85,22 +131,26 @@ export function useActivity(options?: {
 
 export function useActivitySummary(options?: {
     planId?: string;
-    period?: 'day' | 'week' | 'month';
-    startDate?: string;
-    endDate?: string;
+    /** Aggregation period for grouping data: day, week, or month */
+    aggregation?: 'day' | 'week' | 'month';
+    /** Relative period like '7days', '30days'. Used in cache key for cross-day cache hits. */
+    period?: DateRangePeriod;
     enabled?: boolean;
 }) {
     const queryDefaults = useQueryDefaults();
-    const period = options?.period ?? 'day';
+    const aggregation = options?.aggregation ?? 'day';
+    const period = options?.period ?? '30days';
 
     return useQuery({
-        queryKey: activitySummaryQueryKey(period, options?.planId, options?.startDate, options?.endDate),
+        queryKey: activitySummaryQueryKey(aggregation, period, options?.planId),
         queryFn: async (): Promise<GetActivitySummaryResponse> => {
+            // Compute actual dates at query time
+            const { startDate, endDate } = getDateRangeFromPeriod(period);
             const response = await getActivitySummary({
                 planId: options?.planId,
-                period,
-                startDate: options?.startDate,
-                endDate: options?.endDate,
+                period: aggregation,
+                startDate,
+                endDate,
             });
             if (response.data?.error) throw new Error(response.data.error);
             return response.data;

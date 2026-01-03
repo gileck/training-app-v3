@@ -29,9 +29,14 @@ export const createPlanWorkout = async (
             return { error: 'Plan not found' };
         }
 
+        // Batch fetch all plan exercises for validation (single query instead of N queries)
+        const planExerciseIds = request.items.map(item => item.planExerciseId);
+        const planExerciseList = await planExercises.findPlanExercisesByIds(planExerciseIds);
+        const planExerciseMap = new Map(planExerciseList.map(pe => [toStringId(pe._id), pe]));
+
         // Validate all planExerciseIds belong to this plan
         for (const item of request.items) {
-            const planExercise = await planExercises.findPlanExerciseById(item.planExerciseId);
+            const planExercise = planExerciseMap.get(item.planExerciseId);
             if (!planExercise) {
                 return { error: `Exercise ${item.planExerciseId} not found` };
             }

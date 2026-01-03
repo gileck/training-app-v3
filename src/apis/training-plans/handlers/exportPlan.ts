@@ -56,13 +56,11 @@ export async function exportPlan(
         // Get all unique exercise definition IDs
         const exerciseDefIds = [...new Set(planExercisesList.map(pe => toStringId(pe.exerciseDefId)))];
 
-        // Fetch exercise definitions for names
+        // Batch fetch exercise definitions for names (single query instead of N queries)
+        const exerciseDefList = await exerciseDefinitions.findExercisesByIds(exerciseDefIds);
         const exerciseDefMap = new Map<string, { name: string }>();
-        for (const defId of exerciseDefIds) {
-            const def = await exerciseDefinitions.findExerciseById(defId);
-            if (def) {
-                exerciseDefMap.set(toStringId(def._id), { name: def.name });
-            }
+        for (const def of exerciseDefList) {
+            exerciseDefMap.set(toStringId(def._id), { name: def.name });
         }
 
         // Build map of planExerciseId -> exercise data

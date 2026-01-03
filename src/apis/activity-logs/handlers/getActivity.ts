@@ -39,56 +39,65 @@ export async function getActivity(
             }
         }
 
-        // Get set logs with pagination
-        const logs = await setLogs.findSetLogsByFilter(filter, limit);
-        const total = await setLogs.countSetLogsByFilter(filter);
+        // Fetch logs and count in parallel
+        const [logs, total] = await Promise.all([
+            setLogs.findSetLogsByFilter(filter, limit),
+            setLogs.countSetLogsByFilter(filter),
+        ]);
 
-        // Enrich logs with exercise and plan info
-        const activities: ActivityLogEntry[] = [];
+        if (logs.length === 0) {
+            return { activities: [], total };
+        }
 
-        // Cache for exercise and plan lookups
-        const exerciseCache = new Map<string, { name: string; imageUrl: string; primaryMuscle: string }>();
-        const planExerciseCache = new Map<string, string>(); // planExerciseId -> exerciseDefId
-        const planCache = new Map<string, string>(); // planId -> planName
+        // Collect unique IDs for batch lookups
+        const uniquePlanExerciseIds = [...new Set(logs.map((log) => toStringId(log.planExerciseId)))];
+        const uniquePlanIds = [...new Set(logs.map((log) => toStringId(log.planId)))];
 
-        for (const log of logs) {
-            // Get exercise definition ID from plan exercise (handles both ObjectId and UUID)
+        // Batch fetch planExercises and plans in parallel
+        const [planExerciseList, planList] = await Promise.all([
+            planExercises.findPlanExercisesByIds(uniquePlanExerciseIds),
+            trainingPlans.findPlansByIds(uniquePlanIds),
+        ]);
+
+        // Build planExercise lookup map: planExerciseId -> exerciseDefId
+        const planExerciseMap = new Map<string, string>();
+        const uniqueExerciseDefIds: string[] = [];
+        for (const pe of planExerciseList) {
+            const peId = toStringId(pe._id);
+            const exDefId = toStringId(pe.exerciseDefId);
+            planExerciseMap.set(peId, exDefId);
+            if (!uniqueExerciseDefIds.includes(exDefId)) {
+                uniqueExerciseDefIds.push(exDefId);
+            }
+        }
+
+        // Batch fetch exercise definitions
+        const exerciseDefList = await exerciseDefinitions.findExercisesByIds(uniqueExerciseDefIds);
+
+        // Build lookup maps
+        const exerciseMap = new Map<string, { name: string; imageUrl: string; primaryMuscle: string }>();
+        for (const exDef of exerciseDefList) {
+            exerciseMap.set(toStringId(exDef._id), {
+                name: exDef.name,
+                imageUrl: exDef.imageUrl,
+                primaryMuscle: exDef.primaryMuscle,
+            });
+        }
+
+        const planMap = new Map<string, string>();
+        for (const plan of planList) {
+            planMap.set(toStringId(plan._id), plan.name);
+        }
+
+        // Map logs to activities using lookup maps (no DB calls)
+        const activities: ActivityLogEntry[] = logs.map((log) => {
             const planExerciseIdStr = toStringId(log.planExerciseId);
-            let exerciseDefId = planExerciseCache.get(planExerciseIdStr);
-            if (!exerciseDefId) {
-                const planExercise = await planExercises.findPlanExerciseById(planExerciseIdStr);
-                if (planExercise) {
-                    exerciseDefId = toStringId(planExercise.exerciseDefId);
-                    planExerciseCache.set(planExerciseIdStr, exerciseDefId);
-                }
-            }
-
-            // Get exercise definition
-            let exerciseInfo = exerciseDefId ? exerciseCache.get(exerciseDefId) : undefined;
-            if (!exerciseInfo && exerciseDefId) {
-                const exerciseDef = await exerciseDefinitions.findExerciseById(exerciseDefId);
-                if (exerciseDef) {
-                    exerciseInfo = {
-                        name: exerciseDef.name,
-                        imageUrl: exerciseDef.imageUrl,
-                        primaryMuscle: exerciseDef.primaryMuscle,
-                    };
-                    exerciseCache.set(exerciseDefId, exerciseInfo);
-                }
-            }
-
-            // Get plan name (handles both ObjectId and UUID)
             const planIdStr = toStringId(log.planId);
-            let planName = planCache.get(planIdStr);
-            if (!planName) {
-                const plan = await trainingPlans.findPlanById(planIdStr, context.userId);
-                if (plan) {
-                    planName = plan.name;
-                    planCache.set(planIdStr, planName);
-                }
-            }
+            const exerciseDefId = planExerciseMap.get(planExerciseIdStr);
+            const exerciseInfo = exerciseDefId ? exerciseMap.get(exerciseDefId) : undefined;
+            const planName = planMap.get(planIdStr);
 
-            activities.push({
+            return {
                 _id: toStringId(log._id),
                 userId: toStringId(log.userId),
                 planExerciseId: planExerciseIdStr,
@@ -100,8 +109,8 @@ export async function getActivity(
                 exerciseImageUrl: exerciseInfo?.imageUrl || '',
                 primaryMuscle: exerciseInfo?.primaryMuscle || '',
                 planName: planName || 'Unknown Plan',
-            });
-        }
+            };
+        });
 
         return { activities, total };
     } catch (error) {

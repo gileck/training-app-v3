@@ -34,15 +34,11 @@ export async function bulkAddPlanExercises(
 
         // Get all unique exercise definition IDs
         const exerciseDefIds = [...new Set(request.exercises.map(e => e.exerciseDefId))];
-        
-        // Fetch all exercise definitions at once
-        const exerciseDefsArray = await Promise.all(
-            exerciseDefIds.map(id => exerciseDefinitions.findExerciseById(id))
-        );
+
+        // Batch fetch all exercise definitions (single query instead of N parallel queries)
+        const exerciseDefsArray = await exerciseDefinitions.findExercisesByIds(exerciseDefIds);
         const exerciseDefsMap = new Map(
-            exerciseDefsArray
-                .filter((def): def is NonNullable<typeof def> => def !== null)
-                .map(def => [toStringId(def._id), def])
+            exerciseDefsArray.map(def => [toStringId(def._id), def])
         );
 
         const results: BulkAddResult[] = [];
