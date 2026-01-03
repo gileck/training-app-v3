@@ -26,6 +26,7 @@ type RouterContextType = {
   currentPath: string;
   routeParams: RouteParams;
   queryParams: QueryParams;
+  isPublicRoute: boolean;
   navigate: (path: string, options?: { replace?: boolean }) => void;
 };
 
@@ -33,6 +34,7 @@ const RouterContext = createContext<RouterContextType>({
   currentPath: '/',
   routeParams: {},
   queryParams: {},
+  isPublicRoute: false,
   navigate: () => { },
 });
 
@@ -150,8 +152,8 @@ export const RouterProvider = ({ children, routes }: {
     }
   }, [currentPath, isAdmin]);
 
-  // Find matching route pattern and parse route parameters
-  const { RouteComponent, routeParams } = useMemo(() => {
+  // Find matching route pattern, parse route parameters, and determine if route is public
+  const { RouteComponent, routeParams, isCurrentRoutePublic } = useMemo(() => {
     const pathWithoutQuery = currentPath.split('?')[0];
 
     // Treat admin routes as home for non-admins (helps avoid flash before redirect effect runs).
@@ -159,7 +161,12 @@ export const RouterProvider = ({ children, routes }: {
     
     // First check for exact matches
     if (routes[effectivePath]) {
-      return { RouteComponent: getRouteComponent(routes[effectivePath]), routeParams: {} };
+      const config = normalizeRoute(routes[effectivePath]);
+      return { 
+        RouteComponent: config.component, 
+        routeParams: {},
+        isCurrentRoutePublic: config.public === true
+      };
     }
 
     // Then check for parameterized routes
@@ -167,16 +174,23 @@ export const RouterProvider = ({ children, routes }: {
       if (pattern.includes(':')) {
         const params = parseRouteParams(effectivePath, pattern);
         if (Object.keys(params).length > 0) {
-          return { RouteComponent: getRouteComponent(routes[pattern]), routeParams: params };
+          const config = normalizeRoute(routes[pattern]);
+          return { 
+            RouteComponent: config.component, 
+            routeParams: params,
+            isCurrentRoutePublic: config.public === true
+          };
         }
       }
     }
 
     // Fallback to not-found or home
     const fallbackRoute = routes['/not-found'] || routes['/'];
+    const fallbackConfig = fallbackRoute ? normalizeRoute(fallbackRoute) : null;
     return {
-      RouteComponent: fallbackRoute ? getRouteComponent(fallbackRoute) : () => null,
-      routeParams: {}
+      RouteComponent: fallbackConfig?.component ?? (() => null),
+      routeParams: {},
+      isCurrentRoutePublic: fallbackConfig?.public === true
     };
   }, [currentPath, routes, isAdmin]);
 
@@ -209,7 +223,7 @@ export const RouterProvider = ({ children, routes }: {
 
   // Provide router context and render current route
   return (
-    <RouterContext.Provider value={{ currentPath, routeParams, queryParams, navigate }}>
+    <RouterContext.Provider value={{ currentPath, routeParams, queryParams, isPublicRoute: isCurrentRoutePublic, navigate }}>
       {children ? children(RouteComponent) : <RouteComponent />}
     </RouterContext.Provider>
   );
@@ -227,16 +241,6 @@ function normalizeRoute(route: RouteDefinition): RouteConfig {
     return { component: route };
   }
   return route;
-}
-
-/**
- * Get the component from a route definition
- */
-function getRouteComponent(route: RouteDefinition): React.ComponentType {
-  if (typeof route === 'function') {
-    return route;
-  }
-  return route.component;
 }
 
 /**

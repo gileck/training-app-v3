@@ -102,17 +102,24 @@ User Opens App (JS Bundle Loads)
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  3. AuthWrapper Renders (uses preflight result)                  │
-│     - Checks preflight result first (usually already complete)   │
-│     - If preflight found user: Show app immediately (no flash!)  │
-│     - If preflight found no user: Show login immediately         │
-│     - If preflight pending: Show loading skeleton (brief)        │
+│  3. RouterProvider Renders                                       │
+│     - Determines current route and matches component             │
+│     - Computes isPublicRoute from route metadata                 │
+│     - Provides router context to children                        │
+└─────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  4. AuthWrapper Renders (uses preflight result + router context) │
+│     - Gets isPublicRoute from useRouter() context                │
+│     - Public routes: Render immediately without auth check       │
+│     - Protected routes: Check preflight/hints for auth           │
 │     - Fallback: isProbablyLoggedIn hint for instant boot         │
 └─────────────────────────────────────────────────────────────────┘
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  4. Route Restoration                                           │
+│  5. Route Restoration                                           │
 │     - If lastRoute exists: Navigate to saved route              │
 │     - Background: Data revalidation                             │
 └─────────────────────────────────────────────────────────────────┘
@@ -634,9 +641,11 @@ export const routes = createRoutes({
 | `adminOnly: true` | Route requires admin access |
 
 **How it works:**
-- `AuthWrapper` calls `isPublicRoute(currentPath, routes)` before auth checks
+- `RouterProvider` computes `isPublicRoute` from route metadata and provides it via context
+- `AuthWrapper` (inside RouterProvider) gets `isPublicRoute` from `useRouter()` hook
 - Public routes render immediately without waiting for auth validation
 - This is metadata-driven, not a hardcoded list
+- AuthWrapper re-renders on navigation, ensuring auth is checked when navigating from public to protected routes
 
 📚 **Detailed Documentation**: See `.cursor/rules/pages-and-routing-guidelines.mdc`
 

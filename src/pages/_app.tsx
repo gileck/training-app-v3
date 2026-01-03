@@ -31,11 +31,13 @@ export default function App({ }: AppProps) {
       <AppInitializer />
       <BootGate>
         <AppThemeProvider>
-          <AuthWrapper>
-            <RouterProvider routes={routes}>
-              {RouteComponent => <Layout><RouteComponent /></Layout>}
-            </RouterProvider>
-          </AuthWrapper>
+          <RouterProvider routes={routes}>
+            {RouteComponent => (
+              <AuthWrapper>
+                <Layout><RouteComponent /></Layout>
+              </AuthWrapper>
+            )}
+          </RouterProvider>
           <BatchSyncAlert />
         </AppThemeProvider>
       </BootGate>

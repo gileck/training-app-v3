@@ -151,9 +151,10 @@ export const routes = createRoutes({
 - Public API documentation pages
 
 **How it works:**
-- `AuthWrapper` checks `isPublicRoute(currentPath, routes)` before requiring auth
+- `RouterProvider` computes `isPublicRoute` from route metadata and provides it via context
+- `AuthWrapper` (inside RouterProvider) uses `useRouter()` to get `isPublicRoute`
 - Public routes render immediately without waiting for auth validation
-- This is handled via route metadata, NOT a hardcoded list
+- AuthWrapper re-renders on navigation, ensuring auth is checked when navigating to protected routes
 
 Route path naming conventions:
 - Use kebab-case for route paths (e.g., `/new-route`, not `/newRoute`)

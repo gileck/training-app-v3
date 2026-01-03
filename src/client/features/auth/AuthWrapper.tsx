@@ -5,8 +5,7 @@ import { LoginForm } from './LoginForm';
 import { IOSAuthModal } from './IOSAuthModal';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { markEvent, logStatus, BOOT_PHASES } from '../boot-performance';
-import { getCurrentPath, isPublicRoute } from '@/client/router';
-import { routes } from '@/client/routes';
+import { useRouter } from '@/client/router';
 
 interface AuthWrapperProps {
     children: React.ReactNode;
@@ -25,6 +24,7 @@ interface AuthWrapperProps {
  * 5. VALIDATED + NOT AUTHENTICATED: Show login
  */
 const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
+    const { isPublicRoute } = useRouter();
     const isProbablyLoggedIn = useIsProbablyLoggedIn();
     const userHint = useUserHint();
     const { isAuthenticated, isValidated, isValidating } = useAuthValidation();
@@ -67,7 +67,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
     }, [showApp, isProbablyLoggedIn, isAuthenticated, userHint]);
 
     // Public routes bypass authentication entirely
-    if (isPublicRoute(getCurrentPath(), routes)) {
+    if (isPublicRoute) {
         return <>{children}</>;
     }
 

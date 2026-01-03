@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "401bc48df87318d02c5f96f1b07c1f6a5d04bf39",
-  "lastProjectCommit": "fc4ca134b2378a3b2ab2a548fa64d99f7e04a091",
-  "lastSyncDate": "2026-01-03T16:45:29.571Z",
+  "lastSyncCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
+  "lastProjectCommit": "4df9c6303de736a40fba8a5b2679a5790be96cdd",
+  "lastSyncDate": "2026-01-03T17:10:37.146Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -51,6 +51,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T17:10:37.145Z",
+      "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
+      "projectCommit": "4df9c6303de736a40fba8a5b2679a5790be96cdd",
+      "filesApplied": 5,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "438917f fix(auth): Move AuthWrapper inside RouterProvider for proper auth on navigation \u001b[90m(03/01/2026)\u001b[0m\n  - Move AuthWrapper inside RouterProvider in _app.tsx to fix auth checks when\n    navigating from public to protected routes\n  - Add isPublicRoute to router context (computed from route metadata)\n  - Simplify AuthWrapper to use useRouter() hook instead of calling isPublicRoute()\n  - Remove unused getRouteComponent function from router\n  \n  This fixes a bug where navigating from a public route to a protected route\n  would not trigger authentication checks because AuthWrapper was the parent\n  of RouterProvider and didn't re-render on navigation.\n  \n  Updated documentation:\n  - docs/architecture.md: Updated boot flow diagram\n  - docs/authentication.md: Updated AuthWrapper and public routes sections\n  - docs/zustand-stores.md: Updated component tree example\n  - .cursor/rules/pages-and-routing-guidelines.mdc: Updated public routes docs"
+      ]
+    },
     {
       "date": "2026-01-03T16:45:29.571Z",
       "templateCommit": "401bc48df87318d02c5f96f1b07c1f6a5d04bf39",
@@ -310,17 +321,6 @@
         "1aa9369 fix: loading states showing false empty state before data loads \u001b[90m(27/12/2025)\u001b[0m\n  CRITICAL UX FIX: Components were showing 'No items' empty state while\n  data was still loading, confusing users with false empty states.\n  \n  Changes:\n  - Fix Todos.tsx to check loading state before showing empty state\n  - Add 'Loading States - CRITICAL UX Pattern' section to:\n    - app-guildelines/React-components-guidelines.md\n    - docs/state-management.md\n    - docs/caching-strategy.md\n    - .cursor/rules/react-component-organization.mdc\n  \n  The correct pattern is: Loading → Error → Empty → Data\n  - isLoading=true && !data → Loading spinner\n  - error → Error message\n  - !data → Unable to load\n  - data.length === 0 → Empty state (ONLY when truly empty)\n  - data.length > 0 → Show data",
         "2ab3bbc feat(badge): add pending variant for pending status badges \u001b[90m(25/12/2025)\u001b[0m"
       ]
-    },
-    {
-      "date": "2025-12-25T10:57:48.995Z",
-      "templateCommit": "4b2ae08219f2d7cbefc42b0656c18d80ba11a1f5",
-      "projectCommit": "233aa88bc1349ddcbe35ae97cd734662e2cfd6ed",
-      "filesApplied": 1,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "4b2ae08 feat: add merge-template script for targeted file merging \u001b[90m(25/12/2025)\u001b[0m\n  - New script: yarn merge-template <file1> [file2] ...\n  - Interactive options per file: take template, keep project, create merge file\n  - View full diff before deciding\n  - Shows diff stats (lines added/removed)\n  - Supports --dry-run, --use-https, --no-cleanup flags"
-      ]
     }
   ],
   "fileHashes": {
@@ -345,7 +345,7 @@
     ".cursor/rules/feature-based-structure.mdc": "2aeebaa386cdb5c288c1e2aacb68b25e",
     ".cursor/rules/feature-planning.mdc": "1a2b222a136e3e45373dd9487b4e9d1d",
     ".cursor/rules/mongodb-usage.mdc": "32d18c74f788276c50b2b4f79869d4d3",
-    ".cursor/rules/pages-and-routing-guidelines.mdc": "41458d81d5dd70cfeff5ec90deb9253a",
+    ".cursor/rules/pages-and-routing-guidelines.mdc": "22d2636de94e25a364b4637578aa3b66",
     ".cursor/rules/react-component-organization.mdc": "d9a9759ee4155a6e9a0d65134de35914",
     ".cursor/rules/react-hook-organization.mdc": "9ed10ecb0ae9224464f0147bda8d9c1f",
     ".cursor/rules/settings-usage-guidelines.mdc": "fa2776ab82de9f2461e19cf0078fcd99",
@@ -370,7 +370,7 @@
     "app-guildelines/tasks-guidelines.md": "b4a1386ff97ee049e4dbe78a039b9bdf",
     "docs/admin.md": "291e8c6b50bac7757d3cabdb1d40b0ca",
     "docs/api-endpoint-format.md": "31ae0e11308710665ac9efd992f9ce88",
-    "docs/architecture.md": "484348e7a2b28822a4249ade7c7731f4",
+    "docs/architecture.md": "289d22287145918394dabcc4ea2104e2",
     "docs/caching-strategy.md": "90fd5b5327ee8bcfa110a768bd533aaf",
     "docs/logging-and-error-tracking.md": "311d534483b1ba3fb08bbf3e0c890c01",
     "docs/offline-pwa-support.md": "dbda6bc42517c4a734a791078e23dfd1",
@@ -471,7 +471,7 @@
     "src/client/components/ui/toast.tsx": "6a1c21e9137613112eeeef25c38046b9",
     "src/client/config/defaults.ts": "dcad4b8eaf0cb602e1a81183180176c0",
     "src/client/config/index.ts": "607c1a57d2d2889c1481678a088c30eb",
-    "src/client/features/auth/AuthWrapper.tsx": "586b18d47ac26fc96170c2eb6832e7b4",
+    "src/client/features/auth/AuthWrapper.tsx": "ce43415aa4848f25aec9f3d7a89ca830",
     "src/client/features/auth/LoginForm.tsx": "654f9f719332416483357665fdb55ea9",
     "src/client/features/auth/hooks.ts": "9de55ab657f95cbb61537eab6e1ca732",
     "src/client/features/auth/index.ts": "a35489757f65efe5bf53e7e4c4fcfd70",
@@ -525,7 +525,7 @@
     "src/client/query/index.ts": "ab0167c8cea1f08a1a917783c2c04946",
     "src/client/query/persister.ts": "a9f2c12cdad02b53f14078b01ba4a245",
     "src/client/query/queryClient.ts": "b2ab9fc3dedaafcc39bcc54bdd8cbf9d",
-    "src/client/router/index.tsx": "f463dc34ca1c9ef464580671b3428641",
+    "src/client/router/index.tsx": "fb9878bbb1afafddaca13204ddd5ad73",
     "src/client/routes/NotFound/NotFound.tsx": "8e5a2000db3c03277a38b68c64f0469b",
     "src/client/routes/NotFound/index.ts": "d61014aa84dbc5db967a05f08c2f09d3",
     "src/client/routes/Profile/Profile.tsx": "99c38bb2101ca5a3e103fab48574246c",
@@ -553,7 +553,7 @@
     "src/common/cache/index.ts": "28ac606e0225c2299bfd36b3536fd0ee",
     "src/common/cache/types.ts": "5f396432eac27b9cbfa88b9454eded86",
     "src/common/types/next-pwa.d.ts": "46e38f0c7482344e4ed7bbfb376c2b68",
-    "src/pages/_app.tsx": "f03411cc83c3cd8e835db3d1ca4336f8",
+    "src/pages/_app.tsx": "1488d2cb1137f9d9e53dab04d4d903a0",
     "src/pages/_document.tsx": "09bdba2d13da453161119f3ce5646db1",
     "src/pages/api/process/[...name].ts": "5a0796a1add35f128c5daf67528af80d",
     "src/pages/api/process/[name].ts": "5a0796a1add35f128c5daf67528af80d",
