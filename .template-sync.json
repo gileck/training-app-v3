@@ -3,8 +3,8 @@
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "88da8317f9a2f921c85ac9ef13d57c1fe0689315",
-  "lastProjectCommit": "bdc27927a8eb733f8ced5f4925c4eb5b8a130b3e",
-  "lastSyncDate": "2026-01-03T16:02:02.878Z",
+  "lastProjectCommit": "975ae551920bc9a285c35d449164266d7c654fcd",
+  "lastSyncDate": "2026-01-03T16:06:34.253Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,15 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T16:06:34.253Z",
+      "templateCommit": "88da8317f9a2f921c85ac9ef13d57c1fe0689315",
+      "projectCommit": "975ae551920bc9a285c35d449164266d7c654fcd",
+      "filesApplied": 2,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2026-01-03T15:48:30.954Z",
       "templateCommit": "04f3d14c2c64e03fa5ab118ab9b22f04d1ee92cb",
@@ -297,19 +306,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "0224d31 feat(sync-template): add total project drift summary \u001b[90m(25/12/2025)\u001b[0m\n  - Add displayTotalDiffSummary() showing complete picture of differences\n  - Show summary at start of sync, changelog, and diff-summary modes\n  - Add interactive option 'Show total drift details' to view full file list\n  - Categories: new in template, modified, project-specific, ignored\n  - Only counts files that exist in template AND are different (not project-only additions)"
-      ]
-    },
-    {
-      "date": "2025-12-25T09:57:01.863Z",
-      "templateCommit": "70deba4142ae39fcd13efd8968f891d60cc64a7f",
-      "projectCommit": "c4d987404505bf14eaff79ddee1facf5fbfd5200",
-      "filesApplied": 1,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "70deba4 Add Todos and AI Chat to bottom navbar \u001b[90m(25/12/2025)\u001b[0m",
-        "97ac296 Reduce bottom navbar safe area padding to half \u001b[90m(25/12/2025)\u001b[0m\n  Use half the safe-area-inset-bottom to match native app styling (like WhatsApp)",
-        "f101832 Reduce bottom navbar spacing for iOS PWA \u001b[90m(25/12/2025)\u001b[0m\n  - Remove extra 4px padding, rely on safe-area-inset-bottom only\n  - Reduce nav button height from h-14 (56px) to h-12 (48px)"
       ]
     }
   ],
@@ -592,6 +588,8 @@
     "ui-guidelines-example/weather-index.html": "f73afa91e836df898a2facca92bf5029",
     "ui-guidelines-example/weather-locations.html": "fc7346d853ca9c32f0f838dfbdee6347",
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
-    "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0"
+    "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
+    ".cursor/commands/contribute-to-template.md": "0496b3474d3503c9edce23743845bcc4",
+    "scripts/sync-template.ts": "ad569e4d4b34c0100e52fc2d572d64a5"
   }
 }

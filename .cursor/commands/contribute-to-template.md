@@ -1,371 +1,412 @@
-# Contribute Changes to Template
+# Resolve & Sync with Template
 
-This command helps you transfer bug fixes and improvements from your project back to the template repository. Use this when you've fixed something in template code and want to contribute it upstream.
+This command resolves all differences between your project and the template, achieving full synchronization. For each differing file, you choose how to resolve it.
 
-## Overview
+## Goal
 
-When you fix a bug or improve template code in your project, you want those changes to flow back to the template so:
-1. Other projects benefit from the fix
-2. Your next template sync includes the fix (avoiding conflicts)
+**Fully sync your project with the template** by resolving every file difference. After running this command:
+- Your project matches the template (no conflicts on next sync)
+- Valuable changes are contributed back to the template
+- Both repos stay aligned
 
-### Workflow
+## Three Resolution Options
+
+For each file that differs between project and template:
+
+| Option | Description | Project Action | Template Action |
+|--------|-------------|----------------|-----------------|
+| **TAKE TEMPLATE** | Discard local changes | Overwrite with template version | None |
+| **MERGE** | Combine both changes | Update to merged version | Receive merged file |
+| **TAKE PROJECT** | Keep your version | Keep as-is | Receive your version |
+
+### When to Use Each
+
+```
+TAKE TEMPLATE  → Template code is good enough, your changes aren't needed
+MERGE          → Both sides have valuable changes that should be combined
+TAKE PROJECT   → Your version is better, template should adopt it
+```
+
+## Workflow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  YOUR PROJECT                         TEMPLATE REPO             │
+│  1. Find all files that differ (project vs template)            │
 │                                                                 │
-│  1. Fix bug in template file    ───────────────────────────►   │
-│     (e.g., reports UI fix)                                      │
+│  2. For EACH differing file:                                    │
+│     • Show diff (project vs template)                           │
+│     • Analyze changes                                           │
+│     • Recommend: TAKE TEMPLATE / MERGE / TAKE PROJECT           │
+│     • User decides                                              │
 │                                                                 │
-│  2. Run this command            ───► Creates patch file         │
-│                                       Copies to template path   │
-│                                       Stashes project changes   │
-│                                       Generates agent message   │
+│  3. Execute decisions:                                          │
+│     • TAKE TEMPLATE → Copy template file to project             │
+│     • MERGE → Create merged version, copy to both               │
+│     • TAKE PROJECT → Copy project file to template              │
 │                                                                 │
-│  3. Copy message to template    ───► Template agent applies     │
-│     agent                             patch and commits         │
+│  4. Generate patch for template (MERGE + TAKE PROJECT files)    │
 │                                                                 │
-│  4. Template pushes changes     ◄───────────────────────────   │
-│                                                                 │
-│  5. Run sync-template           ───► Changes sync cleanly!      │
-│     (pop stash)                                                 │
+│  5. Result: Project fully synced with template!                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
 
-### 1. Template Local Path (Auto-detected)
+### Template Location (Auto-detected)
 
-The template is always located at `../app-template-ai` relative to your project root.
+The template is always at `../app-template-ai` relative to your project root.
 
-For example:
-- Your project: `/Users/you/Projects/my-project`
-- Template path: `/Users/you/Projects/app-template-ai`
-
-**No configuration needed** - the command auto-detects this path.
-
-### 2. Ensure Clean Template Repo
-
-The template repository should have a clean working directory before applying patches.
-
-## Process
-
-### Step 1: Identify Template Changes
-
-First, let's see what template files you've modified:
-
-```bash
-# Show files that differ from template (not in ignoredFiles or projectSpecificFiles)
-yarn sync-template --dry-run
+```
+/Users/you/Projects/
+├── my-project/          ← Your project
+└── app-template-ai/     ← Template (auto-detected)
 ```
 
-Look for files in the "Project customizations" or "Conflicts" sections - these are template files you've modified.
-
-**Or manually check:**
-
-```bash
-# List modified files
-git status
-
-# Show diff for specific file
-git diff src/apis/reports/server.ts
-```
-
-### Step 2: Review Changes to Contribute
-
-Before contributing, review what you're sending:
-
-```bash
-# Show all your changes to template files
-git diff HEAD -- <file1> <file2> ...
-```
-
-**Important**: Only contribute changes to **template files**, not:
-- Project-specific config (`src/app.config.js`, etc.)
-- Your custom features (`projectSpecificFiles`)
-- Files in `templateIgnoredFiles` (example code)
-
-### Step 3: Create the Patch
-
-I'll help you create a patch file. Tell me which files to include, or I'll analyze the project to find template file changes.
-
-**Option A: Specify files manually**
-```
-Create a patch for: src/apis/reports/server.ts, src/client/features/reports/hooks.ts
-```
-
-**Option B: Auto-detect template changes**
-```
-Analyze and create patch for all template file changes
-```
-
-### Step 4: Generate Contribution Package
-
-Once files are identified, I will:
-
-1. **Create patch file** in the template directory:
-   ```
-   ../app-template-ai/incoming-patches/project-contribution-{timestamp}.patch
-   ```
-
-2. **Generate contribution message** for the template agent (see below)
-
-3. **Optionally stash your changes** so next sync works cleanly
-
-### Step 5: Apply in Template
-
-Copy the generated message to the template project's agent. The message includes:
-- Summary of changes
-- Patch file location
-- Instructions for the template agent
-
-### Step 6: After Template Updates
-
-Once the template has pushed the changes:
-
-```bash
-# Pop your stashed changes (if stashed)
-git stash pop
-
-# Sync with template - should merge cleanly now!
-yarn sync-template
-```
+**No configuration needed.**
 
 ---
 
 ## Agent Instructions
 
-When the user wants to contribute changes to the template, follow these steps:
-
-### 1. Determine template path
-
-The template is always at `../app-template-ai` relative to the project root:
+### 1. Verify template exists
 
 ```bash
-# Get project root
-PROJECT_ROOT=$(pwd)
-
-# Template path is always one level up + app-template-ai
-TEMPLATE_PATH="$(dirname "$PROJECT_ROOT")/app-template-ai"
-
-# Verify it exists
-ls "$TEMPLATE_PATH"
-```
-
-### 2. Identify template file changes
-
-Run a diff analysis to find files that:
-- Are modified in the project
-- Are NOT in `ignoredFiles`, `projectSpecificFiles`, or `templateIgnoredFiles`
-- Exist in the template
-
-```bash
-# Get list of changed files
-git diff --name-only HEAD
-
-# Or compare against last sync
-git diff --name-only {lastProjectCommit} HEAD
-```
-
-### 3. Let user select files to contribute
-
-Show the list and ask which files to include in the patch.
-
-### 4. Create the patch file
-
-```bash
-# Create patch for selected files
-git diff HEAD -- file1.ts file2.ts > /path/to/template/incoming-patches/contribution-{date}.patch
-```
-
-### 5. Copy patch to template
-
-```bash
-# Template is always at ../app-template-ai
 TEMPLATE_PATH="../app-template-ai"
-
-# Ensure directory exists
-mkdir -p "$TEMPLATE_PATH/incoming-patches"
-
-# Copy the patch
-cp contribution.patch "$TEMPLATE_PATH/incoming-patches/"
+ls "$TEMPLATE_PATH" || echo "Template not found!"
 ```
 
-### 6. Optionally stash project changes
+### 2. Load sync config
 
 ```bash
-# Stash the contributed changes
-git stash push -m "Contributed to template: {summary}" -- file1.ts file2.ts
+cat .template-sync.json
 ```
 
-### 7. Generate the template agent message
+Extract ignore lists:
+- `ignoredFiles` - system files, skip
+- `projectSpecificFiles` - project-only code, skip  
+- `templateIgnoredFiles` - example code, skip
 
-Create a message like this:
+### 3. Find ALL differing files
+
+Compare every file in project against template. A file differs if:
+- Content is different (use diff or hash comparison)
+- File exists in both repos
+- File is NOT in any ignore list
+
+```bash
+# For each file in project (excluding ignore lists)
+# Compare with template version
+diff -q "project/path/file.ts" "template/path/file.ts"
+```
+
+### 4. Categorize each differing file
+
+For each file, determine:
+- **Only project changed**: Template baseline matches stored hash, project differs
+- **Only template changed**: Project matches baseline, template differs  
+- **Both changed**: Neither matches baseline (conflict)
+
+### 5. Review EACH file with user
+
+Present each differing file:
+
+```markdown
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 1 of N: src/apis/reports/server.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### Change Status: [Only Project Changed / Only Template Changed / Both Changed]
+
+### Diff (Project ← → Template):
+```diff
+[show actual diff between project and template versions]
+```
+
+### Analysis:
+- **Project changes**: [describe what project changed and why]
+- **Template changes**: [describe what template changed, if any]
+- **Recommendation**: TAKE TEMPLATE / MERGE / TAKE PROJECT
+- **Reasoning**: [explain recommendation]
+
+### Your decision? [TAKE TEMPLATE / MERGE / TAKE PROJECT]
+```
+
+**Wait for user decision before proceeding to next file.**
+
+### 6. Execute all decisions
+
+After all files reviewed:
+
+**TAKE TEMPLATE files:**
+```bash
+# Copy template version to project
+cp ../app-template-ai/src/path/file.ts src/path/file.ts
+```
+
+**MERGE files:**
+```bash
+# Create merged version (agent combines changes intelligently)
+# Then copy merged version to BOTH:
+cp merged-file.ts src/path/file.ts                    # Update project
+cp merged-file.ts ../app-template-ai/src/path/file.ts # Update template
+```
+
+**TAKE PROJECT files:**
+```bash
+# Copy project version to template
+cp src/path/file.ts ../app-template-ai/src/path/file.ts
+```
+
+### 7. Update template repo
+
+For files going to template (MERGE + TAKE PROJECT):
+
+```bash
+cd ../app-template-ai
+
+# Stage changes
+git add -A
+
+# Show what will be committed
+git status
+git diff --cached
+```
+
+### 8. Generate summary and commit message
+
+```markdown
+## Resolution Summary
+
+### ↩️ Took template version (X files):
+- src/client/utils/helpers.ts - Template version preferred
+
+### 🔀 Merged changes (Y files):
+- src/apis/auth/server.ts - Combined auth improvements from both
+
+### ➡️ Contributed to template (Z files):  
+- src/apis/reports/server.ts - Bug fix for pagination
 
 ---
 
-## Template Agent Message Template
+## Template Commit
 
-```markdown
-# Incoming Project Contribution
+The following changes are staged in `../app-template-ai`:
 
-A project has contributed changes back to the template.
+**Files changed:**
+- src/apis/auth/server.ts (merged)
+- src/apis/reports/server.ts (from project)
 
-## Patch Location
-`incoming-patches/contribution-{timestamp}.patch`
-
-## Summary
-{Brief description of what was fixed/improved}
-
-## Files Changed
-- `src/apis/reports/server.ts` - {description}
-- `src/client/features/reports/hooks.ts` - {description}
-
-## Instructions
-
-1. **Review the patch:**
-   ```bash
-   cat incoming-patches/contribution-{timestamp}.patch
-   ```
-
-2. **Apply the patch:**
-   ```bash
-   git apply incoming-patches/contribution-{timestamp}.patch
-   ```
-
-3. **If patch fails (conflicts):**
-   ```bash
-   # Try with 3-way merge
-   git apply --3way incoming-patches/contribution-{timestamp}.patch
-   
-   # Or apply manually by reading the patch
-   ```
-
-4. **Review the changes:**
-   ```bash
-   git diff
-   yarn checks
-   ```
-
-5. **Commit and push:**
-   ```bash
-   git add -A
-   git commit -m "fix: {description from contributor}"
-   git push
-   ```
-
-6. **Clean up:**
-   ```bash
-   rm incoming-patches/contribution-{timestamp}.patch
-   # Remove directory if empty
-   rmdir incoming-patches 2>/dev/null || true
-   ```
-
-## Original Context
-{Any additional context from the contributor about why this change was made}
+**Suggested commit message:**
 ```
+fix: merge project contributions
+
+- auth/server.ts: combined auth improvements
+- reports/server.ts: fixed pagination offset
+```
+
+**Ready to commit?** [Yes / No / Review changes first]
+```
+
+### 9. Commit and push template changes
+
+```bash
+cd ../app-template-ai
+git commit -m "fix: merge project contributions"
+git push
+```
+
+### 10. Update project baseline hashes
+
+After syncing, update `.template-sync.json` fileHashes so next sync shows no differences.
 
 ---
 
 ## Example Workflow
 
-### User's Project
+### User Says: "Sync with template"
 
-```bash
-# User fixed a bug in reports
-git diff src/apis/reports/handlers/getReports.ts
-# Shows the fix
-
-# User runs this command
-# Agent creates patch and copies to template
-```
-
-### Generated Message (copied to template)
+### Agent Reviews Each File:
 
 ```markdown
-# Incoming Project Contribution
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 1 of 3: src/apis/reports/server.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## Patch Location
-`incoming-patches/contribution-2024-01-15-reports-fix.patch`
+### Change Status: Only Project Changed
 
-## Summary
-Fixed pagination bug in reports API where offset was incorrectly calculated.
-
-## Files Changed
-- `src/apis/reports/handlers/getReports.ts` - Fixed offset calculation in pagination
-
-## Instructions
-1. Review: `cat incoming-patches/contribution-2024-01-15-reports-fix.patch`
-2. Apply: `git apply incoming-patches/contribution-2024-01-15-reports-fix.patch`
-3. Test: `yarn checks`
-4. Commit: `git commit -am "fix(reports): correct pagination offset calculation"`
-5. Push: `git push`
-6. Cleanup: `rm incoming-patches/contribution-2024-01-15-reports-fix.patch`
+### Diff:
+```diff
+@@ -45,7 +45,7 @@
+ const getReports = async (params) => {
+-  const offset = page * limit;
++  const offset = (page - 1) * limit;  // Fixed: page is 1-indexed
+   const reports = await db.find().skip(offset).limit(limit);
 ```
 
-### Template Agent
+### Analysis:
+- **Project changes**: Fixed pagination bug (page is 1-indexed)
+- **Template changes**: None
+- **Recommendation**: ➡️ TAKE PROJECT
+- **Reasoning**: This is a clear bug fix that template needs
 
-Receives the message, applies the patch, commits, and pushes.
+### Your decision? [TAKE PROJECT]
 
-### Back to User's Project
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 2 of 3: src/apis/auth/server.ts  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### Change Status: Both Changed
+
+### Diff:
+```diff
+@@ -12,8 +12,10 @@
+ // Project version:
++import { validateSession } from './utils';
+ export async function authenticate(token: string) {
++  await validateSession(token);
+   // ...
+ }
+
+// Template version:
++import { rateLimit } from '../middleware';
+ export async function authenticate(token: string) {
++  await rateLimit();
+   // ...
+ }
+```
+
+### Analysis:
+- **Project changes**: Added session validation
+- **Template changes**: Added rate limiting
+- **Recommendation**: 🔀 MERGE
+- **Reasoning**: Both changes are valuable - combine them
+
+### Your decision? [MERGE]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 3 of 3: src/client/utils/formatDate.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### Change Status: Only Project Changed
+
+### Diff:
+```diff
+@@ -5,7 +5,9 @@
+-export function formatDate(date: Date): string {
++export function formatDate(date: Date | string): string {
++  // Allow string input for convenience
++  const d = typeof date === 'string' ? new Date(date) : date;
+```
+
+### Analysis:
+- **Project changes**: Added string input support
+- **Template changes**: None
+- **Recommendation**: ↩️ TAKE TEMPLATE  
+- **Reasoning**: Minor convenience change, template's stricter typing is better
+
+### Your decision? [TAKE TEMPLATE]
+```
+
+### Agent Executes Decisions:
+
+```markdown
+## Executing Resolutions...
+
+### ↩️ TAKE TEMPLATE: src/client/utils/formatDate.ts
+Copied template version to project ✓
+
+### 🔀 MERGE: src/apis/auth/server.ts
+Created merged version with both rate limiting and session validation ✓
+Updated project file ✓
+Updated template file ✓
+
+### ➡️ TAKE PROJECT: src/apis/reports/server.ts
+Copied project version to template ✓
+
+---
+
+## Resolution Complete!
+
+| Resolution | Files |
+|------------|-------|
+| Took template | 1 |
+| Merged | 1 |
+| Contributed to template | 1 |
+
+### Template Changes Ready
+
+**Staged in `../app-template-ai`:**
+- src/apis/auth/server.ts (merged)
+- src/apis/reports/server.ts (from project)
+
+**Commit and push?** [Yes]
+```
+
+### Agent Commits Template:
 
 ```bash
-# Pop stashed changes
-git stash pop
+cd ../app-template-ai
+git add -A
+git commit -m "fix: sync with project contributions
 
-# Sync - changes merge cleanly!
-yarn sync-template
+- auth/server.ts: merged rate limiting + session validation
+- reports/server.ts: fixed pagination offset bug"
+git push
+```
+
+### Final Status:
+
+```markdown
+## ✅ Sync Complete!
+
+Your project is now fully synchronized with the template.
+
+**Changes made to your project:**
+- 1 file reverted to template version
+- 1 file updated with merged changes
+
+**Changes pushed to template:**
+- 2 files updated and pushed
+
+**Next sync will show:** 0 differences
 ```
 
 ---
 
-## Troubleshooting
+## Decision Criteria
 
-### "Patch does not apply cleanly"
+### ↩️ TAKE TEMPLATE when:
+- Your changes were experimental/temporary
+- Template version is cleaner or better
+- Changes are project-specific (shouldn't go to template)
+- Formatting/cosmetic differences only
 
-The template may have changed since you made your fix. Options:
+### 🔀 MERGE when:
+- Both sides have valuable, non-conflicting changes
+- Template added feature A, you added feature B
+- Changes can be combined intelligently
 
-1. **Try 3-way merge:**
-   ```bash
-   git apply --3way patch-file.patch
-   ```
-
-2. **Apply manually:** Read the patch and make changes by hand
-
-3. **Reject and redo:** If too complex, manually recreate the fix in the template
-
-### "Template directory not found"
-
-The template should be at `../app-template-ai`. Make sure:
-1. You have the template cloned locally
-2. It's in the same parent directory as your project
-3. The folder is named `app-template-ai`
-
-```bash
-# Check if template exists
-ls ../app-template-ai
-```
-
-### "Changes include project-specific files"
-
-Only template files should be contributed. Remove project-specific files from the patch:
-- Custom features you added
-- Project config files
-- Files in `projectSpecificFiles`
+### ➡️ TAKE PROJECT when:
+- You fixed a bug that template needs
+- You improved something template should adopt
+- Your version is clearly better
+- Security or performance fix
 
 ---
 
-## What Should I Do?
+## Quick Commands
 
-Tell me what you want to contribute:
+| Say This | What Happens |
+|----------|--------------|
+| "Sync with template" | Full resolution workflow |
+| "Resolve template conflicts" | Same as above |
+| "Show template differences" | List files without deciding |
 
-1. **"Contribute my reports fix"** - I'll find changes to reports files
-2. **"Contribute changes to X, Y, Z files"** - I'll create patch for those files
-3. **"Show what template files I've changed"** - I'll analyze and list them
-4. **"Help me set up templateLocalPath"** - I'll help configure the path
+---
 
-Once you tell me what to contribute, I'll:
-1. Create the patch file
-2. Copy it to the template
-3. Generate the message for the template agent
-4. Optionally stash your changes
+## Notes
+
+- **Excluded automatically**: `ignoredFiles`, `projectSpecificFiles`, `templateIgnoredFiles`
+- **Template path**: Always `../app-template-ai` (auto-detected)
+- **After sync**: Both repos aligned, no conflicts on future syncs
+- **MERGE requires judgment**: Agent combines changes intelligently, review the result

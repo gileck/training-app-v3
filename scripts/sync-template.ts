@@ -30,6 +30,7 @@
  *   --auto-merge-conflicts   Apply all changes, create .template files for conflicts
  *   --auto-override-conflicts Apply all changes, override conflicts with template version
  *   --auto-skip-conflicts    Apply safe changes, skip all conflicting files
+ *   --init-hashes            Initialize baseline hashes for all files (no sync)
  */
 
 import { execSync } from 'child_process';
@@ -117,6 +118,7 @@ interface SyncOptions {
   quiet: boolean;
   verbose: boolean;
   useHTTPS: boolean;
+  initHashes: boolean;
 }
 
 class TemplateSyncTool {
@@ -575,6 +577,28 @@ class TemplateSyncTool {
     return templateHash !== storedHash;
   }
 
+  /**
+   * Check if a file existed in the template at the last sync commit.
+   * Used to determine if a file is truly NEW in the template.
+   */
+  private fileExistedInTemplateAtLastSync(filePath: string): boolean {
+    if (!this.config.lastSyncCommit) {
+      return false; // First sync - all files are "new" to us
+    }
+
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+    try {
+      // Check if the file existed at the lastSyncCommit
+      this.exec(
+        `git cat-file -e ${this.config.lastSyncCommit}:${filePath}`,
+        { cwd: templatePath, silent: true }
+      );
+      return true; // File existed at last sync
+    } catch {
+      return false; // File didn't exist at last sync (it's new)
+    }
+  }
+
   private analyzeChanges(changes: FileChange[]): AnalysisResult {
     const result: AnalysisResult = {
       safeChanges: [],
@@ -600,11 +624,23 @@ class TemplateSyncTool {
         const status = this.getChangeStatus(change.path);
 
         if (!status.hasBaseline) {
-          // No baseline hash - first sync or file was never synced
-          // Files differ but we don't know who changed what
-          // Treat as conflict to be safe (user should decide)
-          this.logVerbose(`No baseline hash for ${change.path} - treating as conflict`);
-          result.conflictChanges.push(change);
+          // No baseline hash - check if this is a NEW file in the template
+          const isNewInTemplate = !this.fileExistedInTemplateAtLastSync(change.path);
+          
+          if (isNewInTemplate) {
+            // File is NEW in template (didn't exist at last sync)
+            // Even though project has a different version, treat as safe change
+            // Template's new file takes precedence
+            this.logVerbose(`${change.path} is NEW in template (no baseline) - treating as safe change`);
+            result.newChanges.add(change.path);
+            result.safeChanges.push(change);
+          } else {
+            // File existed in template at last sync but has no baseline hash
+            // This means it was synced before the hash system was introduced
+            // Files differ but we don't know who changed what - treat as conflict
+            this.logVerbose(`No baseline hash for ${change.path} (existed at last sync) - treating as conflict`);
+            result.conflictChanges.push(change);
+          }
         } else if (status.templateChanged && status.projectChanged) {
           // Both changed - conflict
           result.newChanges.add(change.path);  // Mark as new since template changed
@@ -1202,6 +1238,118 @@ class TemplateSyncTool {
     }
 
     return initialized;
+  }
+
+  /**
+   * Initialize baseline hashes for ALL template files.
+   * - For identical files: store the shared hash
+   * - For different files: store the PROJECT's hash as baseline
+   * 
+   * This establishes "current project state is the baseline" for future syncs.
+   * Use this after manually resolving differences or for projects that
+   * were synced before the hash system was introduced.
+   */
+  private initializeAllFileHashes(): { identical: number; different: number; skipped: number } {
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+    const templateFiles = this.getAllFiles(templatePath, templatePath);
+    const result = { identical: 0, different: 0, skipped: 0 };
+
+    for (const file of templateFiles) {
+      // Skip project-specific files
+      if (this.shouldIgnoreByProjectSpecificFiles(file)) {
+        result.skipped++;
+        continue;
+      }
+
+      // Skip template-ignored files (example/demo code)
+      if (this.shouldIgnoreTemplateFile(file)) {
+        result.skipped++;
+        continue;
+      }
+
+      const templateFilePath = path.join(templatePath, file);
+      const projectFilePath = path.join(this.projectRoot, file);
+
+      // Skip files that don't exist in project
+      if (!fs.existsSync(projectFilePath)) {
+        // New template file - store template hash so it shows as "template changed"
+        const templateHash = this.getFileHash(templateFilePath);
+        // Don't store hash for files not in project - they should show as "added"
+        continue;
+      }
+
+      const templateHash = this.getFileHash(templateFilePath);
+      const projectHash = this.getFileHash(projectFilePath);
+
+      if (templateHash === projectHash) {
+        // Files are identical - store the shared hash
+        this.storeFileHash(file, templateHash);
+        result.identical++;
+      } else {
+        // Files differ - store PROJECT's hash as baseline
+        // This says "project's current state is correct, detect future changes from here"
+        this.storeFileHash(file, projectHash);
+        result.different++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Run init-hashes mode - initialize baseline hashes for all files
+   */
+  private async runInitHashes(): Promise<void> {
+    this.log('🔧 Initialize Baseline Hashes');
+    this.log('='.repeat(60));
+    this.log('\nThis will establish your current project state as the baseline.');
+    this.log('Future syncs will detect changes relative to this baseline.\n');
+
+    // Clone template to compare
+    this.cloneTemplate();
+
+    try {
+      const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+      const templateCommit = this.exec('git rev-parse HEAD', {
+        cwd: templatePath,
+        silent: true,
+      });
+
+      this.log(`📍 Template commit: ${templateCommit}`);
+
+      // Show current state before initializing
+      const existingHashes = Object.keys(this.config.fileHashes || {}).length;
+      this.log(`📊 Existing baseline hashes: ${existingHashes}`);
+
+      // Initialize all hashes
+      this.log('\n🔄 Initializing hashes...\n');
+      const result = this.initializeAllFileHashes();
+
+      // Save config
+      this.config.lastSyncCommit = templateCommit;
+      this.config.lastSyncDate = new Date().toISOString();
+      this.saveConfig();
+
+      // Print results
+      this.log('='.repeat(60));
+      this.log('📊 RESULTS');
+      this.log('='.repeat(60));
+      this.log(`\n✅ Identical files (hash stored):     ${result.identical}`);
+      this.log(`📝 Different files (project baseline): ${result.different}`);
+      this.log(`⏭️  Skipped (ignored/project-specific): ${result.skipped}`);
+      this.log(`\n📦 Total hashes stored: ${Object.keys(this.config.fileHashes || {}).length}`);
+
+      if (result.different > 0) {
+        this.log('\n💡 Note: For files that differ from template, your PROJECT version');
+        this.log('   is now the baseline. Future template changes will be detected.');
+      }
+
+      this.log('\n✅ Baseline initialization complete!');
+      this.log('   Run "yarn sync-template" to see the new analysis.\n');
+
+    } finally {
+      this.cleanupTemplate();
+    }
   }
 
   private async syncFiles(
@@ -2084,6 +2232,13 @@ class TemplateSyncTool {
       return;
     }
 
+    // Handle init-hashes mode (initialize baseline hashes, no sync)
+    if (this.options.initHashes) {
+      await this.runInitHashes();
+      this.rl.close();
+      return;
+    }
+
     // Handle diff-summary mode
     if (this.options.diffSummary) {
       await this.runDiffSummary();
@@ -2402,6 +2557,7 @@ const options: SyncOptions = {
   quiet: args.includes('--quiet'),
   verbose: args.includes('--verbose'),
   useHTTPS: args.includes('--use-https'),
+  initHashes: args.includes('--init-hashes'),
 };
 
 const tool = new TemplateSyncTool(options);
