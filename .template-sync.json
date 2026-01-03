@@ -4,7 +4,7 @@
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "88da8317f9a2f921c85ac9ef13d57c1fe0689315",
   "lastProjectCommit": "975ae551920bc9a285c35d449164266d7c654fcd",
-  "lastSyncDate": "2026-01-03T16:06:34.253Z",
+  "lastSyncDate": "2026-01-03T16:07:09.696Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -590,6 +590,13 @@
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
     ".cursor/commands/contribute-to-template.md": "0496b3474d3503c9edce23743845bcc4",
-    "scripts/sync-template.ts": "ad569e4d4b34c0100e52fc2d572d64a5"
+    "scripts/sync-template.ts": "ad569e4d4b34c0100e52fc2d572d64a5",
+    "docs/authentication.md": "745ae0008f7f75f6680d43235f7543ec",
+    "docs/zustand-stores.md": "5235bca220b872a05f86271fadb06a37",
+    "src/apis/auth/shared.ts": "bed50a075f0731045e5f9de7d1376d7a",
+    "src/apis/reports/handlers/deleteAllReports.ts": "f73580db0bae1842d31b87ff2510e208",
+    "src/client/features/auth/IOSAuthModal.tsx": "ab668a8213c95d4c159362f01e18f8d2",
+    "src/client/features/index.ts": "4c9492916220e8a0d2204988e23c5339",
+    "src/client/routes/Settings/Settings.tsx": "9721901fa301c4d918e8f18d4caa224b"
   }
 }
