@@ -8,12 +8,20 @@ This command helps you sync updates from the template repository into your proje
 
 ## Overview
 
-The template sync system intelligently merges updates from the template repository while preserving your project customizations. It:
+The template sync system intelligently merges updates from the template repository while preserving your project customizations. It uses **hash-based change detection** to accurately track who modified each file.
 
-- ✅ **Auto-merges** files that only changed in the template (safe)
-- ⚠️ **Flags conflicts** when both template and project modified the same file
-- ⏭️ **Skips** ignored files and project-specific code
-- 📊 **Reports** exactly what happened
+### How It Works
+
+The sync tool stores a hash (fingerprint) of each file when synced. On the next sync, it compares:
+- **Template file** vs stored hash → Did template change this file?
+- **Project file** vs stored hash → Did you change this file?
+
+This enables accurate categorization:
+
+- ✅ **Safe changes** - Only template changed → auto-apply
+- ✅ **Project customizations** - Only you changed → keep your version (no conflict!)
+- ⚠️ **Conflicts** - Both changed → needs manual merge
+- ⏭️ **Skipped** - Ignored or project-specific files
 
 ## Process
 
@@ -87,21 +95,23 @@ yarn sync-template
 The sync script will:
 
 1. **Clone template** - Downloads latest version to `.template-sync-temp/`
-2. **Analyze changes** - Categorizes files into:
-   - ✅ Safe changes (only template modified)
-   - ⚠️ Potential conflicts (both template and project modified)
-   - ⏭️ Skipped (ignored/project-specific files)
-3. **Prompt for choice**:
+2. **Initialize baselines** - Stores hashes for files identical to template (first sync)
+3. **Analyze changes** - Uses hash comparison to categorize files:
+   - ✅ **Safe changes** - Only template modified since last sync
+   - ✅ **Project customizations** - Only you modified (kept automatically!)
+   - ⚠️ **Conflicts** - Both template and project modified
+   - ⏭️ **Skipped** - Ignored/project-specific files
+4. **Prompt for choice**:
    ```
    🤔 What would you like to do?
    
-   [1] Safe only  - Apply only safe changes (no conflicts)
-   [2] All changes - Apply all changes (may need manual merge)
+   [1] Safe only  - Apply only safe changes (skip conflicts)
+   [2] All changes - Apply safe + choose how to handle each conflict
    [3] Cancel     - Don't apply any changes
    ```
-4. **Apply selected changes**
-5. **Update config** - Saves last sync commit and date
-6. **Report results** - Shows what was applied
+5. **Apply selected changes** - Stores new hashes for synced files
+6. **Update config** - Saves sync commit, date, and file hashes
+7. **Report results** - Shows what was applied
 
 **Recommended workflow:**
 1. First, choose `[1] Safe only` to get non-conflicting updates
@@ -119,30 +129,36 @@ yarn sync-template --auto
 The script outputs a detailed report:
 
 ```
-📊 SYNC RESULTS
+📊 ANALYSIS SUMMARY
 ============================================================
 
-✅ Auto-merged (12 files):
-   src/client/components/ui/button.tsx
-   src/server/middleware/auth.ts
-   src/client/config/defaults.ts
+✅ Safe changes - NEW since last sync (12 files):
+   Only changed in template, no conflicts:
+   • src/client/components/ui/button.tsx
+   • src/server/middleware/auth.ts
+   • src/client/config/defaults.ts
    ...
 
-⚠️  Conflicts - Manual merge needed (3 files):
-   src/server/index.ts
-      → Template version saved to: src/server/index.ts.template
-   src/client/routes/Home/page.tsx
-      → Template version saved to: src/client/routes/Home/page.tsx.template
-   package.json
-      → Template version saved to: package.json.template
+✅ Project customizations (3 files):
+   Only changed in your project (will be kept):
+   • src/apis/auth/shared.ts
+   • src/client/features/auth/IOSAuthModal.tsx
+   • src/client/routes/Settings/Settings.tsx
+
+⚠️  Conflicts - NEW since last sync (2 files):
+   Changed in both template and your project:
+   • src/server/index.ts
+   • src/client/routes/Home/page.tsx
 
 ⏭️  Skipped (1 file):
    src/client/features/myCustomFeature/index.ts
 ```
 
-**Auto-merged files**: These were safely updated. Review with `git diff`.
+**Safe changes**: Template-only changes that can be auto-applied.
 
-**Conflicts**: Files with `.template` extension need manual merging (see Step 6).
+**Project customizations**: Files YOU modified but template didn't - automatically kept! (No false conflicts)
+
+**Conflicts**: Both you and template modified - needs manual merge (see Step 6).
 
 **Skipped files**: Configured in `.template-sync.json` as ignored or project-specific.
 
@@ -264,16 +280,35 @@ Edit `.template-sync.json` to customize sync behavior:
     "src/client/features/myCustomFeature",
     "src/apis/myCustomAPI",
     "src/server/myCustomLogic.ts"
-  ]
+  ],
+  
+  // Template example/demo files to completely ignore (never sync, never show)
+  "templateIgnoredFiles": [
+    "src/apis/todos",
+    "src/client/routes/Todos",
+    "src/client/features/todos",
+    "src/server/database/collections/todos",
+    "src/apis/chat",
+    "src/client/routes/Chat",
+    "src/client/features/chat"
+  ],
+  
+  // Auto-managed: Hash of each file at last sync (DO NOT EDIT)
+  "fileHashes": {
+    "src/client/components/ui/button.tsx": "a1b2c3d4...",
+    "src/server/middleware/auth.ts": "e5f6g7h8..."
+  }
 }
 ```
 
 **Key fields**:
 - `ignoredFiles`: Never touched during sync (system files, config, example features, registry files)
 - `projectSpecificFiles`: Your custom code that shouldn't be overwritten
+- `templateIgnoredFiles`: **Template example/demo code** - Files in the template that should be completely ignored (never synced, never shown as differences). Perfect for example code that projects delete after cloning.
+- `fileHashes`: **Auto-managed** - Stores content hash of each synced file for accurate change detection
 
 **Glob pattern support:**
-Both arrays support glob patterns for flexible matching:
+All three arrays (`ignoredFiles`, `projectSpecificFiles`, `templateIgnoredFiles`) support glob patterns:
 - `*` - Matches any characters except `/` (single directory level)
 - `**` - Matches any characters including `/` (multiple directory levels)
 
@@ -286,7 +321,15 @@ Both arrays support glob patterns for flexible matching:
 ]
 ```
 
-**Note:** Example features (Todos, Chat) and registry files (routes/index.ts, apis.ts, NavLinks.tsx, collections/index.ts) are ignored by default since users customize these when creating a new project from the template.
+**Understanding the three ignore types:**
+
+| Config Field | Purpose | When to Use |
+|--------------|---------|-------------|
+| `ignoredFiles` | System files never synced | `package.json`, `.env`, `node_modules`, registry files |
+| `projectSpecificFiles` | Your custom code | Custom features, APIs you've added to the project |
+| `templateIgnoredFiles` | Template demo/example code | Todos, Chat examples - delete after clone, forget forever |
+
+**Note:** Example features (Todos, Chat) are commonly added to `templateIgnoredFiles` since users typically delete these after cloning and don't want to see them in sync diffs.
 
 ## Common Scenarios
 
@@ -333,13 +376,19 @@ git commit -am "Add new template components"
 yarn sync-template --dry-run
 
 # Output:
-# ⚠️ Conflicts (2 files):
-#    src/server/index.ts.template
+# ✅ Safe changes - NEW since last sync (5 files):
+#    ...
+# ✅ Project customizations (2 files):
+#    src/apis/auth/shared.ts  (YOUR changes kept!)
+#    src/client/features/auth/IOSAuthModal.tsx
+# ⚠️ Conflicts - NEW since last sync (1 file):
+#    src/server/index.ts  (BOTH you and template changed)
 
 # Apply
 yarn sync-template
 
-# Manually merge
+# Your customizations are automatically kept!
+# Only manually merge the actual conflicts:
 code src/server/index.ts  # Open both versions
 # Merge the changes
 rm src/server/index.ts.template
@@ -349,7 +398,28 @@ yarn checks
 git commit -am "Merge template updates with conflict resolution"
 ```
 
-### Scenario 4: Skip Your Custom Feature
+### Scenario 4: Your Changes Are Automatically Preserved
+
+```bash
+# You modified some files, template didn't change them
+yarn sync-template --dry-run
+
+# Output shows your changes are SAFE:
+# ✅ Safe changes - NEW since last sync (3 files):
+#    src/client/config/defaults.ts  (template updated)
+#    ...
+# 
+# ✅ Project customizations (2 files):
+#    Only changed in your project (will be kept):
+#    • src/apis/auth/shared.ts       (YOU changed, kept!)
+#    • src/client/routes/Settings.tsx (YOU changed, kept!)
+
+# Apply - your customizations are preserved automatically!
+yarn sync-template
+# No conflicts for files only YOU modified
+```
+
+### Scenario 5: Skip Your Custom Feature
 
 ```bash
 # Edit config
@@ -369,6 +439,42 @@ yarn sync-template
 # ⏭️ Skipped (1 file):
 #    src/client/features/myAwesomeFeature/index.ts
 ```
+
+### Scenario 6: Ignore Template Example Code (Todos, Chat)
+
+After cloning a project, you deleted the example Todos and Chat features. Now during sync, you don't want to see them as "missing" or be prompted to add them back:
+
+```bash
+# Edit config
+code .template-sync.json
+
+# Add to templateIgnoredFiles:
+{
+  "templateIgnoredFiles": [
+    "src/apis/todos",
+    "src/client/routes/Todos",
+    "src/client/features/todos",
+    "src/server/database/collections/todos",
+    "src/apis/chat",
+    "src/client/routes/Chat",
+    "src/client/features/chat"
+  ]
+}
+
+# Now sync - these files are completely invisible
+yarn sync-template
+
+# Output: No mention of Todos or Chat at all!
+# ✅ Safe changes - NEW since last sync (5 files):
+#    src/client/components/ui/button.tsx
+#    ...
+```
+
+Template-ignored files:
+- Won't appear as "new in template" (even if you deleted them)
+- Won't appear in diff summaries
+- Won't be synced ever
+- Perfect for demo/example code you don't need
 
 ## Troubleshooting
 
@@ -414,6 +520,24 @@ cat src/file.ts.template
 git checkout src/file.ts
 ```
 
+### Files Showing as "Conflicts - no baseline"
+
+**Cause**: These files differ from template but have no sync history (common on first sync or for files that were never tracked).
+
+**Solution**: 
+1. For first sync, this is expected - choose how to handle each file
+2. After resolving, future syncs will track changes properly
+3. The sync tool now stores file hashes to prevent this in future syncs
+
+### My Changes Were Incorrectly Overwritten
+
+**Cause**: In older versions, the sync tool could incorrectly classify project changes as "safe to apply".
+
+**Solution**: 
+1. Update to the latest sync-template.ts which uses hash-based change detection
+2. Files you modified will now show as "Project customizations" (kept automatically)
+3. Only files where BOTH you and template changed will show as conflicts
+
 ## Best Practices
 
 1. **Sync regularly** - Monthly or quarterly to avoid large conflicts
@@ -422,6 +546,7 @@ git checkout src/file.ts
 4. **Test after sync** - Run `yarn checks` and test key features
 5. **Review auto-merges** - Use `git diff` to verify changes
 6. **Commit immediately** - Don't mix sync with other work
+7. **Don't edit fileHashes** - The `fileHashes` field is auto-managed for change tracking
 
 ## Related Documentation
 

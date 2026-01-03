@@ -59,7 +59,10 @@ interface TemplateSyncConfig {
   lastSyncDate: string | null;
   ignoredFiles: string[];
   projectSpecificFiles: string[];
+  templateIgnoredFiles?: string[];  // Template files to never sync (e.g., example/demo code)
+  templateLocalPath?: string;  // Local path to template repo (for contributing changes back)
   syncHistory?: SyncHistoryEntry[];  // Track sync history
+  fileHashes?: Record<string, string>;  // Hash of each file at last sync time
 }
 
 interface FileChange {
@@ -382,6 +385,55 @@ class TemplateSyncTool {
     });
   }
 
+  /**
+   * Check if a file should be ignored from the template side.
+   * These are template files that should never be synced (e.g., example/demo code).
+   * Projects can delete these after cloning and never see them again.
+   */
+  private shouldIgnoreTemplateFile(filePath: string): boolean {
+    const templateIgnored = this.config.templateIgnoredFiles || [];
+    if (templateIgnored.length === 0) return false;
+
+    const normalized = filePath.replace(/\\/g, '/');
+
+    return templateIgnored.some(pattern => {
+      // Normalize pattern
+      const normalizedPattern = pattern.replace(/\\/g, '/');
+
+      // Exact match
+      if (normalized === normalizedPattern) return true;
+
+      // Handle ** (match any number of path segments)
+      if (normalizedPattern.includes('**')) {
+        const regexPattern = normalizedPattern
+          .replace(/\*\*/g, '.*')  // ** matches anything
+          .replace(/\*/g, '[^/]*') // * matches anything except /
+          .replace(/\//g, '\\/');  // escape slashes
+
+        const regex = new RegExp('^' + regexPattern + '$');
+        if (regex.test(normalized)) return true;
+      }
+
+      // Handle * (match within a single path segment)
+      if (normalizedPattern.includes('*') && !normalizedPattern.includes('**')) {
+        const regexPattern = normalizedPattern
+          .replace(/\*/g, '[^/]*')  // * matches anything except /
+          .replace(/\//g, '\\/');   // escape slashes
+
+        const regex = new RegExp('^' + regexPattern + '$');
+        if (regex.test(normalized)) return true;
+      }
+
+      // Directory match (if pattern is a directory name anywhere in path)
+      if (normalized.split('/').includes(normalizedPattern)) return true;
+
+      // Start with match (for directory paths)
+      if (normalized.startsWith(normalizedPattern + '/')) return true;
+
+      return false;
+    });
+  }
+
   private getFileHash(filePath: string): string {
     if (!fs.existsSync(filePath)) return '';
 
@@ -398,6 +450,11 @@ class TemplateSyncTool {
     const changes: FileChange[] = [];
 
     for (const file of allFiles) {
+      // Skip template-ignored files (example/demo code that should never sync)
+      if (this.shouldIgnoreTemplateFile(file)) {
+        continue;
+      }
+
       const templateFilePath = path.join(templatePath, file);
       const projectFilePath = path.join(this.projectRoot, file);
 
@@ -434,49 +491,88 @@ class TemplateSyncTool {
     return changes;
   }
 
-  private hasProjectChanges(filePath: string): boolean {
-    // Check if file has been modified in the project since last sync
-    try {
-      // If we have the project commit from last sync, check against it
-      if (this.config.lastProjectCommit) {
-        const diff = this.exec(
-          `git diff ${this.config.lastProjectCommit} HEAD -- "${filePath}"`,
-          { silent: true }
-        );
-        return diff.length > 0;
-      }
+  /**
+   * Get the stored hash for a file from the last sync.
+   * Returns null if no hash is stored (first sync or file was never synced).
+   */
+  private getStoredHash(filePath: string): string | null {
+    return this.config.fileHashes?.[filePath] ?? null;
+  }
 
-      // Otherwise, check if file is tracked and has history
-      const log = this.exec(`git log --oneline -- "${filePath}"`, { silent: true });
-      return log.length > 0;
-    } catch {
-      return false;
+  /**
+   * Get the hash of a template file.
+   */
+  private getTemplateFileHash(filePath: string): string {
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+    const templateFilePath = path.join(templatePath, filePath);
+    return this.getFileHash(templateFilePath);
+  }
+
+  /**
+   * Get the hash of a project file.
+   */
+  private getProjectFileHash(filePath: string): string {
+    const projectFilePath = path.join(this.projectRoot, filePath);
+    return this.getFileHash(projectFilePath);
+  }
+
+  /**
+   * Determine change status for a file using hash-based comparison.
+   * Returns { projectChanged, templateChanged } based on comparing current hashes to stored sync hash.
+   */
+  private getChangeStatus(filePath: string): { projectChanged: boolean; templateChanged: boolean; hasBaseline: boolean } {
+    const storedHash = this.getStoredHash(filePath);
+    
+    if (!storedHash) {
+      // No baseline - first sync or file was never synced
+      // We can't determine who changed what
+      return { projectChanged: false, templateChanged: false, hasBaseline: false };
     }
+
+    const projectHash = this.getProjectFileHash(filePath);
+    const templateHash = this.getTemplateFileHash(filePath);
+
+    return {
+      projectChanged: projectHash !== storedHash,
+      templateChanged: templateHash !== storedHash,
+      hasBaseline: true,
+    };
+  }
+
+  /**
+   * Check if a file has changed in the project since the last sync.
+   * Uses hash-based comparison against the stored sync baseline.
+   */
+  private hasProjectChanges(filePath: string): boolean {
+    const storedHash = this.getStoredHash(filePath);
+    
+    if (!storedHash) {
+      // No baseline - we can't determine if project changed
+      // For safety, we'll check if the file differs from template
+      // If it does and there's no baseline, treat as project change
+      const projectHash = this.getProjectFileHash(filePath);
+      const templateHash = this.getTemplateFileHash(filePath);
+      return projectHash !== templateHash;  // If different and no baseline, assume project changed
+    }
+
+    const projectHash = this.getProjectFileHash(filePath);
+    return projectHash !== storedHash;
   }
 
   /**
    * Check if a file has changed in the template since the last sync.
-   * Returns true if the template modified this file.
+   * Uses hash-based comparison against the stored sync baseline.
    */
   private hasTemplateChanges(filePath: string): boolean {
-    // If no lastSyncCommit, this is first sync - assume everything is new
-    if (!this.config.lastSyncCommit) {
+    const storedHash = this.getStoredHash(filePath);
+    
+    if (!storedHash) {
+      // No baseline - assume template changed (first sync or untracked file)
       return true;
     }
 
-    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
-
-    try {
-      // Check if file changed in template between lastSyncCommit and HEAD
-      const diff = this.exec(
-        `git diff ${this.config.lastSyncCommit} HEAD -- "${filePath}"`,
-        { cwd: templatePath, silent: true }
-      );
-      return diff.length > 0;
-    } catch {
-      // If we can't determine (e.g., commit not found), assume changed to be safe
-      return true;
-    }
+    const templateHash = this.getTemplateFileHash(filePath);
+    return templateHash !== storedHash;
   }
 
   private analyzeChanges(changes: FileChange[]): AnalysisResult {
@@ -495,26 +591,36 @@ class TemplateSyncTool {
         continue;
       }
 
-      // Track if this change is NEW (template changed since last sync)
-      const isNewChange = this.hasTemplateChanges(change.path);
-      if (isNewChange) {
-        result.newChanges.add(change.path);
-      }
-
       if (change.status === 'added') {
-        // New file - safe to add (always considered "new" regardless of when it was added)
+        // New file in template (not in project) - safe to add
         result.newChanges.add(change.path);
         result.safeChanges.push(change);
       } else if (change.status === 'modified') {
-        // Check both sides for changes
-        const projectChanged = this.hasProjectChanges(change.path);
+        // File exists in both but differs - use hash-based comparison
+        const status = this.getChangeStatus(change.path);
 
-        if (projectChanged) {
-          // Project has changes - this is a conflict (whether template changed recently or not)
+        if (!status.hasBaseline) {
+          // No baseline hash - first sync or file was never synced
+          // Files differ but we don't know who changed what
+          // Treat as conflict to be safe (user should decide)
+          this.logVerbose(`No baseline hash for ${change.path} - treating as conflict`);
           result.conflictChanges.push(change);
-        } else {
-          // Only template is different - safe to auto-apply (whether recent or old difference)
+        } else if (status.templateChanged && status.projectChanged) {
+          // Both changed - conflict
+          result.newChanges.add(change.path);  // Mark as new since template changed
+          result.conflictChanges.push(change);
+        } else if (status.templateChanged && !status.projectChanged) {
+          // Only template changed - safe to apply
+          result.newChanges.add(change.path);
           result.safeChanges.push(change);
+        } else if (!status.templateChanged && status.projectChanged) {
+          // Only project changed - project customization, keep as-is
+          result.projectOnlyChanges.push(change);
+        } else {
+          // Neither changed but files differ - shouldn't happen if hashes are tracked correctly
+          // This could happen if files were modified outside of sync
+          this.logVerbose(`Hash mismatch for ${change.path} - files differ but neither changed from baseline`);
+          result.conflictChanges.push(change);
         }
       }
     }
@@ -569,11 +675,20 @@ class TemplateSyncTool {
       }
     }
 
-    // Show EXISTING safe changes (from before last sync)
+    // Show EXISTING safe changes (edge case - should rarely happen with hash tracking)
     if (existingSafeChanges.length > 0) {
       console.log(`\n✅ Safe changes - existing differences (${existingSafeChanges.length} files):`);
-      console.log('   Different from template (unchanged since last sync):');
+      console.log('   Template changes (safe to apply):');
       existingSafeChanges.forEach(f =>
+        console.log(`   • ${f.path}`)
+      );
+    }
+
+    // Show project-only changes (user's customizations that will be kept)
+    if (analysis.projectOnlyChanges.length > 0) {
+      console.log(`\n✅ Project customizations (${analysis.projectOnlyChanges.length} files):`);
+      console.log('   Only changed in your project (will be kept):');
+      analysis.projectOnlyChanges.forEach(f =>
         console.log(`   • ${f.path}`)
       );
     }
@@ -591,17 +706,9 @@ class TemplateSyncTool {
     }
 
     if (existingConflicts.length > 0) {
-      console.log(`\n⚠️  Conflicts - existing differences (${existingConflicts.length} files):`);
-      console.log('   Changed in both (template unchanged since last sync):');
+      console.log(`\n⚠️  Conflicts - no baseline (${existingConflicts.length} files):`);
+      console.log('   Files differ from template with no sync history:');
       existingConflicts.forEach(f =>
-        console.log(`   • ${f.path}`)
-      );
-    }
-
-    if (analysis.projectOnlyChanges.length > 0) {
-      console.log(`\n✅ Project customizations (${analysis.projectOnlyChanges.length} files):`);
-      console.log('   Changed only in your project (template unchanged):');
-      analysis.projectOnlyChanges.forEach(f =>
         console.log(`   • ${f.path}`)
       );
     }
@@ -1040,6 +1147,63 @@ class TemplateSyncTool {
     console.log('');
   }
 
+  /**
+   * Store the hash of a synced file for future comparison.
+   */
+  private storeFileHash(filePath: string, hash: string): void {
+    if (!this.config.fileHashes) {
+      this.config.fileHashes = {};
+    }
+    this.config.fileHashes[filePath] = hash;
+  }
+
+  /**
+   * Initialize hashes for files that are identical between project and template.
+   * This establishes a baseline for future change detection.
+   * Returns the number of files initialized.
+   */
+  private initializeIdenticalFileHashes(): number {
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+    const templateFiles = this.getAllFiles(templatePath, templatePath);
+    let initialized = 0;
+
+    for (const file of templateFiles) {
+      // Skip if we already have a hash for this file
+      if (this.config.fileHashes?.[file]) {
+        continue;
+      }
+
+      // Skip project-specific files
+      if (this.shouldIgnoreByProjectSpecificFiles(file)) {
+        continue;
+      }
+
+      // Skip template-ignored files (example/demo code)
+      if (this.shouldIgnoreTemplateFile(file)) {
+        continue;
+      }
+
+      const templateFilePath = path.join(templatePath, file);
+      const projectFilePath = path.join(this.projectRoot, file);
+
+      // Only process files that exist in both places
+      if (!fs.existsSync(projectFilePath)) {
+        continue;
+      }
+
+      const templateHash = this.getFileHash(templateFilePath);
+      const projectHash = this.getFileHash(projectFilePath);
+
+      // If files are identical, store the hash as baseline
+      if (templateHash === projectHash) {
+        this.storeFileHash(file, templateHash);
+        initialized++;
+      }
+    }
+
+    return initialized;
+  }
+
   private async syncFiles(
     analysis: AnalysisResult,
     mode: SyncMode,
@@ -1074,6 +1238,10 @@ class TemplateSyncTool {
             fs.mkdirSync(dir, { recursive: true });
           }
           fs.copyFileSync(templateFilePath, projectFilePath);
+          
+          // Store the hash of the synced file for future comparison
+          const hash = this.getFileHash(templateFilePath);
+          this.storeFileHash(change.path, hash);
         }
         result.autoMerged.push(change.path);
       } catch (error: any) {
@@ -1100,12 +1268,24 @@ class TemplateSyncTool {
                   fs.mkdirSync(dir, { recursive: true });
                 }
                 fs.copyFileSync(templateFilePath, projectFilePath);
+                
+                // Store the hash of the synced file for future comparison
+                const hash = this.getFileHash(templateFilePath);
+                this.storeFileHash(change.path, hash);
               }
               result.autoMerged.push(change.path);
               break;
 
             case 'skip':
               // Keep project version, add to skipped
+              // Store the TEMPLATE file hash as the baseline - this indicates
+              // "I've acknowledged these template changes and chose to keep my version"
+              // Next sync: if template unchanged, file shows as project-only (no conflict)
+              // Next sync: if template changed again, it will be a proper conflict
+              if (!this.options.dryRun) {
+                const hash = this.getFileHash(templateFilePath);
+                this.storeFileHash(change.path, hash);
+              }
               result.skipped.push(change.path);
               break;
 
@@ -1114,12 +1294,13 @@ class TemplateSyncTool {
               result.conflicts.push(change.path);
               if (!this.options.dryRun) {
                 fs.copyFileSync(templateFilePath, projectFilePath + '.template');
+                // Don't update hash - let user merge and it will be handled next sync
               }
               break;
 
             case 'nothing':
               // Leave file unchanged, don't add to any list
-              // Just log that we skipped it
+              // Don't update hash either - preserve current state
               break;
           }
         } catch (error: any) {
@@ -1523,6 +1704,11 @@ class TemplateSyncTool {
     };
     
     for (const file of allFiles) {
+      // Skip template-ignored files completely (example/demo code)
+      if (this.shouldIgnoreTemplateFile(file)) {
+        continue;
+      }
+
       const templateFilePath = path.join(templatePath, file);
       const projectFilePath = path.join(this.projectRoot, file);
       
@@ -1948,7 +2134,15 @@ class TemplateSyncTool {
         console.log('   Checking for existing differences from previous sessions...\n');
       }
 
-      // Step 4: Compare files
+      // Step 4: Initialize hashes for identical files (establishes baseline)
+      if (!this.options.dryRun) {
+        const initializedCount = this.initializeIdenticalFileHashes();
+        if (initializedCount > 0) {
+          this.logVerbose(`Initialized baseline hashes for ${initializedCount} identical files`);
+        }
+      }
+
+      // Step 5: Compare files
       console.log('🔍 Analyzing changes...');
       const changes = this.compareFiles();
 
@@ -1958,7 +2152,7 @@ class TemplateSyncTool {
         return;
       }
 
-      // Step 5: Analyze changes (categorize into safe/conflict)
+      // Step 6: Analyze changes (categorize into safe/conflict)
       const analysis = this.analyzeChanges(changes);
 
       // Check if all changes are skipped or project-only (nothing to sync from template)
@@ -1990,7 +2184,7 @@ class TemplateSyncTool {
         return;
       }
 
-      // Step 6: Prompt user for choice (unless auto mode or dry-run)
+      // Step 7: Prompt user for choice (unless auto mode or dry-run)
       let mode: SyncMode;
       let conflictResolutions: ConflictResolutionMap = {};
 
@@ -2074,13 +2268,13 @@ class TemplateSyncTool {
         return;
       }
 
-      // Step 7: Apply changes based on mode (mode is 'safe' or 'all' here)
+      // Step 8: Apply changes based on mode (mode is 'safe' or 'all' here)
       const result = await this.syncFiles(analysis, mode, conflictResolutions);
 
-      // Step 8: Print results
+      // Step 9: Print results
       this.printResults(result);
 
-      // Step 9: Run validation before committing (always, not just when --validate is set)
+      // Step 10: Run validation before committing (always, not just when --validate is set)
       // Get template commits for the commit message and report (before cleanup)
       const templateCommitsForReport = this.getTemplateCommitsSinceLastSync();
 
