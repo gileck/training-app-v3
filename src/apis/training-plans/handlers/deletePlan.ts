@@ -32,6 +32,9 @@ export const deletePlan = async (
         await setLogs.deleteSetLogsByPlanId(request.planId);
 
         // 2. Get all weekly progress for this plan and delete exercise progress
+        // TODO: [N+1 QUERY] This loop deletes exercise progress one week at a time (N delete operations).
+        // Fix: Add `deleteExerciseProgressByWeekIds(weekIds: string[])` to exerciseProgress collection.
+        // This would use `collection.deleteMany({ weeklyProgressId: { $in: weekIds } })`.
         const weeklyProgressList = await weeklyProgress.findAllWeeklyProgress(request.planId);
         for (const wp of weeklyProgressList) {
             await exerciseProgress.deleteExerciseProgressByWeekId(toStringId(wp._id));

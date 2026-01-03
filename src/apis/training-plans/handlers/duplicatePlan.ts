@@ -38,7 +38,12 @@ export const duplicatePlan = async (
         // Get all exercises from the original plan
         const originalExercises = await planExercises.findExercisesByPlanId(request.planId);
 
-        // Duplicate each exercise to the new plan
+        // TODO: [N+1 QUERY] This loop creates exercises one-by-one (N inserts).
+        // Fix: Add `bulkCreatePlanExercises()` to planExercises collection using `collection.insertMany()`.
+        // This would reduce N insert operations to 1 bulk insert.
+        // Example implementation:
+        //   const exercisesToCreate = originalExercises.map(ex => ({...}));
+        //   await planExercises.bulkCreatePlanExercises(exercisesToCreate);
         for (const exercise of originalExercises) {
             await planExercises.createPlanExercise({
                 planId: newPlan._id,

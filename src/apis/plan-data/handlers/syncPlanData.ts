@@ -157,10 +157,12 @@ async function syncExercises(
     }
 
     // Clean up exercise progress for deleted exercises
-    for (const id of existingIds) {
-        if (!incomingIds.has(id)) {
-            await exerciseProgress.deleteExerciseProgressByPlanExerciseId(id);
-        }
+    // TODO: [N+1 QUERY] This loop deletes exercise progress one at a time (N delete operations).
+    // Fix: Add `deleteExerciseProgressByPlanExerciseIds(ids: string[])` to exerciseProgress collection.
+    // This would use `collection.deleteMany({ planExerciseId: { $in: ids } })`.
+    const deletedIds = [...existingIds].filter((id) => !incomingIds.has(id));
+    for (const id of deletedIds) {
+        await exerciseProgress.deleteExerciseProgressByPlanExerciseId(id);
     }
 }
 
