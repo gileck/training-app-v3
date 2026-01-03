@@ -44,6 +44,8 @@ export function ManagePlanHeader({
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [clearCacheDialogOpen, setClearCacheDialogOpen] = useState(false);
 
     const handleSyncClick = () => {
         setConfirmDialogOpen(true);
@@ -70,6 +72,15 @@ export function ManagePlanHeader({
 
     const handleConflictCancel = () => {
         setConflictDialogOpen(false);
+    };
+
+    const handleClearCacheClick = () => {
+        setClearCacheDialogOpen(true);
+    };
+
+    const handleConfirmClearCache = () => {
+        setClearCacheDialogOpen(false);
+        onClearPlanCache?.();
     };
 
     return (
@@ -132,7 +143,7 @@ export function ManagePlanHeader({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={onClearPlanCache} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onClick={handleClearCacheClick} className="text-destructive focus:text-destructive">
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Clear Plan Cache
                             </DropdownMenuItem>
@@ -190,6 +201,25 @@ export function ManagePlanHeader({
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmSync}>
                             Sync from Cloud
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Clear plan cache confirmation dialog */}
+            <AlertDialog open={clearCacheDialogOpen} onOpenChange={setClearCacheDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Plan Cache?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will clear all locally cached plan data including exercises and weekly progress 
+                            for all plans. Fresh data will be fetched from the server on next load.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmClearCache} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Clear Cache
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
