@@ -1286,9 +1286,11 @@ class TemplateSyncTool {
         this.storeFileHash(file, templateHash);
         result.identical++;
       } else {
-        // Files differ - store PROJECT's hash as baseline
-        // This says "project's current state is correct, detect future changes from here"
-        this.storeFileHash(file, projectHash);
+        // Files differ - store TEMPLATE's hash as baseline
+        // This establishes "current template version" as the reference point
+        // So: project hash ≠ template hash → project changed (customization)
+        //     template changes later → template hash ≠ stored → safe change
+        this.storeFileHash(file, templateHash);
         result.different++;
       }
     }
@@ -1334,14 +1336,14 @@ class TemplateSyncTool {
       this.log('='.repeat(60));
       this.log('📊 RESULTS');
       this.log('='.repeat(60));
-      this.log(`\n✅ Identical files (hash stored):     ${result.identical}`);
-      this.log(`📝 Different files (project baseline): ${result.different}`);
-      this.log(`⏭️  Skipped (ignored/project-specific): ${result.skipped}`);
+      this.log(`\n✅ Identical files (hash stored):      ${result.identical}`);
+      this.log(`📝 Different files (template baseline): ${result.different}`);
+      this.log(`⏭️  Skipped (ignored/project-specific):  ${result.skipped}`);
       this.log(`\n📦 Total hashes stored: ${Object.keys(this.config.fileHashes || {}).length}`);
 
       if (result.different > 0) {
-        this.log('\n💡 Note: For files that differ from template, your PROJECT version');
-        this.log('   is now the baseline. Future template changes will be detected.');
+        this.log('\n💡 Note: For files that differ, the TEMPLATE version is the baseline.');
+        this.log('   These will show as "project customizations" on next sync.');
       }
 
       this.log('\n✅ Baseline initialization complete!');
