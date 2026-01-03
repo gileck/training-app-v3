@@ -84,33 +84,6 @@ const dateRangeLabels: Record<DateRange, string> = {
     'all': 'All time',
 };
 
-function getDateRange(range: DateRange): { startDate?: string; endDate?: string } {
-    if (range === 'all') return {};
-    
-    const endDate = new Date();
-    const startDate = new Date();
-    
-    switch (range) {
-        case '7days':
-            startDate.setDate(startDate.getDate() - 7);
-            break;
-        case '14days':
-            startDate.setDate(startDate.getDate() - 14);
-            break;
-        case '30days':
-            startDate.setDate(startDate.getDate() - 30);
-            break;
-        case '90days':
-            startDate.setDate(startDate.getDate() - 90);
-            break;
-    }
-    
-    return {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
-    };
-}
-
 function formatDate(isoString: string): string {
     const date = new Date(isoString);
     return date.toLocaleDateString(undefined, {
@@ -1102,8 +1075,7 @@ function SelectionActionBar({
 }
 
 function ActivityLog({ dateRange }: { dateRange: DateRange }) {
-    const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
-    const { data, isLoading } = useActivity({ limit: 50, startDate, endDate });
+    const { data, isLoading } = useActivity({ period: dateRange, limit: 50 });
     const deleteActivityMutation = useDeleteActivity();
     const bulkDeleteMutation = useBulkDeleteActivity();
     const editActivityMutation = useEditActivity();
@@ -1459,8 +1431,7 @@ function ActivityLog({ dateRange }: { dateRange: DateRange }) {
 }
 
 function DailySummaries({ dateRange }: { dateRange: DateRange }) {
-    const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
-    const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
+    const { data, isLoading } = useActivitySummary({ aggregation: 'day', period: dateRange });
     const summaries = data?.summaries || [];
 
     // Show loading when:
@@ -1515,8 +1486,7 @@ function DailySummaries({ dateRange }: { dateRange: DateRange }) {
 }
 
 function StatsOverview({ dateRange }: { dateRange: DateRange }) {
-    const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
-    const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
+    const { data, isLoading } = useActivitySummary({ aggregation: 'day', period: dateRange });
 
     const totalSets = data?.totalSets ?? 0;
     const totalDays = data?.totalWorkoutDays ?? 0;
@@ -1566,8 +1536,7 @@ function formatShortDate(dateStr: string): string {
 }
 
 function ProgressCharts({ dateRange }: { dateRange: DateRange }) {
-    const { startDate, endDate } = useMemo(() => getDateRange(dateRange), [dateRange]);
-    const { data, isLoading } = useActivitySummary({ period: 'day', startDate, endDate });
+    const { data, isLoading } = useActivitySummary({ aggregation: 'day', period: dateRange });
     const summaries = data?.summaries || [];
 
     // Show loading when:
@@ -1739,22 +1708,24 @@ export function Progress() {
     const dateRange = useProgressStore((state) => state.dateRange);
     const setDateRange = useProgressStore((state) => state.setDateRange);
 
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral refresh state
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral timestamp
-    const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-    
+    // Track background fetching state for refresh indicator
+    // This uses the same query key as StatsOverview, so it shares cache
+    const { isFetching: isBackgroundFetching, dataUpdatedAt } = useActivitySummary({
+        aggregation: 'day',
+        period: dateRange,
+    });
+
     const queryClient = useQueryClient();
-    
+
+    // Show last updated time based on actual data
+    const lastUpdatedDate = dataUpdatedAt ? new Date(dataUpdatedAt) : undefined;
+
     const handleRefresh = async () => {
-        setIsRefreshing(true);
         // Invalidate all activity-related queries to trigger refetch
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['activity'] }),
             queryClient.invalidateQueries({ queryKey: ['activity-summary'] }),
         ]);
-        setLastRefreshed(new Date());
-        setIsRefreshing(false);
     };
 
     return (
@@ -1765,8 +1736,15 @@ export function Progress() {
                         <TrendingUp className="h-5 w-5" />
                         Progress
                     </h1>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                        Updated {formatLastUpdated(lastRefreshed)}
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        {isBackgroundFetching ? (
+                            <>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Refreshing...
+                            </>
+                        ) : (
+                            <>Updated {formatLastUpdated(lastUpdatedDate)}</>
+                        )}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1774,10 +1752,10 @@ export function Progress() {
                         variant="ghost"
                         size="icon"
                         onClick={handleRefresh}
-                        disabled={isRefreshing}
+                        disabled={isBackgroundFetching}
                         className="h-9 w-9 rounded-lg"
                     >
-                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 ${isBackgroundFetching ? 'animate-spin' : ''}`} />
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

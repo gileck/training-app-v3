@@ -5,6 +5,26 @@ import * as planExercises from '@/server/database/collections/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/exerciseDefinitions';
 import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
 
+/**
+ * Get date key for grouping based on aggregation period
+ */
+function getDateKey(logDate: Date, period: 'day' | 'week' | 'month'): string {
+    switch (period) {
+        case 'day':
+            return logDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        case 'week': {
+            // Get start of week (Monday)
+            const day = logDate.getDay();
+            const diff = logDate.getDate() - day + (day === 0 ? -6 : 1);
+            const weekStartDate = new Date(logDate);
+            weekStartDate.setDate(diff);
+            return weekStartDate.toISOString().split('T')[0];
+        }
+        case 'month':
+            return `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+}
+
 export async function getActivitySummary(
     request: GetActivitySummaryRequest,
     context: ApiHandlerContext
@@ -57,14 +77,50 @@ export async function getActivitySummary(
             ...endDateFilter,
         };
 
-        // Get all logs in the date range
+        // Get all logs in the date range (1 query)
         const logs = await setLogs.findSetLogsByFilter(filter, 10000); // High limit for aggregation
 
-        // Cache for exercise lookups
-        const exerciseCache = new Map<string, string>(); // planExerciseId -> primaryMuscle
-        const planExerciseToDefCache = new Map<string, string>(); // planExerciseId -> exerciseDefId
+        if (logs.length === 0) {
+            return { summaries: [], totalSets: 0, totalWorkoutDays: 0 };
+        }
 
-        // Group by date
+        // Collect unique planExerciseIds for batch lookup
+        const uniquePlanExerciseIds = [...new Set(logs.map((log) => toStringId(log.planExerciseId)))];
+
+        // Batch fetch planExercises (1 query)
+        const planExerciseList = await planExercises.findPlanExercisesByIds(uniquePlanExerciseIds);
+
+        // Build planExercise lookup map and collect unique exerciseDefIds
+        const planExerciseMap = new Map<string, string>(); // planExerciseId -> exerciseDefId
+        const uniqueExerciseDefIds: string[] = [];
+        for (const pe of planExerciseList) {
+            const peId = toStringId(pe._id);
+            const exDefId = toStringId(pe.exerciseDefId);
+            planExerciseMap.set(peId, exDefId);
+            if (!uniqueExerciseDefIds.includes(exDefId)) {
+                uniqueExerciseDefIds.push(exDefId);
+            }
+        }
+
+        // Batch fetch exercise definitions (1 query)
+        const exerciseDefList = await exerciseDefinitions.findExercisesByIds(uniqueExerciseDefIds);
+
+        // Build exercise lookup map: exerciseDefId -> primaryMuscle
+        const exerciseDefMap = new Map<string, string>();
+        for (const exDef of exerciseDefList) {
+            exerciseDefMap.set(toStringId(exDef._id), exDef.primaryMuscle);
+        }
+
+        // Build combined lookup: planExerciseId -> primaryMuscle
+        const muscleMap = new Map<string, string>();
+        for (const [peId, exDefId] of planExerciseMap) {
+            const muscle = exerciseDefMap.get(exDefId);
+            if (muscle) {
+                muscleMap.set(peId, muscle);
+            }
+        }
+
+        // Group by date (no DB calls)
         const dailyMap = new Map<string, {
             sets: number;
             exerciseIds: Set<string>;
@@ -72,27 +128,7 @@ export async function getActivitySummary(
         }>();
 
         for (const log of logs) {
-            // Get date key based on period
-            const logDate = new Date(log.completedAt);
-            let dateKey: string;
-
-            switch (request.period) {
-                case 'day':
-                    dateKey = logDate.toISOString().split('T')[0]; // YYYY-MM-DD
-                    break;
-                case 'week': {
-                    // Get start of week (Monday)
-                    const day = logDate.getDay();
-                    const diff = logDate.getDate() - day + (day === 0 ? -6 : 1);
-                    const weekStartDate = new Date(logDate);
-                    weekStartDate.setDate(diff);
-                    dateKey = weekStartDate.toISOString().split('T')[0];
-                    break;
-                }
-                case 'month':
-                    dateKey = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-01`;
-                    break;
-            }
+            const dateKey = getDateKey(new Date(log.completedAt), request.period);
 
             // Initialize daily entry if not exists
             if (!dailyMap.has(dateKey)) {
@@ -105,31 +141,12 @@ export async function getActivitySummary(
 
             const entry = dailyMap.get(dateKey)!;
             entry.sets += 1;
+
             const planExerciseIdStr = toStringId(log.planExerciseId);
             entry.exerciseIds.add(planExerciseIdStr);
 
-            // Get primary muscle for this exercise (handles both ObjectId and UUID)
-            let primaryMuscle = exerciseCache.get(planExerciseIdStr);
-            if (!primaryMuscle) {
-                // Get exercise def ID from plan exercise
-                let exerciseDefId = planExerciseToDefCache.get(planExerciseIdStr);
-                if (!exerciseDefId) {
-                    const planExercise = await planExercises.findPlanExerciseById(planExerciseIdStr);
-                    if (planExercise) {
-                        exerciseDefId = toStringId(planExercise.exerciseDefId);
-                        planExerciseToDefCache.set(planExerciseIdStr, exerciseDefId);
-                    }
-                }
-
-                if (exerciseDefId) {
-                    const exerciseDef = await exerciseDefinitions.findExerciseById(exerciseDefId);
-                    if (exerciseDef) {
-                        primaryMuscle = exerciseDef.primaryMuscle;
-                        exerciseCache.set(planExerciseIdStr, primaryMuscle);
-                    }
-                }
-            }
-
+            // Get primary muscle from lookup map (no DB call)
+            const primaryMuscle = muscleMap.get(planExerciseIdStr);
             if (primaryMuscle) {
                 entry.muscles.add(primaryMuscle);
             }

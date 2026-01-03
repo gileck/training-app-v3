@@ -34,6 +34,18 @@ export const findPlanExerciseById = async (
 };
 
 /**
+ * Find multiple plan exercises by IDs (batch lookup)
+ */
+export const findPlanExercisesByIds = async (
+    planExerciseIds: (ObjectId | string)[]
+): Promise<PlanExercise[]> => {
+    if (planExerciseIds.length === 0) return [];
+    const collection = await getCollection();
+    const ids = planExerciseIds.map((id) => (typeof id === 'string' ? toQueryId(id) : id));
+    return collection.find({ _id: { $in: ids as ObjectId[] } }).toArray();
+};
+
+/**
  * Check if an exercise is already in a plan
  */
 export const isExerciseInPlan = async (
