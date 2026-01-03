@@ -110,17 +110,46 @@ export function SharedPlan() {
         }
     };
     
+    // iOS PWA detection
+    const isStandalone = typeof window !== 'undefined' &&
+        (window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone);
+    const isMobile = typeof window !== 'undefined' 
+        ? window.matchMedia('(max-width: 640px)').matches 
+        : false;
+
+    // Fullscreen wrapper for all states - handles iOS PWA safe areas
+    const FullscreenWrapper = ({ children }: { children: React.ReactNode }) => (
+        <div 
+            className="fixed inset-0 z-50 bg-background overflow-y-auto"
+            style={{
+                // iOS PWA: Use dynamic viewport height and safe area insets
+                height: isMobile ? '100dvh' : '100vh',
+                paddingTop: isStandalone && isMobile ? 'env(safe-area-inset-top)' : undefined,
+                paddingLeft: isStandalone && isMobile ? 'env(safe-area-inset-left)' : undefined,
+                paddingRight: isStandalone && isMobile ? 'env(safe-area-inset-right)' : undefined,
+                paddingBottom: isStandalone && isMobile ? 'env(safe-area-inset-bottom)' : undefined,
+            }}
+        >
+            <div className="min-h-full flex flex-col">
+                <div className="flex-1 p-4 pb-8 space-y-4 max-w-screen-lg mx-auto w-full">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+
     // Loading state
     if (isLoading) {
         return (
-            <div className="p-4 pb-20 space-y-4">
+            <FullscreenWrapper>
                 <div className="space-y-2">
                     <Skeleton className="h-8 w-48" />
                     <Skeleton className="h-4 w-32" />
                 </div>
                 <Skeleton className="h-64 rounded-2xl" />
                 <Skeleton className="h-12 w-full rounded-lg" />
-            </div>
+            </FullscreenWrapper>
         );
     }
     
@@ -130,7 +159,7 @@ export function SharedPlan() {
         const errorCode = sharedPlanData?.errorCode;
         
         return (
-            <div className="p-4 pb-20 space-y-4">
+            <FullscreenWrapper>
                 <h1 className="text-xl font-semibold">Shared Plan</h1>
                 <Card className="rounded-2xl border-destructive bg-destructive/10">
                     <CardContent className="p-6 text-center">
@@ -150,21 +179,21 @@ export function SharedPlan() {
                         </Button>
                     </CardContent>
                 </Card>
-            </div>
+            </FullscreenWrapper>
         );
     }
     
     // No data (shouldn't happen but handle gracefully)
     if (!draftPlan) {
         return (
-            <div className="p-4 pb-20">
+            <FullscreenWrapper>
                 <p className="text-muted-foreground">No plan data available.</p>
-            </div>
+            </FullscreenWrapper>
         );
     }
     
     return (
-        <div className="p-4 pb-20 space-y-4">
+        <FullscreenWrapper>
             {/* Header with owner info */}
             <div className="flex justify-between items-start">
                 <h1 className="text-xl font-semibold">Shared Plan</h1>
@@ -225,6 +254,6 @@ export function SharedPlan() {
             <IOSAuthModal isOpen={showLoginModal} onOpenChange={handleModalClose}>
                 <LoginForm />
             </IOSAuthModal>
-        </div>
+        </FullscreenWrapper>
     );
 }

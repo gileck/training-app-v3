@@ -16,6 +16,7 @@ interface IOSAuthModalProps {
  * - Smooth fade-in animation
  * - Client-only rendering to avoid SSR hydration issues
  * - Optional dismissible via onOpenChange prop (backdrop click)
+ * - Uses z-[100] to appear above fullscreen overlays (e.g., SharedPlan uses z-50)
  */
 export const IOSAuthModal: React.FC<IOSAuthModalProps> = ({ children, isOpen, onOpenChange }) => {
     // eslint-disable-next-line state-management/prefer-state-architecture -- prevent SSR hydration mismatch
@@ -29,7 +30,7 @@ export const IOSAuthModal: React.FC<IOSAuthModalProps> = ({ children, isOpen, on
     if (!isMounted || !isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true">
             {/* Glassmorphism backdrop - clickable to dismiss if onOpenChange provided */}
             <div 
                 className={cn(
