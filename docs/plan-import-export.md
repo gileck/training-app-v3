@@ -56,8 +56,8 @@ Export, import, and share training plans for backup, collaboration, or migration
 
 When importing or adding a shared plan, exercises are handled automatically:
 
-1. **Existing System Exercise**: If exercise name matches a system library exercise → uses existing
-2. **Existing Custom Exercise**: If name matches a user's custom exercise → uses existing
+1. **ID Match (System Exercises)**: If `exerciseDefId` exists in user's library → uses existing (fast path for system exercises)
+2. **Name Match (System/Custom)**: If exercise name matches any library exercise → uses existing
 3. **New Custom Exercise**: If no match found → creates as new custom exercise in user's library
 
 This simplified flow uses `autoResolveUnmatched=true` - no manual resolution required.

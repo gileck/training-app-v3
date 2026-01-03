@@ -17,8 +17,11 @@ import type {
  * Used by both Import and Share flows to convert export data to draft format
  * without calling the server-side matching API.
  * 
- * All exercises are marked as 'custom' - the backend will handle matching
- * by name when `autoResolveUnmatched=true` is passed to createPlanFromText.
+ * Exercises are marked as 'unresolved' with their original exerciseDefId passed through.
+ * The backend will handle matching when `autoResolveUnmatched=true`:
+ * 1. First tries to match by exerciseDefId (fast path for system exercises)
+ * 2. Then tries to match by name
+ * 3. Creates as custom exercise only if no match found
  */
 export function exportDataToDraftPlan(exportData: PlanExportData): DraftPlan {
     const exercises: DraftExercise[] = [];
@@ -31,11 +34,13 @@ export function exportDataToDraftPlan(exportData: PlanExportData): DraftPlan {
             // Generate a unique key for this exercise
             const draftExerciseKey = `w${workoutIndex}-e${exerciseIndex}`;
             
-            // Create draft exercise - mark as 'custom' (will be matched by backend)
+            // Create draft exercise - mark as 'unresolved' so backend handles matching
+            // Pass exerciseDefId for ID-based matching (works for system exercises)
             const draftExercise: DraftExercise = {
                 draftExerciseKey,
                 name: exportExercise.name,
-                matchStatus: 'custom', // Backend will handle matching
+                matchStatus: 'unresolved', // Backend will match by ID then name
+                matchedExerciseDefId: exportExercise.exerciseDefId, // Original ID for matching
                 sets: exportExercise.sets ?? 3,
                 reps: exportExercise.reps ?? 0,
                 weightKg: exportExercise.weightKg ?? 0,

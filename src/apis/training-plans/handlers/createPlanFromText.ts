@@ -10,6 +10,7 @@
 import type { ApiHandlerContext, CreatePlanFromTextRequest, CreatePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/utils';
+import { matchExercise } from './exerciseMatcher';
 
 // Validation limits
 const MAX_EXERCISES = 200;
@@ -174,6 +175,37 @@ async function createCustomExercise(
 }
 
 /**
+ * Try to match an exercise by ID first, then by name
+ * Used for auto-resolving unmatched exercises during import/share
+ * 
+ * @param exercise - The draft exercise to match
+ * @param exerciseLibrary - Pre-fetched exercise library (for performance)
+ */
+function tryMatchExercise(
+    exercise: DraftExercise,
+    exerciseLibrary: Awaited<ReturnType<typeof exerciseDefinitions.findAllExercises>>
+): string | null {
+    // 1. Try to match by exerciseDefId if provided (fast path for system exercises)
+    if (exercise.matchedExerciseDefId) {
+        const foundById = exerciseLibrary.find(
+            def => toStringId(def._id) === exercise.matchedExerciseDefId
+        );
+        if (foundById) {
+            return toStringId(foundById._id);
+        }
+    }
+    
+    // 2. Try to match by name using the existing matching logic
+    const matchResult = matchExercise(exercise.name, exerciseLibrary);
+    if (matchResult.status === 'matched' && matchResult.exerciseDefId) {
+        return matchResult.exerciseDefId;
+    }
+    
+    // 3. No match found
+    return null;
+}
+
+/**
  * Main handler for creating a plan from a draft
  */
 export async function createPlanFromText(
@@ -232,15 +264,33 @@ export async function createPlanFromText(
             const exerciseDefMap = new Map<string, string>();
             let createdExerciseCount = 0;
             
+            // Pre-fetch exercise library once for auto-resolve matching (if needed)
+            const hasUnresolved = autoResolve && draft.exercises.some(e => e.matchStatus === 'unresolved');
+            const exerciseLibrary = hasUnresolved 
+                ? await exerciseDefinitions.findAllExercises(context.userId)
+                : [];
+            
             for (const exercise of draft.exercises) {
                 if (exercise.matchStatus === 'matched' && exercise.matchedExerciseDefId) {
                     // Use existing exercise from library
                     exerciseDefMap.set(exercise.draftExerciseKey, exercise.matchedExerciseDefId);
-                } else if (exercise.matchStatus === 'custom' || (exercise.matchStatus === 'unresolved' && autoResolve)) {
-                    // Create custom exercise (or auto-resolve unresolved as custom)
+                } else if (exercise.matchStatus === 'custom') {
+                    // Explicitly marked as custom - create new custom exercise
                     const newExerciseId = await createCustomExercise(exercise, context.userId);
                     exerciseDefMap.set(exercise.draftExerciseKey, newExerciseId);
                     createdExerciseCount++;
+                } else if (exercise.matchStatus === 'unresolved' && autoResolve) {
+                    // Auto-resolve: try ID match, then name match, then create as custom
+                    const matchedId = tryMatchExercise(exercise, exerciseLibrary);
+                    if (matchedId) {
+                        // Found a match - use existing exercise
+                        exerciseDefMap.set(exercise.draftExerciseKey, matchedId);
+                    } else {
+                        // No match found - create as custom exercise
+                        const newExerciseId = await createCustomExercise(exercise, context.userId);
+                        exerciseDefMap.set(exercise.draftExerciseKey, newExerciseId);
+                        createdExerciseCount++;
+                    }
                 }
                 // Note: 'unresolved' exercises without autoResolve are rejected in validateDraft
             }
