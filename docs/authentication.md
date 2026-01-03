@@ -333,6 +333,7 @@ Authentication responses include `user.isAdmin` so the client can enable admin-o
 - `isProbablyLoggedIn` is just a UI hint, not actual auth
 - Real authentication is always validated server-side
 - Token expiry handled by server, client just responds to 401
+- **Long-lived tokens (10 years)**: Designed for PWA/mobile-like experience where users expect to stay logged in. Security is maintained via HttpOnly cookies and server-side validation.
 
 ## TTL (Time-to-Live) Settings
 
@@ -340,7 +341,7 @@ Authentication responses include `user.isAdmin` so the client can enable admin-o
 |------|-----|---------|
 | Auth hint (Zustand) | 7 days | Clear stale hints after inactivity |
 | React Query cache | 24 hours | localStorage persistence max age |
-| JWT token | Server-defined | Actual session expiry |
+| JWT token + Cookie | 10 years | Session expiry (effectively permanent) |
 
 ## Usage Examples
 

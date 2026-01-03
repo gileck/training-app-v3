@@ -14,13 +14,13 @@ if (!process.env.JWT_SECRET) {
 }
 
 export const JWT_SECRET = process.env.JWT_SECRET;
-export const JWT_EXPIRES_IN = "7d";
+export const JWT_EXPIRES_IN = "3650d";
 export const COOKIE_NAME = "auth_token";
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 10 * 365 * 24 * 60 * 60 * 1000, // 10 years (~forever)
   path: "/",
 };
 
