@@ -41,6 +41,15 @@
     "src/config/pwa.config.ts",
     "src/client/features/index.ts"
   ],
+  "templateIgnoredFiles": [
+    "src/apis/todos",
+    "src/client/routes/Todos",
+    "src/server/database/collections/todos",
+    "src/apis/chat",
+    "src/client/features/chat",
+    "src/client/routes/Chat",
+    "src/client/routes/Home"
+  ],
   "syncHistory": [
     {
       "date": "2026-01-03T16:45:29.571Z",
