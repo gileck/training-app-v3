@@ -30,6 +30,7 @@ export const getPlan = async (
             isActive: plan.isActive,
             createdAt: plan.createdAt.toISOString(),
             updatedAt: plan.updatedAt.toISOString(),
+            creationSource: plan.creationSource,
         };
 
         return { plan: planClient };

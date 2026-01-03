@@ -31,6 +31,7 @@ export const duplicatePlan = async (
             isActive: false, // Duplicated plan is not active by default
             createdAt: now,
             updatedAt: now,
+            creationSource: 'duplicate' as const,
         };
 
         const newPlan = await trainingPlans.createPlan(newPlanData);
@@ -68,6 +69,7 @@ export const duplicatePlan = async (
             isActive: newPlan.isActive,
             createdAt: newPlan.createdAt.toISOString(),
             updatedAt: newPlan.updatedAt.toISOString(),
+            creationSource: newPlan.creationSource,
         };
 
         return { plan: planClient };

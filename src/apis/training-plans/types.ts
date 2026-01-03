@@ -1,4 +1,4 @@
-import { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
 
 // API Handler Context
 export interface ApiHandlerContext {
@@ -170,6 +170,11 @@ export interface CreatePlanFromTextRequest {
      * Use true for share/import flows, false for AI flow (requires user resolution).
      */
     autoResolveUnmatched?: boolean;
+    /**
+     * How the plan was created (ai, import, share).
+     * Default: 'ai' for backward compatibility.
+     */
+    creationSource?: PlanCreationSource;
 }
 
 export interface CreatePlanFromTextResponse {

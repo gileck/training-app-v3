@@ -37,6 +37,7 @@ export const createPlan = async (
             isActive: isFirstPlan, // First plan is automatically active
             createdAt: now,
             updatedAt: now,
+            creationSource: 'manual' as const,
         };
 
         const newPlan = await trainingPlans.createPlan(planData);
@@ -50,6 +51,7 @@ export const createPlan = async (
             isActive: newPlan.isActive,
             createdAt: newPlan.createdAt.toISOString(),
             updatedAt: newPlan.updatedAt.toISOString(),
+            creationSource: newPlan.creationSource,
         };
 
         return { plan: planClient };

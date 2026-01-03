@@ -225,6 +225,7 @@ export function CreatePlanWithAiDialog({
                 planName: preview.planName,
                 durationWeeks: preview.durationWeeks,
                 draft: preview,
+                creationSource: 'ai',
             },
             {
                 onSuccess: (data) => {

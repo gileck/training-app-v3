@@ -14,7 +14,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles, MoreVertical, Download, FileJson, ChevronDown, Save, Clipboard, Share2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles, MoreVertical, Download, FileJson, ChevronDown, Save, Clipboard, Share2, Link, Bot } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,7 +27,39 @@ import { useWorkoutStore } from '@/client/features/workout';
 import { useTrainingPlansStore } from './store';
 import { ManagePlan } from '../ManagePlan';
 import { CreatePlanWithAiDialog, ImportPlanDialog, SharePlanDialog } from './components';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
+
+/**
+ * Get display info for plan creation source
+ */
+function getCreationSourceInfo(source?: PlanCreationSource): { icon: React.ReactNode; label: string } | null {
+    switch (source) {
+        case 'ai':
+            return { icon: <Bot className="h-3 w-3" />, label: 'AI Generated' };
+        case 'import':
+            return { icon: <FileJson className="h-3 w-3" />, label: 'Imported' };
+        case 'share':
+            return { icon: <Link className="h-3 w-3" />, label: 'Shared' };
+        case 'duplicate':
+            return { icon: <Copy className="h-3 w-3" />, label: 'Duplicated' };
+        case 'manual':
+            return { icon: <Plus className="h-3 w-3" />, label: 'Created' };
+        default:
+            return null; // Don't show for plans without creationSource (legacy)
+    }
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+}
 
 export function TrainingPlans() {
     // Queries and mutations
@@ -395,6 +427,27 @@ export function TrainingPlans() {
                                         <h3 className="text-lg font-semibold">{plan.name}</h3>
                                         <p className="text-sm text-muted-foreground">
                                             {plan.durationWeeks} weeks
+                                        </p>
+                                        {/* Creation source and date */}
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                            {(() => {
+                                                const sourceInfo = getCreationSourceInfo(plan.creationSource);
+                                                if (sourceInfo) {
+                                                    return (
+                                                        <>
+                                                            {sourceInfo.icon}
+                                                            <span>{sourceInfo.label} · {formatDate(plan.createdAt)}</span>
+                                                        </>
+                                                    );
+                                                }
+                                                // Legacy plans without creationSource - just show date
+                                                return (
+                                                    <>
+                                                        <Calendar className="h-3 w-3" />
+                                                        <span>{formatDate(plan.createdAt)}</span>
+                                                    </>
+                                                );
+                                            })()}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">

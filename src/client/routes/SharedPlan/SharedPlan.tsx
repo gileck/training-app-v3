@@ -73,6 +73,7 @@ export function SharedPlan() {
                 durationWeeks: draftPlan.durationWeeks,
                 draft: draftPlan,
                 autoResolveUnmatched: true, // Auto-create unmatched exercises as custom
+                creationSource: 'share',
             },
             {
                 onSuccess: (data) => {

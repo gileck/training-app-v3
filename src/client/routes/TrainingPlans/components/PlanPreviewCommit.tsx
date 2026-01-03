@@ -16,6 +16,7 @@ import { Button } from '@/client/components/ui/button';
 import { AlertCircle, ArrowLeft, Loader2, Check } from 'lucide-react';
 import { useCreatePlanFromText } from '../hooks';
 import type { DraftPlan } from '@/apis/training-plans/types';
+import type { PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
 import { toast } from '@/client/components/ui/toast';
 import { PlanPreview } from './PlanPreview';
 
@@ -41,6 +42,11 @@ interface PlanPreviewCommitProps {
      * Default: false (simplified flow - no resolution needed)
      */
     showMatchStatus?: boolean;
+    /**
+     * How the plan was created (ai, import, share).
+     * Default: 'import' (most common use case for this component)
+     */
+    creationSource?: PlanCreationSource;
 }
 
 export function PlanPreviewCommit({
@@ -51,6 +57,7 @@ export function PlanPreviewCommit({
     disabled = false,
     autoResolveUnmatched = true,
     showMatchStatus = false,
+    creationSource = 'import',
 }: PlanPreviewCommitProps) {
     // Mutation hook
     const createMutation = useCreatePlanFromText();
@@ -72,6 +79,7 @@ export function PlanPreviewCommit({
                 durationWeeks: initialPreview.durationWeeks,
                 draft: initialPreview,
                 autoResolveUnmatched,
+                creationSource,
             },
             {
                 onSuccess: (data) => {

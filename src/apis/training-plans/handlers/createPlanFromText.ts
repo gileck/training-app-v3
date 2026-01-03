@@ -253,6 +253,7 @@ export async function createPlanFromText(
             isActive: isFirstPlan, // First plan is automatically active
             createdAt: now,
             updatedAt: now,
+            creationSource: request.creationSource || 'ai' as const, // Default to 'ai' for backward compatibility
         };
         
         const newPlan = await trainingPlans.createPlan(planData);
@@ -367,6 +368,7 @@ export async function createPlanFromText(
                 isActive: newPlan.isActive,
                 createdAt: newPlan.createdAt.toISOString(),
                 updatedAt: newPlan.updatedAt.toISOString(),
+                creationSource: newPlan.creationSource,
             };
             
             return {

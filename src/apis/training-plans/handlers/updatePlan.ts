@@ -62,6 +62,7 @@ export const updatePlan = async (
             isActive: updatedPlan.isActive,
             createdAt: updatedPlan.createdAt.toISOString(),
             updatedAt: updatedPlan.updatedAt.toISOString(),
+            creationSource: updatedPlan.creationSource,
         };
 
         return { plan: planClient };
