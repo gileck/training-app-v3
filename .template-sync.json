@@ -38,7 +38,8 @@
   "projectSpecificFiles": [
     "public/icons/*",
     "public/manifest.json",
-    "src/config/pwa.config.ts"
+    "src/config/pwa.config.ts",
+    "src/client/features/index.ts"
   ],
   "syncHistory": [
     {

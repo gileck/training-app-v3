@@ -25,6 +25,7 @@ import {
     usePlanLoading,
     usePlanConflict,
     forceSyncToServer,
+    useClearAllPlanData,
 } from '@/client/features/plan-data';
 import {
     usePlanWorkouts,
@@ -78,6 +79,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     // Sync from cloud and conflict state
     const { sync: syncFromCloud, isSyncing } = useSyncFromCloud(planId, 1);
     const conflict = usePlanConflict(planId);
+    const clearAllPlanData = useClearAllPlanData();
 
     // Custom exercise mutations
     const createExerciseMutation = useCreateExercise();
@@ -126,6 +128,11 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const handleForceSyncToServer = useCallback(async () => {
         await forceSyncToServer(planId);
     }, [planId]);
+
+    // Clear plan cache handler
+    const handleClearPlanCache = useCallback(() => {
+        clearAllPlanData();
+    }, [clearAllPlanData]);
 
     // Loading state
     if (isLoading && !plan) {
@@ -184,6 +191,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                 onBack={handleBack}
                 onSyncFromCloud={handleSyncFromCloud}
                 onForceSyncToServer={handleForceSyncToServer}
+                onClearPlanCache={handleClearPlanCache}
                 isSyncing={isSyncing}
                 conflict={conflict}
             />

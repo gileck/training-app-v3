@@ -1,7 +1,7 @@
 import type { UserResponse } from "./types";
 import type { User } from "@/server/database/collections/users/types";
 
-// .Shared constants and utilities used by multiple auth handlers.
+// Shared constants and utilities used by multiple auth handlers.
 // Keeping these outside `server.ts` prevents circular imports (handlers importing server.ts).
 
 export const SALT_ROUNDS = 10;

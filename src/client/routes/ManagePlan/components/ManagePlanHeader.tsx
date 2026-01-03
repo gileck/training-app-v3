@@ -10,7 +10,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/client/components/ui/alert-dialog';
-import { ChevronLeft, RefreshCw, Loader2, AlertTriangle, Upload, Cloud } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Loader2, AlertTriangle, Upload, Cloud, MoreVertical, Trash2 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/client/components/ui/dropdown-menu';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { PlanConflict } from '@/client/features/plan-data';
 import { SyncConflictDialog } from './SyncConflictDialog';
@@ -20,6 +26,7 @@ interface ManagePlanHeaderProps {
     onBack: () => void;
     onSyncFromCloud?: () => Promise<void>;
     onForceSyncToServer?: () => Promise<void>;
+    onClearPlanCache?: () => void;
     isSyncing?: boolean;
     conflict?: PlanConflict | null;
 }
@@ -29,6 +36,7 @@ export function ManagePlanHeader({
     onBack, 
     onSyncFromCloud, 
     onForceSyncToServer,
+    onClearPlanCache,
     isSyncing,
     conflict,
 }: ManagePlanHeaderProps) {
@@ -109,6 +117,27 @@ export function ManagePlanHeader({
                             <RefreshCw className="h-5 w-5" />
                         )}
                     </Button>
+                )}
+
+                {/* More options menu */}
+                {onClearPlanCache && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full"
+                            >
+                                <MoreVertical className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={onClearPlanCache} className="text-destructive focus:text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Clear Plan Cache
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
             </div>
 
