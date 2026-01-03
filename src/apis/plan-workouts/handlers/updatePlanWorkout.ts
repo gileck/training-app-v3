@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { ApiHandlerContext, UpdatePlanWorkoutRequest, UpdatePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans, planExercises } from '@/server/database';
 import { toStringId, toDocumentId, isObjectIdFormat, isUuidFormat } from '@/server/utils';
@@ -72,7 +71,7 @@ export const updatePlanWorkout = async (
         // Build update object
         const update: {
             name?: string;
-            items?: { planExerciseId: ObjectId | string; order: number }[];
+            items?: { planExerciseId: ReturnType<typeof toDocumentId>; order: number }[];
             updatedAt: Date;
         } = {
             updatedAt: new Date(),

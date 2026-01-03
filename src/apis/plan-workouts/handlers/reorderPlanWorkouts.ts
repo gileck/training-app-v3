@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { isObjectIdFormat } from '@/server/utils';
 import { ApiHandlerContext, ReorderPlanWorkoutsRequest, ReorderPlanWorkoutsResponse } from '../types';
 import { planWorkouts, trainingPlans } from '@/server/database';
 
@@ -21,7 +21,7 @@ export const reorderPlanWorkouts = async (
 
         // Filter out temp IDs from optimistic updates - only reorder persisted workouts
         const validWorkoutIds = request.workoutIds.filter(
-            (id) => !id.startsWith('temp-') && ObjectId.isValid(id)
+            (id) => !id.startsWith('temp-') && isObjectIdFormat(id)
         );
 
         // If all IDs are temp IDs, return success (nothing to reorder on server)

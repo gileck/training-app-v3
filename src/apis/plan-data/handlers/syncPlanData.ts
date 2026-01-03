@@ -22,7 +22,6 @@ import {
     exerciseProgress,
 } from '@/server/database';
 import { toQueryId, toStringId } from '@/server/utils';
-import { ObjectId } from 'mongodb';
 import { getDb } from '@/server/database';
 import { PlanExercise } from '@/server/database/collections/planExercises/types';
 
@@ -120,7 +119,7 @@ async function syncExercises(
     // Build bulk operations for upserts
     const upsertOps = exercises.map((ex) => ({
         updateOne: {
-            filter: { _id: toQueryId(ex._id) as ObjectId },
+            filter: { _id: toQueryId(ex._id) },
             update: {
                 $set: {
                     planId: planIdQuery,
@@ -146,7 +145,7 @@ async function syncExercises(
         .filter((id) => !incomingIds.has(id))
         .map((id) => ({
             deleteOne: {
-                filter: { _id: toQueryId(id) as ObjectId, planId: planIdQuery as ObjectId },
+                filter: { _id: toQueryId(id), planId: planIdQuery },
             },
         }));
 

@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { isObjectIdFormat } from '@/server/utils';
 import { ApiHandlerContext, DeletePlanWorkoutRequest, DeletePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans } from '@/server/database';
 
@@ -21,7 +21,7 @@ export const deletePlanWorkout = async (
 
         // Handle temp IDs from optimistic updates - these workouts were never persisted
         // Return success since the optimistic UI already removed it
-        if (request.workoutId.startsWith('temp-') || !ObjectId.isValid(request.workoutId)) {
+        if (request.workoutId.startsWith('temp-') || !isObjectIdFormat(request.workoutId)) {
             return { success: true };
         }
 

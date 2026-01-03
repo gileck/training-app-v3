@@ -1,7 +1,7 @@
 import { DeleteReportRequest, DeleteReportResponse } from '../types';
 import { findReportById, deleteReport as deleteReportFromDb } from '@/server/database/collections/reports';
 import { ApiHandlerContext } from '@/apis/types';
-import { ObjectId } from 'mongodb';
+import { isObjectIdFormat } from '@/server/utils';
 import { fileStorageAPI } from '@/server/blob';
 
 export const deleteReport = async (
@@ -12,7 +12,7 @@ export const deleteReport = async (
         const { reportId } = request;
 
         // Validate report ID format
-        if (!ObjectId.isValid(reportId)) {
+        if (!isObjectIdFormat(reportId)) {
             return { error: 'Invalid report ID' };
         }
 

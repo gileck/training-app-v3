@@ -78,7 +78,7 @@ export function ExerciseResolver({
             <DialogContent className="rounded-2xl max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <HelpCircle className="h-5 w-5 text-orange-600 dark:text-warning" />
+                        <HelpCircle className="h-5 w-5 text-warning" />
                         Match Exercise
                     </DialogTitle>
                     <DialogDescription>

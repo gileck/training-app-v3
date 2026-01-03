@@ -90,7 +90,7 @@ export function PlanPreview({
                         </Badge>
                     )}
                     {unresolvedCount > 0 && (
-                        <Badge variant="outline" className="flex items-center gap-1 border-orange-500 text-orange-700 dark:border-warning dark:text-warning">
+                        <Badge variant="outline" className="flex items-center gap-1 border-warning text-warning">
                             <HelpCircle className="h-3 w-3" />
                             {unresolvedCount} need resolution
                         </Badge>
@@ -107,7 +107,7 @@ export function PlanPreview({
             {/* Unresolved Exercises Warning Banner */}
             {/* Prompts user to resolve exercises that couldn't be auto-matched */}
             {showMatchStatus && hasUnresolved && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-100 text-orange-800 dark:bg-warning/10 dark:text-warning text-sm">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning text-sm">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <span>
                         {unresolvedCount} exercise{unresolvedCount > 1 ? 's' : ''} couldn&apos;t be matched automatically.
@@ -237,10 +237,10 @@ function ExerciseRow({ exercise, onResolveClick, showMatchStatus = true }: Exerc
     const isCustom = showMatchStatus && exercise.matchStatus === 'custom';
 
     return (
-        <div 
+        <div
             className={`flex items-center justify-between text-sm py-1.5 px-2 rounded transition-colors ${
-                isUnresolved 
-                    ? 'bg-orange-50 border border-orange-300 cursor-pointer hover:bg-orange-100 dark:bg-warning/10 dark:border-warning/30 dark:hover:bg-warning/20' 
+                isUnresolved
+                    ? 'bg-warning/10 border border-warning/30 cursor-pointer hover:bg-warning/20'
                     : 'bg-muted/30'
             }`}
             onClick={isUnresolved && onResolveClick ? () => onResolveClick(exercise) : undefined}
@@ -267,7 +267,7 @@ function ExerciseRow({ exercise, onResolveClick, showMatchStatus = true }: Exerc
                     <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 text-xs px-2 border-orange-500 text-orange-700 hover:bg-orange-100 dark:border-warning dark:text-warning dark:hover:bg-warning/20"
+                        className="h-6 text-xs px-2 border-warning text-warning hover:bg-warning/20"
                         onClick={(e) => {
                             e.stopPropagation();
                             onResolveClick(exercise);
