@@ -431,11 +431,14 @@ Error messages are only shown for **user-initiated actions** (login/register), n
 
 ### AuthWrapper (`src/client/features/auth/AuthWrapper.tsx`)
 
-Guards the app based on auth state with simple logic:
+Guards the app based on auth state with simple logic. **AuthWrapper is rendered inside RouterProvider** so it has access to the router context and re-renders on navigation.
 
 ```typescript
+// Get isPublicRoute from router context (re-renders on navigation)
+const { isPublicRoute } = useRouter();
+
 // Public routes bypass authentication entirely
-if (isPublicRoute(getCurrentPath(), routes)) {
+if (isPublicRoute) {
     return <>{children}</>;
 }
 
@@ -448,6 +451,11 @@ const showLoading = isValidating && !isProbablyLoggedIn && !isAuthenticated;
 - `showApp`: If authenticated OR have localStorage hint → render app immediately
 - `showLogin`: Only shown AFTER validation explicitly confirms no user
 - `showLoading`: Show loading skeleton while preflight is pending (only for users without hint)
+
+**Why AuthWrapper is inside RouterProvider:**
+- AuthWrapper needs to re-render when the route changes (e.g., navigating from public to protected route)
+- RouterProvider provides `isPublicRoute` via context, computed from route metadata
+- This ensures auth is always checked when navigating to protected routes, even from public routes
 
 ### Public Routes
 
@@ -467,16 +475,17 @@ export const routes = createRoutes({
 ```
 
 **How it works:**
-1. `AuthWrapper` calls `isPublicRoute(currentPath, routes)` before any auth checks
-2. If the route is public, children render immediately
-3. No preflight wait, no hint check, no loading skeleton
+1. `RouterProvider` computes `isPublicRoute` from route metadata when matching the current route
+2. `AuthWrapper` (inside RouterProvider) gets `isPublicRoute` from `useRouter()` context
+3. If `isPublicRoute` is true, children render immediately without auth checks
+4. When user navigates from public to protected route, AuthWrapper re-renders and checks auth
 
 **When to use `public: true`:**
 - Share pages that should be accessible via link without login
 - Landing pages or marketing pages
 - Public documentation pages
 
-**Note:** Public routes are defined via route metadata, NOT a hardcoded list in `AuthWrapper`. This keeps the auth logic clean and route configuration centralized.
+**Note:** Public routes are defined via route metadata, NOT a hardcoded list in `AuthWrapper`. The router computes `isPublicRoute` and provides it via context, keeping auth logic clean and ensuring proper re-rendering on navigation.
 
 📚 See: [pages-and-routing-guidelines.mdc](../.cursor/rules/pages-and-routing-guidelines.mdc) for route configuration details.
 

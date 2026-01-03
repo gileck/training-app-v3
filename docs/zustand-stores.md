@@ -179,9 +179,13 @@ function BootGate({ children }: { children: ReactNode }) {
 <QueryProvider>
   <BootGate>
     <AppThemeProvider>
-      <AuthWrapper>
-        {/* All components here can trust store values */}
-      </AuthWrapper>
+      <RouterProvider routes={routes}>
+        {RouteComponent => (
+          <AuthWrapper>
+            <Layout><RouteComponent /></Layout>
+          </AuthWrapper>
+        )}
+      </RouterProvider>
     </AppThemeProvider>
   </BootGate>
 </QueryProvider>

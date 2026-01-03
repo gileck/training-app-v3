@@ -3,8 +3,8 @@
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
-  "lastProjectCommit": "4df9c6303de736a40fba8a5b2679a5790be96cdd",
-  "lastSyncDate": "2026-01-03T17:10:37.146Z",
+  "lastProjectCommit": "9355ea38f336107ddc506d8fb0e8b6cd64702748",
+  "lastSyncDate": "2026-01-03T17:14:20.851Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -51,6 +51,15 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T17:14:20.850Z",
+      "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
+      "projectCommit": "9355ea38f336107ddc506d8fb0e8b6cd64702748",
+      "filesApplied": 2,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2026-01-03T17:10:37.145Z",
       "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
@@ -304,22 +313,6 @@
         "47423a8 feat: add --modified-only flag to sync-template diff-summary \u001b[90m(27/12/2025)\u001b[0m\n  Adds a new --modified-only option to show only files that differ from the\n  template, excluding:\n  - New files (in template but not in project)\n  - Ignored files (matching ignoredFiles patterns)\n  - Project-specific files (matching projectSpecificFiles patterns)\n  \n  This is useful for reviewing what has changed in existing shared files\n  without the noise of project-specific customizations or new template features.\n  \n  Usage:\n    yarn sync-template --diff-summary --modified-only\n  \n  The output will show only the \"Modified\" section with diffs of files that\n  exist in both the template and project but have diverged.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "0dbc894 feat: sync UX improvements from training-app-v3 \u001b[90m(27/12/2025)\u001b[0m\n  Toast component:\n  - Better theme-aware styling with bg-card and border-border\n  - Mobile-friendly positioning (bottom-20, left-4, right-4)\n  - Pointer-events handling for better interaction\n  - Enhanced shadow for better visibility\n  \n  Reports component:\n  - Add persistent filter state via Zustand store\n  - Fix critical loading state bug (check isLoading || data === undefined)\n  - Prevents showing \"No reports\" during data fetch\n  - Filters now survive page refresh\n  \n  This implements the critical UX pattern documented in our loading states guidelines.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "9181fd3 docs: sync documentation with training-app-v3 improvements \u001b[90m(27/12/2025)\u001b[0m\n  - Add critical loading states pattern to react-hook-organization.mdc\n  - Improve error handling documentation in authentication.md\n  - Expand loading states section in state-management.md\n  - Emphasize correct state checking order: Loading → Error → Empty → Data\n  \n  These updates prevent common UX bugs where empty states appear during loading.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2025-12-27T09:52:06.999Z",
-      "templateCommit": "8fdc63da03162171888192413737c95a8676e996",
-      "projectCommit": "bf46ff85892bde39e18ba0edc2224641c0b45fa0",
-      "filesApplied": 8,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "8fdc63d feat: add PWA config generation to init-project script \u001b[90m(27/12/2025)\u001b[0m\n  - Add prompts for app description and theme color\n  - Generate src/config/pwa.config.ts with user values\n  - Generate public/manifest.json with matching values\n  - Add pwa.config.ts and manifest.json to template ignore list\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "8223a3b refactor: extract PWA config from _document.tsx for easier template syncing \u001b[90m(27/12/2025)\u001b[0m\n  Move project-specific PWA metadata (app name, description, theme color, icons)\n  to a separate config file, making _document.tsx generic and mergeable.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "0376972 fix: remove confusing 'Not authenticated' error for first-time users \u001b[90m(27/12/2025)\u001b[0m\n  - Remove setError() call from useAuthValidation() validation failure handler\n  - /me validation failure is expected for first-time/logged-out users\n  - Only login/register mutations should display error messages\n  - Update authentication.md with error handling strategy documentation",
-        "fdd07ee Add modern iOS-style blue gradient PWA icons \u001b[90m(27/12/2025)\u001b[0m\n  - Add generate-icons.ts script for creating iOS-optimized PWA icons\n  - Generate all icon sizes (72x72 to 512x512) with iOS blue gradient design\n  - Add apple-touch-icon.png and favicon-32x32.png\n  - Update manifest.json with 167x167 and 180x180 iPad/iPhone sizes\n  - Update _document.tsx with correct apple-touch-icon references\n  - Add sharp as dev dependency for icon generation\n  - Remove placeholder.txt from icons folder\n  \n  The icons feature:\n  - iOS system blue gradient (#0A84FF → #007AFF → #5856D6)\n  - 22% corner radius matching iOS app icon specifications\n  - Subtle glass highlight effect for depth\n  - Minimal white center orb design element",
-        "1aa9369 fix: loading states showing false empty state before data loads \u001b[90m(27/12/2025)\u001b[0m\n  CRITICAL UX FIX: Components were showing 'No items' empty state while\n  data was still loading, confusing users with false empty states.\n  \n  Changes:\n  - Fix Todos.tsx to check loading state before showing empty state\n  - Add 'Loading States - CRITICAL UX Pattern' section to:\n    - app-guildelines/React-components-guidelines.md\n    - docs/state-management.md\n    - docs/caching-strategy.md\n    - .cursor/rules/react-component-organization.mdc\n  \n  The correct pattern is: Loading → Error → Empty → Data\n  - isLoading=true && !data → Loading spinner\n  - error → Error message\n  - !data → Unable to load\n  - data.length === 0 → Empty state (ONLY when truly empty)\n  - data.length > 0 → Show data",
-        "2ab3bbc feat(badge): add pending variant for pending status badges \u001b[90m(25/12/2025)\u001b[0m"
       ]
     }
   ],
@@ -605,11 +598,11 @@
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
     ".cursor/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
     "scripts/sync-template.ts": "6edaa13f777949e5dc81401a5d771540",
-    "docs/authentication.md": "387c85ac2bb002141774c25022a1bf33",
-    "docs/zustand-stores.md": "afaf4ecda94431faa2644a8ee679e3a1",
+    "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
+    "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",
     "src/apis/auth/shared.ts": "49c768b44f5e32cd8b4c4401cc239779",
     "src/apis/reports/handlers/deleteAllReports.ts": "1daaeae2f3117c181982e5bf654f432c",
-    "src/client/features/auth/IOSAuthModal.tsx": "c0ac39bb86993924bf34d66e451937ff",
+    "src/client/features/auth/IOSAuthModal.tsx": "ab668a8213c95d4c159362f01e18f8d2",
     "src/client/features/index.ts": "255a5c523cb1017049e9c23e4a3bccfb",
     "src/client/routes/Settings/Settings.tsx": "2c4b9e5ad58f11718b1f036637fed435"
   }
