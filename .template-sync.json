@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "b02845965db07262ece9915324c261edf972f16b",
-  "lastProjectCommit": "bad6df7ff469e6da6e119b81484bbd865c80be8c",
-  "lastSyncDate": "2026-01-01T13:22:52.269Z",
+  "lastSyncCommit": "8c25d883f1d04e148e4195fb672c4db1cf177f92",
+  "lastProjectCommit": "771a014af18a877328083789fac24514be2ad329",
+  "lastSyncDate": "2026-01-03T11:23:53.870Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,43 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T11:23:53.867Z",
+      "templateCommit": "8c25d883f1d04e148e4195fb672c4db1cf177f92",
+      "projectCommit": "771a014af18a877328083789fac24514be2ad329",
+      "filesApplied": 21,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "8c25d88 fix(reports): handle multi-byte emoji in icon stripping regex \u001b[90m(03/01/2026)\u001b[0m\n  Use non-capturing group with alternation instead of character class\n  for proper emoji handling (📋 📊 🌐 📦).",
+        "bf3e615 fix(reports): show toast after delete by moving to hook level \u001b[90m(03/01/2026)\u001b[0m\n  Component unmounts after optimistic update, so per-call onSuccess\n  callback never fires. Moving toast to hook ensures it shows after\n  server confirms deletion.",
+        "04e79cc feat(reports): add navigation timing (DNS, TCP, TTFB) to performance summary \u001b[90m(03/01/2026)\u001b[0m\n  - Capture navigation timing fields when storing performance entries\n  - Add DNS Lookup, TCP Connection, TTFB, HTML downloaded, DOM Ready to timeline\n  - Update types in database and bug-report feature",
+        "0d39656 fix(reports): remove duplicate icons in performance summary \u001b[90m(03/01/2026)\u001b[0m\n  Session log messages already contain icons (● ▶ ✓ etc), so strip\n  them before adding to timeline to avoid double icons.",
+        "34dc7a8 fix(reports): use _id instead of id for optimistic updates \u001b[90m(03/01/2026)\u001b[0m\n  ReportClient uses _id field, not id. The filter/map was comparing\n  undefined !== reportId which always returned true, preventing\n  optimistic removal from working.",
+        "0b971c7 refactor(reports): DRY - share performance summary logic between live and stored data \u001b[90m(03/01/2026)\u001b[0m\n  - Add generatePerformanceSummaryFromStoredData() to boot-performance module\n  - Extract formatPerformanceDataAsText() for shared formatting\n  - Reports.tsx now uses shared function instead of duplicated code\n  - Single source of truth for URL parsing, cache detection, etc.",
+        "0520f22 fix(reports): handle query strings in resource URL detection for summary \u001b[90m(03/01/2026)\u001b[0m",
+        "0445f1c feat(reports): add cache status to generated performance summary \u001b[90m(03/01/2026)\u001b[0m",
+        "9300e12 feat(reports): generate performance summary dynamically from stored data \u001b[90m(03/01/2026)\u001b[0m\n  - Generate summary from sessionLogs (boot events with performanceTime)\n  - Include in Copy Details and expanded view for performance reports\n  - No schema changes needed - uses existing stored data",
+        "3fc493f fix(reports): don't append performance summary to description \u001b[90m(03/01/2026)\u001b[0m\n  Keep description field clean - only store user's text.\n  performanceEntries already stores the raw data separately.",
+        "68dddc1 fix(boot): handle query strings in resource URL detection \u001b[90m(03/01/2026)\u001b[0m\n  Production URLs like 'webpack.js?dpl=...' were not detected as JS files\n  because .endsWith('.js') failed. Now using URL parsing to extract the\n  pathname before checking the extension.",
+        "f26f31b refactor(boot): extract shared buildPerformanceData() for DRY output \u001b[90m(03/01/2026)\u001b[0m\n  - Both printPerformanceLogs() and getPerformanceSummary() now use the\n    same buildPerformanceData() function for data\n  - Console output keeps colors and formatting\n  - Report output uses plain text\n  - Ensures both functions always produce consistent timeline/metrics",
+        "02806dd Revert \"refactor(boot): DRY - printPerformanceLogs() now uses getPerformanceSummary()\" \u001b[90m(03/01/2026)\u001b[0m\n  This reverts commit 6668f9bc36b1fc0276c4006ed3bf94d510f808ac.",
+        "6668f9b refactor(boot): DRY - printPerformanceLogs() now uses getPerformanceSummary() \u001b[90m(03/01/2026)\u001b[0m\n  Removed duplicate timeline building logic. Both console and bug reports\n  now use the exact same format from getPerformanceSummary().\n  \n  Simplified from ~150 lines to ~10 lines.",
+        "d328919 feat(boot): update getPerformanceSummary() to use unified timeline format \u001b[90m(03/01/2026)\u001b[0m\n  Performance reports now include the same unified timeline as printPerformanceLogs():\n  - All events sorted chronologically (navigation, resources, boot phases)\n  - Cache status breakdown (SW/disk cache, memory cache, network)\n  - Time to first content highlighted",
+        "ffc19a5 feat(boot): add detailed cache status to resource summary \u001b[90m(03/01/2026)\u001b[0m\n  Shows breakdown of how resources were served:\n  - SW/disk cache: transferSize=0, decodedBodySize>0 (SWR revalidates in background)\n  - Memory cache: transferSize=0, decodedBodySize=0\n  - Network: transferSize>0\n  \n  Example output:\n  ┌─ 📦 RESOURCE SUMMARY ──────────────────────────────────────┐\n  │  JS:  23 files, 890KB\n  │  CSS: 1 files, 13KB\n  │\n  │  Cache Status (24 static files):\n  │    ✓ 20 from SW/disk cache (instant, SWR revalidates in background)\n  │    ↓ 4 from network\n  └─────────────────────────────────────────────────────────────┘",
+        "531c83d fix(boot): change purple to cyan for better dark console visibility \u001b[90m(03/01/2026)\u001b[0m",
+        "7208d8e feat(boot): unified chronological timeline in printPerformanceLogs() \u001b[90m(03/01/2026)\u001b[0m\n  Merged all events into a single sorted timeline:\n  - Navigation timing (DNS, TCP, TTFB, HTML download, DOM Ready)\n  - Resource loading (JS/CSS start downloading, finished loading)\n  - Boot phases (Bundle Loaded, App Mount, Auth, Content Shown, etc.)\n  \n  Example output:\n      0ms  🌐 Page request sent\n     66ms  TTFB - Server responded (66ms)\n     68ms  HTML downloaded\n     77ms  📦 Started downloading JS\n     95ms  DOM Ready\n    368ms  ● Bundle Loaded\n    368ms  ▶ Auth Preflight Start (494ms)\n    537ms  ● App Content Shown (Instant Boot)\n    608ms  ✓ All JS loaded\n  \n  Resource summary shown at the end with sizes and cache status.",
+        "d939c72 fix(boot): log BootGate passed synchronously before children render \u001b[90m(03/01/2026)\u001b[0m\n  Moved BOOT_GATE_PASSED logging from useEffect to synchronous render\n  so it appears BEFORE child events in the timeline.\n  \n  Before: BootGate Passed (296ms) after App Content Shown (295ms)\n  After:  BootGate Passed (275ms) before App Content Shown (295ms)\n  \n  The issue was that useEffect runs after child effects, so the\n  timeline showed events in confusing order.",
+        "7faec32 fix(boot): ensure all timing uses performance.now() consistently \u001b[90m(03/01/2026)\u001b[0m\n  - logBundleLoaded() now stores metric with bundleLoadedAt time (captured at module top)\n  - Bundle Loaded now appears in boot phases timeline\n  - Fixed now() fallback to return 0 in SSR instead of Date.now()\n  \n  Timing audit:\n  - bundleLoadedAt: captured at module import via performance.now()\n  - Boot metrics (startTime): use now() which is performance.now()\n  - Session logger performanceTime: uses performance.now()\n  - Navigation timing: uses PerformanceNavigationTiming (same time origin)\n  - All consistent with performance.now() = 0 at page load",
+        "fd189bb fix(boot): use absolute times from page load in boot timeline \u001b[90m(03/01/2026)\u001b[0m\n  Times are now absolute from page load (performance.now = 0), not relative to first metric.\n  \n  Before: +0ms, +3ms, +56ms (relative to first event)\n  After:  186ms, 189ms, 242ms (absolute from page load)",
+        "51d5109 refactor(boot): add performance summary to report description instead of session logs \u001b[90m(03/01/2026)\u001b[0m\n  - Changed capturePerformanceDetails() to getPerformanceSummary() which returns a string\n  - Performance summary is appended to report description (not added to session logs)\n  - Session logs stay clean, performance details are in report description\n  \n  Report description now includes:\n  - Page Load Timeline (DNS, TCP, TTFB, etc.)\n  - Resources (JS/CSS files, sizes, cache status)\n  - Boot Timeline with phases\n  - Time to first content",
+        "c0cdf06 feat(boot): add printPerformanceLogs() for nice console output \u001b[90m(03/01/2026)\u001b[0m\n  Console command that prints a comprehensive performance summary:\n  - Page Load Timeline (DNS, TCP, TTFB, Download, DOM, JS)\n  - Resource Loading (JS/CSS files, sizes, cache status)\n  - Boot Phases Timeline with visual indicators\n  - Time to first content highlight\n  \n  Usage: printPerformanceLogs() in browser console",
+        "df1af16 perf(boot): defer expensive performance calculations to report time \u001b[90m(03/01/2026)\u001b[0m\n  - Remove automatic resource/navigation timing calculations on every page load\n  - Add capturePerformanceDetails() called only when submitting performance reports\n  - Reduces boot overhead on low-end devices\n  \n  Session logs will now show:\n  - Regular sessions: just '● Bundle Loaded' (lightweight)\n  - Performance reports: detailed JS/CSS/navigation timing (on-demand)",
+        "109d1e6 feat(boot): add automatic navigation timing to session logs \u001b[90m(03/01/2026)\u001b[0m\n  Logs 🌐 Page Load Timing with key metrics automatically:\n  - DNS, TCP, TTFB (time to first byte), Download\n  - DOM Ready, JS Start (bundle execution)\n  \n  This data is now included in bug reports for performance issues.",
+        "7d1631d feat(boot): improve boot performance logging \u001b[90m(03/01/2026)\u001b[0m\n  - Remove console.log by default (use printLogs('boot') to view)\n  - Add Bundle Loaded event with resource stats (JS/CSS files, sizes, cache status)\n  - Add resource load timing (first→last, duration)\n  - Add logNavigationTiming() for 0ms to bundle load breakdown\n  - Add logResourceTiming() for detailed asset loading analysis\n  - All logs go through session logger for bug reports\n  \n  Console commands:\n  - printLogs('boot')      - View boot logs\n  - logNavigationTiming()  - Show navigation timing breakdown\n  - logResourceTiming()    - Show all loaded resources with timing",
+        "fc569b9 feat(auth): add preflight optimization and boot performance logging \u001b[90m(03/01/2026)\u001b[0m\n  ## Auth Preflight System\n  - Start /me API call immediately when JS loads (before React mounts)\n  - Users with valid cookies never see login form flash\n  - Parallel execution with React init and Zustand hydration\n  \n  ## Boot Performance Logging\n  - New boot-performance feature for timing metrics\n  - All boot logs sent to session logger for bug reports\n  - Tracks: preflight, BootGate, auth validation, app content shown\n  \n  ## Zustand Hydration Fix (BootGate Pattern)\n  - hasHydrated() true doesn't mean React hooks have updated values\n  - Added requestAnimationFrame wait in useAllPersistedStoresHydrated()\n  - BootGate blocks rendering until stores AND React selectors are ready\n  \n  ## Route Metadata\n  - Routes can define public: true or adminOnly: true\n  - AuthWrapper checks isPublicRoute() before auth checks\n  - No hardcoded route lists needed\n  \n  ## Network Error Handling\n  - Preflight and fallback query distinguish network errors from auth errors\n  - Network errors preserve isProbablyLoggedIn hints (offline resilience)\n  - Server { user: null } response clears hints (actual no session)\n  \n  ## API Response Update\n  - /me endpoint returns { user: null } for unauthenticated (not error)\n  - Treats 'no session' as normal flow, not error state\n  \n  Files: 21 changed (18 modified, 3 new)"
+      ]
+    },
     {
       "date": "2026-01-01T13:22:52.269Z",
       "templateCommit": "b02845965db07262ece9915324c261edf972f16b",
@@ -272,18 +309,6 @@
         "0aab8e7 refactor: replace hardcoded colors with semantic theme tokens \u001b[90m(24/12/2025)\u001b[0m\n  - Add new CSS variables for status colors (info, success-foreground, warning-foreground, info-foreground)\n  - Update UI components (toast, badge, alert) to use semantic status tokens\n  - Update auth components (LoginForm, IOSAuthModal) with theme-aware colors\n  - Update status indicators in BatchSyncAlert, TopNavBar, Reports, Settings\n  - Fix bug report dialog and theme customizer icons to use semantic tokens\n  - Update theming guidelines documentation with new status color tokens\n  - Document BootGate pattern for FOUC prevention in architecture.md\n  \n  All components now properly support theme customization via the Theme & Appearance feature.",
         "b1fd5a2 feat: Add --skip-ignored flag for diff-summary \u001b[90m(24/12/2025)\u001b[0m\n  Usage: yarn sync-template --diff-summary --skip-ignored\n  \n  This excludes ignored files from the diff summary output, showing only\n  files that would actually be synced (new and modified non-ignored files).",
         "fe1ef2d update toast \u001b[90m(24/12/2025)\u001b[0m"
-      ]
-    },
-    {
-      "date": "2025-12-24T17:46:11.292Z",
-      "templateCommit": "3c850a581e2dedb754e3525bc2e34a52ef6246c1",
-      "projectCommit": "7bcc91401c6777cc92eaeb664f556b7ab6199af7",
-      "filesApplied": 2,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "3c850a5 update docs \u001b[90m(24/12/2025)\u001b[0m",
-        "f55851c feat: Add project.css for project-specific styles \u001b[90m(24/12/2025)\u001b[0m\n  - Created src/client/styles/project.css for project customizations\n  - Imported after globals.css so it can override template styles\n  - Added to default ignored files so it won't conflict with template updates\n  - Projects should put custom CSS variables and styles here instead of globals.css\n  \n  This solves the divergence problem when template updates globals.css"
       ]
     }
   ]

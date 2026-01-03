@@ -6,6 +6,92 @@ The application implements full offline Progressive Web App (PWA) support with l
 
 ## Architecture
 
+### 0. Auth Preflight Offline Handling
+
+**Files**: 
+- `src/client/features/auth/preflight.ts` - Preflight with offline detection
+- `src/client/features/auth/hooks.ts` - useAuthValidation with skippedOffline handling
+
+The auth preflight is the **first thing that runs** when the app loads. It has special offline handling to ensure instant boot works offline.
+
+#### How It Works
+
+```typescript
+// In preflight.ts
+export function startAuthPreflight(): void {
+    // Skip preflight when offline - let instant boot hints work
+    if (!navigator.onLine) {
+        const result = {
+            data: null,
+            error: null,
+            isComplete: true,
+            skippedOffline: true,  // ← This flag is key!
+        };
+        preflightResult = result;
+        return;
+    }
+    
+    // Only make network request if online
+    // ... fetch('/api/process/auth_me') ...
+}
+```
+
+#### The `skippedOffline` Flag
+
+When `data: null` is returned, it could mean:
+
+| Scenario | `skippedOffline` | What to do |
+|----------|------------------|------------|
+| Server says "no session" | `false` | Clear hints → show login |
+| Network unavailable | `true` | **Keep hints** → show cached app |
+
+#### Offline Boot Flow
+
+```
+Offline App Start
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│  Preflight: navigator.onLine = false             │
+│  → Returns { skippedOffline: true }              │
+│  → No network request made                       │
+└──────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│  useAuthValidation sees skippedOffline = true    │
+│  → Sets hasValidated.current = true              │
+│  → Does NOT clear isProbablyLoggedIn hints       │
+│  → Does NOT trigger fallback React Query         │
+└──────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│  AuthWrapper: isProbablyLoggedIn = true          │
+│  → showApp = true (from localStorage hint)       │
+│  → App renders instantly from cache! ✅          │
+└──────────────────────────────────────────────────┘
+```
+
+#### Why `hasValidated.current = true` Matters
+
+Without this, the fallback React Query would run:
+
+```typescript
+// Fallback query enabled check:
+enabled: preflightChecked && !hasValidated.current && !isValidated
+//       true             && true (if not set!)    && true = ENABLED!
+```
+
+If enabled, the fallback query would:
+1. Call apiClient → detect offline → throw error
+2. Error handler would call `clearAuth()` → clear hints!
+3. User would see login form instead of cached app ❌
+
+By setting `hasValidated.current = true` when offline, we prevent this cascade.
+
+📚 **Related**: See [authentication.md](./authentication.md) for complete auth flow details.
+
 ### 1. Client-Side Caching (React Query + localStorage)
 
 **Files**: 

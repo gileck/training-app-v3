@@ -7,6 +7,21 @@ import { useIsAdmin } from '@/client/features/auth';
 type RouteParams = Record<string, string>;
 type QueryParams = Record<string, string>;
 
+/**
+ * Route configuration with metadata
+ */
+export interface RouteConfig {
+  component: React.ComponentType;
+  /** If true, route is accessible without authentication */
+  public?: boolean;
+  /** If true, route requires admin privileges */
+  adminOnly?: boolean;
+}
+
+/** Routes can be simple components or full config objects */
+export type RouteDefinition = React.ComponentType | RouteConfig;
+export type Routes = Record<string, RouteDefinition>;
+
 type RouterContextType = {
   currentPath: string;
   routeParams: RouteParams;
@@ -68,7 +83,7 @@ const EXCLUDED_ROUTES = ['/login', '/register', '/logout', '/forgot-password'];
 // Router provider component
 export const RouterProvider = ({ children, routes }: {
   children?: (Component: React.ComponentType) => React.ReactNode,
-  routes: Record<string, React.ComponentType>
+  routes: Routes
 }) => {
   // Get setLastRoute action from route store
   const setLastRoute = useRouteStore((state) => state.setLastRoute);
@@ -141,9 +156,10 @@ export const RouterProvider = ({ children, routes }: {
 
     // Treat admin routes as home for non-admins (helps avoid flash before redirect effect runs).
     const effectivePath = (pathWithoutQuery.startsWith('/admin') && !isAdmin) ? '/' : pathWithoutQuery;
+    
     // First check for exact matches
     if (routes[effectivePath]) {
-      return { RouteComponent: routes[effectivePath], routeParams: {} };
+      return { RouteComponent: getRouteComponent(routes[effectivePath]), routeParams: {} };
     }
 
     // Then check for parameterized routes
@@ -151,14 +167,15 @@ export const RouterProvider = ({ children, routes }: {
       if (pattern.includes(':')) {
         const params = parseRouteParams(effectivePath, pattern);
         if (Object.keys(params).length > 0) {
-          return { RouteComponent: routes[pattern], routeParams: params };
+          return { RouteComponent: getRouteComponent(routes[pattern]), routeParams: params };
         }
       }
     }
 
     // Fallback to not-found or home
+    const fallbackRoute = routes['/not-found'] || routes['/'];
     return {
-      RouteComponent: routes['/not-found'] || routes['/'],
+      RouteComponent: fallbackRoute ? getRouteComponent(fallbackRoute) : () => null,
       routeParams: {}
     };
   }, [currentPath, routes, isAdmin]);
@@ -198,7 +215,105 @@ export const RouterProvider = ({ children, routes }: {
   );
 };
 
-// Route mapping utility
-export const createRoutes = (routeComponents: Record<string, React.ComponentType>) => {
-  return routeComponents;
+// ============================================================================
+// Route Utilities
+// ============================================================================
+
+/**
+ * Normalize a route definition to always return a RouteConfig
+ */
+function normalizeRoute(route: RouteDefinition): RouteConfig {
+  if (typeof route === 'function') {
+    return { component: route };
+  }
+  return route;
+}
+
+/**
+ * Get the component from a route definition
+ */
+function getRouteComponent(route: RouteDefinition): React.ComponentType {
+  if (typeof route === 'function') {
+    return route;
+  }
+  return route.component;
+}
+
+/**
+ * Check if a path matches a route pattern
+ */
+function matchesPattern(path: string, pattern: string): boolean {
+  if (pattern === path) return true;
+  if (!pattern.includes(':')) return false;
+  
+  const patternRegex = pattern.replace(/:[^/]+/g, '[^/]+');
+  const regex = new RegExp(`^${patternRegex.replace(/\//g, '\\/')}$`);
+  return regex.test(path);
+}
+
+/**
+ * Create routes with optional metadata.
+ * 
+ * @example
+ * // Simple route (requires auth by default)
+ * createRoutes({
+ *   '/': Home,
+ *   '/settings': Settings,
+ * });
+ * 
+ * @example
+ * // Route with metadata
+ * createRoutes({
+ *   '/': Home,
+ *   '/share/:id': { component: SharePage, public: true },
+ *   '/admin/reports': { component: Reports, adminOnly: true },
+ * });
+ */
+export const createRoutes = <T extends Routes>(routes: T): T => {
+  return routes;
 };
+
+/**
+ * Get the current path from the browser URL.
+ * SSR-safe (returns '/' on server).
+ */
+export function getCurrentPath(): string {
+  return typeof window !== 'undefined' ? window.location.pathname : '/';
+}
+
+/**
+ * Check if a path is a public route (doesn't require authentication).
+ * 
+ * @example
+ * import { routes } from '@/client/routes';
+ * 
+ * isPublicRoute('/share/abc123', routes); // true if '/share/:id' is marked public
+ * isPublicRoute('/settings', routes);     // false (default)
+ */
+export function isPublicRoute(path: string, routes: Routes): boolean {
+  const pathWithoutQuery = path.split('?')[0];
+  
+  for (const pattern in routes) {
+    if (matchesPattern(pathWithoutQuery, pattern)) {
+      const config = normalizeRoute(routes[pattern]);
+      return config.public === true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get route config for a path
+ */
+export function getRouteConfig(path: string, routes: Routes): RouteConfig | null {
+  const pathWithoutQuery = path.split('?')[0];
+  
+  for (const pattern in routes) {
+    if (matchesPattern(pathWithoutQuery, pattern)) {
+      return normalizeRoute(routes[pattern]);
+    }
+  }
+  
+  return null;
+}

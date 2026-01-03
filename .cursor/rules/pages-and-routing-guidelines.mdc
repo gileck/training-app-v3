@@ -122,6 +122,39 @@ export const routes = createRoutes({
 });
 ```
 
+### Route Metadata
+
+Routes can be configured with metadata using the `RouteConfig` object format:
+
+```tsx
+export const routes = createRoutes({
+  // Simple route (requires authentication)
+  '/dashboard': Dashboard,
+  
+  // Public route (no authentication required)
+  '/share/:id': { component: SharePage, public: true },
+  
+  // Admin-only route
+  '/admin/reports': { component: Reports, adminOnly: true },
+});
+```
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `component` | `React.ComponentType` | required | The route component |
+| `public` | `boolean` | `false` | If `true`, bypasses authentication in `AuthWrapper` |
+| `adminOnly` | `boolean` | `false` | If `true`, requires admin access |
+
+**When to use `public: true`:**
+- Share pages that should be accessible without login
+- Landing pages or marketing pages
+- Public API documentation pages
+
+**How it works:**
+- `AuthWrapper` checks `isPublicRoute(currentPath, routes)` before requiring auth
+- Public routes render immediately without waiting for auth validation
+- This is handled via route metadata, NOT a hardcoded list
+
 Route path naming conventions:
 - Use kebab-case for route paths (e.g., `/new-route`, not `/newRoute`)
 - Keep paths descriptive but concise

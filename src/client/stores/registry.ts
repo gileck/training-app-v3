@@ -75,18 +75,22 @@ function areAllPersistedStoresHydrated(): boolean {
 }
 
 /**
- * React hook: true once all persisted Zustand stores have finished rehydrating.
+ * React hook: true once all persisted Zustand stores have finished rehydrating
+ * AND React has propagated the values to all selectors.
  *
- * This lets the app wait for localStorage-backed stores without requiring each feature store
- * to implement its own `hasHydrated` state or export a dedicated hook.
+ * This waits one frame after hasHydrated() returns true to ensure React hooks
+ * reading from stores will receive the hydrated values, not defaults.
  */
 export function useAllPersistedStoresHydrated(): boolean {
-    const [hydrated, setHydrated] = useState<boolean>(() => areAllPersistedStoresHydrated());
+    // Track two phases: stores hydrated, then React propagated
+    const [storesHydrated, setStoresHydrated] = useState<boolean>(() => areAllPersistedStoresHydrated());
+    const [reactReady, setReactReady] = useState<boolean>(false);
 
+    // Phase 1: Wait for all stores to hydrate
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        setHydrated(areAllPersistedStoresHydrated());
+        setStoresHydrated(areAllPersistedStoresHydrated());
 
         const instances = getPersistedStoreInstances();
         const unsubs: Array<() => void> = [];
@@ -94,7 +98,7 @@ export function useAllPersistedStoresHydrated(): boolean {
         for (const store of instances) {
             const anyStore = store as { persist?: { onFinishHydration?: (cb: () => void) => () => void } };
             const unsub = anyStore.persist?.onFinishHydration?.(() => {
-                setHydrated(areAllPersistedStoresHydrated());
+                setStoresHydrated(areAllPersistedStoresHydrated());
             });
             if (unsub) unsubs.push(unsub);
         }
@@ -110,7 +114,17 @@ export function useAllPersistedStoresHydrated(): boolean {
         };
     }, []);
 
-    return hydrated;
+    // Phase 2: Wait one frame for React to propagate values to selectors
+    useEffect(() => {
+        if (storesHydrated && !reactReady) {
+            const raf = requestAnimationFrame(() => {
+                setReactReady(true);
+            });
+            return () => cancelAnimationFrame(raf);
+        }
+    }, [storesHydrated, reactReady]);
+
+    return storesHydrated && reactReady;
 }
 
 /**

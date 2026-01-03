@@ -16,7 +16,17 @@ export interface AuthResponse {
 
 export type LoginResponse = AuthResponse;
 export type RegisterResponse = AuthResponse;
-export type CurrentUserResponse = AuthResponse;
+
+/**
+ * Response from /me endpoint.
+ * - { user: UserResponse } - authenticated user
+ * - { user: null } - no session (not an error, just "no user")
+ * - { error: string } - actual error (e.g., "User not found" if token valid but user deleted)
+ */
+export type CurrentUserResponse = {
+    user?: UserResponse | null;
+    error?: string;
+};
 export type LogoutResponse = {
     success: boolean;
     error?: string;

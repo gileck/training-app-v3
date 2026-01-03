@@ -54,17 +54,35 @@ function getPerformanceEntries(): PerformanceEntryData[] {
 
     try {
         const entries = performance.getEntries();
-        return entries.map(entry => ({
-            name: entry.name,
-            entryType: entry.entryType,
-            startTime: Math.round(entry.startTime),
-            duration: Math.round(entry.duration),
-            // Type-safe access to optional properties
-            initiatorType: 'initiatorType' in entry ? (entry as PerformanceResourceTiming).initiatorType : undefined,
-            transferSize: 'transferSize' in entry ? (entry as PerformanceResourceTiming).transferSize : undefined,
-            encodedBodySize: 'encodedBodySize' in entry ? (entry as PerformanceResourceTiming).encodedBodySize : undefined,
-            decodedBodySize: 'decodedBodySize' in entry ? (entry as PerformanceResourceTiming).decodedBodySize : undefined,
-        }));
+        return entries.map(entry => {
+            const base: PerformanceEntryData = {
+                name: entry.name,
+                entryType: entry.entryType,
+                startTime: Math.round(entry.startTime),
+                duration: Math.round(entry.duration),
+                // Type-safe access to optional properties
+                initiatorType: 'initiatorType' in entry ? (entry as PerformanceResourceTiming).initiatorType : undefined,
+                transferSize: 'transferSize' in entry ? (entry as PerformanceResourceTiming).transferSize : undefined,
+                encodedBodySize: 'encodedBodySize' in entry ? (entry as PerformanceResourceTiming).encodedBodySize : undefined,
+                decodedBodySize: 'decodedBodySize' in entry ? (entry as PerformanceResourceTiming).decodedBodySize : undefined,
+            };
+            
+            // Add navigation timing specific fields
+            if (entry.entryType === 'navigation') {
+                const nav = entry as PerformanceNavigationTiming;
+                base.domainLookupStart = Math.round(nav.domainLookupStart);
+                base.domainLookupEnd = Math.round(nav.domainLookupEnd);
+                base.connectStart = Math.round(nav.connectStart);
+                base.connectEnd = Math.round(nav.connectEnd);
+                base.requestStart = Math.round(nav.requestStart);
+                base.responseStart = Math.round(nav.responseStart);
+                base.responseEnd = Math.round(nav.responseEnd);
+                base.domInteractive = Math.round(nav.domInteractive);
+                base.domComplete = Math.round(nav.domComplete);
+            }
+            
+            return base;
+        });
     } catch {
         return [];
     }
@@ -95,7 +113,7 @@ export function useSubmitBugReport() {
                 email: user.email,
             } : undefined;
 
-            // Include performance entries for performance bug reports
+            // For performance reports, include performance entries (summary is generated on display)
             const performanceEntries = category === 'performance' ? getPerformanceEntries() : undefined;
 
             const reportData: CreateReportRequest = {

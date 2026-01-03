@@ -3,6 +3,9 @@
  * 
  * Manages authentication state with instant-boot support.
  * Persists only "hint" data for immediate UI rendering.
+ * 
+ * NOTE: All components using this store render AFTER BootGate ensures hydration.
+ * Store values are guaranteed to be hydrated from localStorage.
  */
 
 import { createStore } from '@/client/stores';

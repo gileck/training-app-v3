@@ -8,7 +8,9 @@ import { JWT_SECRET, COOKIE_NAME } from "./auth/server";
 export function getUserContext(req: NextApiRequest, res: NextApiResponse) {
   const adminUserId = process.env.ADMIN_USER_ID;
 
-  if (process.env.NODE_ENV === 'development') {
+  if (
+    process.env.NODE_ENV === 'development' && 
+    !(process.env.IGNORE_LOCAL_USER_ID === 'true')) {
     if (!process.env.LOCAL_USER_ID) {
       throw new Error("LOCAL_USER_ID is not set")
     }

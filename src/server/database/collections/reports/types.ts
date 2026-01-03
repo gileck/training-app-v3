@@ -42,6 +42,16 @@ export interface PerformanceEntryData {
     transferSize?: number;
     encodedBodySize?: number;
     decodedBodySize?: number;
+    // Navigation timing specific (only for entryType === 'navigation')
+    domainLookupStart?: number;
+    domainLookupEnd?: number;
+    connectStart?: number;
+    connectEnd?: number;
+    requestStart?: number;
+    responseStart?: number;
+    responseEnd?: number;
+    domInteractive?: number;
+    domComplete?: number;
 }
 
 /**

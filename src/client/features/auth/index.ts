@@ -25,6 +25,15 @@ export {
     currentUserQueryKey,
 } from './hooks';
 
+// Preflight
+export {
+    startAuthPreflight,
+    getPreflightResult,
+    waitForPreflight,
+    isPreflightComplete,
+    resetPreflight,
+} from './preflight';
+
 // Components
 export { default as AuthWrapper } from './AuthWrapper';
 export { LoginForm } from './LoginForm';

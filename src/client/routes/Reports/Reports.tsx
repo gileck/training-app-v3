@@ -32,6 +32,7 @@ import {
 import type { ReportClient, ReportType, ReportStatus } from '@/apis/reports/types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { toast } from '@/client/components/ui/toast';
+import { generatePerformanceSummaryFromStoredData } from '@/client/features/boot-performance';
 
 // Types for grouped view
 interface GroupedReport {
@@ -59,6 +60,15 @@ const STATUS_ICONS: Record<ReportStatus, React.ReactNode> = {
 
 function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleString();
+}
+
+/**
+ * Generate performance summary from stored report data
+ * Uses shared logic from boot-performance module
+ */
+function generatePerformanceSummary(report: ReportClient): string | null {
+    if (report.category !== 'performance') return null;
+    return generatePerformanceSummaryFromStoredData(report.sessionLogs, report.performanceEntries);
 }
 
 function ReportCard({ report }: { report: ReportClient }) {
@@ -99,6 +109,9 @@ function ReportCard({ report }: { report: ReportClient }) {
             ).join('\n')
             : null;
 
+        // Generate performance summary for performance reports
+        const perfSummary = generatePerformanceSummary(report);
+
         const details = `
 ================================================================================
 BUG/ERROR REPORT
@@ -120,6 +133,10 @@ CONTEXT
 ${report.description ? `DESCRIPTION
 -----------
 ${report.description}
+` : ''}
+${perfSummary ? `PERFORMANCE SUMMARY
+-------------------
+${perfSummary}
 ` : ''}
 ${report.errorMessage ? `ERROR MESSAGE
 -------------
@@ -186,15 +203,9 @@ END OF REPORT
     };
 
     const handleDelete = () => {
-        deleteReportMutation.mutate(report._id, {
-            onSuccess: () => {
-                toast.success('Report deleted successfully');
-                setShowDeleteDialog(false);
-            },
-            onError: (error) => {
-                toast.error(`Failed to delete report: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            },
-        });
+        setShowDeleteDialog(false);
+        deleteReportMutation.mutate(report._id);
+        // Toast shown in hook (component unmounts after optimistic update)
     };
 
     return (
@@ -385,6 +396,19 @@ END OF REPORT
                 {/* Expanded Details */}
                 {isExpanded && (
                     <div className="px-4 pb-4 space-y-4 border-t bg-muted/30 pt-4">
+                        {/* Performance Summary (for performance reports) */}
+                        {report.category === 'performance' && (() => {
+                            const summary = generatePerformanceSummary(report);
+                            return summary ? (
+                                <div>
+                                    <h4 className="mb-2 text-sm font-medium">Performance Summary</h4>
+                                    <pre className="max-h-64 overflow-auto rounded bg-muted p-3 text-xs font-mono whitespace-pre">
+                                        {summary}
+                                    </pre>
+                                </div>
+                            ) : null;
+                        })()}
+
                         {/* Screenshot */}
                         {report.screenshot && (
                             <div>

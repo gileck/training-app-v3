@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReports, updateReportStatus, deleteReport, deleteAllReports } from '@/apis/reports/client';
 import type { GetReportsRequest, ReportStatus } from '@/apis/reports/types';
 import { useQueryDefaults } from '@/client/query';
+import { toast } from '@/client/components/ui/toast';
 
 const reportsBaseQueryKey = ['reports'] as const;
 
@@ -44,7 +45,7 @@ export function useUpdateReportStatus() {
 
             queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
                 if (!Array.isArray(old)) return old;
-                return old.map((report) => (report.id === reportId ? { ...report, status } : report));
+                return old.map((report) => (report._id === reportId ? { ...report, status } : report));
             });
 
             return { previous };
@@ -78,7 +79,7 @@ export function useDeleteReport() {
 
             queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
                 if (!Array.isArray(old)) return old;
-                return old.filter((report) => report.id !== reportId);
+                return old.filter((report) => report._id !== reportId);
             });
 
             return { previous };
@@ -88,9 +89,11 @@ export function useDeleteReport() {
             for (const [key, data] of context.previous) {
                 queryClient.setQueryData(key, data);
             }
+            toast.error('Failed to delete report');
         },
-        onSuccess: () => {},
-        onSettled: () => {},
+        onSuccess: () => {
+            toast.success('Report deleted successfully');
+        },
     });
 }
 

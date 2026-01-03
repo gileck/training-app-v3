@@ -4,11 +4,13 @@
  * React Query hooks for authentication.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from './store';
 import { userToHint } from './types';
 import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/auth/client';
+import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflight } from './preflight';
+import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
 import type { LoginRequest, RegisterRequest, CurrentUserResponse } from '@/apis/auth/types';
 
 // ============================================================================
@@ -23,15 +25,22 @@ export const currentUserQueryKey = ['auth', 'currentUser'] as const;
 
 /**
  * Hook to fetch the current authenticated user
+ * 
+ * Returns:
+ * - { user: UserResponse } - authenticated user
+ * - { user: null } - no session (normal for new users)
+ * - throws Error - actual error (e.g., user deleted)
  */
 export function useCurrentUser(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: currentUserQueryKey,
         queryFn: async (): Promise<CurrentUserResponse> => {
             const response = await apiFetchCurrentUser();
+            // Only throw for actual errors, not for { user: null }
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
+            // Return response as-is (may have { user: null } or { user: UserResponse })
             return response.data;
         },
         enabled: options?.enabled ?? true,
@@ -58,15 +67,19 @@ export function useInvalidateCurrentUser() {
 }
 
 // ============================================================================
-// Auth Validation Hook (Instant Boot)
+// Auth Validation Hook (Instant Boot with Preflight)
 // ============================================================================
 
 /**
- * Implements the instant-boot auth pattern:
- * 1. Zustand hydrates `isProbablyLoggedIn` from localStorage
- * 2. If hint exists: show app immediately (instant boot)
- * 3. Always validate with /me on first load (supports cookie-only sessions)
- * 4. On success: update user state; on error: clear auth and show login
+ * Implements the instant-boot auth pattern with preflight optimization:
+ * 
+ * 1. Preflight: /me call starts immediately when JS loads (before React mounts)
+ * 2. If preflight found a valid user: authenticate immediately (no flash)
+ * 3. If preflight found no user: show login form immediately (no flash)
+ * 4. Zustand hint is used as fallback only if preflight hasn't completed
+ * 
+ * For users with valid cookies: they never see login form (preflight authenticates them)
+ * For new users: they see loading skeleton briefly, then login form
  */
 export function useAuthValidation() {
     const {
@@ -77,30 +90,122 @@ export function useAuthValidation() {
         user,
         setValidatedUser,
         setValidating,
-        setError,
         clearAuth,
     } = useAuthStore();
 
     const hasValidated = useRef(false);
+    const hasLoggedSummary = useRef(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- Ephemeral local state to track if preflight check is done
+    const [preflightChecked, setPreflightChecked] = useState(isPreflightComplete());
 
+    // Check preflight result on mount (non-blocking)
+    // This effect intentionally has empty deps - it only runs once on mount
+    useEffect(() => {
+        if (hasValidated.current || isValidated) return;
+        
+        markPhaseStart(BOOT_PHASES.AUTH_VALIDATION_START);
+        
+        // Check if preflight already has result
+        const existingResult = getPreflightResult();
+        if (existingResult?.isComplete) {
+            handlePreflightResult(existingResult);
+            return;
+        }
+        
+        // Wait for preflight to complete
+        setValidating(true);
+        waitForPreflight().then((result) => {
+            if (result) {
+                handlePreflightResult(result);
+            } else {
+                // No preflight available, fall back to regular query
+                setPreflightChecked(true);
+            }
+        });
+    }, [isValidated, setValidating]); // Only deps that don't cause re-runs
+
+    const handlePreflightResult = (result: { data: CurrentUserResponse | null; error?: string | null; skippedOffline?: boolean }) => {
+        if (hasValidated.current) return;
+        
+        const { data, error, skippedOffline } = result;
+        
+        // If offline OR network error, skip validation and let instant boot hints work
+        // Network errors (fetch failed, DNS, timeout) should NOT clear hints
+        if (skippedOffline || (error && !data)) {
+            // Mark as validated to prevent fallback query from running
+            hasValidated.current = true;
+            markEvent(BOOT_PHASES.AUTH_VALIDATION_COMPLETE);
+            logStatus('Auth Decision (Network Unavailable)', {
+                decision: 'trust-hints',
+                isProbablyLoggedIn,
+                reason: skippedOffline ? 'skippedOffline' : 'network-error',
+                error: error || null,
+            });
+            setPreflightChecked(true);
+            setValidating(false);
+            // DON'T clear hints - let isProbablyLoggedIn drive the UI
+            if (!hasLoggedSummary.current) {
+                hasLoggedSummary.current = true;
+                setTimeout(() => printBootSummary(), 0);
+            }
+            return;
+        }
+        
+        hasValidated.current = true;
+        setPreflightChecked(true);
+        
+        if (data?.user) {
+            // User is authenticated via cookie
+            markEvent(BOOT_PHASES.AUTH_VALIDATION_COMPLETE);
+            logStatus('Auth Decision', {
+                decision: 'authenticated',
+                userId: data.user.id,
+                username: data.user.username,
+            });
+            setValidatedUser(data.user);
+            markEvent(BOOT_PHASES.APP_CONTENT_SHOWN_VALIDATED);
+        } else {
+            // No valid session - clear any stale hints
+            markEvent(BOOT_PHASES.AUTH_VALIDATION_COMPLETE);
+            logStatus('Auth Decision', {
+                decision: 'show-login',
+                hadHint: isProbablyLoggedIn,
+                reason: data?.error || 'no-session',
+            });
+            if (isProbablyLoggedIn) {
+                clearAuth();
+            }
+            setValidating(false);
+            markEvent(BOOT_PHASES.LOGIN_FORM_SHOWN);
+        }
+        
+        // Print boot summary after auth is resolved
+        if (!hasLoggedSummary.current) {
+            hasLoggedSummary.current = true;
+            setTimeout(() => printBootSummary(), 0);
+        }
+    };
+
+    // Fallback query (only used if preflight fails or isn't available)
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: currentUserQueryKey,
         queryFn: async () => {
             const response = await apiFetchCurrentUser();
+            // Only throw for actual errors, not for { user: null }
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data;
         },
-        // Always validate on first load - supports cookie-only sessions
-        enabled: !hasValidated.current,
-        retry: (failureCount, error) => {
-            // Don't retry auth errors
-            if (error instanceof Error &&
-                (error.message.includes('401') ||
-                    error.message.includes('unauthorized') ||
-                    error.message.includes('Unauthorized') ||
-                    error.message.includes('Not authenticated'))) {
+        // Only run if preflight didn't complete
+        enabled: preflightChecked && !hasValidated.current && !isValidated,
+        retry: (failureCount, err) => {
+            // Don't retry auth errors (actual errors like "User not found")
+            if (err instanceof Error &&
+                (err.message.includes('401') ||
+                    err.message.includes('unauthorized') ||
+                    err.message.includes('Unauthorized') ||
+                    err.message.includes('User not found'))) {
                 return false;
             }
             return failureCount < 2;
@@ -109,9 +214,9 @@ export function useAuthValidation() {
         gcTime: 60 * 60 * 1000,
     });
 
+    // Handle fallback query results
     useEffect(() => {
-        // Skip if already validated (e.g., user logged in via form)
-        if (isValidated) return;
+        if (!preflightChecked || hasValidated.current || isValidated) return;
 
         if (isLoading) {
             setValidating(true);
@@ -124,18 +229,48 @@ export function useAuthValidation() {
             return;
         }
 
-        if (isError || (data && !data.user)) {
+        // Distinguish between network errors and actual "no session" responses
+        if (isError) {
+            // Check if this is a network error vs actual auth error
+            const isNetworkError = error instanceof Error && (
+                error.message.includes('fetch') ||
+                error.message.includes('network') ||
+                error.message.includes('Failed to fetch') ||
+                error.message.includes('NetworkError') ||
+                error.message.includes('ECONNREFUSED') ||
+                error.message.includes('timeout')
+            );
+            
+            if (isNetworkError) {
+                // Network error - trust hints, don't clear auth
+                hasValidated.current = true;
+                logStatus('Auth Decision (Fallback Network Error)', {
+                    decision: 'trust-hints',
+                    isProbablyLoggedIn,
+                    error: error.message,
+                });
+                setValidating(false);
+                // DON'T clear hints - let isProbablyLoggedIn drive the UI
+            } else {
+                // Actual auth error (401, user not found, etc.) - clear hints
+                hasValidated.current = true;
+                if (isProbablyLoggedIn) {
+                    clearAuth();
+                }
+                setValidating(false);
+            }
+            return;
+        }
+
+        // Server responded with { user: null } - no valid session, clear hints
+        if (data && !data.user) {
             hasValidated.current = true;
-            // Clear stale hint if session was invalid
             if (isProbablyLoggedIn) {
                 clearAuth();
             }
             setValidating(false);
-            // NOTE: Don't setError here - /me validation failure is expected for
-            // first-time/logged-out users. Only login/register mutations should
-            // display errors to the user.
         }
-    }, [data, isLoading, isError, error, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth, setError]);
+    }, [data, isLoading, isError, error, preflightChecked, isProbablyLoggedIn, isValidated, setValidatedUser, setValidating, clearAuth]);
 
     const revalidate = async () => {
         hasValidated.current = false;
@@ -144,7 +279,7 @@ export function useAuthValidation() {
     };
 
     // Don't show as validating if already authenticated
-    const effectiveIsValidating = isValidated ? false : (isLoading || isValidating);
+    const effectiveIsValidating = isValidated ? false : (isLoading || isValidating || !preflightChecked);
 
     return {
         isAuthenticated: isValidated && !!user,
@@ -236,6 +371,7 @@ export function useLogout() {
 /**
  * Clears all local data on logout:
  * - Auth store
+ * - Auth preflight (so next user gets fresh /me call)
  * - React Query cache
  * - Settings store
  * - Router store
@@ -249,6 +385,9 @@ async function clearAllLocalData(
 ) {
     // Clear auth store
     clearAuth();
+    
+    // Reset preflight so next login gets fresh /me call
+    resetPreflight();
 
     // Clear React Query cache
     queryClient.clear();

@@ -14,8 +14,24 @@ Where it’s used:
 
 ### Admin Routes
 
-- Any client route under **`/admin/*`** is treated as **admin-only**.
-- Non-admin users are redirected to `/`.
+Admin routes can be defined in two ways:
+
+1. **Path convention**: Any route under **`/admin/*`** is automatically admin-only
+2. **Route metadata**: Use `adminOnly: true` in route config
+
+```typescript
+// src/client/routes/index.ts
+export const routes = createRoutes({
+  // Path convention - automatically admin-only
+  '/admin/dashboard': AdminDashboard,
+  '/admin/users': AdminUsers,
+  
+  // Explicit metadata - admin-only at any path
+  '/reports': { component: Reports, adminOnly: true },
+});
+```
+
+Non-admin users attempting to access admin routes are redirected to `/`.
 
 ### Admin APIs
 

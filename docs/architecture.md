@@ -77,7 +77,14 @@ This document provides a high-level overview of the application architecture, de
 When a user opens the app, the following sequence occurs:
 
 ```
-User Opens App
+User Opens App (JS Bundle Loads)
+      │
+      ├──────────────────────────────────────────────────────────────┐
+      │  0. Auth Preflight (runs immediately, before React)          │
+      │     - preflight.ts imported as side effect in _app.tsx       │
+      │     - Starts /me API call immediately (parallel with React)  │
+      │     - Result available when useAuthValidation() runs         │
+      └──────────────────────────────────────────────────────────────┘
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -95,19 +102,56 @@ User Opens App
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  3. AuthWrapper Renders                                         │
-│     - If isProbablyLoggedIn: Show app immediately (instant boot) │
-│     - If not: Brief blank screen, /me checks for cookie session │
-│     - If /me succeeds: Show app; If /me fails: Show login       │
+│  3. AuthWrapper Renders (uses preflight result)                  │
+│     - Checks preflight result first (usually already complete)   │
+│     - If preflight found user: Show app immediately (no flash!)  │
+│     - If preflight found no user: Show login immediately         │
+│     - If preflight pending: Show loading skeleton (brief)        │
+│     - Fallback: isProbablyLoggedIn hint for instant boot         │
 └─────────────────────────────────────────────────────────────────┘
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  4. Route Restoration                                           │
 │     - If lastRoute exists: Navigate to saved route              │
-│     - Background: Auth validation + data revalidation           │
+│     - Background: Data revalidation                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Auth Preflight Optimization
+
+The **auth preflight** is a key optimization that ensures users with valid cookies **never see a login form flash**:
+
+```
+Traditional Flow (without preflight):
+┌──────────────────────────────────────────────────────────────────┐
+│  JS Loads → React Mounts → useAuthValidation → /me API → UI     │
+│                                                  ↑               │
+│                                    ~300-500ms blank screen here  │
+└──────────────────────────────────────────────────────────────────┘
+
+With Preflight:
+┌──────────────────────────────────────────────────────────────────┐
+│  JS Loads ─┬─→ Start /me API (preflight.ts side effect)          │
+│            │                                                      │
+│            └─→ React Mounts → useAuthValidation checks preflight │
+│                                        ↓                          │
+│                     Preflight result ready → Show UI immediately  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**How it works:**
+
+1. `preflight.ts` is imported in `_app.tsx` as a side effect
+2. The import immediately starts a `fetch('/api/auth_me')` call
+3. This runs **in parallel** with React initialization and Zustand hydration
+4. When `useAuthValidation()` hook runs, it first checks the preflight result
+5. For users with valid cookies, the preflight usually completes before or around React mount time
+
+**Benefits:**
+- Cookie-authenticated users: App renders instantly, **never see login form**
+- New users: See loading skeleton briefly (~200ms), then login form
+- No blank screen waiting for auth validation
 
 This enables **fast startup** with a short local boot gate, then cached UI renders while fresh data loads in the background.
 
@@ -132,28 +176,54 @@ The `useAllPersistedStoresHydrated()` hook (from `@/client/stores`) checks if al
 
 > **Why localStorage?** We use localStorage (not IndexedDB) for React Query persistence because IndexedDB was causing 5+ second startup delays on some systems (Dec 2025 - possibly a browser bug). localStorage is limited to ~5MB but is consistently fast. See the [State Management](#state-management) section for details and how to switch back if IndexedDB performance improves.
 
+### Boot Performance Logging
+
+The app includes built-in performance logging to diagnose startup issues. Enable it in browser console:
+
+```js
+localStorage.setItem('debug:boot-performance', 'true');
+location.reload();
+```
+
+This logs timing for each boot phase:
+```
+[Boot] ▶ Auth Preflight Start started at +20ms
+[Boot] ✓ Auth Preflight Complete in 180ms (total: +200ms)
+[Boot] ● BootGate Passed at +50ms
+[Boot] ● Auth Validation Complete at +200ms
+[Boot] 📊 Performance Summary
+  Total boot time: 250ms
+  Phase breakdown:
+    Auth Preflight Start: 180ms (started at +20ms)
+    BootGate Passed: instant (at +50ms)
+    ...
+```
+
+Boot performance is always enabled in development mode.
+
 ---
 
 ## Authentication
 
-The app uses a **hint-based instant boot** pattern for authentication, with support for cookie-only sessions.
+The app uses a **preflight + hint-based instant boot** pattern for authentication. Users with valid cookies **never see a login form** thanks to the preflight optimization.
 
 ### Key Concepts
 
 | Concept | Storage | Purpose |
 |---------|---------|---------|
-| `isProbablyLoggedIn` | localStorage (Zustand) | UI hint for instant boot |
+| Auth Preflight | In-memory (module) | Starts /me call before React mounts |
+| `isProbablyLoggedIn` | localStorage (Zustand) | UI hint for instant boot (fallback) |
 | `userPublicHint` | localStorage (Zustand) | Name/avatar for immediate display |
 | JWT Token | HttpOnly Cookie | Actual authentication (server-side) |
 | Validated User | Memory (Zustand) | Full user data after server validation |
 
 ### Flow
 
-1. **On Login**: Server sets HttpOnly JWT cookie + client stores hint in Zustand
-2. **On App Open (with hint)**: Zustand hydrates hint → show app immediately → validate in background
-3. **On App Open (no hint)**: Brief blank screen → call `/me` to check for cookie session
-4. **If `/me` succeeds**: Store hint + show app (supports SSO, cleared localStorage)
-5. **If `/me` fails**: Show login dialog (only after `isValidated=true`)
+1. **JS Loads**: Preflight starts `/me` call immediately (before React mounts)
+2. **On Login**: Server sets HttpOnly JWT cookie + client stores hint in Zustand
+3. **On App Open (with cookie)**: Preflight returns user → show app immediately (no flash!)
+4. **On App Open (with hint, no cookie)**: Show app from hint → preflight fails → show login
+5. **On App Open (no cookie, no hint)**: Show skeleton → preflight fails → show login
 6. **On 401**: Clear hints, show login dialog
 
 📚 **Detailed Documentation**: [authentication.md](./authentication.md)
@@ -477,6 +547,7 @@ src/client/
 │   └── index.ts                 # Public exports
 │
 ├── routes/                      # Page components
+│   ├── index.ts                 # Route definitions with metadata
 │   ├── Todos/                   # Todo list page
 │   │   ├── Todos.tsx            # Main component
 │   │   ├── hooks.ts             # Route-specific hooks
@@ -539,6 +610,36 @@ export function MyFeature() {
 
 📚 **Detailed Documentation**: See `.cursor/rules/feature-based-structure.mdc`
 
+### Route Metadata
+
+Routes support metadata for authentication control:
+
+```typescript
+// src/client/routes/index.ts
+export const routes = createRoutes({
+  // Standard route (requires authentication)
+  '/dashboard': Dashboard,
+  
+  // Public route (bypasses AuthWrapper)
+  '/share/:id': { component: SharePage, public: true },
+  
+  // Admin-only route
+  '/admin/reports': { component: Reports, adminOnly: true },
+});
+```
+
+| Property | Description |
+|----------|-------------|
+| `public: true` | Route accessible without authentication |
+| `adminOnly: true` | Route requires admin access |
+
+**How it works:**
+- `AuthWrapper` calls `isPublicRoute(currentPath, routes)` before auth checks
+- Public routes render immediately without waiting for auth validation
+- This is metadata-driven, not a hardcoded list
+
+📚 **Detailed Documentation**: See `.cursor/rules/pages-and-routing-guidelines.mdc`
+
 ---
 
 ## Key Files Reference
@@ -565,6 +666,8 @@ export function MyFeature() {
 |------|---------|
 | `src/client/features/auth/store.ts` | Auth state + instant boot hints |
 | `src/client/features/auth/hooks.ts` | Login, logout, validation hooks |
+| `src/client/features/auth/preflight.ts` | Pre-flight /me call for instant auth |
+| `src/client/features/boot-performance/index.ts` | Boot timing metrics & logging |
 | `src/client/features/settings/store.ts` | User preferences |
 | `src/client/features/router/store.ts` | Route persistence |
 
