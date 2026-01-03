@@ -23,7 +23,7 @@ import {
 import { useClearAllPlanData } from '@/client/features/plan-data';
 import { formatBytes } from '@/client/lib/utils';
 
-// React Query cache key (not managed by store registry)
+// React Query  cache key (not managed by store registry)
 const REACT_QUERY_CACHE_KEY = 'react-query-cache-v2';
 
 // localStorage limit is typically ~5MB

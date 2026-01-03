@@ -4,7 +4,7 @@ import { cn } from '@/client/lib/utils';
 interface IOSAuthModalProps {
     children: React.ReactNode;
     isOpen: boolean;
-    /** Optional callback for dismissible modal. When provided, backdrop click closes the modal. */
+    /** Optional  callback for dismissible modal. When provided, backdrop click closes the modal. */
     onOpenChange?: (open: boolean) => void;
 }
 
