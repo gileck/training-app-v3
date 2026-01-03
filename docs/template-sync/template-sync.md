@@ -8,12 +8,22 @@ When you create a new app from this template, you can continue to receive update
 
 ## How It Works
 
-The sync system:
-1. **Compares** your project files with the latest template files
-2. **Auto-merges** files that only changed in the template
-3. **Flags true conflicts** only when files changed in BOTH template and project
-4. **Preserves project customizations** - files you changed that the template didn't touch are NOT flagged as conflicts
-5. **Skips** ignored and project-specific files
+The sync system uses **hash-based change detection** to accurately track who changed what:
+
+1. **Stores baseline hashes** for each file at sync time
+2. **Compares** current project and template hashes against the baseline
+3. **Auto-merges** files that only changed in the template
+4. **Flags true conflicts** only when files changed in BOTH template and project
+5. **Preserves project customizations** - files you changed that the template didn't touch are NOT flagged as conflicts
+6. **Skips** ignored, project-specific, and template-ignored files
+
+### Hash-Based Change Detection
+
+The sync tool tracks MD5 hashes of files to determine:
+- **Template changed**: Template hash ≠ stored baseline → Safe to apply
+- **Project changed**: Project hash ≠ stored baseline → Project customization (kept as-is)
+- **Both changed**: Both hashes ≠ baseline → True conflict (needs resolution)
+- **Neither changed**: Files are identical → No action needed
 
 ## Initial Setup (For New Projects)
 
@@ -48,27 +58,32 @@ Edit `.template-sync.json` to specify:
     "README.md",
     ".env",
     ".env.local",
-    "src/client/routes/Todos",
-    "src/client/routes/Chat",
-    "src/apis/todos",
-    "src/apis/chat",
     "src/client/routes/index.ts",
     "src/client/components/NavLinks.tsx",
     "src/apis/apis.ts",
-    "src/server/database/collections/index.ts",
-    "src/server/database/collections/todos",
-    "src/server/database/collections/reports"
+    "src/server/database/collections/index.ts"
   ],
   "projectSpecificFiles": [
     "src/client/features/myCustomFeature",
     "src/server/myCustomLogic.ts"
-  ]
+  ],
+  "templateIgnoredFiles": [
+    "src/apis/todos",
+    "src/apis/chat",
+    "src/client/routes/Todos",
+    "src/client/routes/Chat",
+    "src/client/routes/Home",
+    "src/server/database/collections/todos"
+  ],
+  "fileHashes": {}
 }
 ```
 
 **Key fields:**
-- `ignoredFiles`: Files that should never be synced (config files, example features, registry files)
-- `projectSpecificFiles`: Additional files to skip (your heavily customized code)
+- `ignoredFiles`: Files that should never be synced (config files, registry files)
+- `projectSpecificFiles`: Your custom code that doesn't exist in template
+- `templateIgnoredFiles`: Template example/demo code to completely ignore (never sync, never show)
+- `fileHashes`: Auto-managed baseline hashes for change detection (don't edit manually)
 
 **Glob pattern support:**
 Both arrays support glob patterns:
@@ -91,7 +106,17 @@ Both arrays support glob patterns:
 }
 ```
 
-**Note:** Example features (Todos, Chat) and registry files (route/API/collection registrations, navigation menus) are ignored by default since users customize these when creating a new project.
+### Understanding the Three Ignore Types
+
+| Config Field | Purpose | Examples |
+|--------------|---------|----------|
+| `ignoredFiles` | System/config files + registry files you'll customize | `.env`, `package.json`, `apis.ts`, `NavLinks.tsx` |
+| `projectSpecificFiles` | Your custom code that doesn't exist in template | `src/client/features/myFeature` |
+| `templateIgnoredFiles` | Template example/demo code you don't want | `src/apis/todos`, `src/client/routes/Chat` |
+
+**Key difference:**
+- `ignoredFiles` and `projectSpecificFiles`: Files show in "Skipped" during sync
+- `templateIgnoredFiles`: Files are **completely invisible** - never synced, never shown
 
 ### 3. Commit the Configuration
 
@@ -309,6 +334,47 @@ yarn sync-template --auto-skip-conflicts
 | `--auto-merge-conflicts` | ✅ Applied | 🔀 Creates `.template` files |
 | `--auto-override-conflicts` | ✅ Applied | 🔄 Replaced with template |
 | `--auto-skip-conflicts` | ✅ Applied | ⏭️ Skipped |
+
+### Initialize Baseline Hashes
+
+For projects that were synced before the hash system, or to establish a clean baseline:
+
+```bash
+yarn sync-template --init-hashes
+```
+
+This initializes baseline hashes for all template files:
+- **Identical files**: Stores the shared hash
+- **Different files**: Stores the template's hash as baseline (your changes become "project customizations")
+
+**When to use:**
+- First time syncing after the hash system was introduced
+- After manually resolving many conflicts
+- To reset the baseline to current template state
+
+**Example output:**
+```
+🔧 Initialize Baseline Hashes
+============================================================
+
+📍 Template commit: 735d623...
+📊 Existing baseline hashes: 0
+
+🔄 Initializing hashes...
+
+============================================================
+📊 RESULTS
+============================================================
+
+✅ Identical files (hash stored):      281
+📝 Different files (template baseline): 7
+⏭️  Skipped (ignored/project-specific):  14
+
+📦 Total hashes stored: 288
+
+💡 Note: For files that differ, the TEMPLATE version is the baseline.
+   These will show as "project customizations" on next sync.
+```
 
 ### Auto-Commit Behavior
 
@@ -566,6 +632,27 @@ If you get many conflicts after a long time:
 2. Consider syncing in stages (manually cherry-pick some changes)
 3. Mark conflicting areas as `projectSpecificFiles` if they're truly custom
 
+### "Conflicts - no baseline" Messages
+
+If you see many files showing as "Conflicts - no baseline":
+
+```
+⚠️  Conflicts - no baseline (8 files):
+   Files differ from template with no sync history:
+   • src/apis/auth/shared.ts
+   ...
+```
+
+This means the sync tool doesn't have baseline hashes for these files (common for projects synced before the hash system was introduced).
+
+**Solution:** Run `--init-hashes` to establish baselines:
+
+```bash
+yarn sync-template --init-hashes
+```
+
+After this, files you've modified will correctly show as "Project customizations" instead of conflicts.
+
 ## For Template Maintainers
 
 ### Making Template Changes
@@ -652,6 +739,9 @@ jobs:
 | `yarn sync-template --force` | Force sync with uncommitted changes |
 | `yarn sync-template --use-https` | Use HTTPS instead of SSH for cloning |
 | `yarn sync-template --diff-summary` | Generate full diff report (all differences) |
+| `yarn sync-template --init-hashes` | Initialize baseline hashes for all files |
+| `yarn sync-template --changelog` | Show template commits since last sync |
+| `yarn sync-template --show-drift` | Show total project drift with file list |
 
 ### Auto Mode Flags
 

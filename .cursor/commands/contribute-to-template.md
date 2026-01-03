@@ -7,25 +7,48 @@ This command resolves all differences between your project and the template, ach
 **Fully sync your project with the template** by resolving every file difference. After running this command:
 - Your project matches the template (no conflicts on next sync)
 - Valuable changes are contributed back to the template
+- Project-specific customizations are properly marked as ignored
 - Both repos stay aligned
 
-## Three Resolution Options
+## Four Resolution Options
 
 For each file that differs between project and template:
 
-| Option | Description | Project Action | Template Action |
-|--------|-------------|----------------|-----------------|
-| **TAKE TEMPLATE** | Discard local changes | Overwrite with template version | None |
-| **MERGE** | Combine both changes | Update to merged version | Receive merged file |
-| **TAKE PROJECT** | Keep your version | Keep as-is | Receive your version |
+| Option | What Happens to Project | What Happens to Template | When to Use |
+|--------|------------------------|--------------------------|-------------|
+| **DISCARD** | Overwrite with template version | Nothing | Template version is better, discard your changes |
+| **MERGE** | Update to merged version | Receive merged file | Both sides have valuable changes to combine |
+| **CONTRIBUTE** | Keep your version | Receive your version | Your fix/improvement should go to template |
+| **KEEP (ignore)** | Keep your version | Nothing (file added to `projectSpecificFiles`) | Project-specific change, don't push to template |
 
-### When to Use Each
+### Decision Guide
 
 ```
-TAKE TEMPLATE  → Template code is good enough, your changes aren't needed
-MERGE          → Both sides have valuable changes that should be combined
-TAKE PROJECT   → Your version is better, template should adopt it
+Is this a project-specific customization? (custom feature, project config, etc.)
+  └─ YES → KEEP (ignore) - adds file to projectSpecificFiles, won't sync
+
+Is the template version better or your change was temporary?
+  └─ YES → DISCARD - takes template version, loses your changes
+
+Did you fix a bug or improve something the template should have?
+  └─ YES → CONTRIBUTE - pushes your version to template
+
+Did both sides make valuable changes?
+  └─ YES → MERGE - combines both, pushes merged result to template
 ```
+
+### ⚠️ Important: Index/Registry Files
+
+Files like these are **exports/registries** that MUST include your project's code:
+- `src/client/features/index.ts`
+- `src/apis/apis.ts`
+- `src/client/routes/index.ts`
+- `src/server/database/collections/index.ts`
+
+For these files, you typically want **KEEP (ignore)** because:
+- They contain project-specific exports
+- Taking template version would BREAK your app
+- They should be in `projectSpecificFiles` (already are in template defaults)
 
 ## Workflow
 
@@ -36,17 +59,20 @@ TAKE PROJECT   → Your version is better, template should adopt it
 │  2. For EACH differing file:                                    │
 │     • Show diff (project vs template)                           │
 │     • Analyze changes                                           │
-│     • Recommend: TAKE TEMPLATE / MERGE / TAKE PROJECT           │
+│     • Recommend: DISCARD / MERGE / CONTRIBUTE / KEEP            │
 │     • User decides                                              │
 │                                                                 │
 │  3. Execute decisions:                                          │
-│     • TAKE TEMPLATE → Copy template file to project             │
+│     • DISCARD → Copy template file to project                   │
 │     • MERGE → Create merged version, copy to both               │
-│     • TAKE PROJECT → Copy project file to template              │
+│     • CONTRIBUTE → Copy project file to template                │
+│     • KEEP → Add file to projectSpecificFiles in config         │
 │                                                                 │
-│  4. Generate patch for template (MERGE + TAKE PROJECT files)    │
+│  4. Commit changes to template (MERGE + CONTRIBUTE files)       │
 │                                                                 │
-│  5. Result: Project fully synced with template!                 │
+│  5. Update .template-sync.json with new projectSpecificFiles    │
+│                                                                 │
+│  6. Result: Project fully synced with template!                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,20 +119,7 @@ Compare every file in project against template. A file differs if:
 - File exists in both repos
 - File is NOT in any ignore list
 
-```bash
-# For each file in project (excluding ignore lists)
-# Compare with template version
-diff -q "project/path/file.ts" "template/path/file.ts"
-```
-
-### 4. Categorize each differing file
-
-For each file, determine:
-- **Only project changed**: Template baseline matches stored hash, project differs
-- **Only template changed**: Project matches baseline, template differs  
-- **Both changed**: Neither matches baseline (conflict)
-
-### 5. Review EACH file with user
+### 4. Review EACH file with user
 
 Present each differing file:
 
@@ -117,107 +130,126 @@ Present each differing file:
 
 ### Change Status: [Only Project Changed / Only Template Changed / Both Changed]
 
-### Diff (Project ← → Template):
+### Diff (Project vs Template):
 ```diff
-[show actual diff between project and template versions]
+[show actual diff]
 ```
 
 ### Analysis:
-- **Project changes**: [describe what project changed and why]
-- **Template changes**: [describe what template changed, if any]
-- **Recommendation**: TAKE TEMPLATE / MERGE / TAKE PROJECT
-- **Reasoning**: [explain recommendation]
+- **What project changed**: [describe]
+- **What template has**: [describe]
+- **Is this project-specific?**: Yes/No
+- **Would this break the app if discarded?**: Yes/No
 
-### Your decision? [TAKE TEMPLATE / MERGE / TAKE PROJECT]
+### Recommendation: DISCARD / MERGE / CONTRIBUTE / KEEP (ignore)
+**Reasoning**: [explain]
+
+### Your decision? [DISCARD / MERGE / CONTRIBUTE / KEEP]
 ```
 
 **Wait for user decision before proceeding to next file.**
 
-### 6. Execute all decisions
+### 5. Execute all decisions
 
 After all files reviewed:
 
-**TAKE TEMPLATE files:**
+**DISCARD files:**
 ```bash
-# Copy template version to project
+# Copy template version to project (discards project changes)
 cp ../app-template-ai/src/path/file.ts src/path/file.ts
 ```
 
 **MERGE files:**
 ```bash
 # Create merged version (agent combines changes intelligently)
-# Then copy merged version to BOTH:
+# Copy merged version to BOTH:
 cp merged-file.ts src/path/file.ts                    # Update project
 cp merged-file.ts ../app-template-ai/src/path/file.ts # Update template
 ```
 
-**TAKE PROJECT files:**
+**CONTRIBUTE files:**
 ```bash
 # Copy project version to template
 cp src/path/file.ts ../app-template-ai/src/path/file.ts
 ```
 
-### 7. Update template repo
+**KEEP (ignore) files:**
+```bash
+# Add to projectSpecificFiles in .template-sync.json
+# This file will be ignored in future syncs
+```
 
-For files going to template (MERGE + TAKE PROJECT):
+### 6. Update .template-sync.json
+
+For KEEP (ignore) files, add them to `projectSpecificFiles`:
+
+```json
+{
+  "projectSpecificFiles": [
+    "existing/files...",
+    "src/client/features/index.ts"  // newly added
+  ]
+}
+```
+
+### 7. Commit template changes
+
+For files going to template (MERGE + CONTRIBUTE):
 
 ```bash
 cd ../app-template-ai
-
-# Stage changes
 git add -A
-
-# Show what will be committed
 git status
-git diff --cached
 ```
 
-### 8. Generate summary and commit message
+### 8. Generate summary
 
 ```markdown
 ## Resolution Summary
 
-### ↩️ Took template version (X files):
+### 🗑️ Discarded project changes (X files):
 - src/client/utils/helpers.ts - Template version preferred
 
 ### 🔀 Merged changes (Y files):
-- src/apis/auth/server.ts - Combined auth improvements from both
+- src/apis/auth/server.ts - Combined improvements from both
 
-### ➡️ Contributed to template (Z files):  
+### ➡️ Contributed to template (Z files):
 - src/apis/reports/server.ts - Bug fix for pagination
+- docs/zustand-stores.md - Valuable troubleshooting docs
+
+### 📌 Kept as project-specific (W files):
+- src/client/features/index.ts - Added to projectSpecificFiles
 
 ---
 
-## Template Commit
+## Template Changes Ready
 
-The following changes are staged in `../app-template-ai`:
-
-**Files changed:**
+**Staged in `../app-template-ai`:**
 - src/apis/auth/server.ts (merged)
-- src/apis/reports/server.ts (from project)
+- src/apis/reports/server.ts (contributed)
 
-**Suggested commit message:**
-```
-fix: merge project contributions
-
-- auth/server.ts: combined auth improvements
-- reports/server.ts: fixed pagination offset
+**Commit and push?** [Yes / No]
 ```
 
-**Ready to commit?** [Yes / No / Review changes first]
-```
-
-### 9. Commit and push template changes
+### 9. Commit and push
 
 ```bash
 cd ../app-template-ai
-git commit -m "fix: merge project contributions"
+git commit -m "fix: merge project contributions
+
+- feature: added IOSAuthModal onOpenChange prop
+- fix: parallel deletion in deleteAllReports
+- docs: zustand infinite loop troubleshooting"
 git push
 ```
 
-### 10. Update project baseline hashes
+### 10. Commit project changes
 
-After syncing, update `.template-sync.json` fileHashes so next sync shows no differences.
+```bash
+cd /path/to/project
+git add .template-sync.json  # if projectSpecificFiles changed
+git commit -m "chore: sync with template + mark project-specific files"
+```
 
 ---
 
@@ -229,82 +261,98 @@ After syncing, update `.template-sync.json` fileHashes so next sync shows no dif
 
 ```markdown
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## File 1 of 3: src/apis/reports/server.ts
+## File 1 of 4: src/apis/reports/server.ts
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ### Change Status: Only Project Changed
 
 ### Diff:
 ```diff
-@@ -45,7 +45,7 @@
- const getReports = async (params) => {
 -  const offset = page * limit;
 +  const offset = (page - 1) * limit;  // Fixed: page is 1-indexed
-   const reports = await db.find().skip(offset).limit(limit);
 ```
 
 ### Analysis:
-- **Project changes**: Fixed pagination bug (page is 1-indexed)
-- **Template changes**: None
-- **Recommendation**: ➡️ TAKE PROJECT
-- **Reasoning**: This is a clear bug fix that template needs
+- **What project changed**: Fixed pagination bug (page is 1-indexed)
+- **What template has**: Original buggy version
+- **Is this project-specific?**: No - it's a bug fix
+- **Would this break the app if discarded?**: Yes - pagination would be wrong
 
-### Your decision? [TAKE PROJECT]
+### Recommendation: ➡️ CONTRIBUTE
+**Reasoning**: This is a bug fix that the template needs. All projects benefit.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## File 2 of 3: src/apis/auth/server.ts  
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-### Change Status: Both Changed
-
-### Diff:
-```diff
-@@ -12,8 +12,10 @@
- // Project version:
-+import { validateSession } from './utils';
- export async function authenticate(token: string) {
-+  await validateSession(token);
-   // ...
- }
-
-// Template version:
-+import { rateLimit } from '../middleware';
- export async function authenticate(token: string) {
-+  await rateLimit();
-   // ...
- }
-```
-
-### Analysis:
-- **Project changes**: Added session validation
-- **Template changes**: Added rate limiting
-- **Recommendation**: 🔀 MERGE
-- **Reasoning**: Both changes are valuable - combine them
-
-### Your decision? [MERGE]
+### Your decision? [CONTRIBUTE]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## File 3 of 3: src/client/utils/formatDate.ts
+## File 2 of 4: src/client/features/index.ts
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ### Change Status: Only Project Changed
 
 ### Diff:
 ```diff
-@@ -5,7 +5,9 @@
--export function formatDate(date: Date): string {
-+export function formatDate(date: Date | string): string {
-+  // Allow string input for convenience
-+  const d = typeof date === 'string' ? new Date(date) : date;
++export * from './plan-data';
 ```
 
 ### Analysis:
-- **Project changes**: Added string input support
-- **Template changes**: None
-- **Recommendation**: ↩️ TAKE TEMPLATE  
-- **Reasoning**: Minor convenience change, template's stricter typing is better
+- **What project changed**: Added export for project-specific `plan-data` feature
+- **What template has**: No plan-data export (doesn't have this feature)
+- **Is this project-specific?**: YES - plan-data is your custom feature
+- **Would this break the app if discarded?**: YES - plan-data feature would stop working
 
-### Your decision? [TAKE TEMPLATE]
+### Recommendation: 📌 KEEP (ignore)
+**Reasoning**: This is a registry file with project-specific exports. 
+⚠️ DISCARD would BREAK your app! Add to projectSpecificFiles instead.
+
+### Your decision? [KEEP]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 3 of 4: src/apis/auth/shared.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### Change Status: Only Project Changed
+
+### Diff:
+```diff
+-export const JWT_EXPIRES_IN = "7d";
++export const JWT_EXPIRES_IN = "3650d";  // 10 years
+```
+
+### Analysis:
+- **What project changed**: Extended JWT to 10 years for PWA experience
+- **What template has**: 7-day expiry (sensible default)
+- **Is this project-specific?**: YES - your app's auth choice
+- **Would this break the app if discarded?**: No, but users would be logged out weekly
+
+### Recommendation: 📌 KEEP (ignore)
+**Reasoning**: 7-day is a better template default. Your 10-year choice is 
+project-specific. Add to projectSpecificFiles.
+
+### Your decision? [KEEP]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File 4 of 4: docs/zustand-stores.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### Change Status: Only Project Changed
+
+### Diff:
+```diff
++### 🚨 Infinite Loop: "The result of getSnapshot should be cached"
++**Cause:** Zustand selectors returning new references...
++**Fix:** Use stable constant references...
+```
+
+### Analysis:
+- **What project changed**: Added troubleshooting section for common pitfall
+- **What template has**: No troubleshooting section
+- **Is this project-specific?**: NO - this helps all template users
+- **Would this break the app if discarded?**: No
+
+### Recommendation: ➡️ CONTRIBUTE
+**Reasoning**: Valuable documentation that all template users should have.
+
+### Your decision? [CONTRIBUTE]
 ```
 
 ### Agent Executes Decisions:
@@ -312,16 +360,17 @@ After syncing, update `.template-sync.json` fileHashes so next sync shows no dif
 ```markdown
 ## Executing Resolutions...
 
-### ↩️ TAKE TEMPLATE: src/client/utils/formatDate.ts
-Copied template version to project ✓
+### ➡️ CONTRIBUTE: src/apis/reports/server.ts
+Copied to template ✓
 
-### 🔀 MERGE: src/apis/auth/server.ts
-Created merged version with both rate limiting and session validation ✓
-Updated project file ✓
-Updated template file ✓
+### 📌 KEEP (ignore): src/client/features/index.ts
+Added to projectSpecificFiles ✓
 
-### ➡️ TAKE PROJECT: src/apis/reports/server.ts
-Copied project version to template ✓
+### 📌 KEEP (ignore): src/apis/auth/shared.ts
+Added to projectSpecificFiles ✓
+
+### ➡️ CONTRIBUTE: docs/zustand-stores.md
+Copied to template ✓
 
 ---
 
@@ -329,68 +378,43 @@ Copied project version to template ✓
 
 | Resolution | Files |
 |------------|-------|
-| Took template | 1 |
-| Merged | 1 |
-| Contributed to template | 1 |
+| Discarded | 0 |
+| Merged | 0 |
+| Contributed to template | 2 |
+| Kept as project-specific | 2 |
 
 ### Template Changes Ready
 
 **Staged in `../app-template-ai`:**
-- src/apis/auth/server.ts (merged)
-- src/apis/reports/server.ts (from project)
+- src/apis/reports/server.ts
+- docs/zustand-stores.md
 
 **Commit and push?** [Yes]
 ```
 
-### Agent Commits Template:
-
-```bash
-cd ../app-template-ai
-git add -A
-git commit -m "fix: sync with project contributions
-
-- auth/server.ts: merged rate limiting + session validation
-- reports/server.ts: fixed pagination offset bug"
-git push
-```
-
-### Final Status:
-
-```markdown
-## ✅ Sync Complete!
-
-Your project is now fully synchronized with the template.
-
-**Changes made to your project:**
-- 1 file reverted to template version
-- 1 file updated with merged changes
-
-**Changes pushed to template:**
-- 2 files updated and pushed
-
-**Next sync will show:** 0 differences
-```
-
 ---
 
-## Decision Criteria
+## Decision Criteria Quick Reference
 
-### ↩️ TAKE TEMPLATE when:
-- Your changes were experimental/temporary
-- Template version is cleaner or better
-- Changes are project-specific (shouldn't go to template)
-- Formatting/cosmetic differences only
+### 🗑️ DISCARD when:
+- Template version is better
+- Your change was experimental/temporary
+- You want to reset to template's version
 
 ### 🔀 MERGE when:
-- Both sides have valuable, non-conflicting changes
-- Template added feature A, you added feature B
-- Changes can be combined intelligently
+- Both sides made valuable changes
+- Changes don't conflict (can be combined)
+- Want best of both worlds
 
-### ➡️ TAKE PROJECT when:
-- You fixed a bug that template needs
-- You improved something template should adopt
-- Your version is clearly better
-- Security or performance fix
+### ➡️ CONTRIBUTE when:
+- You fixed a bug template needs
+- You added a feature all projects should have
+- Your improvement benefits everyone
+
+### 📌 KEEP (ignore) when:
+- Change is project-specific (custom feature, config)
+- File is a registry/index that includes project code
+- Taking template would BREAK your app
 
 ---
 
@@ -399,14 +423,14 @@ Your project is now fully synchronized with the template.
 | Say This | What Happens |
 |----------|--------------|
 | "Sync with template" | Full resolution workflow |
-| "Resolve template conflicts" | Same as above |
-| "Show template differences" | List files without deciding |
+| "Resolve template differences" | Same as above |
+| "Show what's different" | List files without deciding |
 
 ---
 
 ## Notes
 
-- **Excluded automatically**: `ignoredFiles`, `projectSpecificFiles`, `templateIgnoredFiles`
+- **Registry files warning**: Files like `index.ts`, `apis.ts` often need KEEP, not DISCARD
+- **Excluded automatically**: Files already in `ignoredFiles`, `projectSpecificFiles`, `templateIgnoredFiles`
 - **Template path**: Always `../app-template-ai` (auto-detected)
-- **After sync**: Both repos aligned, no conflicts on future syncs
-- **MERGE requires judgment**: Agent combines changes intelligently, review the result
+- **KEEP updates config**: Adds file to `projectSpecificFiles` so it won't appear in future syncs

@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "735d6235451b63698f46b262df711d402ec6713d",
-  "lastProjectCommit": "975ae551920bc9a285c35d449164266d7c654fcd",
-  "lastSyncDate": "2026-01-03T16:11:03.602Z",
+  "lastSyncCommit": "c10fee55f72994b68275f183e7ec60a156b3fbf4",
+  "lastProjectCommit": "a79a81787450827be0df4b5df2f03473e1258359",
+  "lastSyncDate": "2026-01-03T16:27:16.672Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -41,6 +41,18 @@
     "src/config/pwa.config.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T16:27:16.672Z",
+      "templateCommit": "c10fee55f72994b68275f183e7ec60a156b3fbf4",
+      "projectCommit": "a79a81787450827be0df4b5df2f03473e1258359",
+      "filesApplied": 2,
+      "filesSkipped": 13,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "c10fee5 refactor(contribute-to-template): clearer terminology and 4 options \u001b[90m(03/01/2026)\u001b[0m\n  Renamed options for clarity:\n  - TAKE TEMPLATE → DISCARD (you're discarding your changes)\n  - TAKE PROJECT → CONTRIBUTE (pushing to template)\n  - Added KEEP (ignore) - project-specific, adds to projectSpecificFiles\n  \n  Key improvements:\n  - Warning about registry/index files that would break if discarded\n  - Decision guide flowchart\n  - Better examples for each option\n  - Clear that KEEP updates .template-sync.json",
+        "e65a8ae docs(template-sync): document hash-based change detection and new flags \u001b[90m(03/01/2026)\u001b[0m\n  - Explain hash-based change detection system\n  - Document --init-hashes flag for initializing baselines\n  - Add templateIgnoredFiles to configuration example\n  - Add table comparing ignoredFiles vs projectSpecificFiles vs templateIgnoredFiles\n  - Add --changelog and --show-drift to command summary\n  - Add troubleshooting for 'Conflicts - no baseline' messages"
+      ]
+    },
     {
       "date": "2026-01-03T16:06:34.253Z",
       "templateCommit": "88da8317f9a2f921c85ac9ef13d57c1fe0689315",
@@ -296,17 +308,6 @@
       "templateCommits": [
         "001e19b feat(sync-template): add --show-drift flag for immediate full file list \u001b[90m(25/12/2025)\u001b[0m\n  - New --show-drift option shows total drift with detailed file list (no sync)\n  - Add hint in summary output suggesting --show-drift for full details"
       ]
-    },
-    {
-      "date": "2025-12-25T10:17:23.665Z",
-      "templateCommit": "0224d311cc796c65979be2fc4cf067cdb7be8b27",
-      "projectCommit": "06f73f31aba8b4ed6ab346953086b903e9e400aa",
-      "filesApplied": 1,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "0224d31 feat(sync-template): add total project drift summary \u001b[90m(25/12/2025)\u001b[0m\n  - Add displayTotalDiffSummary() showing complete picture of differences\n  - Show summary at start of sync, changelog, and diff-summary modes\n  - Add interactive option 'Show total drift details' to view full file list\n  - Categories: new in template, modified, project-specific, ignored\n  - Only counts files that exist in template AND are different (not project-only additions)"
-      ]
     }
   ],
   "fileHashes": {
@@ -367,7 +368,7 @@
     "docs/template-sync/template-sync-implementation.md": "723ea0ab52f8444e7355813aeb956f95",
     "docs/template-sync/template-sync-quick-start.md": "5ab956fa147e6190a204d6a99ca5dc99",
     "docs/template-sync/template-sync-visual-guide.md": "0b930d2e919a74cd10e3ace9410c3168",
-    "docs/template-sync/template-sync.md": "e83d41b61c390f18f319f2146a687e98",
+    "docs/template-sync/template-sync.md": "e936d2f0b71e3e08a782713e23ffb8e2",
     "docs/theming.md": "0d526630ed1418fc546b957d41bbb801",
     "eslint-plugin-api-guidelines/index.js": "e04e1aefd7323b75255b23c1cfb34f28",
     "eslint-plugin-api-guidelines/rules/api-names-from-index.js": "e13771ec7fcf0e9655a662617c401186",
@@ -589,7 +590,7 @@
     "ui-guidelines-example/weather-locations.html": "fc7346d853ca9c32f0f838dfbdee6347",
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
-    ".cursor/commands/contribute-to-template.md": "0496b3474d3503c9edce23743845bcc4",
+    ".cursor/commands/contribute-to-template.md": "960e677a6e7843513571f3a9b646a76a",
     "scripts/sync-template.ts": "21733ae59068c217e09606028cd24986",
     "docs/authentication.md": "387c85ac2bb002141774c25022a1bf33",
     "docs/zustand-stores.md": "afaf4ecda94431faa2644a8ee679e3a1",
