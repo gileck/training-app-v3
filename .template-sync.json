@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "c10fee55f72994b68275f183e7ec60a156b3fbf4",
-  "lastProjectCommit": "a79a81787450827be0df4b5df2f03473e1258359",
-  "lastSyncDate": "2026-01-03T16:27:16.672Z",
+  "lastSyncCommit": "401bc48df87318d02c5f96f1b07c1f6a5d04bf39",
+  "lastProjectCommit": "fc4ca134b2378a3b2ab2a548fa64d99f7e04a091",
+  "lastSyncDate": "2026-01-03T16:45:29.571Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -42,6 +42,20 @@
     "src/client/features/index.ts"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-03T16:45:29.571Z",
+      "templateCommit": "401bc48df87318d02c5f96f1b07c1f6a5d04bf39",
+      "projectCommit": "fc4ca134b2378a3b2ab2a548fa64d99f7e04a091",
+      "filesApplied": 2,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "401bc48 docs: clarify --init-hashes is optional after contribution \u001b[90m(03/01/2026)\u001b[0m",
+        "2951bd9 refactor(contribute-to-template): don't commit in template, generate message instead \u001b[90m(03/01/2026)\u001b[0m\n  Changes:\n  - Agent copies files but does NOT commit in template\n  - Agent generates a detailed message for template agent\n  - User copies message and pastes to template's agent\n  - Template agent reviews and commits after inspection\n  \n  This allows proper review before committing to template.",
+        "a4b8d6d feat: sync contributions from training-app-v3 \u001b[90m(03/01/2026)\u001b[0m\n  - feat(auth): 10-year JWT expiry for PWA-like login persistence\n    - JWT_EXPIRES_IN changed to 3650d (10 years)\n    - Cookie maxAge updated to 10 years\n    - Documentation updated with long-lived token explanation\n  \n  - docs(zustand-stores): add infinite loop troubleshooting section\n    - Document 'getSnapshot should be cached' error and fix\n    - Explain stable reference pattern for selectors\n  \n  - feat(IOSAuthModal): add optional onOpenChange prop for dismissible modal\n    - Backdrop click to close when onOpenChange provided\n    - Backward compatible (prop is optional)\n  \n  - perf(reports): parallel deletion with Promise.allSettled\n    - Delete all screenshots in parallel instead of sequential\n    - Better error summarization",
+        "dd6372f feat(sync-template): add --project-diffs flag for contribute command \u001b[90m(03/01/2026)\u001b[0m\n  New flag outputs a parseable diff report:\n  - Lists all files that differ between project and template\n  - Shows change status: project-only, template-only, both-changed, no-baseline\n  - Includes full diff for each file\n  - Excludes ignored files automatically\n  \n  Usage: yarn sync-template --project-diffs\n  \n  Updated contribute-to-template command to use this flag instead of\n  manual diff finding."
+      ]
+    },
     {
       "date": "2026-01-03T16:27:16.672Z",
       "templateCommit": "c10fee55f72994b68275f183e7ec60a156b3fbf4",
@@ -297,17 +311,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "4b2ae08 feat: add merge-template script for targeted file merging \u001b[90m(25/12/2025)\u001b[0m\n  - New script: yarn merge-template <file1> [file2] ...\n  - Interactive options per file: take template, keep project, create merge file\n  - View full diff before deciding\n  - Shows diff stats (lines added/removed)\n  - Supports --dry-run, --use-https, --no-cleanup flags"
-      ]
-    },
-    {
-      "date": "2025-12-25T10:20:37.279Z",
-      "templateCommit": "001e19b7db16052d463b1e81028c6f6ebccda906",
-      "projectCommit": "614fcf2281864f76dd63082890b955a35cb66e0a",
-      "filesApplied": 1,
-      "filesSkipped": 0,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "001e19b feat(sync-template): add --show-drift flag for immediate full file list \u001b[90m(25/12/2025)\u001b[0m\n  - New --show-drift option shows total drift with detailed file list (no sync)\n  - Add hint in summary output suggesting --show-drift for full details"
       ]
     }
   ],
@@ -591,8 +594,8 @@
     "ui-guidelines-example/weather-locations.html": "fc7346d853ca9c32f0f838dfbdee6347",
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
-    ".cursor/commands/contribute-to-template.md": "960e677a6e7843513571f3a9b646a76a",
-    "scripts/sync-template.ts": "21733ae59068c217e09606028cd24986",
+    ".cursor/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
+    "scripts/sync-template.ts": "6edaa13f777949e5dc81401a5d771540",
     "docs/authentication.md": "387c85ac2bb002141774c25022a1bf33",
     "docs/zustand-stores.md": "afaf4ecda94431faa2644a8ee679e3a1",
     "src/apis/auth/shared.ts": "49c768b44f5e32cd8b4c4401cc239779",

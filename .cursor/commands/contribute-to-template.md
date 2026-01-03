@@ -65,14 +65,16 @@ For these files, you typically want **KEEP (ignore)** because:
 │  3. Execute decisions:                                          │
 │     • DISCARD → Copy template file to project                   │
 │     • MERGE → Create merged version, copy to both               │
-│     • CONTRIBUTE → Copy project file to template                │
+│     • CONTRIBUTE → Copy project file to template (NO COMMIT)    │
 │     • KEEP → Add file to projectSpecificFiles in config         │
 │                                                                 │
-│  4. Commit changes to template (MERGE + CONTRIBUTE files)       │
+│  4. Generate message for template agent (user copies this)      │
 │                                                                 │
-│  5. Update .template-sync.json with new projectSpecificFiles    │
+│  5. User goes to template repo, pastes message to agent         │
 │                                                                 │
-│  6. Result: Project fully synced with template!                 │
+│  6. Template agent reviews and commits                          │
+│                                                                 │
+│  7. User runs sync-template --init-hashes to update baselines   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,30 +96,33 @@ The template is always at `../app-template-ai` relative to your project root.
 
 ## Agent Instructions
 
-### 1. Verify template exists
+### 1. Get all diffs using the sync tool
+
+Run this command to get a complete diff report:
 
 ```bash
-TEMPLATE_PATH="../app-template-ai"
-ls "$TEMPLATE_PATH" || echo "Template not found!"
+yarn sync-template --project-diffs
 ```
 
-### 2. Load sync config
+This outputs:
+- Summary of files by change status
+- Full diff for each file
+- Change status: `project-only` | `template-only` | `both-changed` | `no-baseline`
+
+**Change status meanings:**
+- `project-only`: Only project changed this file (template unchanged) → Likely CONTRIBUTE or KEEP
+- `template-only`: Only template changed (rare, usually handled by regular sync)
+- `both-changed`: Both sides changed → Needs MERGE or decision
+- `no-baseline`: No hash baseline, can't determine who changed → Review carefully
+
+### 2. Load sync config for context
 
 ```bash
 cat .template-sync.json
 ```
 
-Extract ignore lists:
-- `ignoredFiles` - system files, skip
-- `projectSpecificFiles` - project-only code, skip  
-- `templateIgnoredFiles` - example code, skip
-
-### 3. Find ALL differing files
-
-Compare every file in project against template. A file differs if:
-- Content is different (use diff or hash comparison)
-- File exists in both repos
-- File is NOT in any ignore list
+Check:
+- `projectSpecificFiles` - files already marked as project-only
 
 ### 4. Review EACH file with user
 
@@ -169,7 +174,7 @@ cp merged-file.ts ../app-template-ai/src/path/file.ts # Update template
 
 **CONTRIBUTE files:**
 ```bash
-# Copy project version to template
+# Copy project version to template (DO NOT COMMIT YET)
 cp src/path/file.ts ../app-template-ai/src/path/file.ts
 ```
 
@@ -192,63 +197,125 @@ For KEEP (ignore) files, add them to `projectSpecificFiles`:
 }
 ```
 
-### 7. Commit template changes
+### 7. ⚠️ DO NOT COMMIT IN TEMPLATE
 
-For files going to template (MERGE + CONTRIBUTE):
+**Important:** Do NOT commit or push in the template repository!
 
+The user will review the changes with the template's agent first.
+
+Just verify the files were copied:
 ```bash
-cd ../app-template-ai
+cd ../app-template-ai && git status
+```
+
+### 8. Generate message for template agent
+
+**This is critical!** Generate a detailed message for the user to copy/paste to the template's agent.
+
+Output this message in a code block so it's easy to copy:
+
+````markdown
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 MESSAGE FOR TEMPLATE AGENT - COPY EVERYTHING BELOW THIS LINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Incoming Contributions from [Project Name]
+
+Files have been copied to the template for your review. Please review each change and commit if appropriate.
+
+## Summary
+
+| Action | Count |
+|--------|-------|
+| Files contributed | X |
+| Files merged | Y |
+
+## Files to Review
+
+[For each CONTRIBUTE/MERGE file, include:]
+
+### 1. `path/to/file.ts`
+
+**Type:** Bug fix / Feature / Enhancement / Documentation
+**What changed:** [Brief description of the change]
+**Why:** [Reason this benefits the template]
+
+**Key changes:**
+```diff
+[Show the most important diff hunks]
+```
+
+### 2. `path/to/another.ts`
+...
+
+## Review Instructions
+
+Please:
+1. Run `git status` to see all changed files
+2. Run `git diff` to review each change
+3. Verify changes are appropriate for the template (not project-specific)
+4. Fix any issues you find before committing
+
+## Suggested Commit Message
+
+```
+feat: contributions from [project-name]
+
+- [file1]: [brief description]
+- [file2]: [brief description]
+```
+
+## After Review
+
+If changes look good:
+```bash
 git add -A
-git status
-```
-
-### 8. Generate summary
-
-```markdown
-## Resolution Summary
-
-### 🗑️ Discarded project changes (X files):
-- src/client/utils/helpers.ts - Template version preferred
-
-### 🔀 Merged changes (Y files):
-- src/apis/auth/server.ts - Combined improvements from both
-
-### ➡️ Contributed to template (Z files):
-- src/apis/reports/server.ts - Bug fix for pagination
-- docs/zustand-stores.md - Valuable troubleshooting docs
-
-### 📌 Kept as project-specific (W files):
-- src/client/features/index.ts - Added to projectSpecificFiles
-
----
-
-## Template Changes Ready
-
-**Staged in `../app-template-ai`:**
-- src/apis/auth/server.ts (merged)
-- src/apis/reports/server.ts (contributed)
-
-**Commit and push?** [Yes / No]
-```
-
-### 9. Commit and push
-
-```bash
-cd ../app-template-ai
-git commit -m "fix: merge project contributions
-
-- feature: added IOSAuthModal onOpenChange prop
-- fix: parallel deletion in deleteAllReports
-- docs: zustand infinite loop troubleshooting"
+git commit -m "feat: contributions from [project-name]..."
 git push
 ```
 
-### 10. Commit project changes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+````
+
+### 9. Show final instructions to user
+
+```markdown
+## ✅ Files Copied to Template (NOT committed)
+
+The following files have been copied to `../app-template-ai`:
+- [list contributed files]
+- [list merged files]
+
+## 📋 Next Steps
+
+1. **Copy the message above** (everything between the ━━━ lines)
+2. **Go to the template repository:**
+   ```bash
+   cd ../app-template-ai
+   ```
+3. **Open a new chat with the template's agent**
+4. **Paste the message** - the agent will review and commit
+
+## 🔄 After Template Agent Commits
+
+Come back to this project. Your project should now be in sync!
+
+Run `yarn sync-template` to verify - it should show no differences for the contributed files.
+
+**If you see unexpected conflicts**, run:
+```bash
+yarn sync-template --init-hashes
+```
+This resets baselines (needed if template agent modified your contribution before committing).
+```
+
+### 10. Commit project changes (if any KEEP files)
+
+If KEEP (ignore) files were marked, commit the config change in the PROJECT:
 
 ```bash
-cd /path/to/project
-git add .template-sync.json  # if projectSpecificFiles changed
-git commit -m "chore: sync with template + mark project-specific files"
+git add .template-sync.json
+git commit -m "chore: mark project-specific files for sync ignore"
 ```
 
 ---
@@ -382,14 +449,82 @@ Copied to template ✓
 | Merged | 0 |
 | Contributed to template | 2 |
 | Kept as project-specific | 2 |
+```
 
-### Template Changes Ready
+### Agent Generates Message for Template Agent:
 
-**Staged in `../app-template-ai`:**
+````markdown
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 MESSAGE FOR TEMPLATE AGENT - COPY EVERYTHING BELOW THIS LINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Incoming Contributions from training-app-v3
+
+Files have been copied to the template for your review.
+
+## Summary
+
+| Action | Count |
+|--------|-------|
+| Files contributed | 2 |
+
+## Files to Review
+
+### 1. `src/apis/reports/server.ts`
+
+**Type:** Bug fix
+**What changed:** Fixed pagination offset calculation
+**Why:** Page numbers are 1-indexed, not 0-indexed
+
+```diff
+-  const offset = page * limit;
++  const offset = (page - 1) * limit;
+```
+
+### 2. `docs/zustand-stores.md`
+
+**Type:** Documentation
+**What changed:** Added troubleshooting section for infinite loop error
+**Why:** Common pitfall that all template users should know about
+
+## Suggested Commit Message
+
+```
+feat: contributions from training-app-v3
+
+- reports/server.ts: fix pagination offset (1-indexed)
+- docs/zustand-stores.md: add infinite loop troubleshooting
+```
+
+## After Review
+
+```bash
+git add -A
+git commit -m "feat: contributions from training-app-v3..."
+git push
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+````
+
+### Agent Shows Final Instructions:
+
+```markdown
+## ✅ Files Copied to Template (NOT committed)
+
 - src/apis/reports/server.ts
 - docs/zustand-stores.md
 
-**Commit and push?** [Yes]
+## 📋 Next Steps
+
+1. **Copy the message above**
+2. **Go to template:** `cd ../app-template-ai`
+3. **Open new chat with template agent**
+4. **Paste the message** - agent will review and commit
+
+## 🔄 After Template Commits
+
+Run `yarn sync-template` to verify sync is complete.
 ```
 
 ---

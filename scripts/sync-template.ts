@@ -31,6 +31,7 @@
  *   --auto-override-conflicts Apply all changes, override conflicts with template version
  *   --auto-skip-conflicts    Apply safe changes, skip all conflicting files
  *   --init-hashes            Initialize baseline hashes for all files (no sync)
+ *   --project-diffs          Show diffs for files changed in project (for contribute-to-template)
  */
 
 import { execSync } from 'child_process';
@@ -119,6 +120,7 @@ interface SyncOptions {
   verbose: boolean;
   useHTTPS: boolean;
   initHashes: boolean;
+  projectDiffs: boolean;
 }
 
 class TemplateSyncTool {
@@ -1354,6 +1356,137 @@ class TemplateSyncTool {
     }
   }
 
+  /**
+   * Run project-diffs mode - show diffs for files that differ between project and template.
+   * Designed for the contribute-to-template command to easily find what changed.
+   * 
+   * Output format (easy for agent to parse):
+   * ════════════════════════════════════════════════════════════════
+   * FILE: path/to/file.ts
+   * STATUS: project-only | template-only | both-changed | no-baseline
+   * ════════════════════════════════════════════════════════════════
+   * [diff content]
+   * 
+   */
+  private async runProjectDiffs(): Promise<void> {
+    // Clone template to compare
+    this.cloneTemplate();
+
+    try {
+      const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+      const templateCommit = this.exec('git rev-parse HEAD', {
+        cwd: templatePath,
+        silent: true,
+      });
+
+      console.log(`# Project Diffs Report`);
+      console.log(`# Template commit: ${templateCommit}`);
+      console.log(`# Generated: ${new Date().toISOString()}`);
+      console.log('');
+
+      // Get all files from both repos
+      const templateFiles = this.getAllFiles(templatePath, templatePath);
+      const projectFiles = this.getAllFiles(this.projectRoot, this.projectRoot);
+      
+      // Find files that exist in both and might differ
+      const filesToCheck = templateFiles.filter(file => {
+        // Must exist in project
+        const projectFilePath = path.join(this.projectRoot, file);
+        if (!fs.existsSync(projectFilePath)) return false;
+
+        // Skip ignored files
+        if (this.shouldIgnore(file)) return false;
+        if (this.shouldIgnoreByProjectSpecificFiles(file)) return false;
+        if (this.shouldIgnoreTemplateFile(file)) return false;
+
+        return true;
+      });
+
+      // Check each file for differences
+      const diffs: Array<{
+        path: string;
+        status: 'project-only' | 'template-only' | 'both-changed' | 'no-baseline' | 'identical';
+        diff: string;
+      }> = [];
+
+      for (const file of filesToCheck) {
+        const templateFilePath = path.join(templatePath, file);
+        const projectFilePath = path.join(this.projectRoot, file);
+
+        const templateHash = this.getFileHash(templateFilePath);
+        const projectHash = this.getFileHash(projectFilePath);
+
+        // Skip identical files
+        if (templateHash === projectHash) continue;
+
+        // Determine change status
+        const changeStatus = this.getChangeStatus(file);
+        let status: 'project-only' | 'template-only' | 'both-changed' | 'no-baseline';
+
+        if (!changeStatus.hasBaseline) {
+          status = 'no-baseline';
+        } else if (changeStatus.projectChanged && changeStatus.templateChanged) {
+          status = 'both-changed';
+        } else if (changeStatus.projectChanged) {
+          status = 'project-only';
+        } else {
+          status = 'template-only';
+        }
+
+        // Generate diff (project vs template)
+        let diff = '';
+        try {
+          diff = this.exec(
+            `diff -u "${templateFilePath}" "${projectFilePath}" || true`,
+            { silent: true }
+          );
+          // Clean up diff header paths for readability
+          diff = diff
+            .replace(templateFilePath, `a/${file} (template)`)
+            .replace(projectFilePath, `b/${file} (project)`);
+        } catch {
+          diff = '(unable to generate diff)';
+        }
+
+        diffs.push({ path: file, status, diff });
+      }
+
+      // Output results
+      console.log(`# Found ${diffs.length} files with differences`);
+      console.log('');
+
+      // Summary by status
+      const byStatus = {
+        'project-only': diffs.filter(d => d.status === 'project-only'),
+        'template-only': diffs.filter(d => d.status === 'template-only'),
+        'both-changed': diffs.filter(d => d.status === 'both-changed'),
+        'no-baseline': diffs.filter(d => d.status === 'no-baseline'),
+      };
+
+      console.log('## Summary');
+      console.log(`- Project-only changes: ${byStatus['project-only'].length} files`);
+      console.log(`- Template-only changes: ${byStatus['template-only'].length} files`);
+      console.log(`- Both changed: ${byStatus['both-changed'].length} files`);
+      console.log(`- No baseline: ${byStatus['no-baseline'].length} files`);
+      console.log('');
+
+      // Output each diff
+      for (const { path: filePath, status, diff } of diffs) {
+        console.log('═'.repeat(70));
+        console.log(`FILE: ${filePath}`);
+        console.log(`STATUS: ${status}`);
+        console.log('═'.repeat(70));
+        console.log(diff);
+        console.log('');
+      }
+
+      console.log('# End of report');
+
+    } finally {
+      this.cleanupTemplate();
+    }
+  }
+
   private async syncFiles(
     analysis: AnalysisResult,
     mode: SyncMode,
@@ -2241,6 +2374,13 @@ class TemplateSyncTool {
       return;
     }
 
+    // Handle project-diffs mode (for contribute-to-template command)
+    if (this.options.projectDiffs) {
+      await this.runProjectDiffs();
+      this.rl.close();
+      return;
+    }
+
     // Handle diff-summary mode
     if (this.options.diffSummary) {
       await this.runDiffSummary();
@@ -2560,6 +2700,7 @@ const options: SyncOptions = {
   verbose: args.includes('--verbose'),
   useHTTPS: args.includes('--use-https'),
   initHashes: args.includes('--init-hashes'),
+  projectDiffs: args.includes('--project-diffs'),
 };
 
 const tool = new TemplateSyncTool(options);
