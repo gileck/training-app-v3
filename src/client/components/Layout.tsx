@@ -3,6 +3,7 @@ import { TopNavBar } from './layout/TopNavBar';
 import { BottomNavBar } from './layout/BottomNavBar';
 import { DrawerMenu } from './layout/DrawerMenu';
 import { Footer } from './layout/Footer';
+import { FloatingWorkoutBar } from './layout/FloatingWorkoutBar';
 import { NavigatorStandalone } from './layout/types';
 import { filterAdminNavItems, menuItems, navItems } from './NavLinks';
 import { BugReportDialog, useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client/features';
@@ -67,6 +68,9 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
 
       {/* Footer (hidden on mobile) */}
       <Footer isStandalone={isStandalone} />
+
+      {/* Floating Workout Bar (shows when workout is active) */}
+      <FloatingWorkoutBar />
 
       {/* Bottom Navigation (mobile only) */}
       <BottomNavBar navItems={filterAdminNavItems(navItems, isAdmin)} />
