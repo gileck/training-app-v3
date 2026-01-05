@@ -623,6 +623,12 @@ export function Home() {
                                         // Start from saved plan-workout: pass planWorkoutId and name
                                         handleStartWorkout(workoutExercises, workout._id, workout.name);
                                     }}
+                                    onAddSet={handleAddSet}
+                                    onRemoveSet={handleRemoveSet}
+                                    onCompleteAll={handleCompleteAll}
+                                    onOpenDetails={handleOpenExerciseDetails}
+                                    selectedExerciseIds={selectedExerciseIds}
+                                    onToggleSelection={toggleSelection}
                                 />
                             ))}
                         </div>
@@ -921,9 +927,28 @@ interface PlanWorkoutCardProps {
     onStart: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    // Exercise action handlers
+    onAddSet: (exercise: ExerciseWeekProgressFromStore) => void;
+    onRemoveSet: (exercise: ExerciseWeekProgressFromStore) => void;
+    onCompleteAll: (exercise: ExerciseWeekProgressFromStore) => void;
+    onOpenDetails: (exercise: ExerciseWeekProgressFromStore) => void;
+    selectedExerciseIds: string[];
+    onToggleSelection: (exerciseId: string) => void;
 }
 
-function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpand }: PlanWorkoutCardProps) {
+function PlanWorkoutCard({
+    workout,
+    exercises,
+    onStart,
+    isExpanded,
+    onToggleExpand,
+    onAddSet,
+    onRemoveSet,
+    onCompleteAll,
+    onOpenDetails,
+    selectedExerciseIds,
+    onToggleSelection,
+}: PlanWorkoutCardProps) {
     // Create a map for quick lookup of exercises by planExerciseId
     const exerciseMap = new Map(exercises.map((ex) => [ex.planExerciseId, ex]));
 
@@ -1005,52 +1030,28 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
                     )}
                 </div>
 
-                {/* Expandable exercise list */}
+                {/* Expandable exercise list - reuses ExerciseCardList for consistency */}
                 {isExpanded && (
-                    <div className="border-t bg-muted/30">
+                    <div className="border-t bg-muted/30 p-3 space-y-2">
                         {resolvedExercises.length === 0 ? (
                             <div className="p-4 text-center text-sm text-muted-foreground">
                                 No exercises found (they may have been removed from the plan)
                             </div>
                         ) : (
-                            resolvedExercises.map((ex, index) => {
+                            resolvedExercises.map((ex) => {
                                 const isExerciseDone = ex.isDone || ex.setsCompleted >= ex.targetSets;
                                 return (
-                                    <div
+                                    <ExerciseCardList
                                         key={ex.planExerciseId}
-                                        className={`flex items-center gap-3 p-3 ${index !== resolvedExercises.length - 1 ? 'border-b border-border/50' : ''}`}
-                                    >
-                                        <div className="relative w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
-                                            {ex.exerciseDef.imageUrl ? (
-                                                <img
-                                                    src={ex.exerciseDef.imageUrl}
-                                                    alt={ex.exerciseDef.name}
-                                                    className={`w-full h-full object-contain ${isExerciseDone ? 'opacity-50' : ''}`}
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Dumbbell className={`h-5 w-5 ${isExerciseDone ? 'text-success' : 'text-muted-foreground'}`} />
-                                                </div>
-                                            )}
-                                            {isExerciseDone && (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-success/20 rounded-lg">
-                                                    <Check className="h-5 w-5 text-success" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className={`font-medium text-sm truncate ${isExerciseDone ? 'text-muted-foreground line-through' : ''}`}>
-                                                {ex.exerciseDef.name}
-                                            </h4>
-                                            <p className="text-xs text-muted-foreground">
-                                                <span className={ex.setsCompleted > 0 ? (isExerciseDone ? 'text-success' : 'text-primary') : ''}>
-                                                    {ex.setsCompleted}/{ex.targetSets} sets
-                                                </span>
-                                                {' × '}{ex.planExercise.reps} reps
-                                                {ex.planExercise.weight > 0 && ` • ${ex.planExercise.weight}kg`}
-                                            </p>
-                                        </div>
-                                    </div>
+                                        exercise={ex}
+                                        onAddSet={() => onAddSet(ex)}
+                                        onRemoveSet={() => onRemoveSet(ex)}
+                                        onCompleteAll={() => onCompleteAll(ex)}
+                                        onOpenDetails={() => onOpenDetails(ex)}
+                                        isComplete={isExerciseDone}
+                                        isSelected={selectedExerciseIds.includes(ex.planExerciseId)}
+                                        onSelect={() => onToggleSelection(ex.planExerciseId)}
+                                    />
                                 );
                             })
                         )}
