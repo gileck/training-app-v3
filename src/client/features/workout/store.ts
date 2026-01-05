@@ -15,6 +15,8 @@ export const useWorkoutStore = createStore<WorkoutState>({
         // Selection mode state (not persisted)
         selectedExerciseIds: [],
         isSelectionMode: false,
+        // Expanded workout state
+        expandedWorkoutId: null,
         setWeek: (week) => set({ currentWeek: week }),
         setActivePlan: (id) => set({ activePlanId: id }),
         setViewMode: (mode) => set({ viewMode: mode }),
@@ -37,6 +39,8 @@ export const useWorkoutStore = createStore<WorkoutState>({
                 isSelectionMode: enabled,
                 selectedExerciseIds: enabled ? state.selectedExerciseIds : [],
             })),
+        // Expanded workout action
+        setExpandedWorkoutId: (id) => set({ expandedWorkoutId: id }),
     }),
     persistOptions: {
         partialize: (state) => ({
@@ -44,6 +48,7 @@ export const useWorkoutStore = createStore<WorkoutState>({
             activePlanId: state.activePlanId,
             viewMode: state.viewMode,
             activeTab: state.activeTab,
+            expandedWorkoutId: state.expandedWorkoutId,
             // Don't persist selection - it's ephemeral
         }),
     },
@@ -61,5 +66,7 @@ export const useIsSelectionMode = () => useWorkoutStore((state) => state.isSelec
 export const useToggleSelection = () => useWorkoutStore((state) => state.toggleSelection);
 export const useClearSelection = () => useWorkoutStore((state) => state.clearSelection);
 export const useSetSelectionMode = () => useWorkoutStore((state) => state.setSelectionMode);
+export const useExpandedWorkoutId = () => useWorkoutStore((state) => state.expandedWorkoutId);
+export const useSetExpandedWorkoutId = () => useWorkoutStore((state) => state.setExpandedWorkoutId);
 
 

@@ -42,6 +42,9 @@ import {
     useSetPlanWorkoutId,
     useSetPlanWorkoutName,
     useIsSessionActive,
+    // Expanded workout
+    useExpandedWorkoutId,
+    useSetExpandedWorkoutId,
 } from '@/client/features/workout';
 import type { WorkoutTab } from '@/client/features/workout';
 import {
@@ -112,6 +115,10 @@ export function Home() {
     }, []);
     const planWorkoutsList = planWorkoutsData?.workouts || [];
 
+    // Expanded workout state (persisted in store)
+    const expandedWorkoutId = useExpandedWorkoutId();
+    const setExpandedWorkoutId = useSetExpandedWorkoutId();
+
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [completedExpanded, setCompletedExpanded] = useState(false);
@@ -119,8 +126,6 @@ export function Home() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgressFromStore | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
-    const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
