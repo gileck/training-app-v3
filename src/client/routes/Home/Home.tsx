@@ -42,6 +42,9 @@ import {
     useSetPlanWorkoutId,
     useSetPlanWorkoutName,
     useIsSessionActive,
+    // Expanded workout
+    useExpandedWorkoutId,
+    useSetExpandedWorkoutId,
 } from '@/client/features/workout';
 import type { WorkoutTab } from '@/client/features/workout';
 import {
@@ -112,6 +115,10 @@ export function Home() {
     }, []);
     const planWorkoutsList = planWorkoutsData?.workouts || [];
 
+    // Expanded workout state (persisted in store)
+    const expandedWorkoutId = useExpandedWorkoutId();
+    const setExpandedWorkoutId = useSetExpandedWorkoutId();
+
     // Local UI state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [completedExpanded, setCompletedExpanded] = useState(false);
@@ -119,8 +126,6 @@ export function Home() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgressFromStore | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral expand state
-    const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
     const exercises = weekData?.exercises || [];
     const incompleteExercises = exercises.filter((e) => !e.isDone);
@@ -623,6 +628,12 @@ export function Home() {
                                         // Start from saved plan-workout: pass planWorkoutId and name
                                         handleStartWorkout(workoutExercises, workout._id, workout.name);
                                     }}
+                                    onAddSet={handleAddSet}
+                                    onRemoveSet={handleRemoveSet}
+                                    onCompleteAll={handleCompleteAll}
+                                    onOpenDetails={handleOpenExerciseDetails}
+                                    selectedExerciseIds={selectedExerciseIds}
+                                    onToggleSelection={toggleSelection}
                                 />
                             ))}
                         </div>
@@ -921,9 +932,28 @@ interface PlanWorkoutCardProps {
     onStart: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    // Exercise action handlers
+    onAddSet: (exercise: ExerciseWeekProgressFromStore) => void;
+    onRemoveSet: (exercise: ExerciseWeekProgressFromStore) => void;
+    onCompleteAll: (exercise: ExerciseWeekProgressFromStore) => void;
+    onOpenDetails: (exercise: ExerciseWeekProgressFromStore) => void;
+    selectedExerciseIds: string[];
+    onToggleSelection: (exerciseId: string) => void;
 }
 
-function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpand }: PlanWorkoutCardProps) {
+function PlanWorkoutCard({
+    workout,
+    exercises,
+    onStart,
+    isExpanded,
+    onToggleExpand,
+    onAddSet,
+    onRemoveSet,
+    onCompleteAll,
+    onOpenDetails,
+    selectedExerciseIds,
+    onToggleSelection,
+}: PlanWorkoutCardProps) {
     // Create a map for quick lookup of exercises by planExerciseId
     const exerciseMap = new Map(exercises.map((ex) => [ex.planExerciseId, ex]));
 
@@ -932,8 +962,14 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
         .map((item) => exerciseMap.get(item.planExerciseId))
         .filter((ex): ex is ExerciseWeekProgressFromStore => ex !== undefined);
 
+    // Calculate workout progress
+    const totalSets = resolvedExercises.reduce((sum, ex) => sum + ex.targetSets, 0);
+    const completedSets = resolvedExercises.reduce((sum, ex) => sum + Math.min(ex.setsCompleted, ex.targetSets), 0);
+    const progressPercent = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+    const isWorkoutComplete = totalSets > 0 && completedSets >= totalSets;
+
     return (
-        <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
+        <Card className={`rounded-xl border-0 shadow-sm overflow-hidden ${isWorkoutComplete ? 'ring-2 ring-success/50' : ''}`}>
             <CardContent className="p-0">
                 {/* Header - clickable to expand */}
                 <div
@@ -946,10 +982,26 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-base truncate">{workout.name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {resolvedExercises.length} exercise{resolvedExercises.length !== 1 ? 's' : ''}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-base truncate">{workout.name}</h3>
+                                    {isWorkoutComplete && (
+                                        <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1 px-1.5 py-0 text-xs">
+                                            <CheckCheck className="h-3 w-3" />
+                                            Done
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <span>{resolvedExercises.length} exercise{resolvedExercises.length !== 1 ? 's' : ''}</span>
+                                    {totalSets > 0 && (
+                                        <>
+                                            <span className="text-muted-foreground/50">•</span>
+                                            <span className={completedSets > 0 ? (isWorkoutComplete ? 'text-success' : 'text-primary') : ''}>
+                                                {completedSets}/{totalSets} sets
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <Button
@@ -959,50 +1011,54 @@ function PlanWorkoutCard({ workout, exercises, onStart, isExpanded, onToggleExpa
                                 onStart();
                             }}
                             disabled={resolvedExercises.length === 0}
-                            className="h-10 w-10 rounded-full bg-success text-success-foreground shadow-lg shadow-success/25"
+                            className={`h-10 w-10 rounded-full shadow-lg ${
+                                isWorkoutComplete
+                                    ? 'bg-success text-success-foreground shadow-success/25'
+                                    : 'bg-primary text-primary-foreground shadow-primary/25'
+                            }`}
                         >
-                            <Play className="h-5 w-5" />
+                            {isWorkoutComplete ? <CheckCheck className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                         </Button>
                     </div>
+                    {/* Progress bar */}
+                    {totalSets > 0 && (
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-3">
+                            <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                    isWorkoutComplete
+                                        ? 'bg-success'
+                                        : 'bg-gradient-to-r from-primary to-primary/80'
+                                }`}
+                                style={{ width: `${progressPercent}%` }}
+                            />
+                        </div>
+                    )}
                 </div>
 
-                {/* Expandable exercise list */}
+                {/* Expandable exercise list - reuses ExerciseCardList for consistency */}
                 {isExpanded && (
-                    <div className="border-t bg-muted/30">
+                    <div className="border-t bg-muted/30 p-3 space-y-2">
                         {resolvedExercises.length === 0 ? (
                             <div className="p-4 text-center text-sm text-muted-foreground">
                                 No exercises found (they may have been removed from the plan)
                             </div>
                         ) : (
-                            resolvedExercises.map((ex, index) => (
-                                <div
-                                    key={ex.planExerciseId}
-                                    className={`flex items-center gap-3 p-3 ${index !== resolvedExercises.length - 1 ? 'border-b border-border/50' : ''}`}
-                                >
-                                    <div className="w-12 h-12 rounded-lg bg-background overflow-hidden flex-shrink-0">
-                                        {ex.exerciseDef.imageUrl ? (
-                                            <img
-                                                src={ex.exerciseDef.imageUrl}
-                                                alt={ex.exerciseDef.name}
-                                                className="w-full h-full object-contain"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-sm truncate">
-                                            {ex.exerciseDef.name}
-                                        </h4>
-                                        <p className="text-xs text-muted-foreground">
-                                            {ex.targetSets} sets × {ex.planExercise.reps} reps
-                                            {ex.planExercise.weight > 0 && ` • ${ex.planExercise.weight}kg`}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))
+                            resolvedExercises.map((ex) => {
+                                const isExerciseDone = ex.isDone || ex.setsCompleted >= ex.targetSets;
+                                return (
+                                    <ExerciseCardList
+                                        key={ex.planExerciseId}
+                                        exercise={ex}
+                                        onAddSet={() => onAddSet(ex)}
+                                        onRemoveSet={() => onRemoveSet(ex)}
+                                        onCompleteAll={() => onCompleteAll(ex)}
+                                        onOpenDetails={() => onOpenDetails(ex)}
+                                        isComplete={isExerciseDone}
+                                        isSelected={selectedExerciseIds.includes(ex.planExerciseId)}
+                                        onSelect={() => onToggleSelection(ex.planExerciseId)}
+                                    />
+                                );
+                            })
                         )}
                     </div>
                 )}

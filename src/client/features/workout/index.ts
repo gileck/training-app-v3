@@ -11,6 +11,9 @@ export {
     useToggleSelection,
     useClearSelection,
     useSetSelectionMode,
+    // Expanded workout exports
+    useExpandedWorkoutId,
+    useSetExpandedWorkoutId,
 } from './store';
 
 // Export query/mutation hooks

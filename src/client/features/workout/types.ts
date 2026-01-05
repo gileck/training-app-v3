@@ -11,6 +11,8 @@ export interface WorkoutState {
     // Selection mode state
     selectedExerciseIds: string[];
     isSelectionMode: boolean;
+    // Expanded workout in workouts tab
+    expandedWorkoutId: string | null;
     setWeek: (week: number) => void;
     setActivePlan: (id: string | null) => void;
     setViewMode: (mode: 'grid' | 'list') => void;
@@ -19,6 +21,8 @@ export interface WorkoutState {
     toggleSelection: (exerciseId: string) => void;
     clearSelection: () => void;
     setSelectionMode: (enabled: boolean) => void;
+    // Expanded workout action
+    setExpandedWorkoutId: (id: string | null) => void;
 }
 
 
