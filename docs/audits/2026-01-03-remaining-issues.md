@@ -6,22 +6,17 @@ Issues identified during the full project audit (2026-01-03) that were not addre
 
 ## 1. API Structure Issues
 
-These API domains don't follow the standard structure (`index.ts`, `types.ts`, `server.ts`, `client.ts`, `handlers/`).
+Investigation completed 2026-01-06. Most flagged APIs are **not violations** - they use valid alternative patterns.
 
-| Domain | Current State | Severity | Recommendation |
-|--------|---------------|----------|----------------|
-| `batch-updates` | Only `types.ts` | CRITICAL | Review if needed - may be handled via batch sync endpoint |
-| `saved-workouts` | Only `handlers/` | CRITICAL | Add missing files or consolidate into another domain |
-| `settings` | Only `handlers/clearCache/` | CRITICAL | Add proper structure if actively used |
-| `chat` | Missing `handlers/` directory | MEDIUM | Add handlers/ or move logic |
-| `plan-data` | Missing `client.ts` | MEDIUM | Add if client-side calls are needed |
+| Domain | Status | Conclusion |
+|--------|--------|------------|
+| `batch-updates` | ✅ Not a violation | Special batch endpoint with dedicated page route (`/api/process/batch-updates.ts`) - intentionally different pattern for offline sync |
+| `saved-workouts` | ✅ Deleted | Empty `handlers/` folder with zero references - dead code removed |
+| `settings/clearCache` | ✅ Not a violation | Properly structured nested API (has all 4 required files) |
+| `chat` | ✅ Not a violation | Single-handler API pattern - handler logic directly in `server.ts` |
+| `plan-data` | ✅ Not a violation | Called via raw `apiClient` - no typed client wrapper needed |
 
-### Investigation Needed
-
-Before fixing, verify:
-1. Are these APIs actively used?
-2. Should they be consolidated into other domains?
-3. Are they legacy code that can be removed?
+**No remaining API structure violations.**
 
 ---
 
@@ -29,12 +24,23 @@ Before fixing, verify:
 
 Files exceeding the 150-line guideline for components.
 
-| File | Lines | Severity | Suggested Extraction |
-|------|-------|----------|---------------------|
-| `routes/Progress/Progress.tsx` | 1,817 | CRITICAL | Extract: `ActivityLog`, `DailySummaries`, `ProgressCharts`, `EditActivityDialog`, `AddActivityDialog` |
-| `routes/ActiveWorkout/ActiveWorkout.tsx` | 1,459 | CRITICAL | Extract: `AllExercisesOverlay`, timer hook |
-| `routes/Home/Home.tsx` | 1,012 | CRITICAL | Extract: `ExerciseCard`, `PlanWorkoutCard` |
-| `routes/Reports/Reports.tsx` | 791 | HIGH | Extract: `ReportCard` |
+| File | Lines | Severity | Status |
+|------|-------|----------|--------|
+| `routes/Progress/Progress.tsx` | 1,817 | CRITICAL | ❌ Outstanding |
+| `routes/ActiveWorkout/ActiveWorkout.tsx` | 1,459 | CRITICAL | ❌ Outstanding |
+| `routes/Home/Home.tsx` | 1,012 | CRITICAL | ❌ Outstanding |
+| `routes/Reports/Reports.tsx` | 791 → 133 | HIGH | ✅ Fixed (template sync dc82b27) |
+| `routes/Settings/Settings.tsx` | 385 → 52 | - | ✅ Fixed (template sync dc82b27) |
+| `routes/Todos/Todos.tsx` | 378 → 166 | - | ✅ Fixed (template sync dc82b27) |
+| `routes/Profile/Profile.tsx` | 322 → 266 | - | ✅ Fixed (template sync dc82b27) |
+
+### Remaining Refactoring
+
+| File | Suggested Extraction |
+|------|---------------------|
+| `Progress.tsx` | `ActivityLog`, `DailySummaries`, `ProgressCharts`, `EditActivityDialog`, `AddActivityDialog` |
+| `ActiveWorkout.tsx` | `AllExercisesOverlay`, timer hook |
+| `Home.tsx` | `ExerciseCard`, `PlanWorkoutCard` |
 
 ### Refactoring Strategy
 
@@ -81,7 +87,17 @@ No action needed for these areas:
 
 ## Priority Order for Remaining Work
 
-1. **HIGH**: Component splitting (improves maintainability)
-2. **MEDIUM**: API structure cleanup (after investigation)
+1. **HIGH**: Component splitting - 3 files remaining:
+   - `Progress.tsx` (1,817 lines) → Extract 5 components
+   - `ActiveWorkout.tsx` (1,459 lines) → Extract 1 component + 1 hook
+   - `Home.tsx` (1,012 lines) → Extract 2 components
+
+**Total: 10 extraction tasks**
 
 Run `yarn checks` after any changes to verify compliance.
+
+---
+
+*Last updated: 2026-01-06*
+- Template sync dc82b27 fixed 4 component size violations
+- API structure investigation completed - all resolved (1 deleted, 4 not violations)
