@@ -28,7 +28,7 @@ Files exceeding the 150-line guideline for components.
 |------|-------|----------|--------|
 | `routes/Progress/Progress.tsx` | 1,817 | CRITICAL | ❌ Outstanding |
 | `routes/ActiveWorkout/ActiveWorkout.tsx` | 1,459 | CRITICAL | ❌ Outstanding |
-| `routes/Home/Home.tsx` | 1,012 | CRITICAL | ❌ Outstanding |
+| `routes/Home/Home.tsx` | 1,012 → 653 | CRITICAL | ✅ Fixed (extracted ExerciseCard, PlanWorkoutCard) |
 | `routes/Reports/Reports.tsx` | 791 → 133 | HIGH | ✅ Fixed (template sync dc82b27) |
 | `routes/Settings/Settings.tsx` | 385 → 52 | - | ✅ Fixed (template sync dc82b27) |
 | `routes/Todos/Todos.tsx` | 378 → 166 | - | ✅ Fixed (template sync dc82b27) |
@@ -40,7 +40,6 @@ Files exceeding the 150-line guideline for components.
 |------|---------------------|
 | `Progress.tsx` | `ActivityLog`, `DailySummaries`, `ProgressCharts`, `EditActivityDialog`, `AddActivityDialog` |
 | `ActiveWorkout.tsx` | `AllExercisesOverlay`, timer hook |
-| `Home.tsx` | `ExerciseCard`, `PlanWorkoutCard` |
 
 ### Refactoring Strategy
 
@@ -87,12 +86,11 @@ No action needed for these areas:
 
 ## Priority Order for Remaining Work
 
-1. **HIGH**: Component splitting - 3 files remaining:
+1. **HIGH**: Component splitting - 2 files remaining:
    - `Progress.tsx` (1,817 lines) → Extract 5 components
    - `ActiveWorkout.tsx` (1,459 lines) → Extract 1 component + 1 hook
-   - `Home.tsx` (1,012 lines) → Extract 2 components
 
-**Total: 10 extraction tasks**
+**Total: 7 extraction tasks**
 
 Run `yarn checks` after any changes to verify compliance.
 
@@ -101,3 +99,4 @@ Run `yarn checks` after any changes to verify compliance.
 *Last updated: 2026-01-06*
 - Template sync dc82b27 fixed 4 component size violations
 - API structure investigation completed - all resolved (1 deleted, 4 not violations)
+- Home.tsx refactored: 1,012 → 653 lines (extracted ExerciseCard, PlanWorkoutCard)
