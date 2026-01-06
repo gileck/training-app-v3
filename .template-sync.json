@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
-  "lastProjectCommit": "9355ea38f336107ddc506d8fb0e8b6cd64702748",
-  "lastSyncDate": "2026-01-03T17:14:20.851Z",
+  "lastSyncCommit": "e4a11492e9716dbec8021a6259b1d86bd897c825",
+  "lastProjectCommit": "0549b86a6b27914843c500919632a741adaab271",
+  "lastSyncDate": "2026-01-06T09:09:53.295Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -51,6 +51,20 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-06T09:09:53.295Z",
+      "templateCommit": "e4a11492e9716dbec8021a6259b1d86bd897c825",
+      "projectCommit": "0549b86a6b27914843c500919632a741adaab271",
+      "filesApplied": 24,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "e4a1149 refactor: split large route components into smaller sub-components \u001b[90m(03/01/2026)\u001b[0m\n  - Reports.tsx: 791 → 133 lines (extracted ReportCard, GroupedReportCard, ReportsFilters, ReportsHeader, utils)\n  - Settings.tsx: 385 → 52 lines (extracted CacheSection, AIModelSection, utils)\n  - Todos.tsx: 378 → 166 lines (extracted TodoItem, CreateTodoForm, DeleteTodoDialog)\n  - Profile.tsx: 322 → 266 lines (extracted ProfileCard, AccountInfoCard, ImageUploadDialog)\n  - Moved ConfirmDialog to shared components/ui for reuse\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "f089158 refactor: merge React Query mutations audit into full project audit \u001b[90m(03/01/2026)\u001b[0m\n  - Merged detailed mutation audit content from audit-react-query-mutations.md into section 3.4 of full-project-audit.md\n  - Added new sections: 3.4.0 (temp ID vs client ID distinction), 3.4.8 (common mistakes), 3.4.9 (UX impact template), 3.4.10 (mutation checklist)\n  - Enhanced 3.4.4 with per-mutation analysis template, decision flowchart, and examples\n  - Deleted standalone audit-react-query-mutations.md (content now in full audit)\n  - Synced .claude/commands with .cursor/commands",
+        "8164ec2 refactor: update audit command to output report-only with progress tracker \u001b[90m(03/01/2026)\u001b[0m\n  - Change audit to be report-only (no code changes during audit)\n  - Save audit report to audits/audit-YYYY-MM-DD.md\n  - Add progress tracker with checkboxes for each fix task\n  - Add Progress Overview table at top of report\n  - Add Implementation Log section for tracking\n  - Add Final Verification Checklist\n  - Include collapsible code change details\n  - Organize fixes by phase (Critical → High → Medium → Low)",
+        "ca76f0d fix(auth): increase IOSAuthModal z-index to appear above fullscreen overlays \u001b[90m(03/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-03T17:14:20.850Z",
       "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
@@ -301,34 +315,21 @@
       "templateCommits": [
         "40f2edc feat: sync-template now shows total diff with NEW/existing separation \u001b[90m(27/12/2025)\u001b[0m\n  BREAKING CHANGE: sync-template behavior changed to support incremental syncing\n  \n  Previous behavior (BROKEN):\n  - Only showed changes since last sync\n  - If you applied partial changes, unapplied changes were lost\n  - \"No new template commits\" blocked seeing existing differences\n  \n  New behavior (FIXED):\n  - Always shows TOTAL diff (current state vs current state)\n  - Separates changes into:\n    * NEW since last sync (highlighted)\n    * Existing differences (greyed out)\n  - Supports incremental workflow:\n    1. Apply safe changes first\n    2. Come back later for conflicts\n    3. Never lose track of unapplied changes\n  \n  Display changes:\n  - \"Safe changes - NEW since last sync\" (normal color)\n  - \"Safe changes - existing differences\" (grey)\n  - \"Conflicts - NEW since last sync\" (normal color)\n  - \"Conflicts - existing differences\" (grey)\n  \n  This matches --diff-summary behavior and enables proper incremental syncing.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2025-12-27T10:17:34.315Z",
-      "templateCommit": "47423a8771770edf77d268f184fd008f78a61e8c",
-      "projectCommit": "a95b901d1c5e00d96e9b81f131282de1ec09dc70",
-      "filesApplied": 1,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "47423a8 feat: add --modified-only flag to sync-template diff-summary \u001b[90m(27/12/2025)\u001b[0m\n  Adds a new --modified-only option to show only files that differ from the\n  template, excluding:\n  - New files (in template but not in project)\n  - Ignored files (matching ignoredFiles patterns)\n  - Project-specific files (matching projectSpecificFiles patterns)\n  \n  This is useful for reviewing what has changed in existing shared files\n  without the noise of project-specific customizations or new template features.\n  \n  Usage:\n    yarn sync-template --diff-summary --modified-only\n  \n  The output will show only the \"Modified\" section with diffs of files that\n  exist in both the template and project but have diverged.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "0dbc894 feat: sync UX improvements from training-app-v3 \u001b[90m(27/12/2025)\u001b[0m\n  Toast component:\n  - Better theme-aware styling with bg-card and border-border\n  - Mobile-friendly positioning (bottom-20, left-4, right-4)\n  - Pointer-events handling for better interaction\n  - Enhanced shadow for better visibility\n  \n  Reports component:\n  - Add persistent filter state via Zustand store\n  - Fix critical loading state bug (check isLoading || data === undefined)\n  - Prevents showing \"No reports\" during data fetch\n  - Filters now survive page refresh\n  \n  This implements the critical UX pattern documented in our loading states guidelines.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "9181fd3 docs: sync documentation with training-app-v3 improvements \u001b[90m(27/12/2025)\u001b[0m\n  - Add critical loading states pattern to react-hook-organization.mdc\n  - Improve error handling documentation in authentication.md\n  - Expand loading states section in state-management.md\n  - Emphasize correct state checking order: Loading → Error → Empty → Data\n  \n  These updates prevent common UX bugs where empty states appear during loading.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
     ".cache/1cd1c37329669da6f03272a7e6e170b0.json": "4af81a6086957baa7229dc44062fc045",
     ".cache/48779b4effd022b7d475bf5d9521e996.json": "1a1fcc679a6382b182e7ac3d28501308",
     ".cache/55ae2ef23a8ff80035f8960a8a333835.json": "db7e8163da55229a1d39a9c63308d659",
-    ".claude/commands/debug-bug-report.md": "48eef6b93f462cba38e6b7c9a523f321",
+    ".claude/commands/debug-bug-report.md": "259a7854a6f9601291954473deaacd0b",
     ".claude/commands/fix-bug.md": "0b92bea9417333e18399327d51f5e377",
     ".claude/commands/new-feature.md": "da5a02317c02310cb4ec91a764596764",
     ".claude/commands/review-document-and-push.md": "7a2a10c680b9938b8d6608c5fce36631",
-    ".claude/commands/sync-template.md": "eec752cbe2e78d3ea97160bbcbc5744f",
-    ".claude/commands/template-diff.md": "bc80126d7da3638e0113e21b49539544",
+    ".claude/commands/sync-template.md": "5233213ecf78cfc75ec94a5758f679f8",
+    ".claude/commands/template-diff.md": "a701807f4375b52b15b84f9f75b785e1",
     ".cursor/commands/audit-react-query-mutations.md": "da2183e2571b0976da22e9424aa7980a",
     ".cursor/commands/debug-bug-report.md": "259a7854a6f9601291954473deaacd0b",
-    ".cursor/commands/full-project-audit.md": "73d8e15d9eef8da7dee833d2cb6bfc24",
+    ".cursor/commands/full-project-audit.md": "04d5a9346a6ce017a11880465d7c4e0a",
     ".cursor/commands/sync-template.md": "5233213ecf78cfc75ec94a5758f679f8",
     ".cursor/commands/template-diff.md": "a701807f4375b52b15b84f9f75b785e1",
     ".cursor/rules/ai-models-api-usage.mdc": "60fc8d4ec7ffac07cfa0329ba465f441",
@@ -521,10 +522,10 @@
     "src/client/router/index.tsx": "fb9878bbb1afafddaca13204ddd5ad73",
     "src/client/routes/NotFound/NotFound.tsx": "8e5a2000db3c03277a38b68c64f0469b",
     "src/client/routes/NotFound/index.ts": "d61014aa84dbc5db967a05f08c2f09d3",
-    "src/client/routes/Profile/Profile.tsx": "99c38bb2101ca5a3e103fab48574246c",
+    "src/client/routes/Profile/Profile.tsx": "3677c3fcd1d445db7910d80a4e8737d7",
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
-    "src/client/routes/Reports/Reports.tsx": "b13df9d4d600d27a421d6be2624052c9",
+    "src/client/routes/Reports/Reports.tsx": "d779d86bec86ce3772fec318126463ec",
     "src/client/routes/Reports/hooks.ts": "328969aea80032801cdbe668411af245",
     "src/client/routes/Reports/index.ts": "d50cbe298a66723e0b120912e51e22cc",
     "src/client/routes/Reports/store.ts": "da914b2cd044bb3f270a94e77e4810de",
@@ -604,6 +605,23 @@
     "src/apis/reports/handlers/deleteAllReports.ts": "1daaeae2f3117c181982e5bf654f432c",
     "src/client/features/auth/IOSAuthModal.tsx": "ab668a8213c95d4c159362f01e18f8d2",
     "src/client/features/index.ts": "255a5c523cb1017049e9c23e4a3bccfb",
-    "src/client/routes/Settings/Settings.tsx": "2c4b9e5ad58f11718b1f036637fed435"
+    "src/client/routes/Settings/Settings.tsx": "a31f6ac2ce8fbe641c4005ea89a6be37",
+    ".claude/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
+    ".claude/commands/full-project-audit.md": "04d5a9346a6ce017a11880465d7c4e0a",
+    "src/client/components/ui/confirm-dialog.tsx": "23ec45595012722338327c76936a08d7",
+    "src/client/routes/Profile/components/AccountInfoCard.tsx": "d7d391f9c4e6152c311b8316b88ab04f",
+    "src/client/routes/Profile/components/ImageUploadDialog.tsx": "949ddb624de8ea2d1070822b05fd3aba",
+    "src/client/routes/Profile/components/ProfileCard.tsx": "c5a5b7a37772291a4d1a045a0d473fa6",
+    "src/client/routes/Profile/components/index.ts": "2099ce9c96e94abd7b88acb36987f8c2",
+    "src/client/routes/Reports/components/GroupedReportCard.tsx": "e524d449cc78c3d74c14400a4524dba4",
+    "src/client/routes/Reports/components/ReportCard.tsx": "8eb412c2dbf04fd11a08d96600b5e18a",
+    "src/client/routes/Reports/components/ReportsFilters.tsx": "b33b3f4fcbff974f742978b0359378fd",
+    "src/client/routes/Reports/components/ReportsHeader.tsx": "4f0403d3917c9356ccae28aaa92ca524",
+    "src/client/routes/Reports/components/index.ts": "e452620f13cca7ea14ad7c93ac5871f1",
+    "src/client/routes/Reports/utils.ts": "53158fadf217744671e416b818f2012a",
+    "src/client/routes/Settings/components/AIModelSection.tsx": "180d72abac3b4ac7846022296c0de2bd",
+    "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
+    "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
+    "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01"
   }
 }

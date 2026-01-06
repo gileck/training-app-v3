@@ -1,8 +1,3 @@
----
-description: Analyze bug/error reports systematically to find root cause
-argument-hint: [report-id or paste report]
----
-
 # Debug Bug Report
 
 You are debugging a bug/error report from the application. Analyze the provided report systematically to find the root cause.
@@ -78,7 +73,11 @@ Look for:
 
 If the report includes a screenshot URL (public Vercel Blob URL):
 
-1. **Fetch the screenshot** using WebFetch tool to view the image
+1. **Navigate to the screenshot** using the browser tools:
+   ```typescript
+   mcp_cursor-ide-browser_browser_navigate({ url: "screenshot-url" })
+   mcp_cursor-ide-browser_browser_take_screenshot()
+   ```
 
 2. **Visual analysis** - Look for:
    - UI state that might indicate the issue (error messages, loading states, broken layouts)
@@ -102,7 +101,8 @@ If the report includes a screenshot URL (public Vercel Blob URL):
 After analysis, take these actions:
 
 1. **View the screenshot** (if provided):
-   - Fetch the screenshot URL using WebFetch
+   - Navigate to the screenshot URL using browser tools
+   - Take a screenshot to see the visual context
    - Note any visible UI issues or states
 
 2. **Search the codebase** for relevant files mentioned in:
@@ -147,4 +147,5 @@ Specific code changes to resolve the issue
 
 ## Report to Debug
 
-$ARGUMENTS
+{paste the bug/error report here}
+

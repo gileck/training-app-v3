@@ -1,7 +1,3 @@
----
-description: Generate and summarize all differences between template and project
----
-
 # Template Diff Summary
 
 This command generates and summarizes all differences between the template repository and your current project, regardless of commit history.
@@ -92,3 +88,4 @@ Present the summary in a clear, readable format:
 - Ignored files are still shown (but marked as ignored)
 - Use `yarn sync-template` to apply template updates interactively
 - The diff summary file is added to `.gitignore` and won't be committed
+
