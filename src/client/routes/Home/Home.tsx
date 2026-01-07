@@ -45,12 +45,10 @@ import {
     useLoadPlan,
     useLoadWeekProgress,
     useWeekProgressFromStoreData,
-    usePlanDataStore,
-    syncPlanToServer,
     usePlanLoading,
+    useSetProgress,
     type ExerciseWeekProgressFromStore,
 } from '@/client/features/plan-data';
-import { useAddActivity, useDeleteRecentActivity } from './hooks';
 import { usePlanWorkouts } from '@/client/features/plan-workouts';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 import { ExerciseCardGrid, ExerciseCardList, PlanWorkoutCard } from './components';
@@ -78,14 +76,8 @@ export function Home() {
     // Week progress from store (local-first)
     const weekData = useWeekProgressFromStoreData(activePlanId, currentWeek);
 
-    // Store actions for updating sets
-    const incrementSet = usePlanDataStore((s) => s.incrementSet);
-    const decrementSet = usePlanDataStore((s) => s.decrementSet);
-    const completeAllSets = usePlanDataStore((s) => s.completeAllSets);
-
-    // Activity log mutations
-    const addActivityMutation = useAddActivity();
-    const deleteRecentActivityMutation = useDeleteRecentActivity();
+    // Set progress actions (unified store + activity logging)
+    const { addSet, removeSet, completeAllSets } = useSetProgress(activePlanId, currentWeek);
 
     // Selection mode state
     const selectedExerciseIds = useSelectedExerciseIds();
@@ -143,50 +135,17 @@ export function Home() {
 
 
     const handleAddSet = (exercise: ExerciseWeekProgressFromStore) => {
-        if (!activePlanId || exercise.setsCompleted >= exercise.targetSets) return;
-
-        // Update store (local-first)
-        incrementSet(activePlanId, currentWeek, exercise.planExerciseId, exercise.targetSets);
-        syncPlanToServer(activePlanId);
-
-        // Create activity log
-        addActivityMutation.mutate({
-            planExerciseId: exercise.planExerciseId,
-            completedAt: new Date().toISOString(),
-            numberOfSets: 1,
-        });
+        if (exercise.setsCompleted >= exercise.targetSets) return;
+        addSet(exercise.planExerciseId, exercise.targetSets);
     };
 
     const handleRemoveSet = (exercise: ExerciseWeekProgressFromStore) => {
-        if (!activePlanId || exercise.setsCompleted <= 0) return;
-
-        // Update store (local-first)
-        decrementSet(activePlanId, currentWeek, exercise.planExerciseId);
-        syncPlanToServer(activePlanId);
-
-        // Try to delete most recent activity log - ignore silently if none exists
-        deleteRecentActivityMutation.mutate({
-            planExerciseId: exercise.planExerciseId,
-            date: new Date().toISOString().split('T')[0],
-        });
+        if (exercise.setsCompleted <= 0) return;
+        removeSet(exercise.planExerciseId);
     };
 
     const handleCompleteAll = (exercise: ExerciseWeekProgressFromStore) => {
-        if (!activePlanId) return;
-
-        const remaining = exercise.targetSets - exercise.setsCompleted;
-        if (remaining > 0) {
-            // Update store (local-first)
-            completeAllSets(activePlanId, currentWeek, exercise.planExerciseId, exercise.targetSets);
-            syncPlanToServer(activePlanId);
-
-            // Create activity logs for remaining sets
-            addActivityMutation.mutate({
-                planExerciseId: exercise.planExerciseId,
-                completedAt: new Date().toISOString(),
-                numberOfSets: remaining,
-            });
-        }
+        completeAllSets(exercise.planExerciseId, exercise.targetSets, exercise.setsCompleted);
     };
 
     const handleOpenExerciseDetails = (exercise: ExerciseWeekProgressFromStore) => {

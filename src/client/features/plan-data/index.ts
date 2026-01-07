@@ -56,6 +56,7 @@ export {
     useCompleteAllSetsAdapter,
     useSyncFromCloud,
     useClearAllPlanData,
+    useSetProgress,
 } from './hooks';
 
 // Types for hooks

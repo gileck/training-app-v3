@@ -54,7 +54,6 @@ import {
     useIncrementCompletedSets,
     useUpdateSessionExercises,
     useRestTimer,
-    useUpdateSets,
     useActivePlanId,
     useCurrentWeek,
     formatTime,
@@ -73,6 +72,7 @@ import {
     useWeekProgress,
 } from '@/client/features/workout';
 import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
+import { useSetProgress } from '@/client/features/plan-data';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { AllExercisesOverlay } from './components';
@@ -117,8 +117,10 @@ export function ActiveWorkout() {
     const setPlanWorkoutName = useSetPlanWorkoutName();
 
     // Mutations
-    const updateSetsMutation = useUpdateSets();
     const createPlanWorkoutMutation = useCreatePlanWorkout(activePlanId || '');
+
+    // Set progress actions (unified store + activity logging)
+    const { addSet, removeSet } = useSetProgress(activePlanId, currentWeek);
 
     // Plan exercises (for adding exercises during workout - always available with active plan)
     const { data: weekProgressData } = useWeekProgress(activePlanId, currentWeek);
@@ -201,23 +203,16 @@ export function ActiveWorkout() {
         setIsInSet,
     ]);
 
-    // Handle COMPLETE SET - always syncs to backend (active plan always exists when workout is active)
+    // Handle COMPLETE SET - updates store (local-first) and creates activity log
     const handleCompleteSet = () => {
         if (supersetEnabled && supersetExercises.length === 2) {
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
-            // Always sync to backend
-            if (activePlanId) {
-                eligible.forEach((ex) => {
-                    updateSetsMutation.mutate({
-                        planId: activePlanId,
-                        planExerciseId: ex.planExerciseId,
-                        weekNumber: currentWeek,
-                        action: 'add',
-                    });
-                });
-            }
+            // Update progress for each eligible exercise
+            eligible.forEach((ex) => {
+                addSet(ex.planExerciseId, ex.targetSets);
+            });
 
             // Update session state for both exercises
             for (let i = 0; i < eligible.length; i++) {
@@ -240,15 +235,8 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend
-        if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'add',
-            });
-        }
+        // Update progress
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
 
         // Update session state
         incrementCompletedSets();
@@ -273,20 +261,12 @@ export function ActiveWorkout() {
         }
     };
 
-    // Handle add set (same as complete but without state transitions) - always syncs to backend
+    // Handle add set (same as complete but without state transitions)
     const handleAddSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend
-        if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'add',
-            });
-        }
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
 
         incrementCompletedSets();
         updateSessionExercises(
@@ -298,20 +278,12 @@ export function ActiveWorkout() {
         );
     };
 
-    // Handle remove set - always syncs to backend
+    // Handle remove set
     const handleRemoveSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted <= 0) return;
 
-        // Always sync to backend
-        if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'remove',
-            });
-        }
+        removeSet(currentExercise.planExerciseId);
 
         updateSessionExercises(
             sessionExercises.map((ex) =>
