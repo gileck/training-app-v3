@@ -20,7 +20,6 @@ export {
 export {
     usePlans,
     useWeekProgress,
-    useUpdateSets,
     useSyncActivePlan,
     plansQueryKey,
     weekProgressQueryKey,
