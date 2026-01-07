@@ -73,6 +73,7 @@ import {
     useWeekProgress,
 } from '@/client/features/workout';
 import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
+import { usePlanDataStore } from '@/client/features/plan-data';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { AllExercisesOverlay } from './components';
@@ -119,6 +120,10 @@ export function ActiveWorkout() {
     // Mutations
     const updateSetsMutation = useUpdateSets();
     const createPlanWorkoutMutation = useCreatePlanWorkout(activePlanId || '');
+
+    // Plan-data store actions (keep Home page in sync with workout progress)
+    const incrementSetInStore = usePlanDataStore((s) => s.incrementSet);
+    const decrementSetInStore = usePlanDataStore((s) => s.decrementSet);
 
     // Plan exercises (for adding exercises during workout - always available with active plan)
     const { data: weekProgressData } = useWeekProgress(activePlanId, currentWeek);
@@ -207,7 +212,7 @@ export function ActiveWorkout() {
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
-            // Always sync to backend
+            // Always sync to backend and update plan-data store
             if (activePlanId) {
                 eligible.forEach((ex) => {
                     updateSetsMutation.mutate({
@@ -216,6 +221,7 @@ export function ActiveWorkout() {
                         weekNumber: currentWeek,
                         action: 'add',
                     });
+                    incrementSetInStore(activePlanId, currentWeek, ex.planExerciseId, ex.targetSets);
                 });
             }
 
@@ -240,7 +246,7 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend
+        // Always sync to backend and update plan-data store
         if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
@@ -248,6 +254,7 @@ export function ActiveWorkout() {
                 weekNumber: currentWeek,
                 action: 'add',
             });
+            incrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId, currentExercise.targetSets);
         }
 
         // Update session state
@@ -278,7 +285,7 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend
+        // Always sync to backend and update plan-data store
         if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
@@ -286,6 +293,7 @@ export function ActiveWorkout() {
                 weekNumber: currentWeek,
                 action: 'add',
             });
+            incrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId, currentExercise.targetSets);
         }
 
         incrementCompletedSets();
@@ -303,7 +311,7 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted <= 0) return;
 
-        // Always sync to backend
+        // Always sync to backend and update plan-data store
         if (activePlanId) {
             updateSetsMutation.mutate({
                 planId: activePlanId,
@@ -311,6 +319,7 @@ export function ActiveWorkout() {
                 weekNumber: currentWeek,
                 action: 'remove',
             });
+            decrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId);
         }
 
         updateSessionExercises(
