@@ -54,7 +54,6 @@ import {
     useIncrementCompletedSets,
     useUpdateSessionExercises,
     useRestTimer,
-    useUpdateSets,
     useActivePlanId,
     useCurrentWeek,
     formatTime,
@@ -73,7 +72,8 @@ import {
     useWeekProgress,
 } from '@/client/features/workout';
 import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
-import { usePlanDataStore } from '@/client/features/plan-data';
+import { usePlanDataStore, syncPlanToServer } from '@/client/features/plan-data';
+import { useAddActivity, useDeleteRecentActivity } from '@/client/routes/Home/hooks';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { AllExercisesOverlay } from './components';
@@ -118,10 +118,11 @@ export function ActiveWorkout() {
     const setPlanWorkoutName = useSetPlanWorkoutName();
 
     // Mutations
-    const updateSetsMutation = useUpdateSets();
     const createPlanWorkoutMutation = useCreatePlanWorkout(activePlanId || '');
+    const addActivityMutation = useAddActivity();
+    const deleteRecentActivityMutation = useDeleteRecentActivity();
 
-    // Plan-data store actions (keep Home page in sync with workout progress)
+    // Plan-data store actions (local-first progress updates)
     const incrementSetInStore = usePlanDataStore((s) => s.incrementSet);
     const decrementSetInStore = usePlanDataStore((s) => s.decrementSet);
 
@@ -206,23 +207,25 @@ export function ActiveWorkout() {
         setIsInSet,
     ]);
 
-    // Handle COMPLETE SET - always syncs to backend (active plan always exists when workout is active)
+    // Handle COMPLETE SET - updates store (local-first) and creates activity log
     const handleCompleteSet = () => {
         if (supersetEnabled && supersetExercises.length === 2) {
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
-            // Always sync to backend and update plan-data store
+            // Update store and create activity logs (local-first pattern)
             if (activePlanId) {
                 eligible.forEach((ex) => {
-                    updateSetsMutation.mutate({
-                        planId: activePlanId,
-                        planExerciseId: ex.planExerciseId,
-                        weekNumber: currentWeek,
-                        action: 'add',
-                    });
+                    // Update store
                     incrementSetInStore(activePlanId, currentWeek, ex.planExerciseId, ex.targetSets);
+                    // Create activity log
+                    addActivityMutation.mutate({
+                        planExerciseId: ex.planExerciseId,
+                        completedAt: new Date().toISOString(),
+                        numberOfSets: 1,
+                    });
                 });
+                syncPlanToServer(activePlanId);
             }
 
             // Update session state for both exercises
@@ -246,15 +249,15 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend and update plan-data store
+        // Update store and create activity log (local-first pattern)
         if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'add',
-            });
             incrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId, currentExercise.targetSets);
+            syncPlanToServer(activePlanId);
+            addActivityMutation.mutate({
+                planExerciseId: currentExercise.planExerciseId,
+                completedAt: new Date().toISOString(),
+                numberOfSets: 1,
+            });
         }
 
         // Update session state
@@ -280,20 +283,20 @@ export function ActiveWorkout() {
         }
     };
 
-    // Handle add set (same as complete but without state transitions) - always syncs to backend
+    // Handle add set (same as complete but without state transitions)
     const handleAddSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Always sync to backend and update plan-data store
+        // Update store and create activity log (local-first pattern)
         if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'add',
-            });
             incrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId, currentExercise.targetSets);
+            syncPlanToServer(activePlanId);
+            addActivityMutation.mutate({
+                planExerciseId: currentExercise.planExerciseId,
+                completedAt: new Date().toISOString(),
+                numberOfSets: 1,
+            });
         }
 
         incrementCompletedSets();
@@ -306,20 +309,19 @@ export function ActiveWorkout() {
         );
     };
 
-    // Handle remove set - always syncs to backend
+    // Handle remove set
     const handleRemoveSet = () => {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted <= 0) return;
 
-        // Always sync to backend and update plan-data store
+        // Update store and delete activity log (local-first pattern)
         if (activePlanId) {
-            updateSetsMutation.mutate({
-                planId: activePlanId,
-                planExerciseId: currentExercise.planExerciseId,
-                weekNumber: currentWeek,
-                action: 'remove',
-            });
             decrementSetInStore(activePlanId, currentWeek, currentExercise.planExerciseId);
+            syncPlanToServer(activePlanId);
+            deleteRecentActivityMutation.mutate({
+                planExerciseId: currentExercise.planExerciseId,
+                date: new Date().toISOString().split('T')[0],
+            });
         }
 
         updateSessionExercises(
