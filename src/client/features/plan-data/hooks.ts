@@ -1,17 +1,21 @@
 /**
  * Plan Data Hooks
- * 
+ *
  * Adapter hooks that wrap store actions to provide a mutation-like interface.
  * This allows gradual migration from React Query to Zustand.
- * 
+ *
  * With local-first, updates are synchronous so there's no "pending" state.
  * The sync to server happens in the background via debounced sync.
  */
 
 import { useCallback, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePlanDataStore } from './store';
 import { loadPlan, syncPlanToServer, syncFromCloud, loadWeekProgress } from './sync';
+import { addActivity, deleteActivity, getActivity } from '@/apis/activity-logs/client';
+import { generateId } from '@/client/utils/id';
 import type { ExerciseUpdates, NewExercise, PlanExerciseWithDefinition, ExerciseProgress } from './types';
+import type { AddActivityRequest, GetActivityResponse } from '@/apis/activity-logs/types';
 
 // ============================================================================
 // Stable Fallback References (CRITICAL for Zustand selectors)
@@ -463,4 +467,184 @@ export function useSyncFromCloud(planId: string | null, weekNumber: number) {
  */
 export function useClearAllPlanData() {
     return usePlanDataStore((s) => s.clearAllPlanData);
+}
+
+// ============================================================================
+// Set Progress Hook (unified add/remove/complete-all with activity logging)
+// ============================================================================
+
+/**
+ * Hook for managing exercise set progress with activity logging.
+ *
+ * Combines:
+ * - Store update (incrementSet/decrementSet/completeAllSets)
+ * - Server sync (syncPlanToServer)
+ * - Activity logging (addActivity/deleteActivity)
+ *
+ * This is the unified way to update set progress across the app.
+ *
+ * @example
+ * ```typescript
+ * const { addSet, removeSet, completeAllSets } = useSetProgress(planId, weekNumber);
+ *
+ * // Add a single set
+ * addSet(exerciseId, targetSets);
+ *
+ * // Remove a set
+ * removeSet(exerciseId);
+ *
+ * // Complete all remaining sets
+ * completeAllSets(exerciseId, targetSets, currentSetsCompleted);
+ * ```
+ */
+export function useSetProgress(planId: string | null, weekNumber: number) {
+    const queryClient = useQueryClient();
+    const incrementSet = usePlanDataStore((s) => s.incrementSet);
+    const decrementSet = usePlanDataStore((s) => s.decrementSet);
+    const completeAllSetsAction = usePlanDataStore((s) => s.completeAllSets);
+
+    // Activity mutations (internal)
+    const addActivityMutation = useMutation({
+        mutationFn: async (data: AddActivityRequest & { activityIds: string[] }) => {
+            const response = await addActivity({
+                ...data,
+                activityIds: data.activityIds,
+            });
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ['activity'] });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
+        },
+    });
+
+    const deleteRecentActivityMutation = useMutation({
+        mutationFn: async (data: { planExerciseId: string; date: string }) => {
+            const response = await getActivity({
+                startDate: data.date,
+                endDate: data.date,
+                limit: 100,
+            });
+
+            if (response.data?.error) {
+                return { success: false };
+            }
+
+            const activities = response.data?.activities || [];
+            const recentActivity = activities.find(
+                (a) => a.planExerciseId === data.planExerciseId
+            );
+
+            if (!recentActivity) {
+                return { success: false };
+            }
+
+            const deleteResponse = await deleteActivity({
+                activityId: recentActivity._id,
+            });
+
+            if (deleteResponse.data?.error) {
+                return { success: false };
+            }
+
+            return { success: true };
+        },
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: ['activity'] });
+
+            queryClient.setQueriesData<GetActivityResponse>(
+                { queryKey: ['activity'] },
+                (old) => {
+                    if (!old?.activities) return old;
+                    const activities = [...old.activities];
+                    const index = activities.findIndex(
+                        (a) => a.planExerciseId === variables.planExerciseId
+                    );
+                    if (index !== -1) {
+                        activities.splice(index, 1);
+                    }
+                    return { ...old, activities };
+                }
+            );
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['activity-summary'] });
+        },
+    });
+
+    /**
+     * Add a single set to an exercise
+     */
+    const addSet = useCallback(
+        (exerciseId: string, targetSets: number) => {
+            if (!planId) return;
+
+            // Update store
+            incrementSet(planId, weekNumber, exerciseId, targetSets);
+            syncPlanToServer(planId);
+
+            // Create activity log
+            const activityIds = [generateId()];
+            addActivityMutation.mutate({
+                planExerciseId: exerciseId,
+                completedAt: new Date().toISOString(),
+                numberOfSets: 1,
+                activityIds,
+            });
+        },
+        [planId, weekNumber, incrementSet, addActivityMutation]
+    );
+
+    /**
+     * Remove a set from an exercise
+     */
+    const removeSet = useCallback(
+        (exerciseId: string) => {
+            if (!planId) return;
+
+            // Update store
+            decrementSet(planId, weekNumber, exerciseId);
+            syncPlanToServer(planId);
+
+            // Delete activity log
+            deleteRecentActivityMutation.mutate({
+                planExerciseId: exerciseId,
+                date: new Date().toISOString().split('T')[0],
+            });
+        },
+        [planId, weekNumber, decrementSet, deleteRecentActivityMutation]
+    );
+
+    /**
+     * Complete all remaining sets for an exercise
+     */
+    const completeAllSets = useCallback(
+        (exerciseId: string, targetSets: number, currentSetsCompleted: number) => {
+            if (!planId) return;
+
+            const remaining = targetSets - currentSetsCompleted;
+            if (remaining <= 0) return;
+
+            // Update store
+            completeAllSetsAction(planId, weekNumber, exerciseId, targetSets);
+            syncPlanToServer(planId);
+
+            // Create activity logs for remaining sets
+            const activityIds = Array.from({ length: remaining }, () => generateId());
+            addActivityMutation.mutate({
+                planExerciseId: exerciseId,
+                completedAt: new Date().toISOString(),
+                numberOfSets: remaining,
+                activityIds,
+            });
+        },
+        [planId, weekNumber, completeAllSetsAction, addActivityMutation]
+    );
+
+    return { addSet, removeSet, completeAllSets };
 }
