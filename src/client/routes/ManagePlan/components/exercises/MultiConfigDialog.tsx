@@ -41,7 +41,7 @@ export function MultiConfigDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto w-[calc(100%-32px)] max-w-md mx-auto p-4">
+                <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
                     <DialogHeader className="pb-2">
                         <DialogTitle className="text-lg">Configure Exercises</DialogTitle>
                         <DialogDescription className="text-sm">
@@ -199,7 +199,7 @@ export function MultiConfigDialog({
 
             {/* Notes Dialog */}
             <Dialog open={!!notesDialogExerciseId} onOpenChange={(open) => !open && setNotesDialogExerciseId(null)}>
-                <DialogContent className="rounded-2xl max-w-md">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Add Notes</DialogTitle>
                     </DialogHeader>

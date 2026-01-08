@@ -75,7 +75,7 @@ export function ExerciseResolver({
     
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="rounded-2xl max-w-md">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <HelpCircle className="h-5 w-5 text-warning" />
@@ -142,14 +142,12 @@ export function ExerciseResolver({
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        className="rounded-lg"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleConfirm}
                         disabled={!selectedOption}
-                        className="rounded-lg"
                     >
                         <Check className="h-4 w-4 mr-2" />
                         Confirm

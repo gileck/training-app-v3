@@ -294,7 +294,7 @@ export function ImportPlanDialog({
     
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <FileJson className="h-5 w-5 text-primary" />
@@ -320,7 +320,6 @@ export function ImportPlanDialog({
                             <Button
                                 variant="outline"
                                 onClick={handlePaste}
-                                className="rounded-lg"
                             >
                                 <ClipboardPaste className="h-4 w-4 mr-2" />
                                 Paste from Clipboard
@@ -328,7 +327,6 @@ export function ImportPlanDialog({
                             <Button
                                 variant="outline"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="rounded-lg"
                             >
                                 <Upload className="h-4 w-4 mr-2" />
                                 Upload File
@@ -344,7 +342,7 @@ export function ImportPlanDialog({
                                 <Button
                                     variant="ghost"
                                     onClick={handleClear}
-                                    className="rounded-lg ml-auto"
+                                    className="ml-auto"
                                 >
                                     <X className="h-4 w-4 mr-2" />
                                     Clear
@@ -369,7 +367,7 @@ export function ImportPlanDialog({
     }
   ]
 }`}
-                            className="rounded-lg min-h-[300px] font-mono text-sm"
+                            className="min-h-[300px] font-mono text-sm"
                         />
                         
                         {/* Validation Status */}
@@ -413,14 +411,12 @@ export function ImportPlanDialog({
                         <Button
                             variant="outline"
                             onClick={() => handleOpenChange(false)}
-                            className="rounded-lg"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleContinue}
                             disabled={!isValidJson}
-                            className="rounded-lg"
                         >
                             Continue
                         </Button>

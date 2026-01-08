@@ -113,7 +113,7 @@ export function SharePlanDialog({
     
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="rounded-2xl max-w-md">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Share2 className="h-5 w-5 text-primary" />
@@ -130,14 +130,14 @@ export function SharePlanDialog({
                         <Input
                             value={shareUrl}
                             readOnly
-                            className="rounded-lg font-mono text-sm"
+                            className="font-mono text-sm"
                             onClick={(e) => (e.target as HTMLInputElement).select()}
                         />
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={handleCopy}
-                            className="rounded-lg shrink-0"
+                            className="shrink-0"
                             title="Copy link"
                         >
                             {copied ? (
@@ -152,17 +152,17 @@ export function SharePlanDialog({
                     <div className="flex flex-col gap-2">
                         <Button
                             onClick={handleCopy}
-                            className="w-full rounded-lg"
+                            className="w-full"
                         >
                             <Copy className="h-4 w-4 mr-2" />
                             {copied ? 'Copied!' : 'Copy Link'}
                         </Button>
-                        
+
                         {hasNativeShare && (
                             <Button
                                 variant="outline"
                                 onClick={handleNativeShare}
-                                className="w-full rounded-lg"
+                                className="w-full"
                             >
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Share via...

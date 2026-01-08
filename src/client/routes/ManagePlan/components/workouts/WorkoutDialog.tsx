@@ -82,7 +82,7 @@ export function WorkoutDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="rounded-3xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 border-0 shadow-2xl">
+            <DialogContent className="max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
                 {/* Header */}
                 <div className="p-6 pb-4">
                     <DialogHeader>

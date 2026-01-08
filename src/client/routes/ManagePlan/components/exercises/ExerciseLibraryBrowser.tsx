@@ -221,7 +221,7 @@ export function ExerciseLibraryBrowser({
 
             {/* Filters Dialog */}
             <Dialog open={showFilters} onOpenChange={setShowFilters}>
-                <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-2xl">
+                <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Filter Exercises</DialogTitle>
                     </DialogHeader>
@@ -229,7 +229,7 @@ export function ExerciseLibraryBrowser({
                         <div className="grid gap-2">
                             <Label>Source</Label>
                             <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
-                                <SelectTrigger className="rounded-xl">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Source" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -242,7 +242,7 @@ export function ExerciseLibraryBrowser({
                         <div className="grid gap-2">
                             <Label>Muscle Group</Label>
                             <Select value={filterMuscle} onValueChange={setFilterMuscle}>
-                                <SelectTrigger className="rounded-xl">
+                                <SelectTrigger>
                                     <SelectValue placeholder="All Muscles" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[40vh]">
@@ -258,7 +258,7 @@ export function ExerciseLibraryBrowser({
                         <div className="grid gap-2">
                             <Label>Exercise Type</Label>
                             <Select value={filterType} onValueChange={setFilterType}>
-                                <SelectTrigger className="rounded-xl">
+                                <SelectTrigger>
                                     <SelectValue placeholder="All Types" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[40vh]">
@@ -277,14 +277,14 @@ export function ExerciseLibraryBrowser({
                             <Button
                                 variant="outline"
                                 onClick={() => { setFilterMuscle('all'); setFilterType('all'); setFilterSource('all'); }}
-                                className="rounded-xl flex-1"
+                                className="flex-1"
                             >
                                 Clear Filters
                             </Button>
                         )}
                         <Button
                             onClick={() => setShowFilters(false)}
-                            className="rounded-xl flex-1"
+                            className="flex-1"
                         >
                             Apply
                         </Button>

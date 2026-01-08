@@ -203,7 +203,7 @@ export function CreateExerciseDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{editMode ? 'Edit Exercise' : 'Create Custom Exercise'}</DialogTitle>
                 </DialogHeader>
@@ -217,7 +217,6 @@ export function CreateExerciseDialog({
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g., Barbell Bench Press"
-                            className="rounded-lg"
                         />
                     </div>
 
@@ -269,7 +268,7 @@ export function CreateExerciseDialog({
                     <div className="grid gap-2">
                         <Label>Primary Muscle *</Label>
                         <Select value={primaryMuscle} onValueChange={setPrimaryMuscle}>
-                            <SelectTrigger className="rounded-lg">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Select primary muscle" />
                             </SelectTrigger>
                             <SelectContent>
@@ -304,7 +303,7 @@ export function CreateExerciseDialog({
                     <div className="grid gap-2">
                         <Label>Exercise Type</Label>
                         <Select value={type} onValueChange={setType}>
-                            <SelectTrigger className="rounded-lg">
+                            <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -346,14 +345,12 @@ export function CreateExerciseDialog({
                     <Button
                         variant="outline"
                         onClick={() => handleOpenChange(false)}
-                        className="rounded-lg"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={!name.trim() || !primaryMuscle || isPending}
-                        className="rounded-lg"
                     >
                         <Dumbbell className="h-4 w-4 mr-2" />
                         {isPending ? 'Creating...' : editMode ? 'Save Changes' : 'Create Exercise'}
