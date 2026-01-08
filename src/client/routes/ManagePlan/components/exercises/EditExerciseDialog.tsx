@@ -52,7 +52,7 @@ export function EditExerciseDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="rounded-3xl p-0 gap-0 border-0 shadow-2xl overflow-hidden max-w-sm">
+            <DialogContent className="p-0 gap-0 overflow-hidden max-w-sm">
                 {/* Header with exercise info */}
                 <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
                     <div className="flex items-center gap-4">

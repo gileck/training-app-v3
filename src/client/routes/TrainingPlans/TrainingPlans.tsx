@@ -532,7 +532,7 @@ export function TrainingPlans() {
 
             {/* Create Plan Dialog */}
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Create Training Plan</DialogTitle>
                     </DialogHeader>
@@ -544,7 +544,6 @@ export function TrainingPlans() {
                                 value={newPlanName}
                                 onChange={(e) => setNewPlanName(e.target.value)}
                                 placeholder="e.g., Push/Pull/Legs"
-                                className="rounded-lg"
                             />
                         </div>
                         <div className="grid gap-2">
@@ -555,7 +554,6 @@ export function TrainingPlans() {
                                     size="icon"
                                     onClick={() => setNewPlanWeeks((w) => Math.max(1, w - 1))}
                                     disabled={newPlanWeeks <= 1}
-                                    className="h-10 w-10 rounded-lg"
                                 >
                                     -
                                 </Button>
@@ -567,7 +565,6 @@ export function TrainingPlans() {
                                     size="icon"
                                     onClick={() => setNewPlanWeeks((w) => Math.min(52, w + 1))}
                                     disabled={newPlanWeeks >= 52}
-                                    className="h-10 w-10 rounded-lg"
                                 >
                                     +
                                 </Button>
@@ -578,14 +575,12 @@ export function TrainingPlans() {
                         <Button
                             variant="outline"
                             onClick={() => setCreateDialogOpen(false)}
-                            className="rounded-lg"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleCreatePlan}
                             disabled={!newPlanName.trim() || createPlanMutation.isPending}
-                            className="rounded-lg"
                         >
                             {createPlanMutation.isPending ? 'Creating...' : 'Create'}
                         </Button>
@@ -595,7 +590,7 @@ export function TrainingPlans() {
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Delete Plan?</DialogTitle>
                         <DialogDescription>
@@ -607,14 +602,12 @@ export function TrainingPlans() {
                         <Button
                             variant="outline"
                             onClick={() => setDeleteDialogOpen(false)}
-                            className="rounded-lg"
                         >
                             Cancel
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={confirmDelete}
-                            className="rounded-lg"
                         >
                             Delete
                         </Button>
@@ -624,7 +617,7 @@ export function TrainingPlans() {
 
             {/* Edit Plan Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Training Plan</DialogTitle>
                     </DialogHeader>
@@ -636,7 +629,6 @@ export function TrainingPlans() {
                                 value={editPlanName}
                                 onChange={(e) => setEditPlanName(e.target.value)}
                                 placeholder="e.g., Push/Pull/Legs"
-                                className="rounded-lg"
                             />
                         </div>
                         <div className="grid gap-2">
@@ -647,7 +639,6 @@ export function TrainingPlans() {
                                     size="icon"
                                     onClick={() => setEditPlanWeeks((w) => Math.max(1, w - 1))}
                                     disabled={editPlanWeeks <= 1}
-                                    className="h-10 w-10 rounded-lg"
                                 >
                                     -
                                 </Button>
@@ -659,7 +650,6 @@ export function TrainingPlans() {
                                     size="icon"
                                     onClick={() => setEditPlanWeeks((w) => Math.min(52, w + 1))}
                                     disabled={editPlanWeeks >= 52}
-                                    className="h-10 w-10 rounded-lg"
                                 >
                                     +
                                 </Button>
@@ -675,14 +665,12 @@ export function TrainingPlans() {
                         <Button
                             variant="outline"
                             onClick={() => setEditDialogOpen(false)}
-                            className="rounded-lg"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={confirmEdit}
                             disabled={!editPlanName.trim() || updatePlanMutation.isPending}
-                            className="rounded-lg"
                         >
                             {updatePlanMutation.isPending ? 'Saving...' : 'Save'}
                         </Button>
@@ -695,7 +683,7 @@ export function TrainingPlans() {
                 setExportDialogOpen(open);
                 if (!open) setPlanToExport(null);
             }}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Export Plan</DialogTitle>
                         <DialogDescription>
@@ -705,7 +693,7 @@ export function TrainingPlans() {
                     <div className="grid gap-3 py-4">
                         <Button
                             variant="outline"
-                            className="h-14 justify-start rounded-xl"
+                            className="h-14 justify-start"
                             onClick={handleExportAsFile}
                             disabled={exportPlanMutation.isPending}
                         >

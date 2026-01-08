@@ -24,7 +24,7 @@ export function DeleteExerciseDialog({
 }: DeleteExerciseDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="rounded-2xl">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Remove Exercise?</DialogTitle>
                     <DialogDescription>
@@ -36,14 +36,12 @@ export function DeleteExerciseDialog({
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        className="rounded-lg"
                     >
                         Cancel
                     </Button>
                     <Button
                         variant="destructive"
                         onClick={onConfirm}
-                        className="rounded-lg"
                     >
                         Remove
                     </Button>

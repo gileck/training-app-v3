@@ -261,7 +261,7 @@ export function CreatePlanWithAiDialog({
     
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
@@ -323,7 +323,7 @@ export function CreatePlanWithAiDialog({
                 
                 {/* Loading Overlay */}
                 {isGenerating && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 rounded-2xl">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <div className="text-center">
                             <p className="font-medium">Generating preview...</p>
@@ -340,7 +340,6 @@ export function CreatePlanWithAiDialog({
                             <Button
                                 variant="outline"
                                 onClick={() => handleOpenChange(false)}
-                                className="rounded-lg"
                                 disabled={isGenerating}
                             >
                                 Cancel
@@ -348,7 +347,6 @@ export function CreatePlanWithAiDialog({
                             <Button
                                 onClick={handleGeneratePreview}
                                 disabled={!canGenerate || isGenerating}
-                                className="rounded-lg"
                             >
                                 {isGenerating ? (
                                     <>
@@ -370,7 +368,6 @@ export function CreatePlanWithAiDialog({
                             <Button
                                 variant="outline"
                                 onClick={handleBackToEdit}
-                                className="rounded-lg"
                                 disabled={isCommitting}
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -379,7 +376,6 @@ export function CreatePlanWithAiDialog({
                             <Button
                                 variant="outline"
                                 onClick={handleGeneratePreview}
-                                className="rounded-lg"
                                 disabled={isCommitting || isGenerating}
                             >
                                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -388,7 +384,6 @@ export function CreatePlanWithAiDialog({
                             <Button
                                 onClick={handleCommit}
                                 disabled={isCommitting || !canCommit}
-                                className="rounded-lg"
                                 title={!canCommit ? 'Resolve all exercises before creating' : undefined}
                             >
                                 {isCommitting ? (
@@ -464,11 +459,10 @@ function EditStep({
                     value={planName}
                     onChange={(e) => setPlanName(e.target.value.slice(0, MAX_PLAN_NAME_LENGTH))}
                     placeholder="e.g., Push/Pull/Legs, Full Body 3x"
-                    className="rounded-lg"
                     disabled={isGenerating}
                 />
             </div>
-            
+
             {/* Duration */}
             <div className="grid gap-2">
                 <Label htmlFor="ai-plan-weeks">Duration (weeks)</Label>
@@ -478,7 +472,6 @@ function EditStep({
                         size="icon"
                         onClick={() => setDurationWeeks((w) => Math.max(1, w - 1))}
                         disabled={durationWeeks <= 1 || isGenerating}
-                        className="h-10 w-10 rounded-lg"
                     >
                         -
                     </Button>
@@ -490,7 +483,6 @@ function EditStep({
                         size="icon"
                         onClick={() => setDurationWeeks((w) => Math.min(52, w + 1))}
                         disabled={durationWeeks >= 52 || isGenerating}
-                        className="h-10 w-10 rounded-lg"
                     >
                         +
                     </Button>
@@ -505,7 +497,7 @@ function EditStep({
                     onValueChange={setSelectedModelId}
                     disabled={isGenerating}
                 >
-                    <SelectTrigger className="rounded-lg">
+                    <SelectTrigger>
                         <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -565,7 +557,7 @@ Day 2 - Pull:
 Deadlifts — 3×5
 Barbell Rows — 3×8
 Pull-ups — 3×10"`}
-                    className="rounded-lg min-h-[200px] font-mono text-sm"
+                    className="min-h-[200px] font-mono text-sm"
                     disabled={isGenerating}
                 />
                 <div className="flex justify-between items-center">

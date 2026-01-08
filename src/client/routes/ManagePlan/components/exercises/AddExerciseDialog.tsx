@@ -140,7 +140,7 @@ export function AddExerciseDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={handleOpenChange}>
-                <DialogContent className="w-[calc(100%-32px)] max-w-lg h-[calc(100vh-120px)] max-h-[700px] rounded-2xl p-0 gap-0 flex flex-col">
+                <DialogContent className="max-w-lg h-[calc(100vh-120px)] max-h-[700px] p-0 gap-0 flex flex-col">
                     {/* Header */}
                     <div className="px-5 pt-5 pb-4 border-b shrink-0">
                         <DialogTitle className="text-lg font-semibold">

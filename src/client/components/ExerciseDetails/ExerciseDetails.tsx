@@ -197,7 +197,7 @@ export function ExerciseDetails({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="w-[calc(100%-32px)] max-w-lg mx-auto max-h-[calc(100vh-64px)] overflow-y-auto rounded-3xl p-0 gap-0 border-0 shadow-2xl">
+            <DialogContent className="max-w-lg max-h-[calc(100vh-64px)] overflow-y-auto p-0 gap-0">
                 {/* Close button */}
                 <Button
                     variant="ghost"
