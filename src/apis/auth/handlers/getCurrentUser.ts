@@ -14,21 +14,33 @@ export const getCurrentUser = async (
     context: ApiHandlerContext
 ): Promise<CurrentUserResponse> => {
     try {
-        // No session - return null user (not an error, just "no user")
+        // No session - return null user with debug info
         if (!context.userId) {
-            return { user: null };
+            return {
+                user: null,
+                authDebug: context.authDebug,
+            };
         }
 
         const user = await users.findUserById(context.userId);
         if (!user) {
             // User ID in token but not in DB - this is an actual error
-            return { error: "User not found" };
+            return {
+                error: "User not found",
+                authDebug: context.authDebug,
+            };
         }
 
-        return { user: { ...sanitizeUser(user), isAdmin: context.isAdmin } };
+        return {
+            user: { ...sanitizeUser(user), isAdmin: context.isAdmin },
+            authDebug: context.authDebug,
+        };
     } catch (error: unknown) {
         console.error("Get current user error:", error);
-        return { error: error instanceof Error ? error.message : "Failed to get current user" };
+        return {
+            error: error instanceof Error ? error.message : "Failed to get current user",
+            authDebug: context.authDebug,
+        };
     }
 };
 

@@ -26,6 +26,8 @@ export type RegisterResponse = AuthResponse;
 export type CurrentUserResponse = {
     user?: UserResponse | null;
     error?: string;
+    /** Debug info about auth status - helps diagnose auth failures */
+    authDebug?: AuthDebugInfo;
 };
 export type LogoutResponse = {
     success: boolean;
@@ -57,9 +59,24 @@ export interface AuthTokenPayload {
     userId: string;
 }
 
+/**
+ * Debug info about authentication status.
+ * Helps diagnose why /me returns no user.
+ */
+export interface AuthDebugInfo {
+    /** Was the auth cookie present in the request? */
+    cookiePresent: boolean;
+    /** If JWT verification failed, the error message */
+    tokenError?: string;
+    /** JWT error code (e.g., "TokenExpiredError", "JsonWebTokenError") */
+    tokenErrorCode?: string;
+}
+
 export interface ApiHandlerContext {
     userId?: string;
     isAdmin: boolean;
+    /** Debug info about auth state - useful for diagnosing auth failures */
+    authDebug: AuthDebugInfo;
     getCookieValue: (name: string) => string | undefined;
     setCookie: (name: string, value: string, options: Record<string, unknown>) => void;
     clearCookie: (name: string, options: Record<string, unknown>) => void;

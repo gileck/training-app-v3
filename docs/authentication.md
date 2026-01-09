@@ -418,6 +418,37 @@ The `/me` endpoint returns different responses based on auth state:
 
 **Key design decision**: `{ user: null }` is NOT an error - it's the expected response for new users or users without a session. This prevents confusing error messages in the console.
 
+### Auth Debug Info
+
+Every `/me` response includes `authDebug` to help diagnose auth failures:
+
+```typescript
+interface AuthDebugInfo {
+    cookiePresent: boolean;    // Was auth cookie in the request?
+    tokenError?: string;       // JWT verification error message
+    tokenErrorCode?: string;   // e.g., "TokenExpiredError", "JsonWebTokenError"
+}
+```
+
+This info is logged to session logs via the preflight, so bug reports will show exactly why authentication failed:
+
+| `cookiePresent` | `tokenErrorCode` | Meaning |
+|-----------------|------------------|---------|
+| `false` | - | Cookie not sent (browser cleared it, Safari ITP, PWA issue) |
+| `true` | `TokenExpiredError` | JWT actually expired |
+| `true` | `JsonWebTokenError` | Token corrupted or invalid signature |
+| `true` | - | Token valid, check if user exists in DB |
+
+Session log example when auth fails:
+```
+[INFO] [boot] 📋 Preflight /me Response | Meta: {
+    "hasUser": false,
+    "cookiePresent": false,      // <-- Cookie was not sent!
+    "tokenError": null,
+    "tokenErrorCode": null
+}
+```
+
 ### Error Handling
 
 Error messages are only shown for **user-initiated actions** (login/register), not for background validation:

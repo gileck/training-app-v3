@@ -82,11 +82,15 @@ export function startAuthPreflight(): void {
             markPhaseEnd(BOOT_PHASES.AUTH_PREFLIGHT_START);
             markEvent(BOOT_PHASES.AUTH_PREFLIGHT_COMPLETE);
             
-            // Log the /me response status
+            // Log the /me response status with auth debug info
             logStatus('Preflight /me Response', {
                 hasUser: !!data?.user,
                 userId: data?.user?.id || null,
                 username: data?.user?.username || null,
+                // Auth debug info - helps diagnose why auth failed
+                cookiePresent: data?.authDebug?.cookiePresent ?? 'unknown',
+                tokenError: data?.authDebug?.tokenError || null,
+                tokenErrorCode: data?.authDebug?.tokenErrorCode || null,
             });
             
             const result: PreflightResult = {
