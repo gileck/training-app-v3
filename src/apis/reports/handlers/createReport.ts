@@ -67,6 +67,7 @@ export const createReport = async (
             errorMessage: newReport.errorMessage,
             category: newReport.category,
             performanceEntries: newReport.performanceEntries,
+            investigation: undefined, // New reports don't have investigation
             createdAt: newReport.createdAt.toISOString(),
             updatedAt: newReport.updatedAt.toISOString(),
         };

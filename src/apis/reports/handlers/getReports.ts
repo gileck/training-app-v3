@@ -47,6 +47,10 @@ export const getReports = async (
             errorMessage: doc.errorMessage,
             category: doc.category,
             performanceEntries: doc.performanceEntries,
+            investigation: doc.investigation ? {
+                ...doc.investigation,
+                investigatedAt: doc.investigation.investigatedAt.toISOString(),
+            } : undefined,
             createdAt: doc.createdAt.toISOString(),
             updatedAt: doc.updatedAt.toISOString(),
         }));

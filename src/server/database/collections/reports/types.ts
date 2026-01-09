@@ -76,6 +76,75 @@ export interface ReportBrowserInfo {
 }
 
 /**
+ * Investigation status - outcome of automated or manual investigation
+ */
+export type InvestigationStatus =
+    | 'needs_info'      // Bug understood but need more reproduction details
+    | 'root_cause_found' // Found root cause + actionable fix steps
+    | 'complex_fix'     // Root cause found but requires architectural discussion
+    | 'not_a_bug'       // Feature request, already fixed, or invalid
+    | 'inconclusive';   // Investigated thoroughly but couldn't determine cause
+
+/**
+ * Fix complexity estimate
+ */
+export type FixComplexity = 'low' | 'medium' | 'high';
+
+/**
+ * Confidence level of the investigation
+ */
+export type ConfidenceLevel = 'low' | 'medium' | 'high';
+
+/**
+ * A proposed file change in the fix
+ */
+export interface ProposedFileChange {
+    path: string;
+    changes: string; // High-level description of what to change
+}
+
+/**
+ * Proposed fix for the bug
+ */
+export interface ProposedFix {
+    description: string;
+    files: ProposedFileChange[];
+    complexity: FixComplexity;
+}
+
+/**
+ * Investigation result from automated or manual analysis
+ */
+export interface Investigation {
+    status: InvestigationStatus;
+    headline: string;  // Single line for list view (max ~80 chars)
+    summary: string;   // Full summary paragraph
+    confidence: ConfidenceLevel;
+    rootCause?: string;
+    proposedFix?: ProposedFix;
+    analysisNotes?: string;
+    filesExamined: string[];  // Files the agent looked at during investigation
+    investigatedAt: Date;
+    investigatedBy: 'agent' | 'human';
+}
+
+/**
+ * Client-friendly investigation with string dates
+ */
+export interface InvestigationClient {
+    status: InvestigationStatus;
+    headline: string;
+    summary: string;
+    confidence: ConfidenceLevel;
+    rootCause?: string;
+    proposedFix?: ProposedFix;
+    analysisNotes?: string;
+    filesExamined: string[];
+    investigatedAt: string;
+    investigatedBy: 'agent' | 'human';
+}
+
+/**
  * Represents a bug/error report in the database
  */
 export interface ReportDocument {
@@ -93,6 +162,7 @@ export interface ReportDocument {
     errorMessage?: string;
     category?: BugCategory;
     performanceEntries?: PerformanceEntryData[];
+    investigation?: Investigation;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -106,7 +176,7 @@ export type ReportCreate = Omit<ReportDocument, '_id'>;
 /**
  * Type for updating a report
  */
-export type ReportUpdate = Partial<Pick<ReportDocument, 'status' | 'updatedAt'>>;
+export type ReportUpdate = Partial<Pick<ReportDocument, 'status' | 'investigation' | 'updatedAt'>>;
 
 /**
  * Client-friendly report with string IDs
@@ -126,6 +196,7 @@ export interface ReportClient {
     errorMessage?: string;
     category?: BugCategory;
     performanceEntries?: PerformanceEntryData[];
+    investigation?: InvestigationClient;
     createdAt: string;
     updatedAt: string;
 }

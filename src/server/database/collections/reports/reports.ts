@@ -1,6 +1,6 @@
 import { Collection, ObjectId, Filter, Sort } from 'mongodb';
 import { getDb } from '@/server/database';
-import { ReportDocument, ReportCreate, ReportUpdate, ReportFilters, ReportStatus } from './types';
+import { ReportDocument, ReportCreate, ReportUpdate, ReportFilters, ReportStatus, Investigation } from './types';
 
 /**
  * Get a reference to the reports collection
@@ -108,6 +108,34 @@ export const updateReportStatus = async (
 };
 
 /**
+ * Update a report's investigation results
+ * @param reportId - The ID of the report to update
+ * @param investigation - The investigation data
+ * @returns The updated report document or null if not found
+ */
+export const updateReportInvestigation = async (
+    reportId: ObjectId | string,
+    investigation: Investigation
+): Promise<ReportDocument | null> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    const update: ReportUpdate = {
+        investigation,
+        status: 'investigating', // Auto-update status when investigation is added
+        updatedAt: new Date(),
+    };
+
+    const result = await collection.findOneAndUpdate(
+        { _id: reportIdObj },
+        { $set: update },
+        { returnDocument: 'after' }
+    );
+
+    return result || null;
+};
+
+/**
  * Delete a report
  * @param reportId - The ID of the report to delete
  * @returns True if the report was deleted, false otherwise
@@ -130,6 +158,30 @@ export const deleteAllReports = async (): Promise<number> => {
     const collection = await getReportsCollection();
     const result = await collection.deleteMany({});
     return result.deletedCount;
+};
+
+/**
+ * Find reports that have not been investigated yet
+ * @param limit - Maximum number of reports to return (default: no limit)
+ * @returns Array of uninvestigated report documents
+ */
+export const findUninvestigatedReports = async (
+    limit?: number
+): Promise<ReportDocument[]> => {
+    const collection = await getReportsCollection();
+
+    const query: Filter<ReportDocument> = {
+        investigation: { $exists: false },
+        status: 'new',
+    };
+
+    let cursor = collection.find(query).sort({ createdAt: 1 }); // Oldest first
+
+    if (limit) {
+        cursor = cursor.limit(limit);
+    }
+
+    return cursor.toArray();
 };
 
 /**

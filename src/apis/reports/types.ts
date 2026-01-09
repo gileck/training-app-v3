@@ -1,12 +1,15 @@
-import { 
-    ReportClient, 
-    ReportType, 
-    ReportStatus, 
-    SessionLogEntry, 
-    ReportUserInfo, 
+import {
+    ReportClient,
+    ReportType,
+    ReportStatus,
+    SessionLogEntry,
+    ReportUserInfo,
     ReportBrowserInfo,
     BugCategory,
-    PerformanceEntryData
+    PerformanceEntryData,
+    InvestigationStatus,
+    ConfidenceLevel,
+    ProposedFix
 } from '@/server/database/collections/reports/types';
 
 // Create report
@@ -84,6 +87,37 @@ export interface DeleteAllReportsResponse {
     error?: string;
 }
 
+// Update investigation
+export interface UpdateInvestigationRequest {
+    reportId: string;
+    investigation: {
+        status: InvestigationStatus;
+        headline: string;
+        summary: string;
+        confidence: ConfidenceLevel;
+        rootCause?: string;
+        proposedFix?: ProposedFix;
+        analysisNotes?: string;
+        filesExamined: string[];
+        investigatedBy: 'agent' | 'human';
+    };
+}
+
+export interface UpdateInvestigationResponse {
+    report?: ReportClient;
+    error?: string;
+}
+
 // Re-export types for convenience
-export type { ReportClient, ReportType, ReportStatus, SessionLogEntry, ReportUserInfo, ReportBrowserInfo };
+export type {
+    ReportClient,
+    ReportType,
+    ReportStatus,
+    SessionLogEntry,
+    ReportUserInfo,
+    ReportBrowserInfo,
+    InvestigationStatus,
+    ConfidenceLevel,
+    ProposedFix
+};
 

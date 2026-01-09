@@ -22,10 +22,18 @@ import {
     Trash2,
     MoreVertical
 } from 'lucide-react';
-import type { ReportClient, ReportStatus } from '@/apis/reports/types';
+import type { ReportClient, ReportStatus, InvestigationStatus } from '@/apis/reports/types';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
 import { toast } from '@/client/components/ui/toast';
 import { STATUS_COLORS, STATUS_ICONS, formatDate, generatePerformanceSummary } from '../utils';
+
+const INVESTIGATION_STATUS_LABELS: Record<InvestigationStatus, string> = {
+    needs_info: 'Needs More Info',
+    root_cause_found: 'Root Cause Found',
+    complex_fix: 'Complex Fix Required',
+    not_a_bug: 'Not a Bug',
+    inconclusive: 'Inconclusive',
+};
 
 interface ReportCardProps {
     report: ReportClient;
@@ -105,6 +113,30 @@ ${report.errorMessage}
 ${report.stackTrace ? `STACK TRACE
 -----------
 ${report.stackTrace}
+` : ''}
+${report.investigation ? `INVESTIGATION SUMMARY
+---------------------
+- Status: ${INVESTIGATION_STATUS_LABELS[report.investigation.status]}
+- Confidence: ${report.investigation.confidence}
+- Headline: ${report.investigation.headline}
+
+Summary:
+${report.investigation.summary}
+${report.investigation.rootCause ? `
+Root Cause:
+${report.investigation.rootCause}
+` : ''}${report.investigation.proposedFix ? `
+Proposed Fix (${report.investigation.proposedFix.complexity} complexity):
+${report.investigation.proposedFix.description}
+
+Files to change:
+${report.investigation.proposedFix.files.map(f => `  - ${f.path}: ${f.changes}`).join('\n')}
+` : ''}${report.investigation.analysisNotes ? `
+Analysis Notes:
+${report.investigation.analysisNotes}
+` : ''}
+Files Examined: ${report.investigation.filesExamined.length > 0 ? report.investigation.filesExamined.join(', ') : 'None'}
+Investigated: ${formatDate(report.investigation.investigatedAt)} by ${report.investigation.investigatedBy}
 ` : ''}
 USER INFORMATION
 ----------------
@@ -217,6 +249,19 @@ END OF REPORT
                         <p className="text-sm font-mono text-destructive mb-3 line-clamp-2 bg-destructive/10 rounded px-2 py-1">
                             {report.errorMessage}
                         </p>
+                    )}
+
+                    {/* Investigation Headline */}
+                    {report.investigation && (
+                        <div className="flex items-start gap-2 mb-3 p-2 rounded bg-primary/10 border border-primary/20">
+                            <Search className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-primary">{report.investigation.headline}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {INVESTIGATION_STATUS_LABELS[report.investigation.status]} • {report.investigation.confidence} confidence
+                                </p>
+                            </div>
+                        </div>
                     )}
 
                     {/* Quick Info Pills */}
@@ -355,6 +400,74 @@ END OF REPORT
                 {/* Expanded Details */}
                 {isExpanded && (
                     <div className="px-4 pb-4 space-y-4 border-t bg-muted/30 pt-4">
+                        {/* Investigation Summary */}
+                        {report.investigation && (
+                            <div>
+                                <h4 className="mb-2 text-sm font-medium flex items-center gap-2">
+                                    <Search className="h-4 w-4" />
+                                    Investigation Summary
+                                </h4>
+                                <div className="rounded bg-muted p-3 text-xs space-y-3">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="inline-flex items-center rounded-full bg-primary/20 px-2 py-0.5 text-primary font-medium">
+                                            {INVESTIGATION_STATUS_LABELS[report.investigation.status]}
+                                        </span>
+                                        <span className="inline-flex items-center rounded-full bg-secondary/20 px-2 py-0.5 text-secondary">
+                                            {report.investigation.confidence} confidence
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Summary:</span>
+                                        <p className="mt-1">{report.investigation.summary}</p>
+                                    </div>
+                                    {report.investigation.rootCause && (
+                                        <div>
+                                            <span className="text-muted-foreground">Root Cause:</span>
+                                            <p className="mt-1">{report.investigation.rootCause}</p>
+                                        </div>
+                                    )}
+                                    {report.investigation.proposedFix && (
+                                        <div>
+                                            <span className="text-muted-foreground">
+                                                Proposed Fix ({report.investigation.proposedFix.complexity} complexity):
+                                            </span>
+                                            <p className="mt-1">{report.investigation.proposedFix.description}</p>
+                                            {report.investigation.proposedFix.files.length > 0 && (
+                                                <div className="mt-2">
+                                                    <span className="text-muted-foreground">Files to change:</span>
+                                                    <ul className="mt-1 list-disc list-inside">
+                                                        {report.investigation.proposedFix.files.map((file, idx) => (
+                                                            <li key={idx} className="text-xs">
+                                                                <code className="bg-background px-1 rounded">{file.path}</code>
+                                                                <span className="text-muted-foreground ml-1">- {file.changes}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {report.investigation.analysisNotes && (
+                                        <div>
+                                            <span className="text-muted-foreground">Analysis Notes:</span>
+                                            <p className="mt-1">{report.investigation.analysisNotes}</p>
+                                        </div>
+                                    )}
+                                    {report.investigation.filesExamined.length > 0 && (
+                                        <div>
+                                            <span className="text-muted-foreground">Files Examined ({report.investigation.filesExamined.length}):</span>
+                                            <p className="mt-1 font-mono text-[10px] break-all">
+                                                {report.investigation.filesExamined.join(', ')}
+                                            </p>
+                                        </div>
+                                    )}
+                                    <div className="text-muted-foreground text-[10px] pt-2 border-t">
+                                        Investigated {formatDate(report.investigation.investigatedAt)} by {report.investigation.investigatedBy}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Performance Summary (for performance reports) */}
                         {report.category === 'performance' && (() => {
                             const summary = generatePerformanceSummary(report);

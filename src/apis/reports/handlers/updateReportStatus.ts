@@ -42,6 +42,10 @@ export const updateReportStatus = async (
             errorMessage: reportDoc.errorMessage,
             category: reportDoc.category,
             performanceEntries: reportDoc.performanceEntries,
+            investigation: reportDoc.investigation ? {
+                ...reportDoc.investigation,
+                investigatedAt: reportDoc.investigation.investigatedAt.toISOString(),
+            } : undefined,
             createdAt: reportDoc.createdAt.toISOString(),
             updatedAt: reportDoc.updatedAt.toISOString(),
         };

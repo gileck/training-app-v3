@@ -2,13 +2,14 @@
 export * from './index';
 
 // Import API name constants from index.ts
-import { 
-    API_CREATE_REPORT, 
-    API_GET_REPORTS, 
-    API_GET_REPORT, 
+import {
+    API_CREATE_REPORT,
+    API_GET_REPORTS,
+    API_GET_REPORT,
     API_UPDATE_REPORT_STATUS,
     API_DELETE_REPORT,
-    API_DELETE_ALL_REPORTS
+    API_DELETE_ALL_REPORTS,
+    API_UPDATE_INVESTIGATION
 } from './index';
 
 // Import handlers
@@ -18,6 +19,7 @@ import { getReport } from './handlers/getReport';
 import { updateReportStatus } from './handlers/updateReportStatus';
 import { deleteReport } from './handlers/deleteReport';
 import { deleteAllReports } from './handlers/deleteAllReports';
+import { updateInvestigation } from './handlers/updateInvestigation';
 
 // Export consolidated handlers object
 export const reportsApiHandlers = {
@@ -27,5 +29,6 @@ export const reportsApiHandlers = {
     [API_UPDATE_REPORT_STATUS]: { process: updateReportStatus },
     [API_DELETE_REPORT]: { process: deleteReport },
     [API_DELETE_ALL_REPORTS]: { process: deleteAllReports },
+    [API_UPDATE_INVESTIGATION]: { process: updateInvestigation },
 };
 

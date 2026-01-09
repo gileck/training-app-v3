@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "f0e4243052257b5939ec7ac1c19933d2311605c4",
-  "lastProjectCommit": "5a9c98dd061020f7fe0e1cca786ac98f2e129c52",
-  "lastSyncDate": "2026-01-09T15:11:52.078Z",
+  "lastSyncCommit": "fc4197464205b611412e5e3baaea9b853dbc4509",
+  "lastProjectCommit": "2bfda1e918c32405eeee79193bf616c91dc7d61a",
+  "lastSyncDate": "2026-01-09T16:31:46.967Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-09T16:31:46.966Z",
+      "templateCommit": "fc4197464205b611412e5e3baaea9b853dbc4509",
+      "projectCommit": "2bfda1e918c32405eeee79193bf616c91dc7d61a",
+      "filesApplied": 13,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "fc41974 feat: add automatic bug investigation using Claude Agent SDK \u001b[90m(09/01/2026)\u001b[0m\n  Add a CLI tool that automatically investigates bug reports using the\n  Claude Agent SDK. The agent performs read-only analysis to identify\n  root causes and propose fixes.\n  \n  Features:\n  - CLI script at scripts/investigate-bugs.ts\n  - 5 investigation statuses: needs_info, root_cause_found, complex_fix,\n    not_a_bug, inconclusive\n  - Configurable timeout (default 10 minutes), streaming output\n  - Investigation results stored in MongoDB with the report\n  - UI displays investigation headline in report list\n  - Full investigation summary in expanded details\n  - Investigation included in \"Copy Details\" for /fix-bug command\n  - Updated fix-bug command to leverage investigation summaries\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-09T15:11:52.078Z",
       "templateCommit": "f0e4243052257b5939ec7ac1c19933d2311605c4",
@@ -308,15 +319,6 @@
         "7f4d0a3 docs: add CLAUDE.md with project guidelines for Claude Code \u001b[90m(27/12/2025)\u001b[0m\n  Comprehensive guidelines document summarizing:\n  - Architecture overview and project structure\n  - State management (Zustand + React Query)\n  - Authentication with instant-boot pattern\n  - Caching strategy and offline/PWA support\n  - Client-server communication patterns\n  - React component organization\n  - UI/styling with shadcn/ui\n  - TypeScript guidelines\n  - Guidelines compliance checklist\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "44754e0 fix: use normal text instead of grey for existing differences \u001b[90m(27/12/2025)\u001b[0m\n  Grey text was hard to see in the terminal. Changed existing differences\n  to use normal text for better readability.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2025-12-27T10:31:40.812Z",
-      "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
-      "projectCommit": "577351b8f96b73dc5c770ddda964be5ec0779ea2",
-      "filesApplied": 5,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": []
     }
   ],
   "fileHashes": {
@@ -324,7 +326,7 @@
     ".cache/48779b4effd022b7d475bf5d9521e996.json": "1a1fcc679a6382b182e7ac3d28501308",
     ".cache/55ae2ef23a8ff80035f8960a8a333835.json": "db7e8163da55229a1d39a9c63308d659",
     ".claude/commands/debug-bug-report.md": "259a7854a6f9601291954473deaacd0b",
-    ".claude/commands/fix-bug.md": "0b92bea9417333e18399327d51f5e377",
+    ".claude/commands/fix-bug.md": "6c9d4e1e1159975d117d401ec6bd0b70",
     ".claude/commands/new-feature.md": "da5a02317c02310cb4ec91a764596764",
     ".claude/commands/review-document-and-push.md": "7a2a10c680b9938b8d6608c5fce36631",
     ".claude/commands/sync-template.md": "5233213ecf78cfc75ec94a5758f679f8",
@@ -427,14 +429,14 @@
     "src/apis/processApiCall.ts": "9f0bfbbc2ab4ebd105962385ae89364b",
     "src/apis/registry.ts": "6d37ea6c95c345a9c8e343ed9915774c",
     "src/apis/reports/client.ts": "1d4ade3756694d75e4483c6534ce7895",
-    "src/apis/reports/handlers/createReport.ts": "174de79019bb25be8749683ad68e1b39",
+    "src/apis/reports/handlers/createReport.ts": "19ccab6136ca863c648dbcd851208d3d",
     "src/apis/reports/handlers/deleteReport.ts": "bdbcdb6823011f0155e3853093072f80",
-    "src/apis/reports/handlers/getReport.ts": "8d1f3b93860576cf0c8dbb1960285bd7",
-    "src/apis/reports/handlers/getReports.ts": "3c5d868dbd39a7ba64a3819e6d4cc75b",
-    "src/apis/reports/handlers/updateReportStatus.ts": "bcabe051e8ea79be014864047423a249",
-    "src/apis/reports/index.ts": "d8690204fa942b5b659db3f1a3cff113",
-    "src/apis/reports/server.ts": "d97f559abadecdcf977bc9688c77106e",
-    "src/apis/reports/types.ts": "231c5bcf39db916330280e9a387108e3",
+    "src/apis/reports/handlers/getReport.ts": "c7b7cf7df2f220c8467dad7b8bf52e1b",
+    "src/apis/reports/handlers/getReports.ts": "b456ced4e1d7cc925f3468c216b4a085",
+    "src/apis/reports/handlers/updateReportStatus.ts": "2ab5d5a22d42b1e90c4ea749c57b18e3",
+    "src/apis/reports/index.ts": "7da639ac73aaa4d90c9fceb0495ee2f8",
+    "src/apis/reports/server.ts": "fe29938e525b43f832fe7e4d55a59e90",
+    "src/apis/reports/types.ts": "5ca3c522d0334ff415a9406fcaf0b044",
     "src/apis/settings/clearCache/client.ts": "317e787b422873b894ebca37965914d4",
     "src/apis/settings/clearCache/index.ts": "6ccd70af803dbde88fd43b41f7298285",
     "src/apis/settings/clearCache/server.ts": "c0679f33b104b037a5b914465e36ae0f",
@@ -576,8 +578,8 @@
     "src/server/cache/providers.ts": "caaaba57a92ec166320ac0cff375e868",
     "src/server/cache/s3Cache.ts": "f7b36af0a2455da3ca07f118e4cf4fa4",
     "src/server/database/collections/reports/index.ts": "6f087952abb36cb8f82931a46bc73c83",
-    "src/server/database/collections/reports/reports.ts": "5daa27d8c8af933c3d73e8f69eaee0a8",
-    "src/server/database/collections/reports/types.ts": "e147b389b4babd3b4e5ff6ab05e8f1f3",
+    "src/server/database/collections/reports/reports.ts": "b516f58f5e2aef3932e8f5208a9c5bb7",
+    "src/server/database/collections/reports/types.ts": "bdaa9cf96338bbc94b3f61247924f4ff",
     "src/server/database/collections/users/index.ts": "b52422edb018193c1123cc795b8d64a2",
     "src/server/database/collections/users/types.ts": "8dc5338f0ca3b1dc9b9286ac581a7d8f",
     "src/server/database/collections/users/users.ts": "d67ea7c5984ee6f06b2929e5f86426d9",
@@ -616,7 +618,7 @@
     "src/client/routes/Profile/components/ProfileCard.tsx": "c5a5b7a37772291a4d1a045a0d473fa6",
     "src/client/routes/Profile/components/index.ts": "2099ce9c96e94abd7b88acb36987f8c2",
     "src/client/routes/Reports/components/GroupedReportCard.tsx": "e524d449cc78c3d74c14400a4524dba4",
-    "src/client/routes/Reports/components/ReportCard.tsx": "8eb412c2dbf04fd11a08d96600b5e18a",
+    "src/client/routes/Reports/components/ReportCard.tsx": "5cdd40327e22f5565c50717841bf2f73",
     "src/client/routes/Reports/components/ReportsFilters.tsx": "b33b3f4fcbff974f742978b0359378fd",
     "src/client/routes/Reports/components/ReportsHeader.tsx": "4f0403d3917c9356ccae28aaa92ca524",
     "src/client/routes/Reports/components/index.ts": "e452620f13cca7ea14ad7c93ac5871f1",
@@ -624,6 +626,8 @@
     "src/client/routes/Settings/components/AIModelSection.tsx": "180d72abac3b4ac7846022296c0de2bd",
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
-    "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01"
+    "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
+    "scripts/investigate-bugs.ts": "98799dfbf4ac5aecb2d007ff7c17e52d",
+    "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6"
   }
 }

@@ -12,10 +12,55 @@ Follow these steps in order to ensure high-quality bug resolution:
 
 ---
 
+## CRITICAL: Check for Investigation Summary First!
+
+**Before starting ANY bug fix, check if the bug report includes an INVESTIGATION SUMMARY section.**
+
+Bug reports may include an automated investigation that provides:
+- **Status**: The investigation outcome (Root Cause Found, Needs More Info, Complex Fix, Not a Bug, Inconclusive)
+- **Confidence**: How confident the investigation is (low/medium/high)
+- **Headline**: One-line summary of the finding
+- **Summary**: Detailed explanation of the issue
+- **Root Cause**: The exact cause of the bug with file paths and line numbers
+- **Proposed Fix**: Specific instructions on what to change
+- **Files to Change**: List of files with descriptions of required changes
+- **Analysis Notes**: Additional context and similar patterns found
+- **Files Examined**: Files that were analyzed during investigation
+
+### If Investigation Summary EXISTS:
+
+**YOU MUST USE IT!** The investigation has already done the analysis work for you.
+
+1. **Skip or minimize Steps 1-3** - The investigation already provides:
+   - Bug understanding (Summary, Root Cause)
+   - Codebase analysis (Files Examined, similar patterns)
+   - Root cause identification (Root Cause section)
+
+2. **Go directly to Step 4** (Read Project Guidelines) then **Step 5** (Suggest Options)
+   - Use the **Proposed Fix** as your primary recommended option
+   - The investigation's complexity estimate helps set expectations
+
+3. **Trust high-confidence investigations** - If confidence is "high":
+   - The root cause is likely correct
+   - The proposed fix should work
+   - You can proceed more quickly
+
+4. **Verify medium/low confidence investigations** - If confidence is "medium" or "low":
+   - Double-check the root cause by reading the mentioned files
+   - The investigation provides a good starting point but may need refinement
+
+### If Investigation Summary DOES NOT EXIST:
+
+Follow the full process starting from Step 1.
+
+---
+
 ## Step 1: Understand the Bug
 - **Objective**: Gain clear understanding of the problem
 - **Actions**:
   - Read the bug report carefully (from the user)
+  - **CHECK FOR INVESTIGATION SUMMARY** - If present, use it as your primary source of truth
+  - If investigation exists with "Root Cause Found" status, the understanding is already done
   - Identify the expected behavior vs actual behavior
   - Note any error messages, stack traces, or logs
   - Ask clarifying questions to the user if anything is not clear
@@ -38,6 +83,11 @@ Follow these steps in order to ensure high-quality bug resolution:
 ## Step 3: Understand the Related Codebase
 - **Objective**: Familiarize yourself with relevant code
 - **Actions**:
+  - **If Investigation Summary exists**:
+    - Start with the **Files to Change** section - these are the exact files to modify
+    - Review **Files Examined** - these have already been analyzed
+    - Check **Analysis Notes** for similar patterns and related code references
+    - The investigation has already located the buggy code for you
   - Locate the code responsible for the buggy behavior
   - Read relevant documentation files (usually in the /docs folder)
   - Examine the code flow and logic
@@ -61,6 +111,11 @@ Follow these steps in order to ensure high-quality bug resolution:
 ## Step 5: Suggest Options to Fix the Bug
 - **Objective**: Present multiple solutions with trade-offs
 - **Actions**:
+  - **If Investigation Summary exists with "Proposed Fix"**:
+    - Use the investigation's proposed fix as **Option 1 (Recommended)**
+    - The complexity estimate is already provided (low/medium/high)
+    - The specific files and changes are already identified
+    - You may still offer alternatives if you see better approaches
   - Identify all possible approaches to fix the bug
   - Consider both short-term quick fixes and long-term solutions
   - For each option, provide:
@@ -247,12 +302,13 @@ Follow these steps in order to ensure high-quality bug resolution:
 
 ## Quick Checklist
 
+- [ ] **Investigation Summary checked** (use it if available!)
 - [ ] Bug understood clearly
 - [ ] Bug reproduced successfully
-- [ ] Root cause identified
-- [ ] Codebase understood
+- [ ] Root cause identified (may come from Investigation Summary)
+- [ ] Codebase understood (Investigation's Files Examined helps)
 - [ ] Project guidelines reviewed
-- [ ] Options presented with pros/cons
+- [ ] Options presented with pros/cons (use Investigation's Proposed Fix as Option 1)
 - [ ] Recommended approach selected
 - [ ] Todo list created (if needed for complex bugs)
 - [ ] Fix is simple and targeted
