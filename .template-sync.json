@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "e4a11492e9716dbec8021a6259b1d86bd897c825",
-  "lastProjectCommit": "0549b86a6b27914843c500919632a741adaab271",
-  "lastSyncDate": "2026-01-06T09:09:53.295Z",
+  "lastSyncCommit": "f0e4243052257b5939ec7ac1c19933d2311605c4",
+  "lastProjectCommit": "5a9c98dd061020f7fe0e1cca786ac98f2e129c52",
+  "lastSyncDate": "2026-01-09T15:11:52.078Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,18 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-09T15:11:52.078Z",
+      "templateCommit": "f0e4243052257b5939ec7ac1c19933d2311605c4",
+      "projectCommit": "5a9c98dd061020f7fe0e1cca786ac98f2e129c52",
+      "filesApplied": 5,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "f0e4243 docs: clarify mutation patterns and fix TypeScript issues \u001b[90m(09/01/2026)\u001b[0m\n  This commit completes the full project audit fixes and improves documentation clarity around React Query mutation patterns.\n  \n  ## Documentation Improvements\n  \n  ### Mutation Pattern Clarification\n  - Add \"What's Allowed in onSuccess?\" section to react-query-mutations.md\n  - Clarifies that toasts, logging, analytics, and navigation are ALLOWED in onSuccess\n  - Explains the distinction between ephemeral feedback (OK) vs state updates (forbidden)\n  - Add similar clarification note to offline-pwa-support.md with cross-reference\n  \n  ### Theming Guidelines\n  - Document bg-black/60 overlay exception in theming.md\n  - Add same exception to .cursor/rules/theming-guidelines.mdc\n  - Clarifies this is standard shadcn/ui pattern for dialog/modal backdrops\n  \n  ## Code Quality Fixes\n  \n  ### TypeScript Improvements\n  - Fix all `any` types in src/server/database/collections/todos/todos.ts\n  - Replace type assertions with proper Parameters<> utility type assertions\n  - Add explanatory comments for MongoDB flexible _id type handling\n  - Zero TypeScript errors, zero ESLint warnings\n  \n  ### Code Documentation\n  - Add comprehensive JSDoc comment to useInvalidateTodos hook\n  - Clarifies appropriate use cases (NON-OPTIMISTIC operations only)\n  - Warns against using in mutation onSettled handlers\n  \n  ## UI Component Improvements\n  \n  ### Modern Design System Updates\n  - Update button, input, select components with rounded-xl borders\n  - Add active:scale-[0.98] press feedback to buttons\n  - Improve dialog and alert-dialog with better animations\n  - Add backdrop-blur-sm to overlay backgrounds\n  - Better shadows (shadow-xl shadow-black/10)\n  - Improved mobile responsiveness (w-[calc(100%-2rem)])\n  \n  ### API Improvements\n  - Use isObjectIdFormat utility in deleteReport handler\n  - Improves consistency with project patterns\n  \n  ## Audit Results\n  - 100% compliance achieved (51/51 items compliant)\n  - Zero critical, high, or medium priority issues\n  - All mutations follow optimistic-only pattern correctly\n  - All Zustand stores use createStore factory\n  - Overall health score: 10/10\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "6cede7c docs: allow bulk decision reply format in contribute-to-template \u001b[90m(09/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-06T09:09:53.295Z",
       "templateCommit": "e4a11492e9716dbec8021a6259b1d86bd897c825",
@@ -305,17 +317,6 @@
       "filesSkipped": 13,
       "filesConflicted": 0,
       "templateCommits": []
-    },
-    {
-      "date": "2025-12-27T10:29:50.327Z",
-      "templateCommit": "40f2edca99ba291687e6654d63ee03c149d3faa8",
-      "projectCommit": "6a898960409bb565b0b9156b6affc87f1dd9e137",
-      "filesApplied": 1,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "40f2edc feat: sync-template now shows total diff with NEW/existing separation \u001b[90m(27/12/2025)\u001b[0m\n  BREAKING CHANGE: sync-template behavior changed to support incremental syncing\n  \n  Previous behavior (BROKEN):\n  - Only showed changes since last sync\n  - If you applied partial changes, unapplied changes were lost\n  - \"No new template commits\" blocked seeing existing differences\n  \n  New behavior (FIXED):\n  - Always shows TOTAL diff (current state vs current state)\n  - Separates changes into:\n    * NEW since last sync (highlighted)\n    * Existing differences (greyed out)\n  - Supports incremental workflow:\n    1. Apply safe changes first\n    2. Come back later for conflicts\n    3. Never lose track of unapplied changes\n  \n  Display changes:\n  - \"Safe changes - NEW since last sync\" (normal color)\n  - \"Safe changes - existing differences\" (grey)\n  - \"Conflicts - NEW since last sync\" (normal color)\n  - \"Conflicts - existing differences\" (grey)\n  \n  This matches --diff-summary behavior and enables proper incremental syncing.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -346,7 +347,7 @@
     ".cursor/rules/settings-usage-guidelines.mdc": "fa2776ab82de9f2461e19cf0078fcd99",
     ".cursor/rules/shadcn-usage.mdc": "7a1e9ce128b279cfbe51a336e56a2926",
     ".cursor/rules/state-management-guidelines.mdc": "1536d29aa7cfa64eebb01c9f04824253",
-    ".cursor/rules/theming-guidelines.mdc": "e5363ae0aa69ff006170f24b448722e0",
+    ".cursor/rules/theming-guidelines.mdc": "a92e030e6abf6c4c993cc38a608a2e9f",
     ".cursor/rules/typescript-guidelines.mdc": "383e307ea840b19b9eeab8bdeace2859",
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
@@ -368,8 +369,8 @@
     "docs/architecture.md": "289d22287145918394dabcc4ea2104e2",
     "docs/caching-strategy.md": "90fd5b5327ee8bcfa110a768bd533aaf",
     "docs/logging-and-error-tracking.md": "311d534483b1ba3fb08bbf3e0c890c01",
-    "docs/offline-pwa-support.md": "dbda6bc42517c4a734a791078e23dfd1",
-    "docs/react-query-mutations.md": "34d342979da4c4258f70e2cf2ddd639c",
+    "docs/offline-pwa-support.md": "5ae59a7cf15c47cc61866cdc1c2143a4",
+    "docs/react-query-mutations.md": "ecbf69dc049dcb212fbef473dcf7c57b",
     "docs/shadcn-component-library.md": "d95ef7a2a0a64205f53f7022a518b18c",
     "docs/state-management.md": "2410c4ff3ced94cbc6c3689c18deb6ac",
     "docs/template-sync/template-sync-comparison.md": "c24c9bccb0fddb06a74b7553cf26fb31",
@@ -377,7 +378,7 @@
     "docs/template-sync/template-sync-quick-start.md": "5ab956fa147e6190a204d6a99ca5dc99",
     "docs/template-sync/template-sync-visual-guide.md": "0b930d2e919a74cd10e3ace9410c3168",
     "docs/template-sync/template-sync.md": "e936d2f0b71e3e08a782713e23ffb8e2",
-    "docs/theming.md": "0d526630ed1418fc546b957d41bbb801",
+    "docs/theming.md": "681e533f18a3628d4aee2cfad84c6797",
     "eslint-plugin-api-guidelines/index.js": "e04e1aefd7323b75255b23c1cfb34f28",
     "eslint-plugin-api-guidelines/rules/api-names-from-index.js": "e13771ec7fcf0e9655a662617c401186",
     "eslint-plugin-api-guidelines/rules/client-returns-cache-result.js": "54655ab4adb0ffc915a3047d741090a6",
@@ -598,7 +599,7 @@
     "ui-guidelines-example/weather-locations.html": "fc7346d853ca9c32f0f838dfbdee6347",
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
-    ".cursor/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
+    ".cursor/commands/contribute-to-template.md": "8fbefe9cf66058e7034e7e88db79f058",
     "scripts/sync-template.ts": "6edaa13f777949e5dc81401a5d771540",
     "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
     "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",

@@ -8,6 +8,8 @@ alwaysApply: false
 
 When styling components, **ALWAYS use semantic CSS variables**. **NEVER use hardcoded colors** like `bg-white`, `text-black`, `bg-blue-500`, or hex values.
 
+**Exception**: Dialog/modal overlays may use `bg-black/60` for backdrop opacity (standard shadcn/ui pattern).
+
 ## Required: Use Semantic Color Tokens
 
 | Use This (Tailwind)       | NOT This                              |

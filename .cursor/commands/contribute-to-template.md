@@ -152,7 +152,33 @@ Present each differing file:
 ### Your decision? [DISCARD / MERGE / CONTRIBUTE / KEEP]
 ```
 
-**Wait for user decision before proceeding to next file.**
+#### ✅ Single-message reply (bulk decisions)
+
+After the agent finishes analyzing all files, the user can reply **once** with decisions for every file.
+
+**Reply format:**
+- One decision per line
+- Start each line with the file number from `File X of N`
+- Then the action: `DISCARD` / `MERGE` / `CONTRIBUTE` / `KEEP`
+
+Example:
+
+```
+1 CONTRIBUTE
+2 KEEP
+3 MERGE
+4 CONTRIBUTE
+5 KEEP
+6 CONTRIBUTE
+7 CONTRIBUTE
+```
+
+**Rules:**
+- File numbers must cover `1..N` (no missing numbers)
+- Each file gets exactly one action
+- If the user gives a partial list or an invalid action, ask a clarification question and do not execute changes yet
+
+**Wait for user decision before proceeding to next file** (either per-file, or using the single-message reply format above).
 
 ### 5. Execute all decisions
 

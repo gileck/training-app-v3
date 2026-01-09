@@ -203,6 +203,8 @@ useMutation({
 4. **`onError`**: ONLY on error - rollback to previous state
 5. **`onSettled`**: EMPTY - never invalidateQueries (causes race conditions)
 
+> **Note**: While `onSuccess` should not update state from server responses, ephemeral feedback like **toasts** (`toast.success('Saved')`), **logging**, **analytics**, or **navigation** is acceptable. These don't cause race conditions because they're fire-and-forget operations that don't modify application state. See [React Query Mutations](./react-query-mutations.md#whats-allowed-in-onsuccess) for details.
+
 ### Temporary IDs for Create Operations
 
 When creating items, use temporary IDs that stay in the UI:

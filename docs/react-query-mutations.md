@@ -13,6 +13,24 @@ This document defines the **required mutation patterns** for this application.
 
 This avoids race conditions when users interact faster than the server responds.
 
+## What's Allowed in onSuccess?
+
+While `onSuccess` should NOT update state from server responses, these are acceptable:
+
+✅ **Allowed** (ephemeral feedback):
+- **Toasts/notifications**: `toast.success('Saved successfully')`
+- **Logging**: `logger.info('Mutation succeeded')`
+- **Analytics**: `analytics.track('todo_created')`
+- **Navigation**: `router.push('/next-page')`
+- **Zustand updates** (non-server data): `useStore.setState({ showWelcome: false })`
+
+❌ **Forbidden** (state updates from server):
+- **React Query cache updates**: `queryClient.setQueryData(['key'], serverData)`
+- **Applying server response to UI**: `setState(response.data)`
+- **Invalidating queries**: `queryClient.invalidateQueries(...)` (causes race conditions - see exception below)
+
+**Why?** Toasts, logging, and navigation don't cause race conditions - they're fire-and-forget operations that don't modify application state. The problem is when you UPDATE STATE based on server responses, which can arrive out of order or after the user has made additional changes.
+
 ### ✅ Allowed Exception: Invalidating Separate Aggregation Queries
 
 The rule "no invalidateQueries" applies to **the data you just optimistically updated**. However, you **may** invalidate a **separate** query that contains server-computed aggregations the client cannot calculate.

@@ -359,6 +359,7 @@ export const fontPresets: FontPreset[] = [
 ### Don'ts ❌
 
 1. **Never use hardcoded colors** (`bg-white`, `text-black`, `bg-blue-500`)
+   - **Exception**: Dialog/modal overlays may use `bg-black/60` (standard shadcn/ui pattern for backdrop opacity)
 2. **Never use hex colors directly** (`#3b82f6`, `#ffffff`)
 3. **Don't create new color variables** without adding them to the theme system
 4. **Don't use `dark:` variants** for colors (the theme system handles this)
