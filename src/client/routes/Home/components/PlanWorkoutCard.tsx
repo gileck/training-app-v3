@@ -1,6 +1,5 @@
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
-import { Badge } from '@/client/components/ui/badge';
 import {
     ChevronRight,
     CheckCheck,
@@ -66,15 +65,7 @@ export function PlanWorkoutCard({
                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-semibold text-base truncate">{workout.name}</h3>
-                                    {isWorkoutComplete && (
-                                        <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1 px-1.5 py-0 text-xs">
-                                            <CheckCheck className="h-3 w-3" />
-                                            Done
-                                        </Badge>
-                                    )}
-                                </div>
+                                <h3 className="font-semibold text-base truncate">{workout.name}</h3>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span>{resolvedExercises.length} exercise{resolvedExercises.length !== 1 ? 's' : ''}</span>
                                     {totalSets > 0 && (
