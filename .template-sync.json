@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "f6ed44a91ba1bee682768e54098d180088d1eb8c",
-  "lastProjectCommit": "ef20bb354fc9676fc18d063d51cd9ca8c8f1cd6b",
-  "lastSyncDate": "2026-01-09T18:55:43.173Z",
+  "lastSyncCommit": "43356c33880a82f82229118e70cc09f812b6f630",
+  "lastProjectCommit": "0fdaa9c3307cfaf5e828606945c6aee7ff84c797",
+  "lastSyncDate": "2026-01-09T19:10:49.426Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-09T19:10:49.426Z",
+      "templateCommit": "43356c33880a82f82229118e70cc09f812b6f630",
+      "projectCommit": "0fdaa9c3307cfaf5e828606945c6aee7ff84c797",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "43356c3 fix: improve investigate-bugs script reliability \u001b[90m(09/01/2026)\u001b[0m\n  - Show full thinking output with --stream (remove truncation)\n  - Increase MAX_TURNS from 30 to 100 for complex investigations\n  - Add fallback when JSON parsing fails (saves partial findings as inconclusive)\n  - Update CLI option descriptions\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-09T18:40:45.696Z",
       "templateCommit": "f25b8dedeed42ab1f0743a16f92556df98bb0aa5",
@@ -307,21 +318,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "dbcfe8f chore: disable @next/next/no-img-element globally in eslint config \u001b[90m(01/01/2026)\u001b[0m\n  We use base64 data URLs for user uploads where next/image doesn't help.\n  Removed inline disable comments from 3 files."
-      ]
-    },
-    {
-      "date": "2025-12-27T18:42:24.464Z",
-      "templateCommit": "417575881ef4dc0a9649474c8a4196efbf1e95f5",
-      "projectCommit": "d648fcb33564e278755b09f96df51b2ace513c78",
-      "filesApplied": 5,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "4175758 refactor: reorder status colors - backgrounds first, then text \u001b[90m(27/12/2025)\u001b[0m\n  Reorganized status colors layout for better visual grouping:\n  - Row 1: Error, Warning, Success, Info (backgrounds)\n  - Row 2: Error Text, Warning Text, Success Text, Info Text (foregrounds)\n  \n  This groups all background colors together and all text colors together for easier customization.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "eb61998 feat: display status colors in 2-row grid layout \u001b[90m(27/12/2025)\u001b[0m\n  Updated ColorEditorDialog to display status colors in a 2x4 grid layout for better organization:\n  - Row 1: Error, Error Text, Success, Success Text\n  - Row 2: Warning, Warning Text, Info, Info Text\n  \n  Added twoRowLayout prop to ColorGroupSection component to enable grid layout for specific sections.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "d0d1318 feat: add status foreground colors to ColorEditorDialog \u001b[90m(27/12/2025)\u001b[0m\n  Updated the Status section in the color editor dialog to include all status foreground colors (successForeground, warningForeground, infoForeground) for consistency with the types and presets.\n  \n  Status section now shows 8 colors:\n  - Error / Error Text\n  - Success / Success Text\n  - Warning / Warning Text\n  - Info / Info Text\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "5aef68e feat: make status color foregrounds customizable in theme settings \u001b[90m(27/12/2025)\u001b[0m\n  Added customizable foreground colors for success, warning, and info status colors to achieve feature parity with other semantic colors (primary, secondary, destructive).\n  \n  Changes:\n  - Added successForeground, warningForeground, info, and infoForeground to BaseThemeColors interface\n  - Updated colorToCssVar mapping with new CSS variable mappings\n  - Updated all 8 theme presets (default, ocean, forest, sunset, rose, midnight, monochrome, earth) with foreground color values for both light and dark modes\n  - Reorganized ColorCustomizer UI into \"Main Colors\" and \"Status Colors\" sections\n  - Added 6 new customizable colors in Status Colors section\n  \n  This resolves an inconsistency where primary/secondary/destructive had customizable foregrounds but status colors did not.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "a85bb62 feat: make yarn checks automatic before template sync commits \u001b[90m(27/12/2025)\u001b[0m\n  Previously, 'yarn checks' was optional via --validate flag. Now it always runs\n  before committing synced changes to ensure code quality.\n  \n  Changes:\n  - Remove --validate flag from CLI options\n  - Run yarn checks automatically before committing synced changes\n  - If checks fail, changes are applied but NOT committed\n  - User must fix issues and commit manually\n  - Update inline documentation to reflect new behavior\n  \n  This prevents commits with broken code and ensures all synced changes pass\n  validation before being committed.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -631,7 +627,7 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "98799dfbf4ac5aecb2d007ff7c17e52d",
+    "scripts/investigate-bugs.ts": "82b9db7f998f8043713f3615b40cbb63",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",

@@ -14,8 +14,7 @@
  *   yarn investigate-bugs --limit 5          # Limit to 5 reports
  *   yarn investigate-bugs --timeout 300      # Set timeout to 5 minutes (default: 600s)
  *   yarn investigate-bugs --dry-run          # Don't save results
- *   yarn investigate-bugs --stream           # Stream Claude's thinking in real-time
- *   yarn investigate-bugs --stream --verbose # Show full thinking output
+ *   yarn investigate-bugs --stream           # Stream Claude's full thinking in real-time
  */
 
 import { Command } from 'commander';
@@ -34,7 +33,7 @@ import {
 // CONFIGURATION
 // ============================================================
 const MODEL = 'sonnet';
-const MAX_TURNS = 30;
+const MAX_TURNS = 100;
 const DEFAULT_TIMEOUT_SECONDS = 600; // 10 minutes
 const PROJECT_ROOT = process.cwd();
 
@@ -265,16 +264,9 @@ async function runInvestigation(
                 const textContent = textParts.join('\n');
 
                 if (textContent && options.stream) {
-                    if (options.verbose) {
-                        const lines = textContent.split('\n').filter((l: string) => l.trim());
-                        for (const line of lines) {
-                            console.log(`    \x1b[90m${line}\x1b[0m`);
-                        }
-                    } else {
-                        const preview = textContent.slice(0, 100).replace(/\n/g, ' ').trim();
-                        if (preview) {
-                            console.log(`  \x1b[90m[${elapsed}s] ${preview}...\x1b[0m`);
-                        }
+                    const lines = textContent.split('\n').filter((l: string) => l.trim());
+                    for (const line of lines) {
+                        console.log(`    \x1b[90m${line}\x1b[0m`);
                     }
                 }
 
@@ -383,24 +375,38 @@ async function investigateReport(
 
         // Parse the JSON output
         const parsed = parseInvestigationOutput(result);
-        if (!parsed) {
-            console.error('  Failed to parse investigation output');
-            return null;
-        }
 
         // Build the Investigation object
-        const investigation: Investigation = {
-            status: parsed.status,
-            headline: parsed.headline.slice(0, 100),
-            summary: parsed.summary,
-            confidence: parsed.confidence,
-            rootCause: parsed.rootCause,
-            proposedFix: parsed.proposedFix,
-            analysisNotes: parsed.analysisNotes,
-            filesExamined: parsed.filesExamined || filesExamined,
-            investigatedAt: new Date(),
-            investigatedBy: 'agent',
-        };
+        let investigation: Investigation;
+
+        if (parsed) {
+            investigation = {
+                status: parsed.status,
+                headline: parsed.headline.slice(0, 100),
+                summary: parsed.summary,
+                confidence: parsed.confidence,
+                rootCause: parsed.rootCause,
+                proposedFix: parsed.proposedFix,
+                analysisNotes: parsed.analysisNotes,
+                filesExamined: parsed.filesExamined || filesExamined,
+                investigatedAt: new Date(),
+                investigatedBy: 'agent',
+            };
+        } else {
+            // Fallback: create an inconclusive investigation with the raw output
+            console.warn('  JSON parsing failed, creating fallback investigation');
+            const lastLines = result.split('\n').filter(l => l.trim()).slice(-10).join(' ');
+            investigation = {
+                status: 'inconclusive',
+                headline: 'Investigation incomplete - no structured output',
+                summary: `Agent investigated but did not produce structured findings. Last output: ${lastLines.slice(0, 500)}`,
+                confidence: 'low',
+                analysisNotes: result.slice(-2000),
+                filesExamined,
+                investigatedAt: new Date(),
+                investigatedBy: 'agent',
+            };
+        }
 
         return investigation;
     } catch (error) {
@@ -478,8 +484,8 @@ async function main(): Promise<void> {
         .option('--limit <number>', 'Limit number of reports to process', parseInt)
         .option('--timeout <seconds>', 'Timeout per investigation in seconds (default: 600)', parseInt)
         .option('--dry-run', 'Run without saving results to database', false)
-        .option('--stream', "Stream Claude's thinking and tool calls in real-time", false)
-        .option('--verbose', 'Show full detailed output (use with --stream)', false)
+        .option('--stream', "Stream Claude's full thinking and tool calls in real-time", false)
+        .option('--verbose', 'Show additional debug output (prompt, final result, tool progress)', false)
         .parse(process.argv);
 
     const opts = program.opts();
