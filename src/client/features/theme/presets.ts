@@ -44,9 +44,9 @@ const defaultTheme: ThemePreset = {
     dark: {
         background: '222 47% 6%',
         foreground: '210 40% 96%',
-        card: '222 47% 6%',
+        card: '222 47% 11%',
         cardForeground: '210 40% 98%',
-        popover: '222 47% 6%',
+        popover: '222 47% 11%',
         popoverForeground: '210 40% 98%',
         muted: '217 33% 17%',
         mutedForeground: '215 20% 65%',
