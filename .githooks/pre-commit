@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pre-commit hook: Fix yarn.lock registry URLs
+
+# Run the fix script
+./scripts/fix-yarn-lock.sh

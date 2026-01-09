@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "fc4197464205b611412e5e3baaea9b853dbc4509",
-  "lastProjectCommit": "2bfda1e918c32405eeee79193bf616c91dc7d61a",
-  "lastSyncDate": "2026-01-09T16:31:46.967Z",
+  "lastSyncCommit": "598603a45d33587203f660277e0ac0044c9e7d49",
+  "lastProjectCommit": "f30221366d399604f1cfa8359c07837dc7a29dec",
+  "lastSyncDate": "2026-01-09T18:25:08.639Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,23 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-09T18:25:08.638Z",
+      "templateCommit": "598603a45d33587203f660277e0ac0044c9e7d49",
+      "projectCommit": "f30221366d399604f1cfa8359c07837dc7a29dec",
+      "filesApplied": 8,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "598603a fix: workaround ESLint tsutils error from wixpress registry \u001b[90m(09/01/2026)\u001b[0m\n  The wixpress npm registry has broken @typescript-eslint@8.52.0 packages\n  that use deprecated tsutils (incompatible with TypeScript 5.x).\n  \n  Changes:\n  - Ignore TypeScript files in ESLint (rely on tsc for type checking)\n  - Use require() for claude-agent-sdk imports (TS 4.9.5 compatibility)\n  - Add documentation explaining the issue and workaround\n  \n  See docs/eslint-typescript-wixpress-issue.md for full details.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "0de7403 chore: move git hooks to tracked .githooks directory \u001b[90m(09/01/2026)\u001b[0m\n  After cloning, run: git config core.hooksPath .githooks\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "eee28ef chore: add script to fix yarn.lock registry URLs \u001b[90m(09/01/2026)\u001b[0m\n  Adds pre-commit hook to automatically fix wixpress URLs before committing.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "c81da9c fix: correct yarn.lock registry URL paths \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "056cb90 chore: update yarn.lock registry URLs to npmjs.org \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "dad123c docs: add GitHub PR CLI tool documentation to CLAUDE.md \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "7404c37 feat: add GitHub PR CLI tool for managing pull requests \u001b[90m(09/01/2026)\u001b[0m\n  Adds scripts/github-pr.ts - a CLI tool using @octokit/rest for:\n  - Adding comments to PRs\n  - Updating PR title and description\n  - Managing labels\n  - Requesting reviewers\n  - Merging PRs (squash/merge/rebase)\n  - Closing PRs\n  - Getting PR info and listing PRs\n  \n  Auto-detects owner/repo from git remote and loads GITHUB_TOKEN from .env"
+      ]
+    },
     {
       "date": "2026-01-09T16:31:46.966Z",
       "templateCommit": "fc4197464205b611412e5e3baaea9b853dbc4509",
@@ -306,19 +323,6 @@
       "templateCommits": [
         "9147cbe feat: add Claude Code custom slash commands \u001b[90m(27/12/2025)\u001b[0m\n  Migrate Cursor commands to .claude/commands/ for Claude Code CLI:\n  - fix-bug: systematic bug fixing workflow\n  - new-feature: feature implementation workflow\n  - review-document-and-push: code review and push workflow\n  - debug-bug-report: analyze bug/error reports\n  - sync-template: sync updates from template repo\n  - template-diff: compare project with template\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2025-12-27T12:41:55.362Z",
-      "templateCommit": "8992688afa9b1d87727ff7c97b7168138b777d55",
-      "projectCommit": "9a8f8d521a81f4a46b906fa00893e8224bc54901",
-      "filesApplied": 2,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "8992688 docs: expand CLAUDE.md with template sync and compliance checklist \u001b[90m(27/12/2025)\u001b[0m\n  - Add Template Sync section with commands and conflict resolution\n  - Expand Guidelines Compliance Checklist with:\n    - MongoDB usage guidelines\n    - State management checks\n    - Offline/PWA support patterns\n    - UI & styling requirements\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "7f4d0a3 docs: add CLAUDE.md with project guidelines for Claude Code \u001b[90m(27/12/2025)\u001b[0m\n  Comprehensive guidelines document summarizing:\n  - Architecture overview and project structure\n  - State management (Zustand + React Query)\n  - Authentication with instant-boot pattern\n  - Caching strategy and offline/PWA support\n  - Client-server communication patterns\n  - React component organization\n  - UI/styling with shadcn/ui\n  - TypeScript guidelines\n  - Guidelines compliance checklist\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "44754e0 fix: use normal text instead of grey for existing differences \u001b[90m(27/12/2025)\u001b[0m\n  Grey text was hard to see in the terminal. Changed existing differences\n  to use normal text for better readability.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -354,7 +358,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "e997732b8cdfb9ca9867422dacf407b7",
+    "CLAUDE.md": "c451f4e353751db24f97c81266888cba",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -393,7 +397,7 @@
     "eslint-plugin-api-guidelines/rules/server-reexport-from-index.js": "7cb1b3009f42ba3145e21a22eee51886",
     "eslint-plugin-state-management/index.js": "757cf842dca8f2cddc673d7ea4289309",
     "eslint-plugin-state-management/rules/prefer-state-architecture.js": "370d41bc1b160abe24e8ef0cb7d01b5d",
-    "eslint.config.mjs": "7a7bf2e44586dca1132a2e4b2f720599",
+    "eslint.config.mjs": "6992fe1e620da573a6ca6517f50cfcd3",
     "next.config.ts": "5d49b7e012ba66b2e797e884edfd3b45",
     "postcss.config.mjs": "675899342e765a4d16acd75a53389101",
     "public/favicon-32x32.png": "6e9a5cd1a1073f962c9e15bfe7086343",
@@ -588,7 +592,7 @@
     "src/server/s3/sdk.ts": "f3c6401a4f5b402be29e8e1e3cadfae9",
     "src/server/utils/id.ts": "fbc1f92d76c2abe9a6efc9bc4816d3ba",
     "src/server/utils/index.ts": "3960a65dd76423585407a2ba6faa4e5e",
-    "tsconfig.json": "f90647dfdf7c272a8186358aa43e4dc8",
+    "tsconfig.json": "99a44ba813d2938d04a6fa334821c2a1",
     "ui-guidelines-example/design-tokens.json": "d4df85742e93e0b411a5046986fe2283",
     "ui-guidelines-example/forms.html": "5cdc217c9335eb94ee31f53e48f364f3",
     "ui-guidelines-example/index.html": "167d106727de4deca779095551f1212a",
@@ -627,7 +631,11 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "98799dfbf4ac5aecb2d007ff7c17e52d",
-    "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6"
+    "scripts/investigate-bugs.ts": "346ff72d787122c7c572bb76cda32270",
+    "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
+    ".githooks/pre-commit": "a227f97ede34e7a7f0c5915d2e49912a",
+    "docs/eslint-typescript-wixpress-issue.md": "da9fd62540358a97e9c703bb30cbcd97",
+    "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
+    "scripts/github-pr.ts": "810b1306721aa2c4717bbfbe1c7a49d8"
   }
 }

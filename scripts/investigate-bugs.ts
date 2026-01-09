@@ -21,7 +21,31 @@
 import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs';
-import { query, type SDKAssistantMessage, type SDKResultMessage, type SDKToolProgressMessage } from '@anthropic-ai/claude-agent-sdk';
+// Dynamic import workaround for TypeScript 4.9.5 compatibility
+// The SDK uses modern ES module exports that require TypeScript 5.x + bundler resolution
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const claudeAgentSdk = require('@anthropic-ai/claude-agent-sdk') as {
+    query: (params: { prompt: string; options?: Record<string, unknown> }) => AsyncGenerator<SDKMessage, void>;
+};
+const { query } = claudeAgentSdk;
+
+// Type definitions for SDK messages (manually defined for TS 4.9.5 compatibility)
+interface SDKAssistantMessage {
+    type: 'assistant';
+    message: {
+        content: Array<{ type: string; text?: string; name?: string; input?: Record<string, unknown> }>;
+    };
+}
+interface SDKResultMessage {
+    type: 'result';
+    subtype: 'success' | 'error_during_execution' | 'error_max_turns' | 'error_max_budget_usd' | 'error_max_structured_output_retries';
+    result?: string;
+}
+interface SDKToolProgressMessage {
+    type: 'tool_progress';
+    tool_name: string;
+}
+type SDKMessage = SDKAssistantMessage | SDKResultMessage | SDKToolProgressMessage | { type: string };
 import {
     ReportDocument,
     Investigation,
