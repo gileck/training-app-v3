@@ -149,6 +149,9 @@ yarn watch-checks     # Watch mode for checks
 # Template sync
 yarn init-template    # Initialize template tracking
 yarn sync-template    # Sync with template updates
+
+# GitHub PR management
+yarn github-pr        # Manage GitHub PRs (comment, merge, label, etc.)
 ```
 
 ## Guidelines Compliance

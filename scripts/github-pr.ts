@@ -268,6 +268,26 @@ async function getPRInfo(
     console.log('');
 }
 
+async function createPR(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    title: string,
+    body: string,
+    head: string,
+    base: string
+): Promise<void> {
+    const { data: pr } = await octokit.pulls.create({
+        owner,
+        repo,
+        title,
+        body,
+        head,
+        base,
+    });
+    console.log(`✓ PR #${pr.number} created: ${pr.html_url}`);
+}
+
 async function listPRs(
     octokit: Octokit,
     owner: string,
@@ -477,6 +497,30 @@ program
         }
 
         await listPRs(octokit, owner, repo, state);
+    });
+
+// Create command
+program
+    .command('create')
+    .description('Create a new pull request')
+    .requiredOption('--title <title>', 'PR title')
+    .requiredOption('--body <body>', 'PR description')
+    .option('--head <branch>', 'Head branch (default: current branch)')
+    .option('--base <branch>', 'Base branch', 'main')
+    .action(async (options) => {
+        const config = getConfig();
+        const owner = program.opts().owner || config.owner;
+        const repo = program.opts().repo || config.repo;
+        const octokit = createOctokit(config.token);
+
+        let head = options.head;
+        if (!head) {
+            // Get current branch
+            const { execSync } = require('child_process');
+            head = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+        }
+
+        await createPR(octokit, owner, repo, options.title, options.body, head, options.base);
     });
 
 // Parse and run
