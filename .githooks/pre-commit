@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-commit hook: Fix yarn.lock registry URLs
+# Pre-commit hook: Reset yarn.lock to avoid committing wixpress registry URLs
+# See docs/eslint-typescript-wixpress-issue.md for details
 
-# Run the fix script
-./scripts/fix-yarn-lock.sh
+git checkout yarn.lock 2>/dev/null

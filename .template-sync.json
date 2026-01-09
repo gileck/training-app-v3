@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "f25b8dedeed42ab1f0743a16f92556df98bb0aa5",
+  "lastSyncCommit": "f6ed44a91ba1bee682768e54098d180088d1eb8c",
   "lastProjectCommit": "ef20bb354fc9676fc18d063d51cd9ca8c8f1cd6b",
-  "lastSyncDate": "2026-01-09T18:40:45.697Z",
+  "lastSyncDate": "2026-01-09T18:55:43.173Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -397,7 +397,7 @@
     "eslint-plugin-api-guidelines/rules/server-reexport-from-index.js": "7cb1b3009f42ba3145e21a22eee51886",
     "eslint-plugin-state-management/index.js": "757cf842dca8f2cddc673d7ea4289309",
     "eslint-plugin-state-management/rules/prefer-state-architecture.js": "370d41bc1b160abe24e8ef0cb7d01b5d",
-    "eslint.config.mjs": "6992fe1e620da573a6ca6517f50cfcd3",
+    "eslint.config.mjs": "7a7bf2e44586dca1132a2e4b2f720599",
     "next.config.ts": "5d49b7e012ba66b2e797e884edfd3b45",
     "postcss.config.mjs": "675899342e765a4d16acd75a53389101",
     "public/favicon-32x32.png": "6e9a5cd1a1073f962c9e15bfe7086343",
@@ -633,9 +633,10 @@
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
     "scripts/investigate-bugs.ts": "98799dfbf4ac5aecb2d007ff7c17e52d",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
-    ".githooks/pre-commit": "a227f97ede34e7a7f0c5915d2e49912a",
-    "docs/eslint-typescript-wixpress-issue.md": "da9fd62540358a97e9c703bb30cbcd97",
+    ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
+    "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
-    "scripts/github-pr.ts": "810b1306721aa2c4717bbfbe1c7a49d8"
+    "scripts/github-pr.ts": "810b1306721aa2c4717bbfbe1c7a49d8",
+    "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee"
   }
 }

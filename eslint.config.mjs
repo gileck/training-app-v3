@@ -35,15 +35,7 @@ const restrictApiRoutesRule = {
 };
 
 const eslintConfig = [
-  // NOTE: The wixpress npm registry has broken @typescript-eslint packages that cause
-  // "tsutils.iterateComments is not a function" error. TypeScript checking is handled
-  // by `yarn ts` (tsc --noEmit) instead.
-  // Ignore ALL TypeScript files to avoid the broken parser
-  {
-    ignores: ["**/*.ts", "**/*.tsx"]
-  },
-  // Only apply Next.js ESLint config to JavaScript files
-  ...compat.extends("next/core-web-vitals"),
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     plugins: {
@@ -61,8 +53,7 @@ const eslintConfig = [
       // Allow <img> - we use base64 data URLs for user uploads where next/image doesn't help
       "@next/next/no-img-element": "off",
       // Allow unused vars that start with underscore (common convention)
-      // Using standard ESLint rule since @typescript-eslint is disabled (broken on wixpress registry)
-      "no-unused-vars": ["error", {
+      "@typescript-eslint/no-unused-vars": ["error", {
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
       }],
