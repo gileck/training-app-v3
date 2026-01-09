@@ -32,11 +32,10 @@ import {
 import type { PlanExportData } from '@/apis/training-plans/types';
 import { toast } from '@/client/components/ui/toast';
 import { PlanPreviewCommit } from './PlanPreviewCommit';
-import { exportDataToDraftPlan } from '../utils';
+import { exportDataToDraftPlan, validatePlanExportJson } from '../utils';
 
 // Validation limits (matching server)
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
-const SUPPORTED_VERSION = '1.0';
 
 interface ImportPlanDialogProps {
     open: boolean;
@@ -45,109 +44,6 @@ interface ImportPlanDialogProps {
 }
 
 type DialogStep = 'input' | 'preview';
-
-interface ValidationResult {
-    valid: boolean;
-    error?: string;
-    data?: PlanExportData;
-}
-
-/**
- * Validate JSON structure client-side
- */
-function validateImportJson(jsonString: string): ValidationResult {
-    // Try to parse JSON
-    let data: unknown;
-    try {
-        data = JSON.parse(jsonString);
-    } catch (e) {
-        const parseError = e instanceof SyntaxError ? e.message : 'Invalid JSON';
-        return { valid: false, error: `Invalid JSON format. ${parseError}` };
-    }
-
-    // Check it's an object
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-        return { valid: false, error: 'Invalid plan format. Expected a JSON object.' };
-    }
-
-    const obj = data as Record<string, unknown>;
-
-    // Check version
-    if (!obj.version) {
-        return { valid: false, error: 'Invalid plan format. Missing required field: `version`' };
-    }
-    if (obj.version !== SUPPORTED_VERSION) {
-        return { valid: false, error: 'This plan was exported from an unsupported version.' };
-    }
-
-    // Check planName
-    if (!obj.planName || typeof obj.planName !== 'string' || obj.planName.trim() === '') {
-        return { valid: false, error: 'Invalid plan format. Missing required field: `planName`' };
-    }
-    if (obj.planName.length > 100) {
-        return { valid: false, error: 'Plan name is too long (maximum 100 characters).' };
-    }
-
-    // Check durationWeeks
-    if (!obj.durationWeeks || typeof obj.durationWeeks !== 'number') {
-        return { valid: false, error: 'Invalid plan format. Missing required field: `durationWeeks`' };
-    }
-    if (obj.durationWeeks < 1 || obj.durationWeeks > 52) {
-        return { valid: false, error: 'Duration must be between 1 and 52 weeks.' };
-    }
-
-    // Check workouts
-    if (!obj.workouts || !Array.isArray(obj.workouts)) {
-        return { valid: false, error: 'Invalid plan format. Missing required field: `workouts`' };
-    }
-    if (obj.workouts.length === 0) {
-        return { valid: false, error: 'This plan has no workouts. Add at least one workout with exercises.' };
-    }
-    if (obj.workouts.length > 50) {
-        return { valid: false, error: 'Too many workouts (maximum 50).' };
-    }
-
-    // Validate each workout
-    let totalExercises = 0;
-    for (const workout of obj.workouts) {
-        if (!workout || typeof workout !== 'object') {
-            return { valid: false, error: 'Invalid workout format in plan.' };
-        }
-        const w = workout as Record<string, unknown>;
-
-        if (!w.name || typeof w.name !== 'string' || w.name.trim() === '') {
-            return { valid: false, error: 'Each workout must have a name.' };
-        }
-
-        if (!w.exercises || !Array.isArray(w.exercises)) {
-            return { valid: false, error: `Workout "${w.name}" must have an exercises array.` };
-        }
-
-        if (w.exercises.length === 0) {
-            return { valid: false, error: `Workout "${w.name}" has no exercises. Each workout needs at least one exercise.` };
-        }
-
-        // Validate each exercise
-        for (const exercise of w.exercises) {
-            if (!exercise || typeof exercise !== 'object') {
-                return { valid: false, error: `Invalid exercise in workout "${w.name}".` };
-            }
-            const e = exercise as Record<string, unknown>;
-
-            if (!e.name || typeof e.name !== 'string' || e.name.trim() === '') {
-                return { valid: false, error: `Each exercise in "${w.name}" must have a name.` };
-            }
-
-            totalExercises++;
-        }
-    }
-
-    if (totalExercises > 200) {
-        return { valid: false, error: 'Too many exercises (maximum 200). Try splitting into multiple plans.' };
-    }
-
-    return { valid: true, data: data as PlanExportData };
-}
 
 export function ImportPlanDialog({
     open,
@@ -194,7 +90,7 @@ export function ImportPlanDialog({
         onOpenChange(newOpen);
     };
     
-    // Validate JSON input
+    // Validate JSON input (uses shared validation which handles code fences)
     const validateInput = useCallback((input: string) => {
         if (!input.trim()) {
             setValidationError(null);
@@ -203,7 +99,7 @@ export function ImportPlanDialog({
             return;
         }
 
-        const result = validateImportJson(input);
+        const result = validatePlanExportJson(input);
         if (result.valid && result.data) {
             setValidationError(null);
             setIsValidJson(true);

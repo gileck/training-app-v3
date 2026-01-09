@@ -134,7 +134,7 @@ async function matchExerciseEnhanced(
         }
     }
 
-    // Fall back to name matching
+    // Fall back to name matching (prefers system exercises over custom)
     const matchResult = matchExercise(exercise.name, exerciseLibrary);
     return {
         status: matchResult.status,

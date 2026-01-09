@@ -37,8 +37,11 @@ import {
     generatePlanFromText,
     createPlanFromText,
     exportPlan,
+    matchImportedPlan,
 } from '@/apis/training-plans/client';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
+import { listExercises } from '@/apis/exercise-definitions/client';
+import type { ListExercisesResponse } from '@/apis/exercise-definitions/types';
 import { generateId } from '@/client/utils/id';
 import type {
     ListPlansResponse,
@@ -53,6 +56,8 @@ import type {
     CreatePlanFromTextResponse,
     ExportPlanRequest,
     ExportPlanResponse,
+    MatchImportedPlanRequest,
+    MatchImportedPlanResponse,
 } from '@/apis/training-plans/types';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
@@ -64,6 +69,7 @@ import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
 export const plansQueryKey = ['training-plans'] as const;
 export const planQueryKey = (planId: string) => ['training-plans', planId] as const;
 export const planExercisesQueryKey = (planId: string) => ['plan-exercises', planId] as const;
+export const exercisesQueryKey = ['exercise-definitions'] as const;
 
 // ============================================================================
 // Query Hooks
@@ -105,6 +111,27 @@ export function usePlanExercises(planId: string, options?: { enabled?: boolean }
             return response.data;
         },
         enabled: (options?.enabled ?? true) && !!planId,
+        ...queryDefaults,
+    });
+}
+
+/**
+ * Hook to fetch all available exercises (exercise library)
+ * Used for searching exercises in the exercise resolver
+ */
+export function useExerciseLibrary(options?: { enabled?: boolean }) {
+    const queryDefaults = useQueryDefaults();
+
+    return useQuery({
+        queryKey: exercisesQueryKey,
+        queryFn: async (): Promise<ListExercisesResponse> => {
+            const response = await listExercises({});
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        enabled: options?.enabled ?? true,
         ...queryDefaults,
     });
 }
@@ -425,6 +452,24 @@ export function useExportPlan() {
     return useMutation({
         mutationFn: async (data: ExportPlanRequest): Promise<ExportPlanResponse> => {
             const response = await exportPlan(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+    });
+}
+
+/**
+ * Hook for matching imported plan exercises against the exercise library
+ * 
+ * Takes PlanExportData and returns a DraftPlan with matched/unresolved exercises.
+ * Used by ChatGPT flow to enable exercise resolution UI.
+ */
+export function useMatchImportedPlan() {
+    return useMutation({
+        mutationFn: async (data: MatchImportedPlanRequest): Promise<MatchImportedPlanResponse> => {
+            const response = await matchImportedPlan(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }

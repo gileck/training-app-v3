@@ -37,6 +37,10 @@ function normalizeExerciseName(name: string): string {
         .toLowerCase()
         .trim()
         .replace(/\s+/g, ' ')
+        // Remove possessive 's (farmer's → farmer, landmine's → landmine)
+        .replace(/'s\b/g, '')
+        // Remove standalone apostrophes (shouldn't happen but just in case)
+        .replace(/'/g, '')
         // Remove common equipment prefixes
         .replace(/^(barbell|dumbbell|kettlebell|cable|machine|smith machine|ez bar|ez-bar)\s+/i, '')
         // Remove common suffixes
@@ -58,10 +62,17 @@ function normalizeExerciseName(name: string): string {
         // Normalize common exercise name variations (hyphenated → non-hyphenated)
         .replace(/\bpull-up\b/gi, 'pullup')
         .replace(/\bpull-down\b/gi, 'pulldown')
+        .replace(/\bpull-downs\b/gi, 'pulldown')
+        .replace(/\bpulldowns\b/gi, 'pulldown')
         .replace(/\bpush-up\b/gi, 'pushup')
         .replace(/\bsit-up\b/gi, 'situp')
         .replace(/\bstep-up\b/gi, 'stepup')
         .replace(/\bface-pull\b/gi, 'facepull')
+        // Normalize plural variations
+        .replace(/\bpullups\b/gi, 'pullup')
+        .replace(/\bpushups\b/gi, 'pushup')
+        .replace(/\bsitups\b/gi, 'situp')
+        .replace(/\bstepups\b/gi, 'stepup')
         // Remove remaining hyphens between words (general fallback)
         .replace(/-/g, '');
 }
@@ -192,8 +203,12 @@ function calculateMatchScore(
  * Match an exercise name against a list of exercise definitions
  * 
  * Returns:
- * - status: 'matched' if exact/normalized match found
- * - status: 'unresolved' if no exact match, with suggestions
+ * - status: 'matched' if exact/normalized match found in SYSTEM exercises only
+ * - status: 'unresolved' if no match, with suggestions from system exercises
+ * 
+ * IMPORTANT: Only matches against system (library) exercises, never custom exercises.
+ * Custom exercises often lack proper metadata (images, muscle groups).
+ * If no system match is found, returns unresolved so user can manually resolve.
  */
 export function matchExercise(
     name: string,
@@ -202,8 +217,11 @@ export function matchExercise(
     const normalizedInput = normalizeExerciseName(name);
     const inferredMuscle = inferMuscleFromName(name);
     
-    // First, try exact match (case-insensitive)
-    for (const def of exerciseLibrary) {
+    // Only match against SYSTEM exercises (library exercises with proper metadata)
+    const systemExercises = exerciseLibrary.filter(def => def.isSystem);
+    
+    // First, try exact match against SYSTEM exercises
+    for (const def of systemExercises) {
         if (name.toLowerCase().trim() === def.name.toLowerCase().trim()) {
             return {
                 status: 'matched',
@@ -213,8 +231,8 @@ export function matchExercise(
         }
     }
     
-    // Second, try normalized match
-    for (const def of exerciseLibrary) {
+    // Second, try normalized match against SYSTEM exercises
+    for (const def of systemExercises) {
         const normalizedDef = normalizeExerciseName(def.name);
         if (normalizedInput === normalizedDef) {
             return {
@@ -225,7 +243,10 @@ export function matchExercise(
         }
     }
     
+    // No match in system exercises - do NOT fallback to custom exercises
+    
     // No exact/normalized match - calculate scores and return suggestions
+    // Suggestions include ALL exercises (system + custom) for manual resolution dialog
     const scoredExercises: Array<{
         def: ExerciseDefinition;
         score: number;
@@ -238,8 +259,14 @@ export function matchExercise(
         }
     }
     
-    // Sort by score descending
-    scoredExercises.sort((a, b) => b.score - a.score);
+    // Sort by score descending, with system exercises preferred over custom at same score
+    scoredExercises.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        // At same score, prefer system exercises (they have better metadata)
+        if (a.def.isSystem && !b.def.isSystem) return -1;
+        if (!a.def.isSystem && b.def.isSystem) return 1;
+        return 0;
+    });
     
     // Take top N suggestions (handles both ObjectId and UUID)
     const suggestions: SuggestedMatch[] = scoredExercises
@@ -250,7 +277,9 @@ export function matchExercise(
             primaryMuscle: def.primaryMuscle,
             imageUrl: def.imageUrl,
             score: Math.min(score, 100), // Cap at 100
+            isSystem: def.isSystem,
         }));
+
     
     return {
         status: 'unresolved',

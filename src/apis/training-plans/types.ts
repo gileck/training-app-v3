@@ -99,6 +99,7 @@ export interface SuggestedMatch {
     primaryMuscle: string;
     imageUrl?: string;
     score: number; // 0-100, higher is better
+    isSystem: boolean; // true = library exercise, false = custom exercise
 }
 
 // Match status for draft exercises
