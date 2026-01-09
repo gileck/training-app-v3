@@ -15,7 +15,8 @@
     "init-template": "tsx scripts/init-template.ts",
     "sync-template": "tsx scripts/sync-template.ts",
     "merge-template": "tsx scripts/merge-template-files.ts",
-    "generate-icons": "tsx scripts/generate-icons.ts"
+    "generate-icons": "tsx scripts/generate-icons.ts",
+    "gh": "gh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -68,6 +69,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.6",
+    "gh": "^2.8.9",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "typescript": "^5"
