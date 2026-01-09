@@ -379,6 +379,44 @@ yarn sync-template --diff-summary  # Generate full diff report
 
 ---
 
+## GitHub CLI
+
+Use the project's installed `gh` CLI for all GitHub operations.
+
+**Summary:** This project includes the `gh` CLI (nodegh) as a dev dependency. Always use `yarn gh` or `npx gh` instead of the system `gh` command for GitHub operations.
+
+**Key Points:**
+- **ALWAYS use `yarn gh` or `npx gh`** instead of bare `gh` command
+- The system `gh` CLI may not be available in all environments
+- The project's gh CLI is guaranteed to be installed via npm
+
+**Available Commands:**
+```bash
+yarn gh pr           # Work with Pull Requests
+yarn gh issue        # Work with Issues
+yarn gh repo         # Work with Repositories
+yarn gh gists        # Work with Gists
+yarn gh notification # Work with Notifications
+yarn gh user         # Login/logout
+yarn gh --help       # Show all commands
+```
+
+**Examples:**
+```bash
+# List pull requests
+yarn gh pr --list
+
+# Create a pull request
+yarn gh pr --submit "owner/repo" --branch "feature-branch"
+
+# List issues
+yarn gh is --list --all
+```
+
+**Note:** This uses [nodegh](http://nodegh.io), which has slightly different syntax than GitHub's official CLI. Run `yarn gh --help` or `yarn gh <command> --help` for detailed usage.
+
+---
+
 ## Additional Rules Reference
 
 | Topic | Rule File |
