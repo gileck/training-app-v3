@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "598603a45d33587203f660277e0ac0044c9e7d49",
-  "lastProjectCommit": "f30221366d399604f1cfa8359c07837dc7a29dec",
-  "lastSyncDate": "2026-01-09T18:25:08.639Z",
+  "lastSyncCommit": "f25b8dedeed42ab1f0743a16f92556df98bb0aa5",
+  "lastProjectCommit": "ef20bb354fc9676fc18d063d51cd9ca8c8f1cd6b",
+  "lastSyncDate": "2026-01-09T18:40:45.697Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-09T18:40:45.696Z",
+      "templateCommit": "f25b8dedeed42ab1f0743a16f92556df98bb0aa5",
+      "projectCommit": "ef20bb354fc9676fc18d063d51cd9ca8c8f1cd6b",
+      "filesApplied": 2,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "f25b8de chore: upgrade to TypeScript 5.x with bundler resolution \u001b[90m(09/01/2026)\u001b[0m\n  - Upgrade TypeScript from 4.9.5 to ^5.0.0\n  - Change moduleResolution from \"node\" to \"bundler\"\n  - Use proper ES module imports for claude-agent-sdk (remove require() workaround)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-09T18:25:08.638Z",
       "templateCommit": "598603a45d33587203f660277e0ac0044c9e7d49",
@@ -311,17 +322,6 @@
         "d0d1318 feat: add status foreground colors to ColorEditorDialog \u001b[90m(27/12/2025)\u001b[0m\n  Updated the Status section in the color editor dialog to include all status foreground colors (successForeground, warningForeground, infoForeground) for consistency with the types and presets.\n  \n  Status section now shows 8 colors:\n  - Error / Error Text\n  - Success / Success Text\n  - Warning / Warning Text\n  - Info / Info Text\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "5aef68e feat: make status color foregrounds customizable in theme settings \u001b[90m(27/12/2025)\u001b[0m\n  Added customizable foreground colors for success, warning, and info status colors to achieve feature parity with other semantic colors (primary, secondary, destructive).\n  \n  Changes:\n  - Added successForeground, warningForeground, info, and infoForeground to BaseThemeColors interface\n  - Updated colorToCssVar mapping with new CSS variable mappings\n  - Updated all 8 theme presets (default, ocean, forest, sunset, rose, midnight, monochrome, earth) with foreground color values for both light and dark modes\n  - Reorganized ColorCustomizer UI into \"Main Colors\" and \"Status Colors\" sections\n  - Added 6 new customizable colors in Status Colors section\n  \n  This resolves an inconsistency where primary/secondary/destructive had customizable foregrounds but status colors did not.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "a85bb62 feat: make yarn checks automatic before template sync commits \u001b[90m(27/12/2025)\u001b[0m\n  Previously, 'yarn checks' was optional via --validate flag. Now it always runs\n  before committing synced changes to ensure code quality.\n  \n  Changes:\n  - Remove --validate flag from CLI options\n  - Run yarn checks automatically before committing synced changes\n  - If checks fail, changes are applied but NOT committed\n  - User must fix issues and commit manually\n  - Update inline documentation to reflect new behavior\n  \n  This prevents commits with broken code and ensures all synced changes pass\n  validation before being committed.\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2025-12-27T16:09:33.532Z",
-      "templateCommit": "9147cbec649c9b32ed9cc709f1f4eeb9f4a0c953",
-      "projectCommit": "dadbb6a2146168620da45381040a1f1b550dfe5b",
-      "filesApplied": 6,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "9147cbe feat: add Claude Code custom slash commands \u001b[90m(27/12/2025)\u001b[0m\n  Migrate Cursor commands to .claude/commands/ for Claude Code CLI:\n  - fix-bug: systematic bug fixing workflow\n  - new-feature: feature implementation workflow\n  - review-document-and-push: code review and push workflow\n  - debug-bug-report: analyze bug/error reports\n  - sync-template: sync updates from template repo\n  - template-diff: compare project with template\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -592,7 +592,7 @@
     "src/server/s3/sdk.ts": "f3c6401a4f5b402be29e8e1e3cadfae9",
     "src/server/utils/id.ts": "fbc1f92d76c2abe9a6efc9bc4816d3ba",
     "src/server/utils/index.ts": "3960a65dd76423585407a2ba6faa4e5e",
-    "tsconfig.json": "99a44ba813d2938d04a6fa334821c2a1",
+    "tsconfig.json": "bb1665d4f8b96c1fadbb09f72ab889e3",
     "ui-guidelines-example/design-tokens.json": "d4df85742e93e0b411a5046986fe2283",
     "ui-guidelines-example/forms.html": "5cdc217c9335eb94ee31f53e48f364f3",
     "ui-guidelines-example/index.html": "167d106727de4deca779095551f1212a",
@@ -631,7 +631,7 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "346ff72d787122c7c572bb76cda32270",
+    "scripts/investigate-bugs.ts": "98799dfbf4ac5aecb2d007ff7c17e52d",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
     ".githooks/pre-commit": "a227f97ede34e7a7f0c5915d2e49912a",
     "docs/eslint-typescript-wixpress-issue.md": "da9fd62540358a97e9c703bb30cbcd97",
