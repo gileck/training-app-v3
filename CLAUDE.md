@@ -379,41 +379,70 @@ yarn sync-template --diff-summary  # Generate full diff report
 
 ---
 
-## GitHub CLI
+## GitHub API
 
-Use the project's installed `gh` CLI for all GitHub operations.
+Use the project's GitHub helper script for all GitHub operations (PRs, issues, etc.).
 
-**Summary:** This project includes the `gh` CLI (nodegh) as a dev dependency. Always use `yarn gh` or `npx gh` instead of the system `gh` command for GitHub operations.
+**Summary:** This project includes `@octokit/rest` and a helper script (`scripts/github.ts`) for GitHub API operations. Always use `yarn github` for GitHub operations. Requires `GITHUB_TOKEN` or `GH_TOKEN` environment variable.
 
 **Key Points:**
-- **ALWAYS use `yarn gh` or `npx gh`** instead of bare `gh` command
-- The system `gh` CLI may not be available in all environments
-- The project's gh CLI is guaranteed to be installed via npm
+- **ALWAYS use `yarn github`** for GitHub operations (PRs, issues)
+- Requires `GITHUB_TOKEN` or `GH_TOKEN` environment variable for authentication
+- Auto-detects owner/repo from git remote if not provided
+- Uses [@octokit/rest](https://octokit.github.io/rest.js/) under the hood
+
+**Authentication:**
+```bash
+# Set your GitHub token (create at https://github.com/settings/tokens/new?scopes=repo)
+export GITHUB_TOKEN=your_personal_access_token
+# OR
+export GH_TOKEN=your_personal_access_token
+```
 
 **Available Commands:**
 ```bash
-yarn gh pr           # Work with Pull Requests
-yarn gh issue        # Work with Issues
-yarn gh repo         # Work with Repositories
-yarn gh gists        # Work with Gists
-yarn gh notification # Work with Notifications
-yarn gh user         # Login/logout
-yarn gh --help       # Show all commands
+yarn github help                              # Show help
+yarn github pr:list [owner] [repo]            # List open PRs
+yarn github pr:get [owner] [repo] <number>    # Get PR details
+yarn github pr:create [owner] [repo] <title> <head> <base> [body]
+yarn github pr:update [owner] [repo] <number> [title] [body]
+yarn github issue:list [owner] [repo]         # List open issues
+yarn github issue:get [owner] [repo] <number> # Get issue details
 ```
 
 **Examples:**
 ```bash
-# List pull requests
-yarn gh pr --list
+# List pull requests (auto-detects repo from git remote)
+yarn github pr:list
+
+# Get specific PR details
+yarn github pr:get 123
 
 # Create a pull request
-yarn gh pr --submit "owner/repo" --branch "feature-branch"
+yarn github pr:create "Add new feature" feature-branch main "Description here"
 
-# List issues
-yarn gh is --list --all
+# Update PR description
+yarn github pr:update 123 "" "Updated description"
+
+# With explicit owner/repo
+yarn github pr:list myorg myrepo
 ```
 
-**Note:** This uses [nodegh](http://nodegh.io), which has slightly different syntax than GitHub's official CLI. Run `yarn gh --help` or `yarn gh <command> --help` for detailed usage.
+**Programmatic Usage (in code):**
+```typescript
+import { Octokit } from '@octokit/rest';
+
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+// List PRs
+const { data: pulls } = await octokit.rest.pulls.list({ owner, repo });
+
+// Create PR
+await octokit.rest.pulls.create({ owner, repo, title, head, base, body });
+
+// Update PR
+await octokit.rest.pulls.update({ owner, repo, pull_number, body });
+```
 
 ---
 
