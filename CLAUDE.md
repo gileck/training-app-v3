@@ -254,6 +254,52 @@ logger.info('feature', 'Message', { meta: { ... } });
 
 ---
 
+## Telegram Notifications (App Runtime)
+
+> **What this is:** Application feature that sends notifications to logged-in users when app events occur (e.g., todo completed). This is runtime application logic in the source code.
+>
+> **NOT to be confused with:** "Send Message to User" below, which is a development tool for Claude Code.
+
+**Summary:** Users configure their Telegram chat ID in their Profile. Server-side code can send notifications to specific users based on app events.
+
+**Key Points:**
+- Requires `TELEGRAM_BOT_TOKEN` in `.env`
+- Each user sets their own chat ID in Profile
+- Run `yarn telegram-setup` to get your chat ID
+- Notifications fail silently (don't break app flow)
+
+```typescript
+import { sendTelegramNotificationToUser } from '@/server/telegram';
+
+await sendTelegramNotificationToUser(userId, 'Your message');
+```
+
+**Docs:** [docs/telegram-notifications.md](docs/telegram-notifications.md)
+
+---
+
+## Send Message to User (Claude Code CLI/Cloud Only)
+
+> **What this is:** A development tool for Claude Code (CLI or Cloud) to send Telegram messages to the developer during coding sessions. Useful for long-running tasks, notifications when work is done, etc.
+>
+> **NOT to be confused with:** "Telegram Notifications" above, which is an app runtime feature for end users.
+
+**This is NOT application code** - it's a CLI script for the AI agent to communicate with the developer.
+
+**Setup:**
+1. `TELEGRAM_BOT_TOKEN` must be in `.env`
+2. Run `yarn telegram-setup` to get your chat ID
+3. Add `LOCAL_TELEGRAM_CHAT_ID=your_chat_id` to `.env`
+
+**Usage (from Claude Code CLI or Cloud):**
+```bash
+yarn send-telegram "Task completed successfully"
+yarn send-telegram "Build finished with 0 errors"
+yarn send-telegram "Need your input on something"
+```
+
+---
+
 ## TypeScript
 
 Strict TypeScript guidelines.
@@ -436,6 +482,19 @@ yarn github-pr merge --pr 1 --method squash \
 - Auto-detects default branch for PR base (or use `--base`)
 - Loads `GITHUB_TOKEN` from `.env` automatically
 - Merge methods: `merge`, `squash`, `rebase` (default: `squash`)
+
+**Cloud Environment (Claude Code Web):**
+```bash
+yarn github-pr --cloud-proxy list --state open
+yarn github-pr --cloud-proxy create --title "feat: feature" --body "Description"
+```
+
+Use `--cloud-proxy` when running in Claude Code cloud environment. This enables:
+- HTTP proxy support via `HTTPS_PROXY`/`HTTP_PROXY` env vars
+- Quote stripping from `GITHUB_TOKEN` (cloud may add literal quotes)
+- Proxy git remote URL parsing (`/git/owner/repo` format)
+
+**IMPORTANT:** Always use `--cloud-proxy` flag when running github-pr commands.
 
 **Script:** `scripts/github-pr.ts`
 

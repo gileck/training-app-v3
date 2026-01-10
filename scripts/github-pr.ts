@@ -33,6 +33,25 @@ import { Octokit } from '@octokit/rest';
 import { Command } from 'commander';
 
 // ============================================================================
+// Cloud Proxy Support (for Claude Code Web environment)
+// ============================================================================
+
+/**
+ * Sets up HTTP proxy for cloud environments.
+ * Uses Node.js 18+'s built-in undici module to route requests through proxy.
+ * Must be called before any HTTP requests (Octokit initialization).
+ */
+function setupCloudProxy(): void {
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    if (proxyUrl) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { ProxyAgent, setGlobalDispatcher } = require('undici');
+        setGlobalDispatcher(new ProxyAgent(proxyUrl));
+        console.log('☁️  Cloud proxy enabled');
+    }
+}
+
+// ============================================================================
 // Configuration
 // ============================================================================
 
@@ -42,8 +61,14 @@ interface Config {
     repo: string;
 }
 
-function getConfig(): Config {
-    const token = process.env.GITHUB_TOKEN;
+function getConfig(cloudProxy = false): Config {
+    let token = process.env.GITHUB_TOKEN;
+
+    // Cloud environments may add literal quotes around env values
+    if (cloudProxy && token) {
+        token = token.replace(/^["']|["']$/g, '');
+    }
+
     if (!token) {
         console.error('Error: GITHUB_TOKEN environment variable is required');
         console.error('Set it with: export GITHUB_TOKEN=your_token');
@@ -58,16 +83,19 @@ function getConfig(): Config {
 
 function getRepoFromGit(): { owner: string; repo: string } {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { execSync } = require('child_process');
         const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf-8' }).trim();
 
-        // Parse GitHub URL (supports both HTTPS and SSH)
+        // Parse GitHub URL (supports HTTPS, SSH, and cloud proxy formats)
         // https://github.com/owner/repo.git
         // git@github.com:owner/repo.git
+        // http://proxy@127.0.0.1:53824/git/owner/repo (cloud proxy format)
         const httpsMatch = remoteUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
         const sshMatch = remoteUrl.match(/github\.com:([^/]+)\/([^/.]+)/);
+        const proxyMatch = remoteUrl.match(/\/git\/([^/]+)\/([^/.]+)/);
 
-        const match = httpsMatch || sshMatch;
+        const match = httpsMatch || sshMatch || proxyMatch;
         if (match) {
             return { owner: match[1], repo: match[2] };
         }
@@ -354,7 +382,8 @@ program
 // Global options
 program
     .option('--owner <owner>', 'Repository owner (auto-detected from git)')
-    .option('--repo <repo>', 'Repository name (auto-detected from git)');
+    .option('--repo <repo>', 'Repository name (auto-detected from git)')
+    .option('--cloud-proxy', 'Enable Claude Code cloud environment support (proxy, quote stripping)', false);
 
 // Create command
 program
@@ -366,9 +395,11 @@ program
     .option('--base <branch>', 'Branch to merge into (default: repo default branch)')
     .option('--draft', 'Create as draft PR', false)
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
 
         const head = options.head || getCurrentBranch();
@@ -389,9 +420,11 @@ program
     .requiredOption('--pr <number>', 'PR number')
     .requiredOption('--message <text>', 'Comment message')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
         await addComment(octokit, owner, repo, parseInt(options.pr), options.message);
     });
@@ -403,9 +436,11 @@ program
     .requiredOption('--pr <number>', 'PR number')
     .requiredOption('--text <title>', 'New title')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
         await updateTitle(octokit, owner, repo, parseInt(options.pr), options.text);
     });
@@ -417,9 +452,11 @@ program
     .requiredOption('--pr <number>', 'PR number')
     .requiredOption('--text <body>', 'New description')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
         await updateBody(octokit, owner, repo, parseInt(options.pr), options.text);
     });
@@ -432,9 +469,11 @@ program
     .option('--add <labels>', 'Labels to add (comma-separated)')
     .option('--remove <labels>', 'Labels to remove (comma-separated)')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
 
         if (options.add) {
@@ -461,9 +500,11 @@ program
     .option('--users <usernames>', 'User reviewers (comma-separated)')
     .option('--teams <teams>', 'Team reviewers (comma-separated)')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
 
         const users = options.users ? options.users.split(',').map((u: string) => u.trim()) : [];
@@ -486,9 +527,11 @@ program
     .option('--title <title>', 'Commit title (for squash/merge)')
     .option('--message <message>', 'Commit message (for squash/merge)')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
 
         const method = options.method as 'merge' | 'squash' | 'rebase';
@@ -506,9 +549,11 @@ program
     .description('Close a PR')
     .requiredOption('--pr <number>', 'PR number')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
         await closePR(octokit, owner, repo, parseInt(options.pr));
     });
@@ -519,9 +564,11 @@ program
     .description('Get PR information')
     .requiredOption('--pr <number>', 'PR number')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
         await getPRInfo(octokit, owner, repo, parseInt(options.pr));
     });
@@ -532,9 +579,11 @@ program
     .description('List pull requests')
     .option('--state <state>', 'PR state: open, closed, all', 'open')
     .action(async (options) => {
-        const config = getConfig();
-        const owner = program.opts().owner || config.owner;
-        const repo = program.opts().repo || config.repo;
+        const globalOpts = program.opts();
+        if (globalOpts.cloudProxy) setupCloudProxy();
+        const config = getConfig(globalOpts.cloudProxy);
+        const owner = globalOpts.owner || config.owner;
+        const repo = globalOpts.repo || config.repo;
         const octokit = createOctokit(config.token);
 
         const state = options.state as 'open' | 'closed' | 'all';

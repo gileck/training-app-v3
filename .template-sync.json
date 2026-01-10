@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "3947adcd5f9a25e0ca42cbff46672728a5861615",
-  "lastProjectCommit": "4fd80d3870fa9e23b4a51d329133e0753856bc47",
-  "lastSyncDate": "2026-01-10T07:28:10.978Z",
+  "lastSyncCommit": "bfff7a357eba09ac18c6516f3ff0592992b392bf",
+  "lastProjectCommit": "0b871d642ce013de24b1b16d5c38a329d76aa2aa",
+  "lastSyncDate": "2026-01-10T08:30:14.582Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,20 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T08:30:14.581Z",
+      "templateCommit": "bfff7a357eba09ac18c6516f3ff0592992b392bf",
+      "projectCommit": "0b871d642ce013de24b1b16d5c38a329d76aa2aa",
+      "filesApplied": 11,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "bfff7a3 feat: improve dark mode card contrast \u001b[90m(10/01/2026)\u001b[0m\n  - presets.ts: increase card/popover lightness from 6% to 11%\n  - globals.css: sync card/popover CSS variables with preset\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "9458135 feat: add send-telegram CLI script for Claude Code agent \u001b[90m(10/01/2026)\u001b[0m\n  - Add scripts/send-telegram.ts for CLI/Cloud messaging to developer\n  - Add LOCAL_TELEGRAM_CHAT_ID env var support\n  - Update CLAUDE.md with two separate Telegram sections:\n    - App Runtime notifications (for end users)\n    - Claude Code agent messages (for developer)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "831750e feat: add --cloud-proxy flag to github-pr CLI for Claude Code Web \u001b[90m(10/01/2026)\u001b[0m\n  Enables github-pr to work in cloud environments by:\n  - Configuring HTTP proxy via undici ProxyAgent\n  - Stripping quotes from GITHUB_TOKEN env var\n  - Parsing proxy git remote URLs (/git/owner/repo format)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "5749e10 feat: add per-user Telegram notifications \u001b[90m(10/01/2026)\u001b[0m\n  - Add Telegram notification service (src/server/telegram)\n  - Store telegramChatId per user in database\n  - Add chat ID field to Profile page for users to configure\n  - Send notification when todo is marked as done\n  - Add telegram-setup script to help users get their chat ID\n  - Fix Alert component transparency issue\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T07:28:10.978Z",
       "templateCommit": "3947adcd5f9a25e0ca42cbff46672728a5861615",
@@ -309,18 +323,6 @@
         "5383278 docs: add client ID generation and non-optimistic create guidance \u001b[90m(01/01/2026)\u001b[0m\n  New sections in docs/react-query-mutations.md:\n  \n  1. How to Generate Client IDs:\n     - Recommended methods (crypto.randomUUID, nanoid)\n     - Implementation pattern with correct ID passing\n     - Edge cases: server acceptance, idempotency, MongoDB compatibility\n     - Collision handling\n  \n  2. When NOT to Use Optimistic Creates:\n     - Server generates ID\n     - Server computes critical fields\n     - Validation requires global state\n     - Multiple caches affected\n     - Complex relationships\n     - Decision flowchart\n     - Non-optimistic pattern example with loading state",
         "07150ee docs: improve audit-react-query-mutations command \u001b[90m(01/01/2026)\u001b[0m\n  Key improvements:\n  - Added critical warning about temp IDs vs client-generated stable IDs\n  - Explicit patterns to search for temp ID violations\n  - Clarified what's allowed in onSuccess (removeQueries, Zustand)\n  - Required UX impact template for EVERY non-compliant create\n  - Added 'Common Mistakes to Avoid' section addressing issues seen in practice\n  - More detailed checklist with phase-based organization\n  - Better guidance on WHY mutations are compliant/non-compliant"
       ]
-    },
-    {
-      "date": "2026-01-01T11:01:15.496Z",
-      "templateCommit": "72de7db8882dcb9985619747ac0dd02498e43b9b",
-      "projectCommit": "343eb9822cdb3d1dd3e01f3d8c875f94f9039ff2",
-      "filesApplied": 8,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "72de7db fix: move audit command to .cursor/commands folder \u001b[90m(01/01/2026)\u001b[0m\n  Moved audit-react-query-mutations from rules/ to commands/ folder\n  with .md extension to match other commands.",
-        "45195eb feat: add cursor command for auditing React Query mutations \u001b[90m(01/01/2026)\u001b[0m\n  New command: audit-react-query-mutations.mdc\n  - Step-by-step guide for AI agents to audit all mutations\n  - Classifies mutations as edit/delete/create\n  - Checks compliance with optimistic-only guidelines\n  - Explains UX impact when changing creates to non-optimistic\n  - Requires user approval before making changes\n  - Lists flows for manual verification\n  - Commits only after user confirms everything works"
-      ]
     }
   ],
   "fileHashes": {
@@ -356,7 +358,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "0146dd0275dce3e07ebf0fd2e2bc4048",
+    "CLAUDE.md": "d9198a79cb7799ac698802843a06f420",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -421,7 +423,7 @@
     "src/apis/auth/handlers/loginUser.ts": "f885dd8bc61b6698cefa7b3720e050ca",
     "src/apis/auth/handlers/logoutUser.ts": "f489a607246deba5c5be5faf0d7e6916",
     "src/apis/auth/handlers/registerUser.ts": "1a969ccca49c1e25bf5f199ac7c1dc72",
-    "src/apis/auth/handlers/updateUserProfile.ts": "01ac7a0f641f40b8d1928fe769a67164",
+    "src/apis/auth/handlers/updateUserProfile.ts": "dbaadc1549682c8906f1a3b2adb2e894",
     "src/apis/auth/index.ts": "904591bde0b47921837326d6f3ea9544",
     "src/apis/auth/server.ts": "255d08cfa3cd3d4fc26d6e7c3fc23f81",
     "src/apis/auth/types.ts": "4a1780b6a13823d8c3c784f7236c3446",
@@ -453,7 +455,7 @@
     "src/client/components/layout/index.ts": "fe7ba2b0edb7a7e006467a2a59fa60f4",
     "src/client/components/layout/types.ts": "1ce1fbe3a781f7e650a3389b5060708a",
     "src/client/components/ui/alert-dialog.tsx": "3f571c444d4c46a6076c04f0d4072727",
-    "src/client/components/ui/alert.tsx": "de49ca23ba85bb398378bef9e6d5adb9",
+    "src/client/components/ui/alert.tsx": "99e5f660f5c7435099a44662fd4219fc",
     "src/client/components/ui/avatar.tsx": "7e4314329eef527e0b64d89c59ffff77",
     "src/client/components/ui/badge.tsx": "8396a5c97b0fef69f81cffd3fb943a82",
     "src/client/components/ui/button.tsx": "b4b2544c35d460e4f407066e3fea1a82",
@@ -528,7 +530,7 @@
     "src/client/router/index.tsx": "fb9878bbb1afafddaca13204ddd5ad73",
     "src/client/routes/NotFound/NotFound.tsx": "8e5a2000db3c03277a38b68c64f0469b",
     "src/client/routes/NotFound/index.ts": "d61014aa84dbc5db967a05f08c2f09d3",
-    "src/client/routes/Profile/Profile.tsx": "3677c3fcd1d445db7910d80a4e8737d7",
+    "src/client/routes/Profile/Profile.tsx": "df1725f3893af6efed8b2c8135a707ab",
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
     "src/client/routes/Reports/Reports.tsx": "d779d86bec86ce3772fec318126463ec",
@@ -583,7 +585,7 @@
     "src/server/database/collections/reports/reports.ts": "b516f58f5e2aef3932e8f5208a9c5bb7",
     "src/server/database/collections/reports/types.ts": "bdaa9cf96338bbc94b3f61247924f4ff",
     "src/server/database/collections/users/index.ts": "b52422edb018193c1123cc795b8d64a2",
-    "src/server/database/collections/users/types.ts": "8dc5338f0ca3b1dc9b9286ac581a7d8f",
+    "src/server/database/collections/users/types.ts": "80e015080c2e6e5eca63b28b00bb129f",
     "src/server/database/collections/users/users.ts": "d67ea7c5984ee6f06b2929e5f86426d9",
     "src/server/database/index.ts": "5448328fc758a0652bdc824ba22df0ba",
     "src/server/s3/example.ts": "b5bc2cf59a740111756c5f0d21a435c3",
@@ -615,7 +617,7 @@
     ".claude/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
     ".claude/commands/full-project-audit.md": "04d5a9346a6ce017a11880465d7c4e0a",
     "src/client/components/ui/confirm-dialog.tsx": "23ec45595012722338327c76936a08d7",
-    "src/client/routes/Profile/components/AccountInfoCard.tsx": "d7d391f9c4e6152c311b8316b88ab04f",
+    "src/client/routes/Profile/components/AccountInfoCard.tsx": "a7f1505ab9febf582525786b18dd528a",
     "src/client/routes/Profile/components/ImageUploadDialog.tsx": "949ddb624de8ea2d1070822b05fd3aba",
     "src/client/routes/Profile/components/ProfileCard.tsx": "c5a5b7a37772291a4d1a045a0d473fa6",
     "src/client/routes/Profile/components/index.ts": "2099ce9c96e94abd7b88acb36987f8c2",
@@ -634,7 +636,11 @@
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
-    "scripts/github-pr.ts": "b09729663bb95eb08639f86de5b8ddcb",
-    "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee"
+    "scripts/github-pr.ts": "e5466e4eced44dcf4dc5a5c71ba377e0",
+    "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee",
+    "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
+    "scripts/send-telegram.ts": "e7157ae960bde0b15de07f40572a1076",
+    "scripts/telegram-setup.ts": "84142349d3615b06158b068cf8bea3aa",
+    "src/server/telegram/index.ts": "1b9ae766de70f51a21a43d7cb7470b67"
   }
 }

@@ -29,6 +29,8 @@ export const Profile = () => {
     const [username, setUsername] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral image preview before save
     const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- form input before submission
+    const [telegramChatId, setTelegramChatId] = useState('');
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral snackbar notification
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -50,6 +52,7 @@ export const Profile = () => {
                 setLocalUser(response.data.user);
                 setUsername(response.data.user.username);
                 setPreviewImage(response.data.user.profilePicture);
+                setTelegramChatId(response.data.user.telegramChatId || '');
                 // Update the global store as well
                 setValidatedUser(response.data.user);
             }
@@ -71,6 +74,7 @@ export const Profile = () => {
             setLocalUser(user);
             setUsername(user.username);
             setPreviewImage(user.profilePicture);
+            setTelegramChatId(user.telegramChatId || '');
         }
     }, [user]);
 
@@ -92,6 +96,7 @@ export const Profile = () => {
         if (localUser) {
             setUsername(localUser.username);
             setPreviewImage(localUser.profilePicture);
+            setTelegramChatId(localUser.telegramChatId || '');
         }
     };
 
@@ -110,7 +115,8 @@ export const Profile = () => {
         try {
             const updateData: UpdateProfileRequest = {
                 username,
-                profilePicture: previewImage !== localUser?.profilePicture ? previewImage : undefined
+                profilePicture: previewImage !== localUser?.profilePicture ? previewImage : undefined,
+                telegramChatId: telegramChatId !== (localUser?.telegramChatId || '') ? telegramChatId : undefined
             };
 
             const response = await apiUpdateProfile(updateData);
@@ -229,7 +235,13 @@ export const Profile = () => {
                     </div>
 
                     <div className="w-full md:w-2/3">
-                        <AccountInfoCard displayUser={displayUser} username={username} />
+                        <AccountInfoCard
+                            displayUser={displayUser}
+                            username={username}
+                            telegramChatId={telegramChatId}
+                            setTelegramChatId={setTelegramChatId}
+                            editing={editing}
+                        />
                     </div>
                 </div>
             )}

@@ -3,10 +3,10 @@ import { cn } from '@/client/lib/utils';
 
 const variants = {
     default: 'bg-background text-foreground',
-    destructive: 'border-destructive/50 text-destructive [&>svg]:text-destructive',
-    success: 'border-success/50 text-success [&>svg]:text-success',
-    warning: 'border-warning/50 text-warning [&>svg]:text-warning',
-    info: 'border-info/50 text-info [&>svg]:text-info',
+    destructive: 'bg-background border-destructive/50 text-destructive [&>svg]:text-destructive',
+    success: 'bg-background border-success/50 text-success [&>svg]:text-success',
+    warning: 'bg-background border-warning/50 text-warning [&>svg]:text-warning',
+    info: 'bg-background border-info/50 text-info [&>svg]:text-info',
 } as const;
 
 type Variant = keyof typeof variants;
