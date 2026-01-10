@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "e8456ec5427de412ee1f515eb68d7cb364f82493",
-  "lastProjectCommit": "c6f0d3cb958f7b9d474b60dd1e41dae577ac18f3",
-  "lastSyncDate": "2026-01-10T12:13:13.785Z",
+  "lastSyncCommit": "876cc8961ba72908fa75390d604fe6dfb6e235b4",
+  "lastProjectCommit": "aadcac70072a1796346ebb07e8d58c3569b15fc1",
+  "lastSyncDate": "2026-01-10T12:31:55.143Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,18 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T12:31:55.143Z",
+      "templateCommit": "876cc8961ba72908fa75390d604fe6dfb6e235b4",
+      "projectCommit": "aadcac70072a1796346ebb07e8d58c3569b15fc1",
+      "filesApplied": 5,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "876cc89 fix: replace OWNER_TELEGRAM_CHAT_ID with LOCAL_TELEGRAM_CHAT_ID everywhere \u001b[90m(10/01/2026)\u001b[0m\n  GitHub secrets and workflows now use LOCAL_TELEGRAM_CHAT_ID consistently.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "20778fe fix: make PR checks show as failed when ts/lint fails \u001b[90m(10/01/2026)\u001b[0m\n  - Removed continue-on-error so check shows red X on failure\n  - Check is still non-blocking (not a required check)\n  - Comments and notifications still work on failure\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T09:01:45.518Z",
       "templateCommit": "6fce3831e17a3d1349157225bda1e194a06cad73",
@@ -305,15 +317,6 @@
       "templateCommits": [
         "b028459 refactor: replace .toHexString() with toStringId() utility \u001b[90m(01/01/2026)\u001b[0m\n  Fixed all ESLint warnings from prefer-id-utilities rule:\n  - auth handlers: loginUser.ts, registerUser.ts\n  - reports handlers: createReport.ts, getReport.ts, getReports.ts, updateReportStatus.ts\n  - todos handlers: createTodo.ts, getTodo.ts, getTodos.ts, updateTodo.ts\n  \n  All API handlers now use toStringId() from @/server/utils for\n  consistent ID string conversion that works with both ObjectId and UUID formats."
       ]
-    },
-    {
-      "date": "2026-01-01T13:16:40.908Z",
-      "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
-      "projectCommit": "a6f9b68f6fcd6ff3a1a985cae927e42e18584ba8",
-      "filesApplied": 6,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": []
     }
   ],
   "fileHashes": {
@@ -349,7 +352,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "8a0b0fc82b576e108efa94ba09b16477",
+    "CLAUDE.md": "c715885d064260a22f30214004420fd9",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -632,12 +635,12 @@
     "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
     "scripts/send-telegram.ts": "e7157ae960bde0b15de07f40572a1076",
     "scripts/telegram-setup.ts": "616c63878a63d636646f008586fa257a",
-    "src/server/telegram/index.ts": "8dd228dd4d696756c120e2218d91890a",
+    "src/server/telegram/index.ts": "9884f85e76d38f2566554f29b17ee0e3",
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
-    ".github/workflows/deploy-notify.yml": "0e9e39b59fde463ad7cccef8cf7a98e8",
-    ".github/workflows/pr-checks.yml": "ce4a3508200daab45decc1e1f6a0f21c",
+    ".github/workflows/deploy-notify.yml": "2ef70183eae7a35e33271e043cf537c8",
+    ".github/workflows/pr-checks.yml": "ce7d5c3d95b79447320428b0d1e32db0",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/template-scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
@@ -677,6 +680,7 @@
     "scripts/template-scripts/sync-template/utils/exec.ts": "24a36e9169d5ca30fdd0997b6edf5450",
     "scripts/template-scripts/sync-template/utils/index.ts": "d55d509a47a7b7044efcb1f6a3b55fcf",
     "scripts/template-scripts/sync-template/utils/logging.ts": "3efe0373a36eb533f6f1264d3d2beb3a",
-    "src/middleware.ts": "95a1ff872795b4a36f1fffa10f4915ad"
+    "src/middleware.ts": "95a1ff872795b4a36f1fffa10f4915ad",
+    "scripts/setup-github-secrets.ts": "840c439a2dc664ba063197638df89da1"
   }
 }

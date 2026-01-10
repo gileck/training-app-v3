@@ -283,7 +283,7 @@ logger.info('feature', 'Message', { meta: { ... } });
 **Setup:**
 - Requires `TELEGRAM_BOT_TOKEN` in `.env`
 - Run `yarn telegram-setup` to get chat IDs
-- Owner: Set `OWNER_TELEGRAM_CHAT_ID` in `.env` (or hardcode in app.config.js)
+- Owner: Set `ownerTelegramChatId` in app.config.js
 - Users: Each user sets their own chat ID in Profile settings
 
 **Usage:**

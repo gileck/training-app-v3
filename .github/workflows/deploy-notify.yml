@@ -3,9 +3,9 @@
 # Sends Telegram notifications when Vercel deployments succeed or fail.
 # Supports both Production (push to main) and Preview (pull requests).
 #
-# Required GitHub Secrets:
+# Required GitHub Secrets (set via `yarn setup-github-secrets`):
 #   - TELEGRAM_BOT_TOKEN: Your Telegram bot token
-#   - OWNER_TELEGRAM_CHAT_ID: Chat ID to receive notifications
+#   - LOCAL_TELEGRAM_CHAT_ID: Chat ID to receive notifications (from LOCAL_TELEGRAM_CHAT_ID in .env)
 #
 # Setup:
 #   1. Run `yarn telegram-setup` to get your chat ID
@@ -44,7 +44,7 @@ jobs:
       - name: Send deployment started notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
@@ -115,7 +115,7 @@ jobs:
         if: success()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
@@ -149,7 +149,7 @@ jobs:
         if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           ERROR_MSG: ${{ steps.deployment.outputs.error }}
           LOG_URL: ${{ steps.deployment.outputs.log_url }}

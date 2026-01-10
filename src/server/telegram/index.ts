@@ -19,7 +19,7 @@
  *
  * Setup:
  * - Run `yarn telegram-setup` to get your chat ID
- * - For owner: Add OWNER_TELEGRAM_CHAT_ID to .env
+ * - For owner: Set ownerTelegramChatId in app.config.js
  * - For users: They add their chat ID in their Profile settings
  */
 
@@ -131,8 +131,7 @@ export async function sendTelegramNotification(
  * - Security alerts
  * - Deployment notifications
  *
- * The owner's chat ID is configured in app.config.js (ownerTelegramChatId)
- * or via OWNER_TELEGRAM_CHAT_ID environment variable.
+ * The owner's chat ID is configured in app.config.js (ownerTelegramChatId).
  *
  * @example
  * // Notify owner of new signup

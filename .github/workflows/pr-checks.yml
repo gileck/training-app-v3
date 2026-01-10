@@ -3,9 +3,9 @@
 # Runs yarn checks on pull requests. Does not block merge but reports failures
 # via GitHub PR comment and Telegram notification.
 #
-# Required GitHub Secrets:
+# Required GitHub Secrets (set via `yarn setup-github-secrets`):
 #   - TELEGRAM_BOT_TOKEN: Your Telegram bot token
-#   - OWNER_TELEGRAM_CHAT_ID: Chat ID to receive notifications
+#   - LOCAL_TELEGRAM_CHAT_ID: Chat ID to receive notifications (from LOCAL_TELEGRAM_CHAT_ID in .env)
 
 name: PR Checks
 
@@ -16,7 +16,6 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,7 +35,6 @@ jobs:
           set +e
           OUTPUT=$(yarn checks 2>&1)
           EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
 
           # Save output to file for multiline handling
           echo "$OUTPUT" > checks_output.txt
@@ -46,10 +44,10 @@ jobs:
           echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
 
           echo "$OUTPUT"
-          exit 0
+          exit $EXIT_CODE
 
       - name: Comment on PR (failure)
-        if: steps.checks.outputs.exit_code != '0'
+        if: failure()
         uses: actions/github-script@v7
         with:
           script: |
@@ -87,7 +85,7 @@ jobs:
             });
 
       - name: Comment on PR (success)
-        if: steps.checks.outputs.exit_code == '0'
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
@@ -99,10 +97,10 @@ jobs:
             });
 
       - name: Send Telegram notification (failure)
-        if: steps.checks.outputs.exit_code != '0'
+        if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
         run: |
           MESSAGE="⚠️ *Code Checks Failed (PR #${{ github.event.pull_request.number }})*
 
