@@ -1,0 +1,205 @@
+# Vercel Deployment Notifications via Telegram
+#
+# Sends Telegram notifications when Vercel deployments succeed or fail.
+# Supports both Production (push to main) and Preview (pull requests).
+#
+# Required GitHub Secrets:
+#   - TELEGRAM_BOT_TOKEN: Your Telegram bot token
+#   - OWNER_TELEGRAM_CHAT_ID: Chat ID to receive notifications
+#
+# Setup:
+#   1. Run `yarn telegram-setup` to get your chat ID
+#   2. Add secrets in GitHub: Settings → Secrets and variables → Actions
+
+name: Deployment Notification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      IS_PRODUCTION: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Set deployment type
+        id: deploy-type
+        run: |
+          if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            echo "env=Production" >> $GITHUB_OUTPUT
+            echo "emoji=🚀" >> $GITHUB_OUTPUT
+            echo "type=Production" >> $GITHUB_OUTPUT
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "env=Preview" >> $GITHUB_OUTPUT
+            echo "emoji=👀" >> $GITHUB_OUTPUT
+            echo "type=Preview (PR #${{ github.event.pull_request.number }})" >> $GITHUB_OUTPUT
+            # For PRs, Vercel uses the head commit SHA, not the merge commit
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send deployment started notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+        run: |
+          if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            MESSAGE="🚀 *Production Deployment Started*
+
+          📦 Repository: ${{ github.repository }}
+          📝 Commit: [${COMMIT_SHA::7}](${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA})
+          👤 Author: ${{ github.actor }}"
+
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${CHAT_ID}" \
+              -d "parse_mode=Markdown" \
+              -d "text=${MESSAGE}"
+          else
+            MESSAGE="👀 *Preview Deployment Started (PR #${{ github.event.pull_request.number }})*
+
+          📦 Repository: ${{ github.repository }}
+          📝 PR: ${{ github.event.pull_request.title }}
+          👤 Author: ${{ github.actor }}"
+
+            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${CHAT_ID}" \
+              -d "parse_mode=Markdown" \
+              -d "text=${MESSAGE}" \
+              -d "reply_markup=${KEYBOARD}"
+          fi
+
+      - name: Wait for Vercel deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_ENV: ${{ steps.deploy-type.outputs.env }}
+          COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+        run: |
+          echo "Waiting for Vercel $DEPLOY_ENV deployment (SHA: ${COMMIT_SHA::7})..."
+          for i in {1..40}; do
+            DEPLOY_URL=$(gh api repos/${{ github.repository }}/deployments \
+              --jq ".[] | select(.sha==\"${COMMIT_SHA}\" and .environment==\"$DEPLOY_ENV\") | .id" \
+              | head -1)
+
+            if [ -n "$DEPLOY_URL" ]; then
+              STATUS=$(gh api repos/${{ github.repository }}/deployments/${DEPLOY_URL}/statuses --jq '.[0].state // "pending"')
+              URL=$(gh api repos/${{ github.repository }}/deployments/${DEPLOY_URL}/statuses --jq '.[0].environment_url // ""')
+              DESCRIPTION=$(gh api repos/${{ github.repository }}/deployments/${DEPLOY_URL}/statuses --jq '.[0].description // ""')
+              echo "Deployment status: $STATUS"
+
+              if [ "$STATUS" = "success" ]; then
+                echo "url=$URL" >> $GITHUB_OUTPUT
+                echo "Deployment successful: $URL"
+                exit 0
+              elif [ "$STATUS" = "failure" ] || [ "$STATUS" = "error" ]; then
+                echo "error=$DESCRIPTION" >> $GITHUB_OUTPUT
+                echo "log_url=$URL" >> $GITHUB_OUTPUT
+                echo "Deployment failed: $DESCRIPTION"
+                exit 1
+              fi
+            fi
+
+            echo "Waiting... (attempt $i/40)"
+            sleep 15
+          done
+          echo "error=Timeout waiting for deployment" >> $GITHUB_OUTPUT
+          echo "Timeout waiting for deployment"
+          exit 1
+
+      - name: Send deployment success notification
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+        run: |
+          if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            MESSAGE="✅ *Production Deployment Complete - Live*
+
+          📦 Repository: ${{ github.repository }}
+          📝 Commit: [${COMMIT_SHA::7}](${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA})
+          👤 Author: ${{ github.actor }}"
+
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${CHAT_ID}" \
+              -d "parse_mode=Markdown" \
+              -d "text=${MESSAGE}"
+          else
+            MESSAGE="✅ *Preview Deployment Ready (PR #${{ github.event.pull_request.number }})*
+
+          📦 Repository: ${{ github.repository }}
+          📝 PR: ${{ github.event.pull_request.title }}
+          👤 Author: ${{ github.actor }}"
+
+            KEYBOARD='{"inline_keyboard":[[{"text":"🔗 Open URL","url":"${{ steps.deployment.outputs.url }}"},{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
+
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${CHAT_ID}" \
+              -d "parse_mode=Markdown" \
+              -d "text=${MESSAGE}" \
+              -d "reply_markup=${KEYBOARD}"
+          fi
+
+      - name: Send failure notification
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.OWNER_TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+          ERROR_MSG: ${{ steps.deployment.outputs.error }}
+          LOG_URL: ${{ steps.deployment.outputs.log_url }}
+        run: |
+          # Truncate error message if too long
+          ERROR_PREVIEW="${ERROR_MSG:0:200}"
+          if [ ${#ERROR_MSG} -gt 200 ]; then
+            ERROR_PREVIEW="${ERROR_PREVIEW}..."
+          fi
+
+          if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            MESSAGE="❌ *Production Deployment Failed*
+
+          📦 Repository: ${{ github.repository }}
+          👤 Author: ${{ github.actor }}"
+
+            if [ -n "$ERROR_PREVIEW" ]; then
+              MESSAGE="${MESSAGE}
+
+          💥 *Error:* ${ERROR_PREVIEW}"
+            fi
+
+            if [ -n "$LOG_URL" ]; then
+              KEYBOARD='{"inline_keyboard":[[{"text":"🔍 View Logs","url":"'"${LOG_URL}"'"}]]}'
+            else
+              KEYBOARD='{"inline_keyboard":[[{"text":"🔍 View Logs","url":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}]]}'
+            fi
+          else
+            MESSAGE="❌ *Preview Deployment Failed (PR #${{ github.event.pull_request.number }})*
+
+          📦 Repository: ${{ github.repository }}
+          📝 PR: ${{ github.event.pull_request.title }}
+          👤 Author: ${{ github.actor }}"
+
+            if [ -n "$ERROR_PREVIEW" ]; then
+              MESSAGE="${MESSAGE}
+
+          💥 *Error:* ${ERROR_PREVIEW}"
+            fi
+
+            if [ -n "$LOG_URL" ]; then
+              KEYBOARD='{"inline_keyboard":[[{"text":"🔍 View Logs","url":"'"${LOG_URL}"'"},{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
+            else
+              KEYBOARD='{"inline_keyboard":[[{"text":"🔍 View Logs","url":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"},{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
+            fi
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" \
+            -d "reply_markup=${KEYBOARD}" \
+            -d "disable_web_page_preview=true"
