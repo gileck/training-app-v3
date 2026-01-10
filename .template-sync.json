@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "43356c33880a82f82229118e70cc09f812b6f630",
-  "lastProjectCommit": "0fdaa9c3307cfaf5e828606945c6aee7ff84c797",
-  "lastSyncDate": "2026-01-09T19:10:49.426Z",
+  "lastSyncCommit": "3947adcd5f9a25e0ca42cbff46672728a5861615",
+  "lastProjectCommit": "4fd80d3870fa9e23b4a51d329133e0753856bc47",
+  "lastSyncDate": "2026-01-10T07:28:10.978Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,19 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T07:28:10.978Z",
+      "templateCommit": "3947adcd5f9a25e0ca42cbff46672728a5861615",
+      "projectCommit": "4fd80d3870fa9e23b4a51d329133e0753856bc47",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "3947adc feat: add create command to github-pr CLI \u001b[90m(10/01/2026)\u001b[0m\n  Add ability to create PRs directly from the CLI:\n  - Auto-detects current branch for --head\n  - Auto-detects repo default branch for --base\n  - Supports --draft flag for draft PRs\n  - Validates head != base before creating\n  \n  Update CLAUDE.md documentation with new command.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "e95eaf0 feat: add auth debug info to diagnose authentication failures \u001b[90m(09/01/2026)\u001b[0m\n  Add AuthDebugInfo to track and expose authentication state:\n  - cookiePresent: whether auth cookie was in request\n  - tokenError: JWT verification error message if failed\n  - tokenErrorCode: error type (TokenExpiredError, JsonWebTokenError, etc.)\n  \n  Debug info is returned in /me response and logged during preflight,\n  helping diagnose why users see unexpected logged-out state.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "7f7aaf3 feat: enrich investigation prompt with full report details \u001b[90m(09/01/2026)\u001b[0m\n  Add more context to bug investigation prompt:\n  - Report ID, category, status, network status, created date\n  - User info (username, email, userId)\n  - Browser info (userAgent, viewport, language)\n  - Performance entries for performance bugs\n  - Show all session logs instead of last 20\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-09T19:10:49.426Z",
       "templateCommit": "43356c33880a82f82229118e70cc09f812b6f630",
@@ -308,17 +321,6 @@
         "72de7db fix: move audit command to .cursor/commands folder \u001b[90m(01/01/2026)\u001b[0m\n  Moved audit-react-query-mutations from rules/ to commands/ folder\n  with .md extension to match other commands.",
         "45195eb feat: add cursor command for auditing React Query mutations \u001b[90m(01/01/2026)\u001b[0m\n  New command: audit-react-query-mutations.mdc\n  - Step-by-step guide for AI agents to audit all mutations\n  - Classifies mutations as edit/delete/create\n  - Checks compliance with optimistic-only guidelines\n  - Explains UX impact when changing creates to non-optimistic\n  - Requires user approval before making changes\n  - Lists flows for manual verification\n  - Commits only after user confirms everything works"
       ]
-    },
-    {
-      "date": "2026-01-01T10:48:02.833Z",
-      "templateCommit": "dbcfe8fa32250f14c04a0035cad0d70d6a02a442",
-      "projectCommit": "782cbcd0a61a510dcb19b121f1c572755fb7ec52",
-      "filesApplied": 4,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "dbcfe8f chore: disable @next/next/no-img-element globally in eslint config \u001b[90m(01/01/2026)\u001b[0m\n  We use base64 data URLs for user uploads where next/image doesn't help.\n  Removed inline disable comments from 3 files."
-      ]
     }
   ],
   "fileHashes": {
@@ -354,7 +356,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "c451f4e353751db24f97c81266888cba",
+    "CLAUDE.md": "0146dd0275dce3e07ebf0fd2e2bc4048",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -627,12 +629,12 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "82b9db7f998f8043713f3615b40cbb63",
+    "scripts/investigate-bugs.ts": "2a48fefa452a0a2508a6dea9fd1cedd3",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
-    "scripts/github-pr.ts": "810b1306721aa2c4717bbfbe1c7a49d8",
+    "scripts/github-pr.ts": "b09729663bb95eb08639f86de5b8ddcb",
     "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee"
   }
 }

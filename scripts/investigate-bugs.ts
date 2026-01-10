@@ -115,6 +115,22 @@ function formatSessionLogs(logs: SessionLogEntry[]): string {
         .join('\n');
 }
 
+function formatBrowserInfo(browserInfo: ReportDocument['browserInfo']): string {
+    if (!browserInfo) return 'No browser info available';
+    return `User Agent: ${browserInfo.userAgent}
+Viewport: ${browserInfo.viewport.width}x${browserInfo.viewport.height}
+Language: ${browserInfo.language}`;
+}
+
+function formatUserInfo(userInfo: ReportDocument['userInfo']): string {
+    if (!userInfo) return 'Anonymous user';
+    const parts: string[] = [];
+    if (userInfo.username) parts.push(`Username: ${userInfo.username}`);
+    if (userInfo.email) parts.push(`Email: ${userInfo.email}`);
+    if (userInfo.userId) parts.push(`User ID: ${userInfo.userId}`);
+    return parts.length > 0 ? parts.join(', ') : 'Anonymous user';
+}
+
 function buildInvestigationPrompt(report: ReportDocument): string {
     return `You are investigating a bug report. Your task is to:
 1. Understand the bug from the report details
@@ -126,17 +142,41 @@ IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use
 
 ## Bug Report Details
 
+**Report ID:** ${report._id.toString()}
 **Type:** ${report.type}
+**Category:** ${report.category || 'bug'}
+**Status:** ${report.status}
 **Route:** ${report.route}
+**Network Status:** ${report.networkStatus}
+**Created At:** ${report.createdAt.toISOString()}
+
 **Description:** ${report.description || 'No description provided'}
+
 **Error Message:** ${report.errorMessage || 'None'}
+
 **Stack Trace:**
 \`\`\`
 ${report.stackTrace || 'None'}
 \`\`\`
 
-**Session Logs (last 20 entries):**
-${formatSessionLogs(report.sessionLogs?.slice(-20) || [])}
+## User & Environment
+
+**User:** ${formatUserInfo(report.userInfo)}
+**Browser:**
+${formatBrowserInfo(report.browserInfo)}
+
+## Session Logs (ALL)
+
+${formatSessionLogs(report.sessionLogs || [])}
+
+${
+    report.category === 'performance' && report.performanceEntries && report.performanceEntries.length > 0
+        ? `## Performance Entries
+\`\`\`json
+${JSON.stringify(report.performanceEntries, null, 2)}
+\`\`\``
+        : ''
+}
 
 ## Your Task
 

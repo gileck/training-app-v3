@@ -10,6 +10,7 @@ import 'dotenv/config';
  *   npx tsx scripts/github-pr.ts <command> [options]
  *
  * Commands:
+ *   create      Create a new PR
  *   comment     Add a comment to a PR
  *   title       Update PR title
  *   body        Update PR description/body
@@ -20,6 +21,8 @@ import 'dotenv/config';
  *   info        Get PR information
  *
  * Examples:
+ *   npx tsx scripts/github-pr.ts create --title "feat: new feature" --body "Description"
+ *   npx tsx scripts/github-pr.ts create --title "fix: bug" --head my-branch --base main --draft
  *   npx tsx scripts/github-pr.ts comment --pr 123 --message "LGTM!"
  *   npx tsx scripts/github-pr.ts title --pr 123 --text "feat: new feature"
  *   npx tsx scripts/github-pr.ts label --pr 123 --add bug,urgent
@@ -81,9 +84,47 @@ function createOctokit(token: string): Octokit {
     return new Octokit({ auth: token });
 }
 
+function getCurrentBranch(): string {
+    try {
+        const { execSync } = require('child_process');
+        return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+    } catch {
+        console.error('Error: Could not determine current git branch');
+        process.exit(1);
+    }
+}
+
+async function getDefaultBranch(octokit: Octokit, owner: string, repo: string): Promise<string> {
+    const { data } = await octokit.repos.get({ owner, repo });
+    return data.default_branch;
+}
+
 // ============================================================================
 // PR Actions
 // ============================================================================
+
+async function createPR(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    title: string,
+    head: string,
+    base: string,
+    body?: string,
+    draft?: boolean
+): Promise<number> {
+    const { data } = await octokit.pulls.create({
+        owner,
+        repo,
+        title,
+        head,
+        base,
+        body,
+        draft,
+    });
+    console.log(`✓ PR #${data.number} created: ${data.html_url}`);
+    return data.number;
+}
 
 async function addComment(
     octokit: Octokit,
@@ -314,6 +355,32 @@ program
 program
     .option('--owner <owner>', 'Repository owner (auto-detected from git)')
     .option('--repo <repo>', 'Repository name (auto-detected from git)');
+
+// Create command
+program
+    .command('create')
+    .description('Create a new pull request')
+    .requiredOption('--title <title>', 'PR title')
+    .option('--body <body>', 'PR description')
+    .option('--head <branch>', 'Branch to merge from (default: current branch)')
+    .option('--base <branch>', 'Branch to merge into (default: repo default branch)')
+    .option('--draft', 'Create as draft PR', false)
+    .action(async (options) => {
+        const config = getConfig();
+        const owner = program.opts().owner || config.owner;
+        const repo = program.opts().repo || config.repo;
+        const octokit = createOctokit(config.token);
+
+        const head = options.head || getCurrentBranch();
+        const base = options.base || await getDefaultBranch(octokit, owner, repo);
+
+        if (head === base) {
+            console.error(`Error: Head branch "${head}" is the same as base branch "${base}"`);
+            process.exit(1);
+        }
+
+        await createPR(octokit, owner, repo, options.title, head, base, options.body, options.draft);
+    });
 
 // Comment command
 program

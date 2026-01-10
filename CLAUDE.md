@@ -395,6 +395,7 @@ GITHUB_TOKEN=github_pat_xxxxx...
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `create` | Create a new PR | `yarn github-pr create --title "feat: feature" --body "Description"` |
 | `list` | List PRs | `yarn github-pr list --state open` |
 | `info` | Get PR details | `yarn github-pr info --pr 1` |
 | `comment` | Add comment | `yarn github-pr comment --pr 1 --message "LGTM!"` |
@@ -408,11 +409,13 @@ GITHUB_TOKEN=github_pat_xxxxx...
 **Common Workflows:**
 
 ```bash
-# Create a PR (use gh CLI, then manage with github-pr)
+# Create a PR
 git checkout -b feat/my-feature
 # ... make changes, commit ...
 git push -u origin feat/my-feature
-gh pr create --title "feat: my feature" --body "Description"
+yarn github-pr create --title "feat: my feature" --body "Description"
+# Or create as draft:
+yarn github-pr create --title "feat: my feature" --body "WIP" --draft
 
 # Update PR title and description
 yarn github-pr title --pr 1 --text "feat: improved title"
@@ -429,9 +432,10 @@ yarn github-pr merge --pr 1 --method squash \
 
 **Key Points:**
 - Auto-detects `owner/repo` from git remote (or use `--owner`/`--repo`)
+- Auto-detects current branch for PR creation (or use `--head`)
+- Auto-detects default branch for PR base (or use `--base`)
 - Loads `GITHUB_TOKEN` from `.env` automatically
 - Merge methods: `merge`, `squash`, `rebase` (default: `squash`)
-- For creating PRs, use `gh pr create` (GitHub CLI)
 
 **Script:** `scripts/github-pr.ts`
 
