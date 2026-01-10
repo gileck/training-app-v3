@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "54e9ec5782649e420440798053608751241e2c62",
-  "lastProjectCommit": "90380a29190531983f9b50b73ac3166a828b5761",
-  "lastSyncDate": "2026-01-10T14:06:21.277Z",
+  "lastSyncCommit": "20eccd2557f64aa9e20bf3a2debdf8d401655f36",
+  "lastProjectCommit": "717fb1679856247816e6c3a4c412b307d52da31d",
+  "lastSyncDate": "2026-01-10T15:34:44.817Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T15:34:44.817Z",
+      "templateCommit": "20eccd2557f64aa9e20bf3a2debdf8d401655f36",
+      "projectCommit": "717fb1679856247816e6c3a4c412b307d52da31d",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "20eccd2 feat: add native browser history support for routing \u001b[90m(10/01/2026)\u001b[0m\n  Add proper history state tracking for back/forward navigation and iOS\n  PWA swipe-back gestures. Changes include history state objects with\n  unique keys, scroll-to-top on navigation, and initial state setup.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T14:06:21.277Z",
       "templateCommit": "54e9ec5782649e420440798053608751241e2c62",
@@ -277,20 +288,6 @@
       "templateCommits": [
         "438917f fix(auth): Move AuthWrapper inside RouterProvider for proper auth on navigation \u001b[90m(03/01/2026)\u001b[0m\n  - Move AuthWrapper inside RouterProvider in _app.tsx to fix auth checks when\n    navigating from public to protected routes\n  - Add isPublicRoute to router context (computed from route metadata)\n  - Simplify AuthWrapper to use useRouter() hook instead of calling isPublicRoute()\n  - Remove unused getRouteComponent function from router\n  \n  This fixes a bug where navigating from a public route to a protected route\n  would not trigger authentication checks because AuthWrapper was the parent\n  of RouterProvider and didn't re-render on navigation.\n  \n  Updated documentation:\n  - docs/architecture.md: Updated boot flow diagram\n  - docs/authentication.md: Updated AuthWrapper and public routes sections\n  - docs/zustand-stores.md: Updated component tree example\n  - .cursor/rules/pages-and-routing-guidelines.mdc: Updated public routes docs"
       ]
-    },
-    {
-      "date": "2026-01-03T16:45:29.571Z",
-      "templateCommit": "401bc48df87318d02c5f96f1b07c1f6a5d04bf39",
-      "projectCommit": "fc4ca134b2378a3b2ab2a548fa64d99f7e04a091",
-      "filesApplied": 2,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "401bc48 docs: clarify --init-hashes is optional after contribution \u001b[90m(03/01/2026)\u001b[0m",
-        "2951bd9 refactor(contribute-to-template): don't commit in template, generate message instead \u001b[90m(03/01/2026)\u001b[0m\n  Changes:\n  - Agent copies files but does NOT commit in template\n  - Agent generates a detailed message for template agent\n  - User copies message and pastes to template's agent\n  - Template agent reviews and commits after inspection\n  \n  This allows proper review before committing to template.",
-        "a4b8d6d feat: sync contributions from training-app-v3 \u001b[90m(03/01/2026)\u001b[0m\n  - feat(auth): 10-year JWT expiry for PWA-like login persistence\n    - JWT_EXPIRES_IN changed to 3650d (10 years)\n    - Cookie maxAge updated to 10 years\n    - Documentation updated with long-lived token explanation\n  \n  - docs(zustand-stores): add infinite loop troubleshooting section\n    - Document 'getSnapshot should be cached' error and fix\n    - Explain stable reference pattern for selectors\n  \n  - feat(IOSAuthModal): add optional onOpenChange prop for dismissible modal\n    - Backdrop click to close when onOpenChange provided\n    - Backward compatible (prop is optional)\n  \n  - perf(reports): parallel deletion with Promise.allSettled\n    - Delete all screenshots in parallel instead of sequential\n    - Better error summarization",
-        "dd6372f feat(sync-template): add --project-diffs flag for contribute command \u001b[90m(03/01/2026)\u001b[0m\n  New flag outputs a parseable diff report:\n  - Lists all files that differ between project and template\n  - Shows change status: project-only, template-only, both-changed, no-baseline\n  - Includes full diff for each file\n  - Excludes ignored files automatically\n  \n  Usage: yarn sync-template --project-diffs\n  \n  Updated contribute-to-template command to use this flag instead of\n  manual diff finding."
-      ]
     }
   ],
   "fileHashes": {
@@ -495,7 +492,7 @@
     "src/client/query/index.ts": "ab0167c8cea1f08a1a917783c2c04946",
     "src/client/query/persister.ts": "a9f2c12cdad02b53f14078b01ba4a245",
     "src/client/query/queryClient.ts": "b2ab9fc3dedaafcc39bcc54bdd8cbf9d",
-    "src/client/router/index.tsx": "fb9878bbb1afafddaca13204ddd5ad73",
+    "src/client/router/index.tsx": "0c41de78f28d5ae50027ebb4c6b79853",
     "src/client/routes/NotFound/NotFound.tsx": "8e5a2000db3c03277a38b68c64f0469b",
     "src/client/routes/NotFound/index.ts": "d61014aa84dbc5db967a05f08c2f09d3",
     "src/client/routes/Profile/Profile.tsx": "8d6f2658f0f40625dd3fd929f1eadb95",

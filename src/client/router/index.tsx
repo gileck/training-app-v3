@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createContext, useContext } from 'react';
 import { useRouteStore } from '@/client/features/router';
 import { useIsAdmin } from '@/client/features/auth';
@@ -6,6 +6,12 @@ import { useIsAdmin } from '@/client/features/auth';
 // Define router context and types
 type RouteParams = Record<string, string>;
 type QueryParams = Record<string, string>;
+
+// History state interface for tracking navigation
+interface HistoryState {
+  path: string;
+  key: string;
+}
 
 /**
  * Route configuration with metadata
@@ -79,6 +85,16 @@ const parseQueryParams = (): QueryParams => {
   return queryParams;
 };
 
+// Generate a unique key for history entries
+const generateHistoryKey = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+// Scroll to top of page
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+};
+
 // Routes that should NOT be persisted/restored
 const EXCLUDED_ROUTES = ['/login', '/register', '/logout', '/forgot-password'];
 
@@ -126,8 +142,12 @@ export const RouterProvider = ({ children, routes }: {
       initialPath === '/' &&
       !EXCLUDED_ROUTES.some(excluded => savedRoute.startsWith(excluded)) &&
       !(savedRoute.startsWith('/admin') && !isAdmin)) {
-      // Navigate to the last route
-      window.history.replaceState(null, '', savedRoute);
+      // Navigate to the last route with proper history state
+      const state: HistoryState = {
+        path: savedRoute,
+        key: generateHistoryKey(),
+      };
+      window.history.replaceState(state, '', savedRoute);
       setCurrentPath(savedRoute);
       setQueryParams(parseQueryParams());
     }
@@ -145,8 +165,12 @@ export const RouterProvider = ({ children, routes }: {
   // Enforce admin-only routes centrally: any /admin/* path requires admin.
   useEffect(() => {
     if (currentPath.startsWith('/admin') && !isAdmin) {
-      // Redirect non-admins to home.
-      window.history.replaceState(null, '', '/');
+      // Redirect non-admins to home with proper history state.
+      const state: HistoryState = {
+        path: '/',
+        key: generateHistoryKey(),
+      };
+      window.history.replaceState(state, '', '/');
       setCurrentPath('/');
       setQueryParams(parseQueryParams());
     }
@@ -194,13 +218,18 @@ export const RouterProvider = ({ children, routes }: {
     };
   }, [currentPath, routes, isAdmin]);
 
-  // Handle navigation
-  const navigate = (path: string, options: { replace?: boolean } = {}) => {
-    // Update browser history
+  // Handle navigation with proper history state
+  const navigate = useCallback((path: string, options: { replace?: boolean } = {}) => {
+    const state: HistoryState = {
+      path,
+      key: generateHistoryKey(),
+    };
+
+    // Update browser history with state object
     if (options.replace) {
-      window.history.replaceState(null, '', path);
+      window.history.replaceState(state, '', path);
     } else {
-      window.history.pushState(null, '', path);
+      window.history.pushState(state, '', path);
     }
 
     // Update current path state
@@ -208,17 +237,38 @@ export const RouterProvider = ({ children, routes }: {
 
     // Update query params
     setQueryParams(parseQueryParams());
-  };
 
-  // Listen for popstate events (browser back/forward)
+    // Scroll to top on navigation (standard browser behavior)
+    scrollToTop();
+  }, []);
+
+  // Listen for popstate events (browser back/forward, iOS swipe gestures)
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+    const handlePopState = (event: PopStateEvent) => {
+      // Get path from state if available, otherwise fall back to URL
+      const state = event.state as HistoryState | null;
+      const newPath = state?.path ?? window.location.pathname;
+
+      setCurrentPath(newPath);
       setQueryParams(parseQueryParams());
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Ensure initial history entry has proper state (important for PWA/iOS)
+  // This runs once on mount to set up the initial history state
+  useEffect(() => {
+    // Only set initial state if there's no state already (first page load)
+    if (!window.history.state) {
+      const initialState: HistoryState = {
+        path: window.location.pathname,
+        key: generateHistoryKey(),
+      };
+      // Replace current entry with one that has state
+      window.history.replaceState(initialState, '', window.location.href);
+    }
   }, []);
 
   // Provide router context and render current route
