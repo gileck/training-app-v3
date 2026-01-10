@@ -51,16 +51,21 @@ jobs:
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            # Get first line of commit message
+            COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+
             MESSAGE="🚀 *Production Deployment Started*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commit: [${COMMIT_SHA::7}](${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA})
+          📝 Commit: ${COMMIT_MSG}
           👤 Author: ${{ github.actor }}"
 
+            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
               -d "parse_mode=Markdown" \
-              -d "text=${MESSAGE}"
+              -d "text=${MESSAGE}" \
+              -d "reply_markup=${KEYBOARD}"
           else
             MESSAGE="👀 *Preview Deployment Started (PR #${{ github.event.pull_request.number }})*
 
@@ -122,16 +127,21 @@ jobs:
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
+            # Get first line of commit message
+            COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+
             MESSAGE="✅ *Production Deployment Complete - Live*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commit: [${COMMIT_SHA::7}](${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA})
+          📝 Commit: ${COMMIT_MSG}
           👤 Author: ${{ github.actor }}"
 
+            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
               -d "parse_mode=Markdown" \
-              -d "text=${MESSAGE}"
+              -d "text=${MESSAGE}" \
+              -d "reply_markup=${KEYBOARD}"
           else
             MESSAGE="✅ *Preview Deployment Ready (PR #${{ github.event.pull_request.number }})*
 
