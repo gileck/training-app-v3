@@ -312,7 +312,12 @@ export class TemplateSyncTool {
         }
 
         try {
-          // Stage all changes (including .template-sync.json which we'll update)
+          // Update config BEFORE committing so it's included in the commit
+          this.context.config.lastSyncCommit = templateCommit;
+          this.context.config.lastSyncDate = new Date().toISOString();
+          saveConfig(this.context.projectRoot, this.context.config);
+
+          // Stage all changes (including .template-sync.json)
           exec('git add -A', this.context.projectRoot, { silent: true });
 
           // Create commit with template commits in message
@@ -326,15 +331,12 @@ export class TemplateSyncTool {
           // Now get the commit that INCLUDES the sync changes
           const projectCommit = exec('git rev-parse HEAD', this.context.projectRoot, { silent: true });
 
-          // Add to sync history
+          // Add to sync history and update projectCommit (requires amend)
           addSyncHistoryEntry(this.context, templateCommit, projectCommit, result, templateCommitsForReport);
-
-          this.context.config.lastSyncCommit = templateCommit;
           this.context.config.lastProjectCommit = projectCommit;
-          this.context.config.lastSyncDate = new Date().toISOString();
           saveConfig(this.context.projectRoot, this.context.config);
 
-          // Amend commit to include updated config
+          // Amend commit to include updated config with projectCommit and sync history
           exec('git add .template-sync.json', this.context.projectRoot, { silent: true });
           exec('git commit --amend --no-edit', this.context.projectRoot, { silent: true });
 
@@ -351,10 +353,22 @@ export class TemplateSyncTool {
           saveConfig(this.context.projectRoot, this.context.config);
         }
       } else if (!this.context.options.dryRun) {
-        // No changes applied, just update the sync timestamp
+        // No changes applied, but still update and commit the sync timestamp
         this.context.config.lastSyncCommit = templateCommit;
         this.context.config.lastSyncDate = new Date().toISOString();
         saveConfig(this.context.projectRoot, this.context.config);
+
+        // Commit the config update
+        try {
+          exec('git add .template-sync.json', this.context.projectRoot, { silent: true });
+          // Check if there are staged changes before committing
+          const stagedChanges = exec('git diff --cached --name-only', this.context.projectRoot, { silent: true });
+          if (stagedChanges.trim()) {
+            exec('git commit -m "chore: update template sync timestamp"', this.context.projectRoot, { silent: true });
+          }
+        } catch {
+          // Ignore commit errors - config is already saved
+        }
       }
 
       // Generate sync report if requested

@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "4aa96f1cec5c7d01316a8dc42cb2d3e0a9f82bac",
-  "lastProjectCommit": "6ae221c0004997f96c6590a1a99bca72da7bd35b",
-  "lastSyncDate": "2026-01-10T17:45:54.664Z",
+  "lastSyncCommit": "717bce9c65ce57ee110a266032ad4d0c8cff42b1",
+  "lastProjectCommit": "5909c98fa730ba529645266aa97c7be2959caec7",
+  "lastSyncDate": "2026-01-10T17:52:23.873Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T17:52:23.872Z",
+      "templateCommit": "717bce9c65ce57ee110a266032ad4d0c8cff42b1",
+      "projectCommit": "5909c98fa730ba529645266aa97c7be2959caec7",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "717bce9 feat: add sync-child-projects script with interactive prompt \u001b[90m(10/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-10T17:45:54.663Z",
       "templateCommit": "4aa96f1cec5c7d01316a8dc42cb2d3e0a9f82bac",
@@ -279,15 +290,6 @@
         "8164ec2 refactor: update audit command to output report-only with progress tracker \u001b[90m(03/01/2026)\u001b[0m\n  - Change audit to be report-only (no code changes during audit)\n  - Save audit report to audits/audit-YYYY-MM-DD.md\n  - Add progress tracker with checkboxes for each fix task\n  - Add Progress Overview table at top of report\n  - Add Implementation Log section for tracking\n  - Add Final Verification Checklist\n  - Include collapsible code change details\n  - Organize fixes by phase (Critical → High → Medium → Low)",
         "ca76f0d fix(auth): increase IOSAuthModal z-index to appear above fullscreen overlays \u001b[90m(03/01/2026)\u001b[0m"
       ]
-    },
-    {
-      "date": "2026-01-03T17:14:20.850Z",
-      "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
-      "projectCommit": "9355ea38f336107ddc506d8fb0e8b6cd64702748",
-      "filesApplied": 2,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": []
     }
   ],
   "fileHashes": {
@@ -641,7 +643,7 @@
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
     "scripts/template-scripts/sync-template/sync/operations.ts": "ad1f040c6403202c8787ec6dac572c31",
-    "scripts/template-scripts/sync-template/sync-template-tool.ts": "a339df848255fc65e9a5757ac524d27a",
+    "scripts/template-scripts/sync-template/sync-template-tool.ts": "a3708da56bb2ff6ad3d80e4e3b027a06",
     "scripts/template-scripts/sync-template/types/index.ts": "43d8b62ccd36b137f5746600c379b131",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
@@ -656,6 +658,8 @@
     "src/client/routes/Profile/components/EditableField.tsx": "68bfc37d6a01af01f013bb6fbfd1163c",
     "src/client/routes/Profile/components/ProfileHeader.tsx": "cbd293e7bbe0ce7c47ab080fed1e05f9",
     "src/client/routes/Profile/components/ProfileSection.tsx": "17a0031c6f907ce7c5beee2113c7c188",
-    "src/pages/[...slug].tsx": "d9b7db84e179ae997d2e034b4551cb37"
+    "src/pages/[...slug].tsx": "d9b7db84e179ae997d2e034b4551cb37",
+    "scripts/push-and-sync.sh": "ff3706b3489faeb2e5210567090c29f2",
+    "scripts/sync-child-projects.ts": "6d1b27bf5cde021fdb2a36cffa7d50a8"
   }
 }
