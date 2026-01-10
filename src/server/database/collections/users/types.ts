@@ -12,6 +12,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   profilePicture?: string;
+  notificationsEnabled?: boolean;
   telegramChatId?: string;
 }
 

@@ -2,6 +2,7 @@
  * Profile Components Barrel Export
  */
 
-export { ProfileCard } from './ProfileCard';
-export { AccountInfoCard } from './AccountInfoCard';
+export { ProfileHeader } from './ProfileHeader';
+export { ProfileSection } from './ProfileSection';
+export { EditableField } from './EditableField';
 export { ImageUploadDialog } from './ImageUploadDialog';

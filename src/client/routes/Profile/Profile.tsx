@@ -1,46 +1,41 @@
 /**
  * Profile Page Component
+ * Modern iOS-inspired profile page with inline editing
  */
 
 import { useEffect, useState, useRef, ChangeEvent } from 'react';
 import { useAuthStore, useUser } from '@/client/features/auth';
 import { useRouter } from '../../router';
-import { Button } from '@/client/components/ui/button';
-import { LinearProgress } from '@/client/components/ui/linear-progress';
-import { Alert } from '@/client/components/ui/alert';
-import { Edit3 } from 'lucide-react';
 import { apiUpdateProfile, apiFetchCurrentUser } from '@/apis/auth/client';
 import { UpdateProfileRequest, UserResponse } from '@/apis/auth/types';
-import { ProfileCard } from './components/ProfileCard';
-import { AccountInfoCard } from './components/AccountInfoCard';
+import { toast } from '@/client/components/ui/toast';
+import { ProfileHeader } from './components/ProfileHeader';
+import { ProfileSection } from './components/ProfileSection';
+import { EditableField } from './components/EditableField';
 import { ImageUploadDialog } from './components/ImageUploadDialog';
+import { Skeleton } from '@/client/components/ui/skeleton';
+import { Bell, Calendar, Mail, MessageSquare, User } from 'lucide-react';
+import { Switch } from '@/client/components/ui/switch';
 
 export const Profile = () => {
-    // Use Zustand store instead of context
     const user = useUser();
     const isValidated = useAuthStore((state) => state.isValidated);
     const isValidating = useAuthStore((state) => state.isValidating);
     const setValidatedUser = useAuthStore((state) => state.setValidatedUser);
 
     const { navigate } = useRouter();
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral edit mode toggle
-    const [editing, setEditing] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- form input before submission
-    const [username, setUsername] = useState('');
+
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral image preview before save
     const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- form input before submission
-    const [telegramChatId, setTelegramChatId] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral snackbar notification
-    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [openImageDialog, setOpenImageDialog] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- local loading indicator
-    const [savingProfile, setSavingProfile] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- local optimistic user data copy
     const [localUser, setLocalUser] = useState<UserResponse | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- local loading indicator
     const [loadingUserData, setLoadingUserData] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- track which field is being saved
+    const [savingField, setSavingField] = useState<string | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fetch fresh user data from the server
@@ -50,10 +45,7 @@ export const Profile = () => {
             const response = await apiFetchCurrentUser();
             if (response.data?.user) {
                 setLocalUser(response.data.user);
-                setUsername(response.data.user.username);
                 setPreviewImage(response.data.user.profilePicture);
-                setTelegramChatId(response.data.user.telegramChatId || '');
-                // Update the global store as well
                 setValidatedUser(response.data.user);
             }
         } catch (error) {
@@ -72,96 +64,77 @@ export const Profile = () => {
     useEffect(() => {
         if (user) {
             setLocalUser(user);
-            setUsername(user.username);
             setPreviewImage(user.profilePicture);
-            setTelegramChatId(user.telegramChatId || '');
         }
     }, [user]);
 
-    if (isValidating || loadingUserData) {
-        return (
-            <div className="flex h-[80vh] items-center justify-center w-full px-4">
-                <LinearProgress />
-            </div>
-        );
-    }
-
-    const handleEditClick = () => {
-        setEditing(true);
-    };
-
-    const handleCancelEdit = () => {
-        setEditing(false);
-        // Reset to original values
-        if (localUser) {
-            setUsername(localUser.username);
-            setPreviewImage(localUser.profilePicture);
-            setTelegramChatId(localUser.telegramChatId || '');
-        }
-    };
-
-    const handleSaveProfile = async () => {
-        if (!username.trim()) {
-            setSnackbar({
-                open: true,
-                message: 'Username cannot be empty',
-                severity: 'error'
-            });
-            return;
+    const handleSaveField = async (field: keyof UpdateProfileRequest, value: string | boolean) => {
+        if (field === 'username' && typeof value === 'string' && !value.trim()) {
+            toast.error('Username cannot be empty');
+            return false;
         }
 
-        setSavingProfile(true);
+        setSavingField(field);
 
         try {
             const updateData: UpdateProfileRequest = {
-                username,
-                profilePicture: previewImage !== localUser?.profilePicture ? previewImage : undefined,
-                telegramChatId: telegramChatId !== (localUser?.telegramChatId || '') ? telegramChatId : undefined
+                [field]: value,
             };
 
             const response = await apiUpdateProfile(updateData);
 
             if (response.data?.success && response.data.user) {
                 setLocalUser(response.data.user);
-                // Update the global store
                 setValidatedUser(response.data.user);
-                setEditing(false);
-                setSnackbar({
-                    open: true,
-                    message: 'Profile updated successfully',
-                    severity: 'success'
-                });
+                toast.success('Profile updated');
+                return true;
             } else {
-                // If the update failed, try to fetch fresh user data
                 await fetchUserData();
-                setSnackbar({
-                    open: true,
-                    message: response.data?.error || 'Failed to update profile',
-                    severity: 'error'
-                });
+                toast.error(response.data?.error || 'Failed to update profile');
+                return false;
             }
         } catch (err) {
-            // If an error occurred, try to fetch fresh user data
             await fetchUserData();
             const errorMessage = err instanceof Error ? err.message : 'Profile update error';
-            setSnackbar({
-                open: true,
-                message: errorMessage,
-                severity: 'error'
-            });
+            toast.error(errorMessage);
+            return false;
         } finally {
-            setSavingProfile(false);
+            setSavingField(null);
         }
     };
 
-    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleSaveProfilePicture = async (imageData: string) => {
+        setSavingField('profilePicture');
+        try {
+            const response = await apiUpdateProfile({ profilePicture: imageData });
+            if (response.data?.success && response.data.user) {
+                setLocalUser(response.data.user);
+                setPreviewImage(response.data.user.profilePicture);
+                setValidatedUser(response.data.user);
+                toast.success('Profile picture updated');
+                return true;
+            } else {
+                toast.error(response.data?.error || 'Failed to update profile picture');
+                return false;
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Profile update error';
+            toast.error(errorMessage);
+            return false;
+        } finally {
+            setSavingField(null);
+        }
+    };
+
+    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const result = reader.result as string;
                 setPreviewImage(result);
                 setOpenImageDialog(false);
+                await handleSaveProfilePicture(result);
             };
             reader.readAsDataURL(file);
         }
@@ -175,28 +148,21 @@ export const Profile = () => {
                     if (type.startsWith('image/')) {
                         const blob = await clipboardItem.getType(type);
                         const reader = new FileReader();
-                        reader.onloadend = () => {
+                        reader.onloadend = async () => {
                             const result = reader.result as string;
                             setPreviewImage(result);
                             setOpenImageDialog(false);
+                            await handleSaveProfilePicture(result);
                         };
                         reader.readAsDataURL(blob);
                         return;
                     }
                 }
             }
-            setSnackbar({
-                open: true,
-                message: 'No image found in clipboard',
-                severity: 'error'
-            });
+            toast.error('No image found in clipboard');
         } catch (error) {
             console.error('Error accessing clipboard:', error);
-            setSnackbar({
-                open: true,
-                message: 'Failed to paste image from clipboard',
-                severity: 'error'
-            });
+            toast.error('Failed to paste image from clipboard');
         }
     };
 
@@ -204,47 +170,99 @@ export const Profile = () => {
         fileInputRef.current?.click();
     };
 
-    // Use localUser for display to prevent the entire app from re-rendering
     const displayUser = localUser || user;
 
-    return (
-        <div>
-            <div className="mb-3 flex items-center">
-                <h1 className="text-2xl font-semibold">My Profile</h1>
-                {!editing && (
-                    <Button variant="ghost" size="sm" className="ml-2" onClick={handleEditClick}>
-                        <Edit3 className="mr-2 h-4 w-4" /> Edit
-                    </Button>
-                )}
+    if (isValidating || loadingUserData) {
+        return (
+            <div className="mx-auto max-w-2xl px-4 py-6">
+                <ProfileLoadingSkeleton />
             </div>
+        );
+    }
 
-            {displayUser && (
-                <div className="flex flex-col gap-3 md:flex-row">
-                    <div className="w-full md:w-1/3">
-                        <ProfileCard
-                            displayUser={displayUser}
-                            username={username}
-                            setUsername={setUsername}
-                            previewImage={previewImage}
-                            editing={editing}
-                            savingProfile={savingProfile}
-                            onSave={handleSaveProfile}
-                            onCancel={handleCancelEdit}
-                            onOpenImageDialog={() => setOpenImageDialog(true)}
+    if (!displayUser) {
+        return null;
+    }
+
+    const memberSince = new Date(displayUser.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+
+    return (
+        <div className="mx-auto max-w-2xl px-4 py-6">
+            <ProfileHeader
+                username={displayUser.username}
+                email={displayUser.email}
+                profilePicture={previewImage}
+                isUpdating={savingField === 'profilePicture'}
+                onChangePhoto={() => setOpenImageDialog(true)}
+            />
+
+            <div className="mt-6 space-y-4">
+                <ProfileSection title="Personal Information" icon={<User className="h-5 w-5" />}>
+                    <EditableField
+                        label="Username"
+                        value={displayUser.username}
+                        icon={<User className="h-4 w-4" />}
+                        readOnly
+                    />
+                    <EditableField
+                        label="Email"
+                        value={displayUser.email || ''}
+                        icon={<Mail className="h-4 w-4" />}
+                        onSave={(value) => handleSaveField('email', value)}
+                        isSaving={savingField === 'email'}
+                        placeholder="Add email address"
+                    />
+                </ProfileSection>
+
+                <ProfileSection title="Notifications" icon={<Bell className="h-5 w-5" />}>
+                    {/* Notifications toggle */}
+                    <div className="flex items-center justify-between px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                            <Bell className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Enable Notifications</span>
+                        </div>
+                        <Switch
+                            checked={displayUser.notificationsEnabled ?? false}
+                            onCheckedChange={(checked) => handleSaveField('notificationsEnabled', checked)}
+                            disabled={savingField === 'notificationsEnabled'}
                         />
                     </div>
 
-                    <div className="w-full md:w-2/3">
-                        <AccountInfoCard
-                            displayUser={displayUser}
-                            username={username}
-                            telegramChatId={telegramChatId}
-                            setTelegramChatId={setTelegramChatId}
-                            editing={editing}
+                    {/* Telegram Chat ID - only shown when notifications enabled */}
+                    {displayUser.notificationsEnabled && (
+                        <EditableField
+                            label="Telegram Chat ID"
+                            value={displayUser.telegramChatId || ''}
+                            icon={<MessageSquare className="h-4 w-4" />}
+                            onSave={(value) => handleSaveField('telegramChatId', value)}
+                            isSaving={savingField === 'telegramChatId'}
+                            placeholder="Enter chat ID for notifications"
+                            infoTitle="How to Get Your Telegram Chat ID"
+                            infoContent={
+                                <ol className="ml-4 list-decimal space-y-2 text-sm text-muted-foreground">
+                                    <li>Open <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-primary underline">@userinfobot</a> on Telegram</li>
+                                    <li>Start a chat and send any message</li>
+                                    <li>The bot will reply with your Chat ID</li>
+                                    <li>Copy the ID number and paste it in the field</li>
+                                </ol>
+                            }
                         />
-                    </div>
-                </div>
-            )}
+                    )}
+                </ProfileSection>
+
+                <ProfileSection title="Account" icon={<Calendar className="h-5 w-5" />}>
+                    <EditableField
+                        label="Member Since"
+                        value={memberSince}
+                        icon={<Calendar className="h-4 w-4" />}
+                        readOnly
+                    />
+                </ProfileSection>
+            </div>
 
             {/* Hidden file input for image upload */}
             <input
@@ -262,17 +280,29 @@ export const Profile = () => {
                 onPaste={handlePaste}
                 onUploadClick={handleUploadClick}
             />
-
-            {/* Snackbar for notifications */}
-            {snackbar.open && (
-                <div className="fixed bottom-4 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2">
-                    <Alert variant={snackbar.severity === 'success' ? 'success' : 'destructive'}>
-                        {snackbar.message}
-                    </Alert>
-                </div>
-            )}
         </div>
     );
 };
+
+function ProfileLoadingSkeleton() {
+    return (
+        <div className="space-y-6">
+            {/* Header skeleton */}
+            <div className="flex flex-col items-center rounded-2xl bg-card p-6">
+                <Skeleton className="h-28 w-28 rounded-full" />
+                <Skeleton className="mt-4 h-7 w-40" />
+                <Skeleton className="mt-2 h-5 w-48" />
+            </div>
+
+            {/* Section skeletons */}
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl bg-card p-4">
+                    <Skeleton className="h-5 w-32 mb-4" />
+                    <Skeleton className="h-14 w-full" />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default Profile;

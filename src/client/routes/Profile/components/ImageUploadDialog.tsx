@@ -1,9 +1,11 @@
 /**
  * Image Upload Dialog Component
+ * Modern dialog for uploading or pasting profile pictures
  */
 
+import { Clipboard, Upload, X } from 'lucide-react';
 import { Button } from '@/client/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/client/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/client/components/ui/dialog';
 
 interface ImageUploadDialogProps {
     open: boolean;
@@ -12,20 +14,62 @@ interface ImageUploadDialogProps {
     onUploadClick: () => void;
 }
 
-export function ImageUploadDialog({ open, onOpenChange, onPaste, onUploadClick }: ImageUploadDialogProps) {
+export function ImageUploadDialog({
+    open,
+    onOpenChange,
+    onPaste,
+    onUploadClick,
+}: ImageUploadDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Change Profile Picture</DialogTitle>
+                    <DialogTitle className="text-center">Change Profile Picture</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-col gap-2">
-                    <Button onClick={onPaste}>Paste from Clipboard</Button>
-                    <Button variant="outline" onClick={onUploadClick}>Upload Image</Button>
+
+                <div className="grid gap-3 py-4">
+                    {/* Paste from clipboard option */}
+                    <button
+                        onClick={onPaste}
+                        className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 active:scale-[0.98]"
+                    >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <Clipboard className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-medium text-foreground">Paste from Clipboard</p>
+                            <p className="text-sm text-muted-foreground">
+                                Use an image you&apos;ve copied
+                            </p>
+                        </div>
+                    </button>
+
+                    {/* Upload image option */}
+                    <button
+                        onClick={onUploadClick}
+                        className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 active:scale-[0.98]"
+                    >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
+                            <Upload className="h-6 w-6 text-secondary" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-medium text-foreground">Upload Image</p>
+                            <p className="text-sm text-muted-foreground">
+                                Choose a file from your device
+                            </p>
+                        </div>
+                    </button>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                </DialogFooter>
+
+                {/* Cancel button */}
+                <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => onOpenChange(false)}
+                >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                </Button>
             </DialogContent>
         </Dialog>
     );

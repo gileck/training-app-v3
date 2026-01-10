@@ -18,7 +18,7 @@ export const updateUserProfile = async (
         }
 
         // Validate update data
-        if (!request.username && !request.profilePicture && request.telegramChatId === undefined) {
+        if (!request.username && !request.email && !request.profilePicture && request.notificationsEnabled === undefined && request.telegramChatId === undefined) {
             return { success: false, error: "No update data provided" };
         }
 
@@ -26,7 +26,9 @@ export const updateUserProfile = async (
         const updateData: {
             updatedAt: Date;
             username?: string;
+            email?: string;
             profilePicture?: string;
+            notificationsEnabled?: boolean;
             telegramChatId?: string;
         } = {
             updatedAt: new Date()
@@ -36,8 +38,16 @@ export const updateUserProfile = async (
             updateData.username = request.username;
         }
 
+        if (request.email !== undefined) {
+            updateData.email = request.email;
+        }
+
         if (request.profilePicture) {
             updateData.profilePicture = request.profilePicture;
+        }
+
+        if (request.notificationsEnabled !== undefined) {
+            updateData.notificationsEnabled = request.notificationsEnabled;
         }
 
         if (request.telegramChatId !== undefined) {
