@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "bfff7a357eba09ac18c6516f3ff0592992b392bf",
-  "lastProjectCommit": "0b871d642ce013de24b1b16d5c38a329d76aa2aa",
-  "lastSyncDate": "2026-01-10T08:30:14.582Z",
+  "lastSyncCommit": "9bc71fd62cf5e5ed34b0c226a5994eacc313820c",
+  "lastProjectCommit": "c748b7aa56be499b2a6a5ef8fff3bd066405578d",
+  "lastSyncDate": "2026-01-10T08:39:26.449Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T08:39:26.449Z",
+      "templateCommit": "9bc71fd62cf5e5ed34b0c226a5994eacc313820c",
+      "projectCommit": "c748b7aa56be499b2a6a5ef8fff3bd066405578d",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "9bc71fd fix: ensure sync-template validation fails if either ts or lint fails \u001b[90m(10/01/2026)\u001b[0m\n  Run TypeScript and ESLint checks separately in sync-template.ts\n  and require BOTH to pass before committing. Previously, the script\n  called yarn checks which uses semicolon (;) separator, causing\n  it to return success if only the last command (lint) passed.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T08:30:14.581Z",
       "templateCommit": "bfff7a357eba09ac18c6516f3ff0592992b392bf",
@@ -300,29 +311,6 @@
       "filesSkipped": 13,
       "filesConflicted": 0,
       "templateCommits": []
-    },
-    {
-      "date": "2026-01-01T12:59:13.223Z",
-      "templateCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
-      "projectCommit": "c94522fb0630bcf163420d4840304cb48c0ab172",
-      "filesApplied": 4,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "a1138fd feat: enable prefer-id-utilities ESLint rule \u001b[90m(01/01/2026)\u001b[0m\n  Added 'api-guidelines/prefer-id-utilities': 'warn' to eslint.config.mjs\n  \n  Rule warns about:\n  - .toHexString() usage → suggests toStringId()\n  - new ObjectId(variable) → suggests toQueryId()/toDocumentId()\n  \n  Currently 15 warnings in src/apis/ - existing code uses direct\n  ObjectId methods that will fail on UUID strings from client-generated IDs.\n  These should be migrated to use @/server/utils.",
-        "5a32557 docs: add UX rule about instant UI for optimistic operations \u001b[90m(01/01/2026)\u001b[0m\n  New section: 'UX Rule: All Related UI Must Be Instant'\n  \n  - Dialogs should close immediately, not show loading states\n  - Buttons shouldn't show loading for optimistic operations\n  - Forms should clear instantly\n  - Only show loading for genuinely non-optimistic operations\n  \n  Includes code examples showing wrong vs correct patterns.",
-        "075a67a chore: remove duplicate eslint rule file \u001b[90m(01/01/2026)\u001b[0m",
-        "6796675 feat: add ESLint warning rule for ObjectId method usage \u001b[90m(01/01/2026)\u001b[0m\n  New rule: api-guidelines/prefer-id-utilities (warning level)\n  \n  Warns in API handlers (src/apis/) when using:\n  - .toHexString() → suggests toStringId()\n  - new ObjectId(variable) → suggests toQueryId()/toDocumentId()\n  \n  Allows:\n  - new ObjectId() with no args\n  - new ObjectId('literal') with string literals\n  - All usage in database layer (src/server/database/)\n  \n  This catches potential runtime errors where UUIDs are passed\n  to ObjectId methods that only work with 24-char hex strings.",
-        "121df34 docs: update mongodb-usage.mdc with ID utilities guidance \u001b[90m(01/01/2026)\u001b[0m\n  Added:\n  - Core principle #5: Use ID Utilities\n  - ID Handling section with utility table\n  - Warning about direct ObjectId methods\n  - Updated all examples to use toStringId/toQueryId\n  - New 'What NOT To Do' section for ObjectId method errors\n  - Reference links to server utils and mutation docs",
-        "94d0a2d docs: add warnings for all ObjectId method errors with UUIDs \u001b[90m(01/01/2026)\u001b[0m\n  Expanded section to cover all common errors:\n  - Error 1: .toHexString() on UUID strings → use toStringId()\n  - Error 2: new ObjectId() on UUID strings → use toDocumentId()\n  - Error 3: Direct ObjectId in queries → use toQueryId()\n  \n  Added summary table mapping old patterns to new utilities",
-        "b656c4b docs: add warning about toHexString() error with UUID strings \u001b[90m(01/01/2026)\u001b[0m\n  Added section '⚠️ Always Use toStringId() - Never .toHexString()'\n  - Shows common TypeError when calling .toHexString() on UUID strings\n  - Documents the correct pattern using toStringId()\n  - Clear rule: always use toStringId() in API handlers",
-        "c80d655 docs: update react-query-mutations.md with server utilities \u001b[90m(01/01/2026)\u001b[0m\n  - Added server utilities table (toDocumentId, toQueryId, toStringId, etc.)\n  - Updated 'Server Must Accept Client IDs' section with utility examples\n  - Updated 'Idempotency' section to use utilities\n  - Simplified 'MongoDB ObjectId Compatibility' to recommend Option C\n  - All examples now use @/server/utils imports",
-        "f08a0f4 feat: add server-side ID utilities for mixed ObjectId/UUID support \u001b[90m(01/01/2026)\u001b[0m\n  New utilities in src/server/utils/id.ts:\n  - isObjectIdFormat() - Check if string is ObjectId format (24 hex chars)\n  - isUuidFormat() - Check if string is UUID format\n  - toQueryId() - Convert to appropriate MongoDB query format\n  - toStringId() - Convert any ID to string for API responses\n  - toDocumentId() - Convert to appropriate format for document insertion\n  \n  Updated:\n  - todos database layer now supports both ObjectId and UUID _id fields\n  - createTodo handler uses new utilities for cleaner code\n  - Backward compatible with existing ObjectId-based todos",
-        "320483e feat: add generateId() utility and implement optimistic Todo creation \u001b[90m(01/01/2026)\u001b[0m\n  New utility:\n  - src/client/utils/id.ts - generateId() using crypto.randomUUID()\n  \n  Todos app now uses optimistic create:\n  - Client generates UUID before mutation\n  - Server accepts and persists client-provided ID\n  - Idempotent: retries with same ID return existing todo\n  - Instant UI feedback (no loading spinner for creates)\n  \n  API changes:\n  - CreateTodoRequest now accepts optional _id field\n  - Server handler checks for existing ID (idempotency)\n  - New createTodoWithId database function\n  \n  Updated docs:\n  - docs/react-query-mutations.md now references generateId() utility\n  - Added Pattern A (helper hook) and Pattern B (component) examples\n  - Real code examples from Todos implementation",
-        "494a96b docs: add required per-mutation analysis template for creates \u001b[90m(01/01/2026)\u001b[0m\n  Added Step 3.5 to audit-react-query-mutations.md:\n  \n  - Required analysis template for EVERY create mutation\n  - Must read server handler and answer 4 key questions:\n    - Can server accept client ID?\n    - Does server compute critical display fields?\n    - Does validation require global state?\n    - Multiple caches affected?\n  - Decision flowchart for determining optimistic vs non-optimistic\n  - Example analyses showing thorough reasoning\n  - Summary table format for categorizing all creates\n  - Updated checklist to enforce this step\n  \n  This ensures agents perform rigorous analysis before categorizing\n  creates, preventing incorrect 'optimistic' classifications.",
-        "5383278 docs: add client ID generation and non-optimistic create guidance \u001b[90m(01/01/2026)\u001b[0m\n  New sections in docs/react-query-mutations.md:\n  \n  1. How to Generate Client IDs:\n     - Recommended methods (crypto.randomUUID, nanoid)\n     - Implementation pattern with correct ID passing\n     - Edge cases: server acceptance, idempotency, MongoDB compatibility\n     - Collision handling\n  \n  2. When NOT to Use Optimistic Creates:\n     - Server generates ID\n     - Server computes critical fields\n     - Validation requires global state\n     - Multiple caches affected\n     - Complex relationships\n     - Decision flowchart\n     - Non-optimistic pattern example with loading state",
-        "07150ee docs: improve audit-react-query-mutations command \u001b[90m(01/01/2026)\u001b[0m\n  Key improvements:\n  - Added critical warning about temp IDs vs client-generated stable IDs\n  - Explicit patterns to search for temp ID violations\n  - Clarified what's allowed in onSuccess (removeQueries, Zustand)\n  - Required UX impact template for EVERY non-compliant create\n  - Added 'Common Mistakes to Avoid' section addressing issues seen in practice\n  - More detailed checklist with phase-based organization\n  - Better guidance on WHY mutations are compliant/non-compliant"
-      ]
     }
   ],
   "fileHashes": {
@@ -606,7 +594,7 @@
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
     ".cursor/commands/contribute-to-template.md": "8fbefe9cf66058e7034e7e88db79f058",
-    "scripts/sync-template.ts": "6edaa13f777949e5dc81401a5d771540",
+    "scripts/sync-template.ts": "220d982a57a8cc07a62ffb10df1bc743",
     "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
     "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",
     "src/apis/auth/shared.ts": "49c768b44f5e32cd8b4c4401cc239779",

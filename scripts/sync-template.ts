@@ -1823,16 +1823,38 @@ class TemplateSyncTool {
   }
 
   /**
-   * Run post-sync validation (yarn checks)
+   * Run post-sync validation (TypeScript + ESLint)
+   * Runs both checks separately to ensure BOTH must pass.
    */
   private async runValidation(): Promise<boolean> {
     this.log('\n🔍 Running post-sync validation...');
-    
+
+    let tsPass = false;
+    let lintPass = false;
+
+    // Run TypeScript check
+    this.log('\n📘 Running TypeScript check...');
     try {
-      this.exec('yarn checks', { silent: false });
+      this.exec('yarn ts', { silent: false });
+      tsPass = true;
+    } catch {
+      this.logError('❌ TypeScript check failed!');
+    }
+
+    // Run ESLint check
+    this.log('\n📋 Running ESLint check...');
+    try {
+      this.exec('yarn lint', { silent: false });
+      lintPass = true;
+    } catch {
+      this.logError('❌ ESLint check failed!');
+    }
+
+    // Both must pass
+    if (tsPass && lintPass) {
       this.log('✅ Validation passed!');
       return true;
-    } catch (error: any) {
+    } else {
       this.logError('⚠️  Validation failed!');
       this.logError('   Please review the changes and fix any issues.');
       return false;
