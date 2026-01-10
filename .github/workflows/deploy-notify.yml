@@ -22,6 +22,9 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    permissions:
+      deployments: read
+      statuses: read
     env:
       IS_PRODUCTION: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
