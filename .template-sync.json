@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "67703fa1da70a0ad2d4d41892b18034d2399efca",
-  "lastProjectCommit": "727ad59b560a3cc81d532fc6c44f6e3faabca1ac",
-  "lastSyncDate": "2026-01-10T12:44:22.233Z",
+  "lastSyncCommit": "bc78e6af07d7eb9f31e71f1659ae78e538475a1d",
+  "lastProjectCommit": "769429edac6c32c9a0d41bdc1f2db2cf58d1d377",
+  "lastSyncDate": "2026-01-10T12:46:15.493Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T12:46:15.493Z",
+      "templateCommit": "bc78e6af07d7eb9f31e71f1659ae78e538475a1d",
+      "projectCommit": "769429edac6c32c9a0d41bdc1f2db2cf58d1d377",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "bc78e6a fix: expand COMMIT_SHA variable in Open Commit button URL \u001b[90m(10/01/2026)\u001b[0m\n  Variable wasn't expanding inside single quotes.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T12:44:22.233Z",
       "templateCommit": "67703fa1da70a0ad2d4d41892b18034d2399efca",
@@ -277,20 +288,6 @@
       "filesSkipped": 13,
       "filesConflicted": 0,
       "templateCommits": []
-    },
-    {
-      "date": "2026-01-03T15:48:30.954Z",
-      "templateCommit": "04f3d14c2c64e03fa5ab118ab9b22f04d1ee92cb",
-      "projectCommit": "bdc27927a8eb733f8ced5f4925c4eb5b8a130b3e",
-      "filesApplied": 7,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "04f3d14 docs: update contribute-to-template to auto-detect template path \u001b[90m(03/01/2026)\u001b[0m\n  Template is always at ../app-template-ai relative to project root.\n  No configuration needed - path is auto-detected.",
-        "3f27fab feat: add contribute-to-template command for upstream contributions \u001b[90m(03/01/2026)\u001b[0m\n  - Create .cursor/commands/contribute-to-template.md\n  - Workflow for contributing project fixes back to template\n  - Creates patch files, copies to template, generates agent message\n  - Add templateLocalPath config field for local template repo path",
-        "036ad77 feat(sync-template): add hash-based change detection and templateIgnoredFiles \u001b[90m(03/01/2026)\u001b[0m\n  - Fix bug where project changes were incorrectly shown as safe to apply\n  - Add hash-based change detection using fileHashes in config\n  - Store file hashes at sync time for accurate change tracking\n  - Add templateIgnoredFiles config for example/demo code (Todos, Chat)\n  - Files in templateIgnoredFiles are completely invisible during sync\n  - Update documentation with new features and scenarios",
-        "5bfbfbf Add full project audit command and enhance query key documentation \u001b[90m(03/01/2026)\u001b[0m\n  - Add comprehensive full-project-audit.md command covering all guidelines\n  - Add mandatory TODO tracking requirement for audit execution\n  - Add React Components audit section (3.12) with loading state patterns\n  - Update docs/react-query-mutations.md with query key stability guidelines\n  - Update docs/state-management.md with background refresh patterns\n  - Emphasize stable query keys over date-based keys for better cache hits\n  - Add isFetching indicator pattern for background refresh UX"
-      ]
     }
   ],
   "fileHashes": {
@@ -613,7 +610,7 @@
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
-    ".github/workflows/deploy-notify.yml": "942871310f5b99a63062063fd195a3dd",
+    ".github/workflows/deploy-notify.yml": "e4fb5905411d25ac34ae9df11f0b5f75",
     ".github/workflows/pr-checks.yml": "ce7d5c3d95b79447320428b0d1e32db0",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",

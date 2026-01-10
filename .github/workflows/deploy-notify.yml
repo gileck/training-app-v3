@@ -60,7 +60,7 @@ jobs:
           📝 Commit: ${COMMIT_MSG}
           👤 Author: ${{ github.actor }}"
 
-            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"}]]}'
+            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/'"${COMMIT_SHA}"'"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
               -d "parse_mode=Markdown" \
@@ -136,7 +136,7 @@ jobs:
           📝 Commit: ${COMMIT_MSG}
           👤 Author: ${{ github.actor }}"
 
-            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/${COMMIT_SHA}"}]]}'
+            KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/'"${COMMIT_SHA}"'"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
               -d "parse_mode=Markdown" \
