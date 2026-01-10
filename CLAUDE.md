@@ -75,6 +75,19 @@ Instant-boot authentication pattern for PWA.
 - Use `useUser()` for validated user, `useIsAuthenticated()` for auth check
 - Use `useAuthStore(s => s.userPublicHint)` for instant-boot UI (before validation)
 
+**Preview Auto-Login:**
+
+Automatically logs in a test user on Vercel preview deployments (PR previews).
+
+Setup:
+1. Create a test user account in the app
+2. Get the user's ID from MongoDB (`_id` field)
+3. Add `PREVIEW_USER_ID` to Vercel: Settings → Environment Variables
+   - Set for **Preview** environment only (NOT Production)
+   - Value: the test user's MongoDB `_id`
+
+When visiting a preview URL, the middleware automatically sets an auth cookie for the test user.
+
 **Docs:** [docs/authentication.md](docs/authentication.md)
 
 ---
@@ -256,22 +269,33 @@ logger.info('feature', 'Message', { meta: { ... } });
 
 ## Telegram Notifications (App Runtime)
 
-> **What this is:** Application feature that sends notifications to logged-in users when app events occur (e.g., todo completed). This is runtime application logic in the source code.
+> **What this is:** Application feature that sends notifications via Telegram. This is runtime application logic in the source code.
 >
 > **NOT to be confused with:** "Send Message to User" below, which is a development tool for Claude Code.
 
-**Summary:** Users configure their Telegram chat ID in their Profile. Server-side code can send notifications to specific users based on app events.
+**Two Notification Types:**
 
-**Key Points:**
+| Type | Recipient | Config Location | Use Cases |
+|------|-----------|-----------------|-----------|
+| **Owner** | App administrator | `ownerTelegramChatId` in app.config.js | New signups, errors, API thresholds, system alerts |
+| **User** | Individual logged-in users | `telegramChatId` in user's Profile | Personal alerts, task updates, user-specific events |
+
+**Setup:**
 - Requires `TELEGRAM_BOT_TOKEN` in `.env`
-- Each user sets their own chat ID in Profile
-- Run `yarn telegram-setup` to get your chat ID
-- Notifications fail silently (don't break app flow)
+- Run `yarn telegram-setup` to get chat IDs
+- Owner: Set `OWNER_TELEGRAM_CHAT_ID` in `.env` (or hardcode in app.config.js)
+- Users: Each user sets their own chat ID in Profile settings
 
+**Usage:**
 ```typescript
-import { sendTelegramNotificationToUser } from '@/server/telegram';
+import { sendNotificationToOwner, sendTelegramNotificationToUser } from '@/server/telegram';
 
-await sendTelegramNotificationToUser(userId, 'Your message');
+// Owner notifications (app-level events)
+await sendNotificationToOwner(`New user signed up: ${email}`);
+await sendNotificationToOwner(`API Error: ${error.message}`);
+
+// User notifications (per-user events)
+await sendTelegramNotificationToUser(userId, 'Your task was completed');
 ```
 
 **Docs:** [docs/telegram-notifications.md](docs/telegram-notifications.md)

@@ -41,9 +41,9 @@ interface GetUpdatesResponse {
     result: TelegramUpdate[];
 }
 
-async function getUpdates(botToken: string, offset?: number): Promise<TelegramUpdate[]> {
+async function getUpdates(botToken: string, offset?: number, timeout = 30): Promise<TelegramUpdate[]> {
     const url = new URL(`${TELEGRAM_API_URL}${botToken}/getUpdates`);
-    url.searchParams.set('timeout', '30');
+    url.searchParams.set('timeout', String(timeout));
     if (offset !== undefined) {
         url.searchParams.set('offset', String(offset));
     }
@@ -56,6 +56,16 @@ async function getUpdates(botToken: string, offset?: number): Promise<TelegramUp
     }
 
     return data.result;
+}
+
+async function getLatestUpdateId(botToken: string): Promise<number | undefined> {
+    // Fetch existing updates without long polling to get latest update_id
+    const updates = await getUpdates(botToken, undefined, 0);
+    if (updates.length > 0) {
+        // Return offset to skip all existing messages
+        return updates[updates.length - 1].update_id + 1;
+    }
+    return undefined;
 }
 
 async function sendMessage(botToken: string, chatId: number, text: string): Promise<void> {
@@ -84,7 +94,8 @@ async function main() {
     console.log('Press Ctrl+C to cancel.');
     console.log('');
 
-    let lastUpdateId: number | undefined;
+    // Skip any existing messages - only listen for new ones
+    let lastUpdateId = await getLatestUpdateId(botToken);
 
     while (true) {
         try {

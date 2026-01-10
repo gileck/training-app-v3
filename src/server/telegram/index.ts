@@ -1,4 +1,30 @@
+/**
+ * Telegram Notifications Module
+ *
+ * This module provides TWO DISTINCT notification channels:
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 1. OWNER NOTIFICATIONS (App-Level)                                      │
+ * │    - Recipient: App owner/administrator                                 │
+ * │    - Config: ownerTelegramChatId in app.config.js                       │
+ * │    - Use for: New signups, errors, API thresholds, system alerts        │
+ * │    - Function: sendNotificationToOwner()                                │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ 2. USER NOTIFICATIONS (Per-User)                                        │
+ * │    - Recipient: Individual logged-in users                              │
+ * │    - Config: telegramChatId in user's profile (database)                │
+ * │    - Use for: Personal alerts, task updates, user-specific events       │
+ * │    - Function: sendTelegramNotificationToUser()                         │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Setup:
+ * - Run `yarn telegram-setup` to get your chat ID
+ * - For owner: Add OWNER_TELEGRAM_CHAT_ID to .env
+ * - For users: They add their chat ID in their Profile settings
+ */
+
 import { users } from '@/server/database';
+import { appConfig } from '@/app.config';
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 
@@ -89,4 +115,42 @@ export async function sendTelegramNotification(
     }
 
     return sendToChat(chatId, message, options);
+}
+
+// ============================================================================
+// OWNER NOTIFICATIONS
+// ============================================================================
+
+/**
+ * Send a Telegram notification to the app OWNER.
+ *
+ * This is for APP-LEVEL events, NOT user-specific notifications:
+ * - New user signups
+ * - System errors and exceptions
+ * - API usage thresholds
+ * - Security alerts
+ * - Deployment notifications
+ *
+ * The owner's chat ID is configured in app.config.js (ownerTelegramChatId)
+ * or via OWNER_TELEGRAM_CHAT_ID environment variable.
+ *
+ * @example
+ * // Notify owner of new signup
+ * await sendNotificationToOwner(`New user signed up: ${user.email}`);
+ *
+ * // Notify owner of error
+ * await sendNotificationToOwner(`API Error: ${error.message}`, { parseMode: 'HTML' });
+ */
+export async function sendNotificationToOwner(
+    message: string,
+    options?: SendMessageOptions
+): Promise<SendMessageResult> {
+    const ownerChatId = appConfig.ownerTelegramChatId;
+
+    if (!ownerChatId) {
+        console.warn('Owner notification skipped: ownerTelegramChatId not configured');
+        return { success: false, error: 'Owner chat ID not configured' };
+    }
+
+    return sendToChat(ownerChatId, message, options);
 }
