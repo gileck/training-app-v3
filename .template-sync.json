@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "20eccd2557f64aa9e20bf3a2debdf8d401655f36",
-  "lastProjectCommit": "717fb1679856247816e6c3a4c412b307d52da31d",
-  "lastSyncDate": "2026-01-10T15:34:44.817Z",
+  "lastSyncCommit": "4aa96f1cec5c7d01316a8dc42cb2d3e0a9f82bac",
+  "lastProjectCommit": "6ae221c0004997f96c6590a1a99bca72da7bd35b",
+  "lastSyncDate": "2026-01-10T17:45:54.664Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T17:45:54.663Z",
+      "templateCommit": "4aa96f1cec5c7d01316a8dc42cb2d3e0a9f82bac",
+      "projectCommit": "6ae221c0004997f96c6590a1a99bca72da7bd35b",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "4aa96f1 feat: enhance init-project with idempotency and template cleanup \u001b[90m(10/01/2026)\u001b[0m\n  - Copy .env from ../app-template-ai/ before loading dotenv\n  - Run init-template.ts to set up template tracking\n  - Delete template example features (Todos, Chat, AIChat, Home)\n  - Make all steps idempotent (safe to run multiple times)\n  - Add consistent logging with [Step] prefix format\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T15:34:44.817Z",
       "templateCommit": "20eccd2557f64aa9e20bf3a2debdf8d401655f36",
@@ -277,17 +288,6 @@
       "filesSkipped": 15,
       "filesConflicted": 0,
       "templateCommits": []
-    },
-    {
-      "date": "2026-01-03T17:10:37.145Z",
-      "templateCommit": "438917f7dd05f1c4b2662e0dbab8dbd914e94562",
-      "projectCommit": "4df9c6303de736a40fba8a5b2679a5790be96cdd",
-      "filesApplied": 5,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "438917f fix(auth): Move AuthWrapper inside RouterProvider for proper auth on navigation \u001b[90m(03/01/2026)\u001b[0m\n  - Move AuthWrapper inside RouterProvider in _app.tsx to fix auth checks when\n    navigating from public to protected routes\n  - Add isPublicRoute to router context (computed from route metadata)\n  - Simplify AuthWrapper to use useRouter() hook instead of calling isPublicRoute()\n  - Remove unused getRouteComponent function from router\n  \n  This fixes a bug where navigating from a public route to a protected route\n  would not trigger authentication checks because AuthWrapper was the parent\n  of RouterProvider and didn't re-render on navigation.\n  \n  Updated documentation:\n  - docs/architecture.md: Updated boot flow diagram\n  - docs/authentication.md: Updated AuthWrapper and public routes sections\n  - docs/zustand-stores.md: Updated component tree example\n  - .cursor/rules/pages-and-routing-guidelines.mdc: Updated public routes docs"
-      ]
     }
   ],
   "fileHashes": {
@@ -379,7 +379,7 @@
     "scripts/debug-eslint.js": "08d2e4bc622ca1ec50e0db6260d234c6",
     "scripts/generate-icons.ts": "649bd7b923ee54aa820863fb0e4b5d50",
     "scripts/get-report.mjs": "b5136a8413bc15c76541eb294be73288",
-    "scripts/init-project.js": "0f7483cb28f3055a86b16552569a8db0",
+    "scripts/init-project.js": "b23cee2a2320c0cfc6b8a4525fb4db07",
     "scripts/init-template.ts": "19a7ea27167225723ad5999795c0e55f",
     "scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
     "scripts/watch-checks.js": "b5252fd663f2434ad5cebf5b25b53a78",
