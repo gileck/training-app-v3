@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "ef31b04023458d9240f1345e0985e6411aeb3c0f",
-  "lastProjectCommit": "2c6e4ec4ca977730c3475ee487abf33ca7c30074",
-  "lastSyncDate": "2026-01-10T08:48:18.269Z",
+  "lastSyncCommit": "6fce3831e17a3d1349157225bda1e194a06cad73",
+  "lastProjectCommit": "c6f0d3cb958f7b9d474b60dd1e41dae577ac18f3",
+  "lastSyncDate": "2026-01-10T09:01:45.518Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T09:01:45.518Z",
+      "templateCommit": "6fce3831e17a3d1349157225bda1e194a06cad73",
+      "projectCommit": "c6f0d3cb958f7b9d474b60dd1e41dae577ac18f3",
+      "filesApplied": 5,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "6fce383 feat: add AI-powered conflict analysis using Claude Code SDK \u001b[90m(10/01/2026)\u001b[0m\n  - Create scripts/ai-agents/ folder with modular AI agents:\n    - gemini-agent.ts: Original Gemini implementation (requires API key)\n    - claude-code-agent.ts: Claude Code SDK (uses CLI auth, no API key)\n  - Add analyzeConflict() function that provides:\n    - What changed in template vs project\n    - Merge difficulty assessment (easy/moderate/hard)\n    - Recommendation (take-template/keep-project/manual-merge)\n  - Update sync-template.ts to use claude-code-agent for:\n    - Safe change descriptions\n    - Detailed conflict analysis with color-coded output\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T08:48:18.268Z",
       "templateCommit": "ef31b04023458d9240f1345e0985e6411aeb3c0f",
@@ -303,17 +314,6 @@
       "filesSkipped": 13,
       "filesConflicted": 0,
       "templateCommits": []
-    },
-    {
-      "date": "2026-01-01T13:15:39.955Z",
-      "templateCommit": "608a1053b87c4e49ce14eed3fc503b05c11783af",
-      "projectCommit": "9231a7b1c2d06e34903181357c83cb7a71b4cde6",
-      "filesApplied": 1,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "608a105 docs: add allowed exception for invalidating separate aggregation queries \u001b[90m(01/01/2026)\u001b[0m\n  Added documentation explaining that invalidating a DIFFERENT query for\n  server-computed aggregations is acceptable, while the optimistic data\n  stays as source of truth.\n  \n  Example: Activity list (optimistic) + Activity summary (invalidated)\n  - List updates instantly (optimistic)\n  - Summary refreshes after ~200-500ms (server aggregation)\n  - No race condition because they're separate queries"
-      ]
     }
   ],
   "fileHashes": {
@@ -400,7 +400,7 @@
     "public/vercel.svg": "c0af2f507b369b085b35ef4bbe3bcf1e",
     "public/window.svg": "a2760511c65806022ad20adf74370ff3",
     "public/workbox-87b8d583.js": "2c2d19349a14e3e90c9e8fa0bdad1456",
-    "scripts/ai-agent.ts": "e622e5ac6ca5f5b723036607f5d9c18b",
+    "scripts/ai-agent.ts": "109c587bd16d26b0620c24f6c6bd4164",
     "scripts/cli-utils.ts": "8202934c471755656d2843740613b4f0",
     "scripts/debug-eslint.js": "08d2e4bc622ca1ec50e0db6260d234c6",
     "scripts/generate-icons.ts": "649bd7b923ee54aa820863fb0e4b5d50",
@@ -597,7 +597,7 @@
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
     ".cursor/commands/contribute-to-template.md": "8fbefe9cf66058e7034e7e88db79f058",
-    "scripts/sync-template.ts": "861fbaa9e88481504d58561a87d122d8",
+    "scripts/sync-template.ts": "e39c8833dce0280a2aff0d1b3ccfbb37",
     "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
     "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",
     "src/apis/auth/shared.ts": "49c768b44f5e32cd8b4c4401cc239779",
@@ -632,6 +632,9 @@
     "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
     "scripts/send-telegram.ts": "e7157ae960bde0b15de07f40572a1076",
     "scripts/telegram-setup.ts": "84142349d3615b06158b068cf8bea3aa",
-    "src/server/telegram/index.ts": "1b9ae766de70f51a21a43d7cb7470b67"
+    "src/server/telegram/index.ts": "1b9ae766de70f51a21a43d7cb7470b67",
+    "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
+    "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
+    "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913"
   }
 }

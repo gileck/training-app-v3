@@ -39,7 +39,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as readline from 'readline';
-import { describeChanges, isAgentAvailable } from './ai-agent';
+import { describeChanges, isAgentAvailable, analyzeConflict, type ConflictAnalysis } from './ai-agents/claude-code-agent';
 import { select, confirm, isInteractive, SelectOption } from './cli-utils';
 
 interface SyncHistoryEntry {
@@ -739,22 +739,64 @@ class TemplateSyncTool {
     const newConflicts = analysis.conflictChanges.filter(f => analysis.newChanges.has(f.path));
     const existingConflicts = analysis.conflictChanges.filter(f => !analysis.newChanges.has(f.path));
 
+    // Analyze conflicts with AI if available
+    const allConflicts = [...newConflicts, ...existingConflicts];
+    let conflictAnalyses: Map<string, ConflictAnalysis> = new Map();
+
+    if (aiAvailable && allConflicts.length > 0 && allConflicts.length <= 10) {
+      console.log(`\n⚠️  Conflicts (${allConflicts.length} files):`);
+      console.log('   🤖 Analyzing conflicts...\n');
+
+      // Analyze all conflicts in parallel
+      const analysisPromises = allConflicts.map(async (f) => {
+        const analysis = await this.getConflictAnalysis(f.path);
+        return { path: f.path, analysis };
+      });
+
+      const results = await Promise.all(analysisPromises);
+      for (const { path: filePath, analysis: conflictAnalysis } of results) {
+        if (conflictAnalysis) {
+          conflictAnalyses.set(filePath, conflictAnalysis);
+        }
+      }
+    }
+
     if (newConflicts.length > 0) {
       console.log(`\n⚠️  Conflicts - NEW since last sync (${newConflicts.length} files):`);
       console.log('   Changed in both template and your project:');
-      newConflicts.forEach(f => {
+      for (const f of newConflicts) {
         const stats = this.formatDiffStats(f.path);
+        const conflictAnalysis = conflictAnalyses.get(f.path);
         console.log(`   • ${f.path}${stats}`);
-      });
+        if (conflictAnalysis) {
+          const difficultyColor = conflictAnalysis.difficulty === 'easy' ? '\x1b[32m' :
+                                   conflictAnalysis.difficulty === 'moderate' ? '\x1b[33m' : '\x1b[31m';
+          const recColor = conflictAnalysis.recommendation === 'take-template' ? '\x1b[36m' :
+                           conflictAnalysis.recommendation === 'keep-project' ? '\x1b[35m' : '\x1b[33m';
+          console.log(`     📝 Template: ${conflictAnalysis.templateChanges}`);
+          console.log(`     📝 Project:  ${conflictAnalysis.projectChanges}`);
+          console.log(`     ${difficultyColor}⚡ Difficulty: ${conflictAnalysis.difficulty}\x1b[0m | ${recColor}💡 ${conflictAnalysis.recommendation}\x1b[0m`);
+        }
+      }
     }
 
     if (existingConflicts.length > 0) {
       console.log(`\n⚠️  Conflicts - no baseline (${existingConflicts.length} files):`);
       console.log('   Files differ from template with no sync history:');
-      existingConflicts.forEach(f => {
+      for (const f of existingConflicts) {
         const stats = this.formatDiffStats(f.path);
+        const conflictAnalysis = conflictAnalyses.get(f.path);
         console.log(`   • ${f.path}${stats}`);
-      });
+        if (conflictAnalysis) {
+          const difficultyColor = conflictAnalysis.difficulty === 'easy' ? '\x1b[32m' :
+                                   conflictAnalysis.difficulty === 'moderate' ? '\x1b[33m' : '\x1b[31m';
+          const recColor = conflictAnalysis.recommendation === 'take-template' ? '\x1b[36m' :
+                           conflictAnalysis.recommendation === 'keep-project' ? '\x1b[35m' : '\x1b[33m';
+          console.log(`     📝 Template: ${conflictAnalysis.templateChanges}`);
+          console.log(`     📝 Project:  ${conflictAnalysis.projectChanges}`);
+          console.log(`     ${difficultyColor}⚡ Difficulty: ${conflictAnalysis.difficulty}\x1b[0m | ${recColor}💡 ${conflictAnalysis.recommendation}\x1b[0m`);
+        }
+      }
     }
 
     if (analysis.skipped.length > 0) {
@@ -1047,7 +1089,7 @@ class TemplateSyncTool {
    */
   private getLocalDiff(filePath: string): string {
     if (!this.config.lastProjectCommit) return '';
-    
+
     try {
       return this.exec(
         `git diff ${this.config.lastProjectCommit} HEAD -- "${filePath}" || true`,
@@ -1056,6 +1098,41 @@ class TemplateSyncTool {
     } catch {
       return '';
     }
+  }
+
+  /**
+   * Get the template diff for a file (changes in template since last sync)
+   */
+  private getTemplateDiff(filePath: string): string {
+    if (!this.config.lastSyncCommit) return '';
+
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+
+    try {
+      return this.exec(
+        `git diff ${this.config.lastSyncCommit} HEAD -- "${filePath}" || true`,
+        { cwd: templatePath, silent: true }
+      );
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Analyze a conflict using AI and return structured analysis
+   */
+  private async getConflictAnalysis(filePath: string): Promise<ConflictAnalysis | null> {
+    const templateDiff = this.getTemplateDiff(filePath);
+    const projectDiff = this.getLocalDiff(filePath);
+
+    // If we don't have diffs, fall back to file comparison
+    const fallbackDiff = templateDiff || projectDiff ? null : this.getFileDiffSummary(filePath).diff;
+
+    return analyzeConflict(
+      filePath,
+      templateDiff || fallbackDiff || '',
+      projectDiff || ''
+    );
   }
 
   private async promptIndividualConflictResolution(

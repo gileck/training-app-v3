@@ -1,7 +1,8 @@
 /**
- * AI Agent for sync-template script
+ * Gemini AI Agent
  *
- * Uses Gemini 2.5 Flash directly for fast code change descriptions (~1s).
+ * Uses Gemini 2.5 Flash for fast code change descriptions (~1s).
+ * Requires GEMINI_API_KEY in environment or .env file.
  * All methods fail gracefully - return null on any error.
  */
 
