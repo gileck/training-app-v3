@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "bc78e6af07d7eb9f31e71f1659ae78e538475a1d",
-  "lastProjectCommit": "769429edac6c32c9a0d41bdc1f2db2cf58d1d377",
-  "lastSyncDate": "2026-01-10T12:46:15.493Z",
+  "lastSyncCommit": "e7868dc119313844dd1c49d166c952b062a6c660",
+  "lastProjectCommit": "32b40c03411b5d11c30450088d6c145e159f5130",
+  "lastSyncDate": "2026-01-10T12:56:07.787Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,17 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T12:56:07.787Z",
+      "templateCommit": "e7868dc119313844dd1c49d166c952b062a6c660",
+      "projectCommit": "32b40c03411b5d11c30450088d6c145e159f5130",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "e7868dc feat: add Open Diff and Show Commits buttons for multi-commit deployments \u001b[90m(10/01/2026)\u001b[0m\n  Single commit: shows commit message + Open Commit button\n  Multiple commits: shows count + Open Diff + Show Commits buttons\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T12:46:15.493Z",
       "templateCommit": "bc78e6af07d7eb9f31e71f1659ae78e538475a1d",
@@ -279,15 +290,6 @@
         "c10fee5 refactor(contribute-to-template): clearer terminology and 4 options \u001b[90m(03/01/2026)\u001b[0m\n  Renamed options for clarity:\n  - TAKE TEMPLATE → DISCARD (you're discarding your changes)\n  - TAKE PROJECT → CONTRIBUTE (pushing to template)\n  - Added KEEP (ignore) - project-specific, adds to projectSpecificFiles\n  \n  Key improvements:\n  - Warning about registry/index files that would break if discarded\n  - Decision guide flowchart\n  - Better examples for each option\n  - Clear that KEEP updates .template-sync.json",
         "e65a8ae docs(template-sync): document hash-based change detection and new flags \u001b[90m(03/01/2026)\u001b[0m\n  - Explain hash-based change detection system\n  - Document --init-hashes flag for initializing baselines\n  - Add templateIgnoredFiles to configuration example\n  - Add table comparing ignoredFiles vs projectSpecificFiles vs templateIgnoredFiles\n  - Add --changelog and --show-drift to command summary\n  - Add troubleshooting for 'Conflicts - no baseline' messages"
       ]
-    },
-    {
-      "date": "2026-01-03T16:06:34.253Z",
-      "templateCommit": "88da8317f9a2f921c85ac9ef13d57c1fe0689315",
-      "projectCommit": "975ae551920bc9a285c35d449164266d7c654fcd",
-      "filesApplied": 2,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": []
     }
   ],
   "fileHashes": {
@@ -610,7 +612,7 @@
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
-    ".github/workflows/deploy-notify.yml": "e4fb5905411d25ac34ae9df11f0b5f75",
+    ".github/workflows/deploy-notify.yml": "21fa3227bfbc49e538b6e4ae5a190e57",
     ".github/workflows/pr-checks.yml": "ce7d5c3d95b79447320428b0d1e32db0",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
