@@ -417,9 +417,10 @@ export function TrainingPlans() {
                     {plans.map((plan) => (
                         <Card
                             key={plan._id}
-                            className={`rounded-2xl border-0 shadow-sm transition-all ${
+                            className={`rounded-2xl border-0 shadow-sm transition-all cursor-pointer hover:bg-muted/50 active:scale-[0.99] ${
                                 plan.isActive ? 'ring-2 ring-primary bg-primary/5' : ''
                             }`}
+                            onClick={() => handleManagePlan(plan)}
                         >
                             <CardContent className="p-4">
                                 <div className="flex justify-between items-start mb-3">
@@ -450,7 +451,7 @@ export function TrainingPlans() {
                                             })()}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                         {plan.isActive && (
                                             <Badge className="bg-primary text-primary-foreground">
                                                 <CheckCircle className="h-3 w-3 mr-1" />
@@ -518,7 +519,10 @@ export function TrainingPlans() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleManagePlan(plan)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleManagePlan(plan);
+                                    }}
                                     className="rounded-lg"
                                 >
                                     <Settings2 className="h-4 w-4 mr-2" />
