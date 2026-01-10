@@ -2,17 +2,20 @@
 
 /**
  * Merge Template Files Script
- * 
+ *
  * This script helps merge specific files from the template repository into your project.
- * 
+ *
  * Usage:
  *   yarn merge-template <file1> [file2] [file3] ...
- * 
+ *   yarn merge-template --all
+ *
  * Examples:
  *   yarn merge-template docs/theming.md
  *   yarn merge-template src/client/config/defaults.ts src/apis/apis.ts
- * 
+ *   yarn merge-template --all              # Merge all files with conflicts
+ *
  * Options:
+ *   --all          Find and merge all files modified by BOTH template AND project
  *   --dry-run      Show what would be done without making changes
  *   --use-https    Use HTTPS instead of SSH for cloning
  *   --no-cleanup   Keep temp template directory after completion
@@ -31,6 +34,8 @@ interface TemplateSyncConfig {
   lastSyncCommit: string | null;
   ignoredFiles: string[];
   projectSpecificFiles: string[];
+  templateIgnoredFiles?: string[];
+  fileHashes?: Record<string, string>;
 }
 
 type MergeAction = 'template' | 'keep' | 'merge' | 'diff' | 'skip';
@@ -53,13 +58,15 @@ class MergeTemplateFiles {
   private dryRun: boolean;
   private useHTTPS: boolean;
   private noCleanup: boolean;
+  private allConflicts: boolean;
   private rl: readline.Interface;
 
-  constructor(options: { dryRun: boolean; useHTTPS: boolean; noCleanup: boolean }) {
+  constructor(options: { dryRun: boolean; useHTTPS: boolean; noCleanup: boolean; allConflicts: boolean }) {
     this.projectRoot = process.cwd();
     this.dryRun = options.dryRun;
     this.useHTTPS = options.useHTTPS;
     this.noCleanup = options.noCleanup;
+    this.allConflicts = options.allConflicts;
     this.config = this.loadConfig();
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -186,6 +193,122 @@ class MergeTemplateFiles {
       templateContent,
       projectContent,
     };
+  }
+
+  /**
+   * Get all files in a directory recursively.
+   */
+  private getAllFiles(dir: string, baseDir = dir): string[] {
+    const files: string[] = [];
+    if (!fs.existsSync(dir)) return files;
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      const relativePath = path.relative(baseDir, fullPath);
+
+      // Skip .git directory
+      if (entry.name === '.git') continue;
+
+      if (entry.isDirectory()) {
+        files.push(...this.getAllFiles(fullPath, baseDir));
+      } else {
+        files.push(relativePath);
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * Check if a file matches any pattern in a list.
+   */
+  private matchesPattern(filePath: string, patterns: string[]): boolean {
+    const normalized = filePath.replace(/\\/g, '/');
+
+    return patterns.some(pattern => {
+      const normalizedPattern = pattern.replace(/\\/g, '/');
+
+      // Exact match
+      if (normalized === normalizedPattern) return true;
+
+      // Handle ** (match any path segments)
+      if (normalizedPattern.includes('**')) {
+        const regexPattern = normalizedPattern
+          .replace(/\*\*/g, '.*')
+          .replace(/\*/g, '[^/]*')
+          .replace(/\//g, '\\/');
+        if (new RegExp('^' + regexPattern + '$').test(normalized)) return true;
+      }
+
+      // Handle * (match within single segment)
+      if (normalizedPattern.includes('*') && !normalizedPattern.includes('**')) {
+        const regexPattern = normalizedPattern
+          .replace(/\*/g, '[^/]*')
+          .replace(/\//g, '\\/');
+        if (new RegExp('^' + regexPattern + '$').test(normalized)) return true;
+      }
+
+      // Directory match
+      if (normalized.split('/').includes(normalizedPattern)) return true;
+
+      // Start with match
+      if (normalized.startsWith(normalizedPattern + '/')) return true;
+
+      return false;
+    });
+  }
+
+  /**
+   * Find all files that are modified by BOTH template AND project.
+   * These are true conflicts that need manual resolution.
+   */
+  private findConflictFiles(): string[] {
+    const templatePath = path.join(this.projectRoot, TEMPLATE_DIR);
+    const templateFiles = this.getAllFiles(templatePath, templatePath);
+    const conflicts: string[] = [];
+
+    for (const file of templateFiles) {
+      // Skip ignored files
+      if (this.matchesPattern(file, this.config.ignoredFiles)) continue;
+      if (this.matchesPattern(file, this.config.projectSpecificFiles)) continue;
+      if (this.config.templateIgnoredFiles && this.matchesPattern(file, this.config.templateIgnoredFiles)) continue;
+
+      const projectFilePath = path.join(this.projectRoot, file);
+      const templateFilePath = path.join(templatePath, file);
+
+      // File must exist in both
+      if (!fs.existsSync(projectFilePath)) continue;
+
+      // Get hashes
+      const projectHash = this.getFileHash(projectFilePath);
+      const templateHash = this.getFileHash(templateFilePath);
+
+      // If identical, no conflict
+      if (projectHash === templateHash) continue;
+
+      // Get stored baseline hash (from last sync)
+      const storedHash = this.config.fileHashes?.[file];
+
+      if (!storedHash) {
+        // No baseline - files differ but we don't know who changed what
+        // Treat as conflict (conservative approach)
+        conflicts.push(file);
+        continue;
+      }
+
+      // Determine who changed the file
+      const projectChanged = projectHash !== storedHash;
+      const templateChanged = templateHash !== storedHash;
+
+      // True conflict: BOTH sides changed the file
+      if (projectChanged && templateChanged) {
+        conflicts.push(file);
+      }
+    }
+
+    return conflicts;
   }
 
   private generateDiff(filePath: string): string {
@@ -363,9 +486,11 @@ class MergeTemplateFiles {
   }
 
   async run(filePatterns: string[]): Promise<void> {
-    if (filePatterns.length === 0) {
+    // Check for required arguments (unless --all is used)
+    if (filePatterns.length === 0 && !this.allConflicts) {
       console.error('❌ Error: No files specified.');
       console.error('Usage: yarn merge-template <file1> [file2] ...');
+      console.error('       yarn merge-template --all');
       console.error('Example: yarn merge-template docs/theming.md src/apis/apis.ts');
       process.exit(1);
     }
@@ -381,8 +506,29 @@ class MergeTemplateFiles {
     this.cloneTemplate();
 
     try {
-      // Use file patterns directly (no glob expansion)
-      const files = [...new Set(filePatterns)]; // Remove duplicates
+      let files: string[];
+
+      if (this.allConflicts) {
+        // Find all conflict files (modified by BOTH template and project)
+        console.log('\n🔍 Finding files modified by BOTH template AND project...\n');
+        files = this.findConflictFiles();
+
+        if (files.length === 0) {
+          console.log('✅ No conflicts found!');
+          console.log('   All files are either:');
+          console.log('   • Identical between template and project');
+          console.log('   • Only modified by one side (not both)');
+          console.log('   • In ignored/project-specific patterns');
+          return;
+        }
+
+        console.log(`📋 Found ${files.length} file(s) with conflicts:\n`);
+        files.forEach(f => console.log(`   • ${f}`));
+        console.log('');
+      } else {
+        // Use file patterns directly (no glob expansion)
+        files = [...new Set(filePatterns)]; // Remove duplicates
+      }
 
       console.log(`\n📋 Processing ${files.length} file(s)...\n`);
 
@@ -521,6 +667,7 @@ const options = {
   dryRun: args.includes('--dry-run'),
   useHTTPS: args.includes('--use-https'),
   noCleanup: args.includes('--no-cleanup'),
+  allConflicts: args.includes('--all'),
 };
 
 // Filter out options to get file paths

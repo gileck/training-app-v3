@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "9bc71fd62cf5e5ed34b0c226a5994eacc313820c",
-  "lastProjectCommit": "c748b7aa56be499b2a6a5ef8fff3bd066405578d",
-  "lastSyncDate": "2026-01-10T08:39:26.449Z",
+  "lastSyncCommit": "ef31b04023458d9240f1345e0985e6411aeb3c0f",
+  "lastProjectCommit": "2c6e4ec4ca977730c3475ee487abf33ca7c30074",
+  "lastSyncDate": "2026-01-10T08:48:18.269Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,18 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-10T08:48:18.268Z",
+      "templateCommit": "ef31b04023458d9240f1345e0985e6411aeb3c0f",
+      "projectCommit": "2c6e4ec4ca977730c3475ee487abf33ca7c30074",
+      "filesApplied": 2,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "ef31b04 feat: show line stats (+/-) for each file in sync-template analysis \u001b[90m(10/01/2026)\u001b[0m\n  Adds colored line count statistics next to each file in the\n  ANALYSIS SUMMARY section, similar to GitHub's diff display.\n  Shows green +N for additions and red -N for removals.\n  \n  Example: • src/file.ts (+15/-8)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "dfea758 feat: add --all option to merge-template script \u001b[90m(10/01/2026)\u001b[0m\n  Adds --all flag that automatically finds and processes all files\n  that are modified by BOTH template AND project (true conflicts).\n  Uses hash-based comparison against the sync baseline to detect\n  which files have changes on both sides.\n  \n  Usage: yarn merge-template --all\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-10T08:39:26.449Z",
       "templateCommit": "9bc71fd62cf5e5ed34b0c226a5994eacc313820c",
@@ -302,15 +314,6 @@
       "templateCommits": [
         "608a105 docs: add allowed exception for invalidating separate aggregation queries \u001b[90m(01/01/2026)\u001b[0m\n  Added documentation explaining that invalidating a DIFFERENT query for\n  server-computed aggregations is acceptable, while the optimistic data\n  stays as source of truth.\n  \n  Example: Activity list (optimistic) + Activity summary (invalidated)\n  - List updates instantly (optimistic)\n  - Summary refreshes after ~200-500ms (server aggregation)\n  - No race condition because they're separate queries"
       ]
-    },
-    {
-      "date": "2026-01-01T12:59:51.188Z",
-      "templateCommit": "a1138fd720260cfd6868359194e062af7d5e31b8",
-      "projectCommit": "367f0abd16830ea29062107d5ba02c44bb593b0a",
-      "filesApplied": 7,
-      "filesSkipped": 13,
-      "filesConflicted": 0,
-      "templateCommits": []
     }
   ],
   "fileHashes": {
@@ -404,7 +407,7 @@
     "scripts/get-report.mjs": "b5136a8413bc15c76541eb294be73288",
     "scripts/init-project.js": "0f7483cb28f3055a86b16552569a8db0",
     "scripts/init-template.ts": "19a7ea27167225723ad5999795c0e55f",
-    "scripts/merge-template-files.ts": "2ef2e71d56a1e09f566c67d3188a9ad5",
+    "scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
     "scripts/watch-checks.js": "b5252fd663f2434ad5cebf5b25b53a78",
     "src/apis/auth/client.ts": "99df5278f3427ca374143433c17d69a8",
     "src/apis/auth/handlers/getCurrentUser.ts": "5a3553ecde0cd3f584eb04afdcb24c5b",
@@ -594,7 +597,7 @@
     "ui-guidelines-example/weather-weekly.html": "0ff4f6004f209ac605e551cda6965bfa",
     "ui-guidelines-example/weather.html": "33f2408c09e3aa224936311b0058b8b0",
     ".cursor/commands/contribute-to-template.md": "8fbefe9cf66058e7034e7e88db79f058",
-    "scripts/sync-template.ts": "220d982a57a8cc07a62ffb10df1bc743",
+    "scripts/sync-template.ts": "861fbaa9e88481504d58561a87d122d8",
     "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
     "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",
     "src/apis/auth/shared.ts": "49c768b44f5e32cd8b4c4401cc239779",

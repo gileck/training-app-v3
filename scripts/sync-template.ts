@@ -696,17 +696,19 @@ class TemplateSyncTool {
         const descriptions = await Promise.all(descriptionsPromises);
 
         for (const { path, description } of descriptions) {
+          const stats = this.formatDiffStats(path);
           if (description) {
-            console.log(`   • ${path}`);
+            console.log(`   • ${path}${stats}`);
             console.log(`     📝 ${description}`);
           } else {
-            console.log(`   • ${path}`);
+            console.log(`   • ${path}${stats}`);
           }
         }
       } else {
-        newSafeChanges.forEach(f =>
-          console.log(`   • ${f.path}`)
-        );
+        newSafeChanges.forEach(f => {
+          const stats = this.formatDiffStats(f.path);
+          console.log(`   • ${f.path}${stats}`);
+        });
         if (newSafeChanges.length > 10) {
           console.log('   (AI descriptions skipped for large batch)');
         }
@@ -717,18 +719,20 @@ class TemplateSyncTool {
     if (existingSafeChanges.length > 0) {
       console.log(`\n✅ Safe changes - existing differences (${existingSafeChanges.length} files):`);
       console.log('   Template changes (safe to apply):');
-      existingSafeChanges.forEach(f =>
-        console.log(`   • ${f.path}`)
-      );
+      existingSafeChanges.forEach(f => {
+        const stats = this.formatDiffStats(f.path);
+        console.log(`   • ${f.path}${stats}`);
+      });
     }
 
     // Show project-only changes (user's customizations that will be kept)
     if (analysis.projectOnlyChanges.length > 0) {
       console.log(`\n✅ Project customizations (${analysis.projectOnlyChanges.length} files):`);
       console.log('   Only changed in your project (will be kept):');
-      analysis.projectOnlyChanges.forEach(f =>
-        console.log(`   • ${f.path}`)
-      );
+      analysis.projectOnlyChanges.forEach(f => {
+        const stats = this.formatDiffStats(f.path);
+        console.log(`   • ${f.path}${stats}`);
+      });
     }
 
     // Separate conflicts into NEW and EXISTING
@@ -738,17 +742,19 @@ class TemplateSyncTool {
     if (newConflicts.length > 0) {
       console.log(`\n⚠️  Conflicts - NEW since last sync (${newConflicts.length} files):`);
       console.log('   Changed in both template and your project:');
-      newConflicts.forEach(f =>
-        console.log(`   • ${f.path}`)
-      );
+      newConflicts.forEach(f => {
+        const stats = this.formatDiffStats(f.path);
+        console.log(`   • ${f.path}${stats}`);
+      });
     }
 
     if (existingConflicts.length > 0) {
       console.log(`\n⚠️  Conflicts - no baseline (${existingConflicts.length} files):`);
       console.log('   Files differ from template with no sync history:');
-      existingConflicts.forEach(f =>
-        console.log(`   • ${f.path}`)
-      );
+      existingConflicts.forEach(f => {
+        const stats = this.formatDiffStats(f.path);
+        console.log(`   • ${f.path}${stats}`);
+      });
     }
 
     if (analysis.skipped.length > 0) {
@@ -1000,6 +1006,27 @@ class TemplateSyncTool {
     } catch {
       return { added: 0, removed: 0, preview: [], diff: '' };
     }
+  }
+
+  /**
+   * Format diff stats as colored string like "+15/-8" for display.
+   */
+  private formatDiffStats(filePath: string): string {
+    const { added, removed } = this.getFileDiffSummary(filePath);
+
+    if (added === 0 && removed === 0) {
+      return '';
+    }
+
+    const parts: string[] = [];
+    if (added > 0) {
+      parts.push(`\x1b[32m+${added}\x1b[0m`);
+    }
+    if (removed > 0) {
+      parts.push(`\x1b[31m-${removed}\x1b[0m`);
+    }
+
+    return ` (${parts.join('/')})`;
   }
 
   /**
