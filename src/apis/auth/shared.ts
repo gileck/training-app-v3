@@ -31,6 +31,7 @@ export const sanitizeUser = (user: User): UserResponse => {
     email: user.email,
     createdAt: user.createdAt.toISOString(),
     profilePicture: user.profilePicture,
+    telegramChatId: user.telegramChatId,
     // Filled by handlers based on request context
     isAdmin: false,
   };
