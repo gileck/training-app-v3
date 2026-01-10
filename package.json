@@ -13,14 +13,15 @@
     "ts": "tsc --noEmit",
     "checks": "yarn ts; yarn lint",
     "watch-checks": "node scripts/watch-checks.js",
-    "init-template": "tsx scripts/init-template.ts",
-    "sync-template": "tsx scripts/sync-template.ts",
-    "merge-template": "tsx scripts/merge-template-files.ts",
+    "init-template": "tsx scripts/template-scripts/init-template.ts",
+    "sync-template": "tsx scripts/template-scripts/sync-template/index.ts",
+    "merge-template": "tsx scripts/template-scripts/merge-template-files.ts",
     "generate-icons": "tsx scripts/generate-icons.ts",
     "investigate-bugs": "tsx scripts/investigate-bugs.ts",
     "github-pr": "tsx scripts/github-pr.ts",
     "telegram-setup": "tsx scripts/telegram-setup.ts",
-    "send-telegram": "tsx scripts/send-telegram.ts"
+    "send-telegram": "tsx scripts/send-telegram.ts",
+    "setup-github-secrets": "tsx scripts/setup-github-secrets.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
