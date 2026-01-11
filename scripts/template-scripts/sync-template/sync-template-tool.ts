@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR } from './types';
-import { loadConfig, saveConfig } from './utils/config';
+import { loadConfig, saveConfig, mergeTemplateIgnoredFiles } from './utils/config';
 import { log, logError } from './utils/logging';
 import { exec } from './utils';
 import { confirm, isInteractive } from '../cli-utils';
@@ -108,6 +108,10 @@ export class TemplateSyncTool {
     // Step 2: Clone template
     try {
       cloneTemplate(this.context);
+
+      // Step 2.5: Merge template's ignored files into config
+      // This allows the template to specify files that should never be synced
+      mergeTemplateIgnoredFiles(this.context.projectRoot, this.context.config, TEMPLATE_DIR);
 
       // Step 3: Get template commit
       const templatePath = path.join(this.context.projectRoot, TEMPLATE_DIR);

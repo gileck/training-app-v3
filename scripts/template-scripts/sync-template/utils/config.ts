@@ -32,3 +32,29 @@ export function saveConfig(projectRoot: string, config: TemplateSyncConfig): voi
     'utf-8'
   );
 }
+
+/**
+ * Load template's config and merge templateIgnoredFiles into project config.
+ * This allows the template to specify files that should never be synced to children.
+ */
+export function mergeTemplateIgnoredFiles(projectRoot: string, config: TemplateSyncConfig, templateDir: string): void {
+  const templateConfigPath = path.join(projectRoot, templateDir, CONFIG_FILE);
+
+  if (!fs.existsSync(templateConfigPath)) {
+    return;
+  }
+
+  try {
+    const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8')) as Partial<TemplateSyncConfig>;
+    const templateIgnored = templateConfig.templateIgnoredFiles || [];
+
+    if (templateIgnored.length > 0) {
+      // Merge with existing (avoid duplicates)
+      const existing = config.templateIgnoredFiles || [];
+      const merged = Array.from(new Set([...existing, ...templateIgnored]));
+      config.templateIgnoredFiles = merged;
+    }
+  } catch {
+    // Ignore errors reading template config
+  }
+}

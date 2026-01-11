@@ -449,6 +449,44 @@ yarn sync-template --diff-summary  # Generate full diff report
 
 ---
 
+## Sync Child Projects (Template Only)
+
+Sync template changes to projects cloned from this template.
+
+**Summary:** After pushing changes to the template, sync those changes to child projects. Only syncs safe changes to projects without uncommitted changes.
+
+**Setup:**
+1. Create `child-projects.json` (gitignored) with project paths:
+```json
+{
+  "projects": [
+    "../project-1",
+    "../project-2"
+  ]
+}
+```
+
+2. (Optional) Enable post-push hook:
+```bash
+yarn setup-hooks  # Enables 'git pushh' command
+```
+
+**Commands:**
+```bash
+yarn sync-children            # Sync all child projects
+yarn sync-children --dry-run  # Preview without applying
+yarn push-sync                # Push + prompt to sync children
+yarn push-sync "message"      # Push with commit message + prompt
+git pushh                     # git push + prompt to sync (after setup-hooks)
+```
+
+**Behavior:**
+- Skips projects with uncommitted changes
+- Only applies safe changes (no conflicts)
+- Prints summary of synced/skipped projects
+
+---
+
 ## GitHub PR CLI Tool
 
 Command-line tool for managing GitHub pull requests.

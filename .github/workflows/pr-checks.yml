@@ -47,12 +47,17 @@ jobs:
           exit $EXIT_CODE
 
       - name: Comment on PR (failure)
-        if: failure()
+        if: failure() && steps.checks.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const output = fs.readFileSync('checks_output.txt', 'utf8');
+            let output = 'No output captured';
+            try {
+              output = fs.readFileSync('checks_output.txt', 'utf8');
+            } catch (e) {
+              // File doesn't exist
+            }
 
             // Truncate if too long
             const maxLength = 60000;
@@ -97,7 +102,7 @@ jobs:
             });
 
       - name: Send Telegram notification (failure)
-        if: failure()
+        if: failure() && steps.checks.outcome == 'failure'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}

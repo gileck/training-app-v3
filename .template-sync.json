@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "717bce9c65ce57ee110a266032ad4d0c8cff42b1",
-  "lastProjectCommit": "5909c98fa730ba529645266aa97c7be2959caec7",
-  "lastSyncDate": "2026-01-10T17:52:23.873Z",
+  "lastSyncCommit": "55a4afc61d8e4dcfee211bf069e85e00afa2dc3e",
+  "lastProjectCommit": "86190fe7ff2465ea8609f3e561570c921b561acf",
+  "lastSyncDate": "2026-01-11T09:43:49.271Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -52,6 +52,22 @@
     "src/client/routes/Home"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-11T09:43:49.441Z",
+      "templateCommit": "55a4afc61d8e4dcfee211bf069e85e00afa2dc3e",
+      "projectCommit": "86190fe7ff2465ea8609f3e561570c921b561acf",
+      "filesApplied": 9,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "55a4afc feat: add sync-children command with template-side ignore list \u001b[90m(11/01/2026)\u001b[0m",
+        "b74fca0 fix: only trigger PR check failure notifications when checks step fails \u001b[90m(11/01/2026)\u001b[0m\n  - Added condition to check steps.checks.outcome == 'failure'\n  - Added try/catch for reading checks_output.txt\n  - Prevents errors when earlier steps (like install) fail\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "b80c3a9 docs: update sync-child-projects section with hook setup \u001b[90m(10/01/2026)\u001b[0m",
+        "c51b28b feat: add post-push git hook for sync-children \u001b[90m(10/01/2026)\u001b[0m",
+        "2b85fcf docs: add sync-child-projects section to CLAUDE.md \u001b[90m(10/01/2026)\u001b[0m",
+        "e39edb2 fix: handle non-interactive shell in push-sync \u001b[90m(10/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-10T17:52:23.872Z",
       "templateCommit": "717bce9c65ce57ee110a266032ad4d0c8cff42b1",
@@ -276,20 +292,6 @@
         "f0e4243 docs: clarify mutation patterns and fix TypeScript issues \u001b[90m(09/01/2026)\u001b[0m\n  This commit completes the full project audit fixes and improves documentation clarity around React Query mutation patterns.\n  \n  ## Documentation Improvements\n  \n  ### Mutation Pattern Clarification\n  - Add \"What's Allowed in onSuccess?\" section to react-query-mutations.md\n  - Clarifies that toasts, logging, analytics, and navigation are ALLOWED in onSuccess\n  - Explains the distinction between ephemeral feedback (OK) vs state updates (forbidden)\n  - Add similar clarification note to offline-pwa-support.md with cross-reference\n  \n  ### Theming Guidelines\n  - Document bg-black/60 overlay exception in theming.md\n  - Add same exception to .cursor/rules/theming-guidelines.mdc\n  - Clarifies this is standard shadcn/ui pattern for dialog/modal backdrops\n  \n  ## Code Quality Fixes\n  \n  ### TypeScript Improvements\n  - Fix all `any` types in src/server/database/collections/todos/todos.ts\n  - Replace type assertions with proper Parameters<> utility type assertions\n  - Add explanatory comments for MongoDB flexible _id type handling\n  - Zero TypeScript errors, zero ESLint warnings\n  \n  ### Code Documentation\n  - Add comprehensive JSDoc comment to useInvalidateTodos hook\n  - Clarifies appropriate use cases (NON-OPTIMISTIC operations only)\n  - Warns against using in mutation onSettled handlers\n  \n  ## UI Component Improvements\n  \n  ### Modern Design System Updates\n  - Update button, input, select components with rounded-xl borders\n  - Add active:scale-[0.98] press feedback to buttons\n  - Improve dialog and alert-dialog with better animations\n  - Add backdrop-blur-sm to overlay backgrounds\n  - Better shadows (shadow-xl shadow-black/10)\n  - Improved mobile responsiveness (w-[calc(100%-2rem)])\n  \n  ### API Improvements\n  - Use isObjectIdFormat utility in deleteReport handler\n  - Improves consistency with project patterns\n  \n  ## Audit Results\n  - 100% compliance achieved (51/51 items compliant)\n  - Zero critical, high, or medium priority issues\n  - All mutations follow optimistic-only pattern correctly\n  - All Zustand stores use createStore factory\n  - Overall health score: 10/10\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "6cede7c docs: allow bulk decision reply format in contribute-to-template \u001b[90m(09/01/2026)\u001b[0m"
       ]
-    },
-    {
-      "date": "2026-01-06T09:09:53.295Z",
-      "templateCommit": "e4a11492e9716dbec8021a6259b1d86bd897c825",
-      "projectCommit": "0549b86a6b27914843c500919632a741adaab271",
-      "filesApplied": 24,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "e4a1149 refactor: split large route components into smaller sub-components \u001b[90m(03/01/2026)\u001b[0m\n  - Reports.tsx: 791 → 133 lines (extracted ReportCard, GroupedReportCard, ReportsFilters, ReportsHeader, utils)\n  - Settings.tsx: 385 → 52 lines (extracted CacheSection, AIModelSection, utils)\n  - Todos.tsx: 378 → 166 lines (extracted TodoItem, CreateTodoForm, DeleteTodoDialog)\n  - Profile.tsx: 322 → 266 lines (extracted ProfileCard, AccountInfoCard, ImageUploadDialog)\n  - Moved ConfirmDialog to shared components/ui for reuse\n  \n  🤖 Generated with [Claude Code](https://claude.com/claude-code)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "f089158 refactor: merge React Query mutations audit into full project audit \u001b[90m(03/01/2026)\u001b[0m\n  - Merged detailed mutation audit content from audit-react-query-mutations.md into section 3.4 of full-project-audit.md\n  - Added new sections: 3.4.0 (temp ID vs client ID distinction), 3.4.8 (common mistakes), 3.4.9 (UX impact template), 3.4.10 (mutation checklist)\n  - Enhanced 3.4.4 with per-mutation analysis template, decision flowchart, and examples\n  - Deleted standalone audit-react-query-mutations.md (content now in full audit)\n  - Synced .claude/commands with .cursor/commands",
-        "8164ec2 refactor: update audit command to output report-only with progress tracker \u001b[90m(03/01/2026)\u001b[0m\n  - Change audit to be report-only (no code changes during audit)\n  - Save audit report to audits/audit-YYYY-MM-DD.md\n  - Add progress tracker with checkboxes for each fix task\n  - Add Progress Overview table at top of report\n  - Add Implementation Log section for tracking\n  - Add Final Verification Checklist\n  - Include collapsible code change details\n  - Organize fixes by phase (Critical → High → Medium → Low)",
-        "ca76f0d fix(auth): increase IOSAuthModal z-index to appear above fullscreen overlays \u001b[90m(03/01/2026)\u001b[0m"
-      ]
     }
   ],
   "fileHashes": {
@@ -325,7 +327,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "c715885d064260a22f30214004420fd9",
+    "CLAUDE.md": "7da611c3be88dd0cea25ab5aab6a907a",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -613,7 +615,7 @@
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
     ".github/workflows/deploy-notify.yml": "21fa3227bfbc49e538b6e4ae5a190e57",
-    ".github/workflows/pr-checks.yml": "ce7d5c3d95b79447320428b0d1e32db0",
+    ".github/workflows/pr-checks.yml": "d560f598785e60b429734894ed4db592",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/template-scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
@@ -643,15 +645,15 @@
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
     "scripts/template-scripts/sync-template/sync/operations.ts": "ad1f040c6403202c8787ec6dac572c31",
-    "scripts/template-scripts/sync-template/sync-template-tool.ts": "a3708da56bb2ff6ad3d80e4e3b027a06",
+    "scripts/template-scripts/sync-template/sync-template-tool.ts": "6d78057ef7fe4118d10ffda8ba381c08",
     "scripts/template-scripts/sync-template/types/index.ts": "43d8b62ccd36b137f5746600c379b131",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
     "scripts/template-scripts/sync-template/ui/index.ts": "217ab4757c14c954b0d495ab650e92cd",
     "scripts/template-scripts/sync-template/ui/prompts.ts": "9e9001088c6dee9c499ab3a399a6af5b",
-    "scripts/template-scripts/sync-template/utils/config.ts": "c53a90b7b517db60f321514ce3ddbd3d",
+    "scripts/template-scripts/sync-template/utils/config.ts": "778b2b7e15a3270809497e10ff0275d6",
     "scripts/template-scripts/sync-template/utils/exec.ts": "24a36e9169d5ca30fdd0997b6edf5450",
-    "scripts/template-scripts/sync-template/utils/index.ts": "d55d509a47a7b7044efcb1f6a3b55fcf",
+    "scripts/template-scripts/sync-template/utils/index.ts": "d6863f8f721e30c688a9f7c18fcd1d0c",
     "scripts/template-scripts/sync-template/utils/logging.ts": "3efe0373a36eb533f6f1264d3d2beb3a",
     "src/middleware.ts": "95a1ff872795b4a36f1fffa10f4915ad",
     "scripts/setup-github-secrets.ts": "840c439a2dc664ba063197638df89da1",
@@ -659,7 +661,10 @@
     "src/client/routes/Profile/components/ProfileHeader.tsx": "cbd293e7bbe0ce7c47ab080fed1e05f9",
     "src/client/routes/Profile/components/ProfileSection.tsx": "17a0031c6f907ce7c5beee2113c7c188",
     "src/pages/[...slug].tsx": "d9b7db84e179ae997d2e034b4551cb37",
-    "scripts/push-and-sync.sh": "ff3706b3489faeb2e5210567090c29f2",
-    "scripts/sync-child-projects.ts": "6d1b27bf5cde021fdb2a36cffa7d50a8"
+    "scripts/push-and-sync.sh": "49bdc23b9e40b1879f63ae3c66aac553",
+    "scripts/sync-child-projects.ts": "6d1b27bf5cde021fdb2a36cffa7d50a8",
+    ".claude/commands/sync-children.md": "9ed8e252ec2a3a6cf28d0856a0c113a1",
+    "scripts/hooks/post-push": "125d3e054884998b90fb6a1d8804b985",
+    "scripts/hooks/setup-hooks.sh": "1aad6f6fa24300605d422d64b7ecdbde"
   }
 }
