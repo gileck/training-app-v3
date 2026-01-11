@@ -50,9 +50,9 @@ jobs:
           CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
-            COMMITS_JSON='${{ toJson(github.event.commits) }}'
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then
@@ -142,9 +142,9 @@ jobs:
           CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
-            COMMITS_JSON='${{ toJson(github.event.commits) }}'
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then

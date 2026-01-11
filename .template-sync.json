@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "10b7e52d1a94ba863c87260c052a146221986330",
-  "lastProjectCommit": "09af0154c9bb697cebfc7bac108db48b3017cd03",
-  "lastSyncDate": "2026-01-11T17:01:29.836Z",
+  "lastSyncCommit": "53bd22b7932772b3761d05f8ce47d0f52f5d39b5",
+  "lastProjectCommit": "647a3f029989d328f02e506c710ad6f4fa779475",
+  "lastSyncDate": "2026-01-11T17:03:19.522Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-11T17:03:19.705Z",
+      "templateCommit": "53bd22b7932772b3761d05f8ce47d0f52f5d39b5",
+      "projectCommit": "647a3f029989d328f02e506c710ad6f4fa779475",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "53bd22b fix: move COMMITS_JSON to env variable to prevent shell syntax errors \u001b[90m(11/01/2026)\u001b[0m\n  JSON containing commit messages with special characters was breaking\n  shell parsing. Now all interpolated values are passed through env vars.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-11T17:01:29.988Z",
       "templateCommit": "10b7e52d1a94ba863c87260c052a146221986330",
@@ -279,23 +290,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "f25b8de chore: upgrade to TypeScript 5.x with bundler resolution \u001b[90m(09/01/2026)\u001b[0m\n  - Upgrade TypeScript from 4.9.5 to ^5.0.0\n  - Change moduleResolution from \"node\" to \"bundler\"\n  - Use proper ES module imports for claude-agent-sdk (remove require() workaround)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-09T18:25:08.638Z",
-      "templateCommit": "598603a45d33587203f660277e0ac0044c9e7d49",
-      "projectCommit": "f30221366d399604f1cfa8359c07837dc7a29dec",
-      "filesApplied": 8,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "598603a fix: workaround ESLint tsutils error from wixpress registry \u001b[90m(09/01/2026)\u001b[0m\n  The wixpress npm registry has broken @typescript-eslint@8.52.0 packages\n  that use deprecated tsutils (incompatible with TypeScript 5.x).\n  \n  Changes:\n  - Ignore TypeScript files in ESLint (rely on tsc for type checking)\n  - Use require() for claude-agent-sdk imports (TS 4.9.5 compatibility)\n  - Add documentation explaining the issue and workaround\n  \n  See docs/eslint-typescript-wixpress-issue.md for full details.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "0de7403 chore: move git hooks to tracked .githooks directory \u001b[90m(09/01/2026)\u001b[0m\n  After cloning, run: git config core.hooksPath .githooks\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "eee28ef chore: add script to fix yarn.lock registry URLs \u001b[90m(09/01/2026)\u001b[0m\n  Adds pre-commit hook to automatically fix wixpress URLs before committing.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "c81da9c fix: correct yarn.lock registry URL paths \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "056cb90 chore: update yarn.lock registry URLs to npmjs.org \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "dad123c docs: add GitHub PR CLI tool documentation to CLAUDE.md \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "7404c37 feat: add GitHub PR CLI tool for managing pull requests \u001b[90m(09/01/2026)\u001b[0m\n  Adds scripts/github-pr.ts - a CLI tool using @octokit/rest for:\n  - Adding comments to PRs\n  - Updating PR title and description\n  - Managing labels\n  - Requesting reviewers\n  - Merging PRs (squash/merge/rebase)\n  - Closing PRs\n  - Getting PR info and listing PRs\n  \n  Auto-detects owner/repo from git remote and loads GITHUB_TOKEN from .env"
       ]
     }
   ],
@@ -619,7 +613,7 @@
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
-    ".github/workflows/deploy-notify.yml": "db048b4438d3a8a88fb8748e4efa1d11",
+    ".github/workflows/deploy-notify.yml": "92ead22c5679ac1ca4cd5229167e5836",
     ".github/workflows/pr-checks.yml": "dcd77f1dd39112d220a6e94a0d63c00e",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
