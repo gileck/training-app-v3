@@ -127,6 +127,7 @@ function RecoveryScoreDialog({
 }
 
 export function RecoveryScore() {
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog open/close state
     const [dialogOpen, setDialogOpen] = useState(false);
     const { data, isLoading } = useRecoveryScore();
 
