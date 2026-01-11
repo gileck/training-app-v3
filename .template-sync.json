@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "f9d5be589fedd2552ff21a164e2dd5ee97f38d0f",
-  "lastProjectCommit": "dc303213553247c165d49e76554af882b0447411",
-  "lastSyncDate": "2026-01-11T11:23:51.052Z",
+  "lastSyncCommit": "10b7e52d1a94ba863c87260c052a146221986330",
+  "lastProjectCommit": "09af0154c9bb697cebfc7bac108db48b3017cd03",
+  "lastSyncDate": "2026-01-11T17:01:29.836Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,18 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-11T17:01:29.988Z",
+      "templateCommit": "10b7e52d1a94ba863c87260c052a146221986330",
+      "projectCommit": "09af0154c9bb697cebfc7bac108db48b3017cd03",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "10b7e52 fix: GitHub Actions workflow issues \u001b[90m(11/01/2026)\u001b[0m\n  - Escape commit message in deploy notification to prevent shell syntax errors\n  - Remove --frozen-lockfile from PR checks to allow lockfile updates\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "b3e55e6 docs: add reminder to sync routes with navigation menus \u001b[90m(11/01/2026)\u001b[0m\n  - Added comment in routes/index.ts reminding to update NavLinks.tsx\n  - Added Routes & Navigation section to CLAUDE.md\n  - Lists which routes typically don't need menu entries\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-11T11:23:51.263Z",
       "templateCommit": "f9d5be589fedd2552ff21a164e2dd5ee97f38d0f",
@@ -285,17 +297,6 @@
         "dad123c docs: add GitHub PR CLI tool documentation to CLAUDE.md \u001b[90m(09/01/2026)\u001b[0m\n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "7404c37 feat: add GitHub PR CLI tool for managing pull requests \u001b[90m(09/01/2026)\u001b[0m\n  Adds scripts/github-pr.ts - a CLI tool using @octokit/rest for:\n  - Adding comments to PRs\n  - Updating PR title and description\n  - Managing labels\n  - Requesting reviewers\n  - Merging PRs (squash/merge/rebase)\n  - Closing PRs\n  - Getting PR info and listing PRs\n  \n  Auto-detects owner/repo from git remote and loads GITHUB_TOKEN from .env"
       ]
-    },
-    {
-      "date": "2026-01-09T16:31:46.966Z",
-      "templateCommit": "fc4197464205b611412e5e3baaea9b853dbc4509",
-      "projectCommit": "2bfda1e918c32405eeee79193bf616c91dc7d61a",
-      "filesApplied": 13,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "fc41974 feat: add automatic bug investigation using Claude Agent SDK \u001b[90m(09/01/2026)\u001b[0m\n  Add a CLI tool that automatically investigates bug reports using the\n  Claude Agent SDK. The agent performs read-only analysis to identify\n  root causes and propose fixes.\n  \n  Features:\n  - CLI script at scripts/investigate-bugs.ts\n  - 5 investigation statuses: needs_info, root_cause_found, complex_fix,\n    not_a_bug, inconclusive\n  - Configurable timeout (default 10 minutes), streaming output\n  - Investigation results stored in MongoDB with the report\n  - UI displays investigation headline in report list\n  - Full investigation summary in expanded details\n  - Investigation included in \"Copy Details\" for /fix-bug command\n  - Updated fix-bug command to leverage investigation summaries\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -331,7 +332,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "a2888062584878184cc483ee45dc6609",
+    "CLAUDE.md": "fb697e2b6e646fb00736132d64748eab",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -618,8 +619,8 @@
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
-    ".github/workflows/deploy-notify.yml": "21fa3227bfbc49e538b6e4ae5a190e57",
-    ".github/workflows/pr-checks.yml": "d560f598785e60b429734894ed4db592",
+    ".github/workflows/deploy-notify.yml": "db048b4438d3a8a88fb8748e4efa1d11",
+    ".github/workflows/pr-checks.yml": "dcd77f1dd39112d220a6e94a0d63c00e",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/template-scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",

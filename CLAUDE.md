@@ -247,6 +247,34 @@ return <ItemList items={items} />;
 
 ---
 
+## Routes & Navigation
+
+Adding routes and keeping navigation menus in sync.
+
+**Summary:** Routes are defined in `src/client/routes/index.ts`. When adding new routes, remember to add them to navigation menus if they should be user-accessible.
+
+**Key Files:**
+- `src/client/routes/index.ts` - Route definitions
+- `src/client/components/NavLinks.tsx` - Navigation menus (navItems, menuItems)
+
+**When Adding a New Route:**
+1. Add the route component in `src/client/routes/[RouteName]/`
+2. Register it in `src/client/routes/index.ts`
+3. **Consider adding to navigation:**
+   - `navItems` - Bottom navigation bar (mobile)
+   - `menuItems` - Hamburger menu (sidebar)
+
+**Routes That DON'T Need Menu Entries:**
+- Dynamic routes (`/todos/:todoId`) - accessed via in-app links
+- `/not-found` - fallback route
+- `/profile` - accessed via avatar in header
+- Public share pages - accessed via direct links
+- Auth callback routes - redirect-only
+
+**Rules:** [.cursor/rules/pages-and-routing-guidelines.mdc](.cursor/rules/pages-and-routing-guidelines.mdc)
+
+---
+
 ## UI & Styling
 
 shadcn/ui components with semantic theming.

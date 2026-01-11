@@ -49,6 +49,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMITS_JSON='${{ toJson(github.event.commits) }}'
@@ -56,7 +57,7 @@ jobs:
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then
               # Single commit - show commit name and Open Commit button
-              COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+              COMMIT_MSG=$(echo "$HEAD_COMMIT_MESSAGE" | head -1)
 
               MESSAGE="🚀 *Production Deployment Started*
 
@@ -140,6 +141,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMITS_JSON='${{ toJson(github.event.commits) }}'
@@ -147,7 +149,7 @@ jobs:
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then
               # Single commit - show commit name and Open Commit button
-              COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+              COMMIT_MSG=$(echo "$HEAD_COMMIT_MESSAGE" | head -1)
 
               MESSAGE="✅ *Production Deployment Complete - Live*
 
