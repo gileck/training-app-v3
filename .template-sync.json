@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "55a4afc61d8e4dcfee211bf069e85e00afa2dc3e",
-  "lastProjectCommit": "86190fe7ff2465ea8609f3e561570c921b561acf",
-  "lastSyncDate": "2026-01-11T09:43:49.271Z",
+  "lastSyncCommit": "f9d5be589fedd2552ff21a164e2dd5ee97f38d0f",
+  "lastProjectCommit": "dc303213553247c165d49e76554af882b0447411",
+  "lastSyncDate": "2026-01-11T11:23:51.052Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -49,9 +49,25 @@
     "src/apis/chat",
     "src/client/features/chat",
     "src/client/routes/Chat",
-    "src/client/routes/Home"
+    "src/client/routes/Home",
+    ".claude/commands/sync-children.md",
+    "scripts/sync-child-projects.ts",
+    "scripts/push-and-sync.sh",
+    "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-11T11:23:51.263Z",
+      "templateCommit": "f9d5be589fedd2552ff21a164e2dd5ee97f38d0f",
+      "projectCommit": "dc303213553247c165d49e76554af882b0447411",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "f9d5be5 docs: add iOS PWA fixes documentation \u001b[90m(11/01/2026)\u001b[0m\n  - Created docs/ios-pwa-fixes.md with detailed guide on iOS PWA issues\n  - Added iOS PWA Fixes section to CLAUDE.md with quick reference\n  - Documents visualViewport API pattern for keyboard handling\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "266e18e fix: iOS PWA keyboard hiding input in profile edit sheet \u001b[90m(11/01/2026)\u001b[0m\n  On iOS PWA, the virtual keyboard overlays the viewport without resizing\n  it, causing bottom sheets to be hidden behind the keyboard. Added\n  useIOSKeyboardOffset hook that uses visualViewport API to detect\n  keyboard height and translates the sheet upward accordingly.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-11T09:43:49.441Z",
       "templateCommit": "55a4afc61d8e4dcfee211bf069e85e00afa2dc3e",
@@ -280,18 +296,6 @@
       "templateCommits": [
         "fc41974 feat: add automatic bug investigation using Claude Agent SDK \u001b[90m(09/01/2026)\u001b[0m\n  Add a CLI tool that automatically investigates bug reports using the\n  Claude Agent SDK. The agent performs read-only analysis to identify\n  root causes and propose fixes.\n  \n  Features:\n  - CLI script at scripts/investigate-bugs.ts\n  - 5 investigation statuses: needs_info, root_cause_found, complex_fix,\n    not_a_bug, inconclusive\n  - Configurable timeout (default 10 minutes), streaming output\n  - Investigation results stored in MongoDB with the report\n  - UI displays investigation headline in report list\n  - Full investigation summary in expanded details\n  - Investigation included in \"Copy Details\" for /fix-bug command\n  - Updated fix-bug command to leverage investigation summaries\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-09T15:11:52.078Z",
-      "templateCommit": "f0e4243052257b5939ec7ac1c19933d2311605c4",
-      "projectCommit": "5a9c98dd061020f7fe0e1cca786ac98f2e129c52",
-      "filesApplied": 5,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "f0e4243 docs: clarify mutation patterns and fix TypeScript issues \u001b[90m(09/01/2026)\u001b[0m\n  This commit completes the full project audit fixes and improves documentation clarity around React Query mutation patterns.\n  \n  ## Documentation Improvements\n  \n  ### Mutation Pattern Clarification\n  - Add \"What's Allowed in onSuccess?\" section to react-query-mutations.md\n  - Clarifies that toasts, logging, analytics, and navigation are ALLOWED in onSuccess\n  - Explains the distinction between ephemeral feedback (OK) vs state updates (forbidden)\n  - Add similar clarification note to offline-pwa-support.md with cross-reference\n  \n  ### Theming Guidelines\n  - Document bg-black/60 overlay exception in theming.md\n  - Add same exception to .cursor/rules/theming-guidelines.mdc\n  - Clarifies this is standard shadcn/ui pattern for dialog/modal backdrops\n  \n  ## Code Quality Fixes\n  \n  ### TypeScript Improvements\n  - Fix all `any` types in src/server/database/collections/todos/todos.ts\n  - Replace type assertions with proper Parameters<> utility type assertions\n  - Add explanatory comments for MongoDB flexible _id type handling\n  - Zero TypeScript errors, zero ESLint warnings\n  \n  ### Code Documentation\n  - Add comprehensive JSDoc comment to useInvalidateTodos hook\n  - Clarifies appropriate use cases (NON-OPTIMISTIC operations only)\n  - Warns against using in mutation onSettled handlers\n  \n  ## UI Component Improvements\n  \n  ### Modern Design System Updates\n  - Update button, input, select components with rounded-xl borders\n  - Add active:scale-[0.98] press feedback to buttons\n  - Improve dialog and alert-dialog with better animations\n  - Add backdrop-blur-sm to overlay backgrounds\n  - Better shadows (shadow-xl shadow-black/10)\n  - Improved mobile responsiveness (w-[calc(100%-2rem)])\n  \n  ### API Improvements\n  - Use isObjectIdFormat utility in deleteReport handler\n  - Improves consistency with project patterns\n  \n  ## Audit Results\n  - 100% compliance achieved (51/51 items compliant)\n  - Zero critical, high, or medium priority issues\n  - All mutations follow optimistic-only pattern correctly\n  - All Zustand stores use createStore factory\n  - Overall health score: 10/10\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "6cede7c docs: allow bulk decision reply format in contribute-to-template \u001b[90m(09/01/2026)\u001b[0m"
-      ]
     }
   ],
   "fileHashes": {
@@ -327,7 +331,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "7da611c3be88dd0cea25ab5aab6a907a",
+    "CLAUDE.md": "a2888062584878184cc483ee45dc6609",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -657,7 +661,7 @@
     "scripts/template-scripts/sync-template/utils/logging.ts": "3efe0373a36eb533f6f1264d3d2beb3a",
     "src/middleware.ts": "95a1ff872795b4a36f1fffa10f4915ad",
     "scripts/setup-github-secrets.ts": "840c439a2dc664ba063197638df89da1",
-    "src/client/routes/Profile/components/EditableField.tsx": "68bfc37d6a01af01f013bb6fbfd1163c",
+    "src/client/routes/Profile/components/EditableField.tsx": "628607e222554abd67ccb0c472d6ba26",
     "src/client/routes/Profile/components/ProfileHeader.tsx": "cbd293e7bbe0ce7c47ab080fed1e05f9",
     "src/client/routes/Profile/components/ProfileSection.tsx": "17a0031c6f907ce7c5beee2113c7c188",
     "src/pages/[...slug].tsx": "d9b7db84e179ae997d2e034b4551cb37",
@@ -665,6 +669,7 @@
     "scripts/sync-child-projects.ts": "6d1b27bf5cde021fdb2a36cffa7d50a8",
     ".claude/commands/sync-children.md": "9ed8e252ec2a3a6cf28d0856a0c113a1",
     "scripts/hooks/post-push": "125d3e054884998b90fb6a1d8804b985",
-    "scripts/hooks/setup-hooks.sh": "1aad6f6fa24300605d422d64b7ecdbde"
+    "scripts/hooks/setup-hooks.sh": "1aad6f6fa24300605d422d64b7ecdbde",
+    "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220"
   }
 }

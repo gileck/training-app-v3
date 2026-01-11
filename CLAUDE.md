@@ -144,6 +144,50 @@ useMutation({
 
 ---
 
+## iOS PWA Fixes
+
+iOS-specific issues and fixes for PWA mode.
+
+**Summary:** iOS Safari and PWA have unique behaviors, especially around the virtual keyboard. The keyboard overlays the viewport instead of resizing it, hiding fixed-position elements.
+
+**Key Points:**
+- **Keyboard hides fixed elements**: Bottom sheets, modals at `bottom: 0` get covered
+- **Use `visualViewport` API**: Detects actual visible area when keyboard opens
+- **Transform, not position**: Use `translateY` to move elements above keyboard
+
+**Quick Fix Pattern:**
+
+```typescript
+function useIOSKeyboardOffset() {
+    const [offset, setOffset] = useState(0);
+    useEffect(() => {
+        if (!window.visualViewport) return;
+        const handle = () => {
+            const diff = window.innerHeight - window.visualViewport.height;
+            setOffset(diff > 0 ? diff : 0);
+        };
+        window.visualViewport.addEventListener('resize', handle);
+        window.visualViewport.addEventListener('scroll', handle);
+        return () => {
+            window.visualViewport.removeEventListener('resize', handle);
+            window.visualViewport.removeEventListener('scroll', handle);
+        };
+    }, []);
+    return offset;
+}
+
+// Usage: style={{ transform: offset > 0 ? `translateY(-${offset}px)` : undefined }}
+```
+
+**DON'T:**
+- Rely on `window.innerHeight` changing (it doesn't on iOS PWA)
+- Use `100vh` for full-height layouts
+- Use `env(keyboard-inset-bottom)` (not widely supported)
+
+**Docs:** [docs/ios-pwa-fixes.md](docs/ios-pwa-fixes.md)
+
+---
+
 ## Client-Server Communication
 
 Single API endpoint pattern with React Query for data fetching.

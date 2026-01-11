@@ -10,6 +10,44 @@ import { Button } from '@/client/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/client/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/client/components/ui/dialog';
 
+/**
+ * Hook to detect iOS keyboard and calculate offset needed to keep content visible.
+ * Uses visualViewport API to detect when keyboard reduces visible area.
+ */
+function useIOSKeyboardOffset() {
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral keyboard state
+    const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+    useEffect(() => {
+        // Only run in browser and when visualViewport is available
+        if (typeof window === 'undefined' || !window.visualViewport) {
+            return;
+        }
+
+        const viewport = window.visualViewport;
+
+        const handleResize = () => {
+            // Calculate the difference between window height and viewport height
+            // This difference is the keyboard height on iOS
+            const offset = window.innerHeight - viewport.height;
+            setKeyboardOffset(offset > 0 ? offset : 0);
+        };
+
+        viewport.addEventListener('resize', handleResize);
+        viewport.addEventListener('scroll', handleResize);
+
+        // Initial check
+        handleResize();
+
+        return () => {
+            viewport.removeEventListener('resize', handleResize);
+            viewport.removeEventListener('scroll', handleResize);
+        };
+    }, []);
+
+    return keyboardOffset;
+}
+
 interface EditableFieldProps {
     label: string;
     value: string;
@@ -40,6 +78,7 @@ export function EditableField({
     // eslint-disable-next-line state-management/prefer-state-architecture -- form input before submission
     const [editValue, setEditValue] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
+    const keyboardOffset = useIOSKeyboardOffset();
 
     useEffect(() => {
         if (isOpen) {
@@ -151,7 +190,15 @@ export function EditableField({
 
             {/* Edit sheet */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
-                <SheetContent side="bottom" className="rounded-t-2xl">
+                <SheetContent
+                    side="bottom"
+                    className="rounded-t-2xl"
+                    style={{
+                        // Push sheet up when iOS keyboard is open
+                        transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+                        transition: 'transform 0.1s ease-out',
+                    }}
+                >
                     <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4 mt-2" />
 
                     <SheetHeader className="px-4">
