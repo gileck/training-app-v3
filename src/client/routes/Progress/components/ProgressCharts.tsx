@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { useActivitySummary } from '../hooks';
 import type { DateRange } from '../store';
+import { RecoveryScore } from './RecoveryScore';
 
 function formatShortDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -37,17 +38,23 @@ export function StatsOverview({ dateRange }: StatsOverviewProps) {
     // Show skeleton when loading
     if (!hasData || isLoading) {
         return (
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6">
                 <Card className="rounded-xl">
                     <CardContent className="p-4 text-center">
                         <Skeleton className="h-9 w-12 mx-auto mb-1" />
-                        <Skeleton className="h-4 w-20 mx-auto" />
+                        <Skeleton className="h-4 w-16 mx-auto" />
                     </CardContent>
                 </Card>
                 <Card className="rounded-xl">
                     <CardContent className="p-4 text-center">
                         <Skeleton className="h-9 w-12 mx-auto mb-1" />
-                        <Skeleton className="h-4 w-24 mx-auto" />
+                        <Skeleton className="h-4 w-16 mx-auto" />
+                    </CardContent>
+                </Card>
+                <Card className="rounded-xl">
+                    <CardContent className="p-4 text-center">
+                        <Skeleton className="h-9 w-12 mx-auto mb-1" />
+                        <Skeleton className="h-4 w-16 mx-auto" />
                     </CardContent>
                 </Card>
             </div>
@@ -55,7 +62,7 @@ export function StatsOverview({ dateRange }: StatsOverviewProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
             <Card className="rounded-xl">
                 <CardContent className="p-4 text-center">
                     <p className="text-3xl font-bold text-primary">{totalSets}</p>
@@ -68,6 +75,7 @@ export function StatsOverview({ dateRange }: StatsOverviewProps) {
                     <p className="text-sm text-muted-foreground">Workout Days</p>
                 </CardContent>
             </Card>
+            <RecoveryScore />
         </div>
     );
 }

@@ -22,6 +22,7 @@
  * ============================================================================
  */
 
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
 import {
@@ -44,6 +45,7 @@ import type {
     ActivityLogEntry,
 } from '@/apis/activity-logs/types';
 import { generateId } from '@/client/utils/id';
+import { calculateRecoveryScore, type RecoveryScoreResult } from './utils/recoveryScore';
 
 // ============================================================================
 // Query Keys
@@ -498,4 +500,34 @@ export function useAddActivity() {
             return mutation.mutateAsync({ ...data, activityIds }, options);
         },
     };
+}
+
+// ============================================================================
+// Recovery Score Hook
+// ============================================================================
+
+/**
+ * Hook for calculating recovery score based on recent activity
+ *
+ * Uses the activity summary data (last 30 days) to calculate a weighted
+ * recovery score. Recent days are weighted more heavily than older days.
+ *
+ * @returns Recovery score result with score, label, color, and daily breakdown
+ */
+export function useRecoveryScore(): {
+    data: RecoveryScoreResult | undefined;
+    isLoading: boolean;
+} {
+    // Fetch 30 days of data for both baseline calculation and lookback
+    const { data: summaryData, isLoading } = useActivitySummary({
+        aggregation: 'day',
+        period: '30days',
+    });
+
+    const data = useMemo(() => {
+        if (!summaryData?.summaries) return undefined;
+        return calculateRecoveryScore(summaryData.summaries);
+    }, [summaryData?.summaries]);
+
+    return { data, isLoading };
 }
