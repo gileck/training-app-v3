@@ -13,23 +13,41 @@ This document defines the **required mutation patterns** for this application.
 
 This avoids race conditions when users interact faster than the server responds.
 
-## What's Allowed in onSuccess?
+## What's Allowed in onSuccess/onError? (UI Side Effects)
 
-While `onSuccess` should NOT update state from server responses, these are acceptable:
+> **Key Distinction**: The rule is "no STATE updates from server responses" - NOT "onSuccess must be empty".
+>
+> UI side effects that don't modify application state are perfectly fine.
 
-✅ **Allowed** (ephemeral feedback):
-- **Toasts/notifications**: `toast.success('Saved successfully')`
+While `onSuccess`/`onError` should NOT update **cache or application state** from server responses, these UI side effects are acceptable:
+
+✅ **Allowed** (ephemeral UI feedback - no state change):
+- **Toasts/notifications**: `toast.success('Saved successfully')` or `toast.error('Failed')`
 - **Logging**: `logger.info('Mutation succeeded')`
 - **Analytics**: `analytics.track('todo_created')`
 - **Navigation**: `router.push('/next-page')`
 - **Zustand updates** (non-server data): `useStore.setState({ showWelcome: false })`
+- **Cleanup operations**: `queryClient.removeQueries({ queryKey: ['deleted-item', id] })`
 
-❌ **Forbidden** (state updates from server):
-- **React Query cache updates**: `queryClient.setQueryData(['key'], serverData)`
-- **Applying server response to UI**: `setState(response.data)`
+❌ **Forbidden** (state updates from server response):
+- **React Query cache updates with server data**: `queryClient.setQueryData(['key'], serverData)`
+- **Applying server response to UI state**: `setState(response.data)`
 - **Invalidating queries**: `queryClient.invalidateQueries(...)` (causes race conditions - see exception below)
 
-**Why?** Toasts, logging, and navigation don't cause race conditions - they're fire-and-forget operations that don't modify application state. The problem is when you UPDATE STATE based on server responses, which can arrive out of order or after the user has made additional changes.
+**Why is this the rule?** The optimistic-only pattern prevents race conditions where server responses arrive out-of-order and overwrite the user's latest changes. Toasts, logging, and navigation are "fire-and-forget" operations that don't modify application state, so they can't cause race conditions.
+
+```typescript
+// ✅ CORRECT: onSuccess with UI side effects (no state update)
+onSuccess: () => {
+    toast.success('Item deleted');  // Just user feedback
+    logger.info('delete', 'Item deleted successfully');  // Just logging
+},
+
+// ❌ WRONG: onSuccess updating state from server response
+onSuccess: (serverData) => {
+    queryClient.setQueryData(['items'], serverData);  // Race condition risk!
+},
+```
 
 ### ✅ Allowed Exception: Invalidating Separate Aggregation Queries
 

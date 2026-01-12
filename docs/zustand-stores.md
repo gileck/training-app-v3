@@ -209,6 +209,35 @@ if (isHydrated) {
 }
 ```
 
+## Store Location: Features vs Routes
+
+Stores can live in either `features/` or `routes/` folders depending on their scope:
+
+### Use `features/` folder when:
+- State is shared across multiple routes
+- State is a core application concern (auth, settings, theme)
+- Multiple components from different routes access it
+
+```
+src/client/features/auth/store.ts       # Auth state - used everywhere
+src/client/features/settings/store.ts   # Settings - used everywhere
+src/client/features/theme/store.ts      # Theme - used everywhere
+```
+
+### Use `routes/[ROUTE_NAME]/` folder when:
+- State is **only** used by that specific route
+- No other routes need access to this state
+- The state is route-specific UI state (filters, view preferences)
+
+```
+src/client/routes/Reports/store.ts      # Reports filters - only used in Reports route
+src/client/routes/Dashboard/store.ts    # Dashboard view state - only used in Dashboard
+```
+
+**Rule:** If the store is only imported by files within a single route folder, keep it in that route folder. If multiple routes need it, move it to `features/`.
+
+---
+
 ## When to Use Each Mode
 
 ### Use Persisted Store When:
@@ -218,6 +247,7 @@ if (isHydrated) {
 - Navigation state (last route)
 - Draft content the user might want to recover
 - Cached data that should survive restarts
+- Route-specific filters/view preferences the user expects to persist
 
 ### Use In-Memory Store When:
 

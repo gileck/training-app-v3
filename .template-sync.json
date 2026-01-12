@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "53bd22b7932772b3761d05f8ce47d0f52f5d39b5",
-  "lastProjectCommit": "647a3f029989d328f02e506c710ad6f4fa779475",
-  "lastSyncDate": "2026-01-11T17:03:19.522Z",
+  "lastSyncCommit": "cdc61963505612f4d03030aa3765e81444c58c76",
+  "lastProjectCommit": "005191511f10d6307e89507536f7d5873242ac88",
+  "lastSyncDate": "2026-01-12T08:51:18.884Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-12T08:51:19.080Z",
+      "templateCommit": "cdc61963505612f4d03030aa3765e81444c58c76",
+      "projectCommit": "005191511f10d6307e89507536f7d5873242ac88",
+      "filesApplied": 6,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "cdc6196 fix: audit fixes and documentation improvements \u001b[90m(12/01/2026)\u001b[0m\n  Code fixes:\n  - Profile: use React Query useCurrentUser hook instead of direct API calls\n  - Home: add welcome page with navigation cards\n  - Todos: add isFetching indicator for background refresh\n  \n  Documentation updates:\n  - Clarify that toasts/UI side effects in onSuccess/onError are acceptable\n  - Add store location guidance (features/ vs routes/ folders)\n  - Update audit command to not flag toasts as violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-11T17:03:19.705Z",
       "templateCommit": "53bd22b7932772b3761d05f8ce47d0f52f5d39b5",
@@ -280,17 +291,6 @@
       "templateCommits": [
         "43356c3 fix: improve investigate-bugs script reliability \u001b[90m(09/01/2026)\u001b[0m\n  - Show full thinking output with --stream (remove truncation)\n  - Increase MAX_TURNS from 30 to 100 for complex investigations\n  - Add fallback when JSON parsing fails (saves partial findings as inconclusive)\n  - Update CLI option descriptions\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-09T18:40:45.696Z",
-      "templateCommit": "f25b8dedeed42ab1f0743a16f92556df98bb0aa5",
-      "projectCommit": "ef20bb354fc9676fc18d063d51cd9ca8c8f1cd6b",
-      "filesApplied": 2,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "f25b8de chore: upgrade to TypeScript 5.x with bundler resolution \u001b[90m(09/01/2026)\u001b[0m\n  - Upgrade TypeScript from 4.9.5 to ^5.0.0\n  - Change moduleResolution from \"node\" to \"bundler\"\n  - Use proper ES module imports for claude-agent-sdk (remove require() workaround)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -320,13 +320,13 @@
     ".cursor/rules/react-hook-organization.mdc": "9ed10ecb0ae9224464f0147bda8d9c1f",
     ".cursor/rules/settings-usage-guidelines.mdc": "fa2776ab82de9f2461e19cf0078fcd99",
     ".cursor/rules/shadcn-usage.mdc": "7a1e9ce128b279cfbe51a336e56a2926",
-    ".cursor/rules/state-management-guidelines.mdc": "1536d29aa7cfa64eebb01c9f04824253",
+    ".cursor/rules/state-management-guidelines.mdc": "a7e24f00188e44a5c81b8102adffeb2d",
     ".cursor/rules/theming-guidelines.mdc": "a92e030e6abf6c4c993cc38a608a2e9f",
     ".cursor/rules/typescript-guidelines.mdc": "383e307ea840b19b9eeab8bdeace2859",
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "fb697e2b6e646fb00736132d64748eab",
+    "CLAUDE.md": "357cced16a9ad784999cdcf695ea8c39",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -344,7 +344,7 @@
     "docs/caching-strategy.md": "90fd5b5327ee8bcfa110a768bd533aaf",
     "docs/logging-and-error-tracking.md": "311d534483b1ba3fb08bbf3e0c890c01",
     "docs/offline-pwa-support.md": "5ae59a7cf15c47cc61866cdc1c2143a4",
-    "docs/react-query-mutations.md": "ecbf69dc049dcb212fbef473dcf7c57b",
+    "docs/react-query-mutations.md": "b55949512d2c26b9f97eff8645a45d90",
     "docs/shadcn-component-library.md": "d95ef7a2a0a64205f53f7022a518b18c",
     "docs/state-management.md": "2410c4ff3ced94cbc6c3689c18deb6ac",
     "docs/template-sync/template-sync-comparison.md": "c24c9bccb0fddb06a74b7553cf26fb31",
@@ -498,7 +498,7 @@
     "src/client/router/index.tsx": "0c41de78f28d5ae50027ebb4c6b79853",
     "src/client/routes/NotFound/NotFound.tsx": "8e5a2000db3c03277a38b68c64f0469b",
     "src/client/routes/NotFound/index.ts": "d61014aa84dbc5db967a05f08c2f09d3",
-    "src/client/routes/Profile/Profile.tsx": "8d6f2658f0f40625dd3fd929f1eadb95",
+    "src/client/routes/Profile/Profile.tsx": "155a4cf7e894a29d39ab5409996bacf3",
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
     "src/client/routes/Reports/Reports.tsx": "d779d86bec86ce3772fec318126463ec",
@@ -576,14 +576,14 @@
     ".cursor/commands/contribute-to-template.md": "8fbefe9cf66058e7034e7e88db79f058",
     "scripts/sync-template.ts": "e39c8833dce0280a2aff0d1b3ccfbb37",
     "docs/authentication.md": "7f70df969b259931fcceb77f688e4831",
-    "docs/zustand-stores.md": "f1844a0a6e7346a944a6554c9f2949b6",
+    "docs/zustand-stores.md": "0bf6a70f0581a825294c0ed4d3cc7be0",
     "src/apis/auth/shared.ts": "9f65d76b1a9f455b0824e4204192b784",
     "src/apis/reports/handlers/deleteAllReports.ts": "1daaeae2f3117c181982e5bf654f432c",
     "src/client/features/auth/IOSAuthModal.tsx": "ab668a8213c95d4c159362f01e18f8d2",
     "src/client/features/index.ts": "255a5c523cb1017049e9c23e4a3bccfb",
     "src/client/routes/Settings/Settings.tsx": "a31f6ac2ce8fbe641c4005ea89a6be37",
     ".claude/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
-    ".claude/commands/full-project-audit.md": "04d5a9346a6ce017a11880465d7c4e0a",
+    ".claude/commands/full-project-audit.md": "88efe3a8e4d84540e27b9419b3f664b6",
     "src/client/components/ui/confirm-dialog.tsx": "23ec45595012722338327c76936a08d7",
     "src/client/routes/Profile/components/AccountInfoCard.tsx": "a7f1505ab9febf582525786b18dd528a",
     "src/client/routes/Profile/components/ImageUploadDialog.tsx": "ff609bad55be6256553cc3501baa2e5e",

@@ -4,9 +4,9 @@
  */
 
 import { useEffect, useState, useRef, ChangeEvent } from 'react';
-import { useAuthStore, useUser } from '@/client/features/auth';
+import { useAuthStore, useUser, useCurrentUser } from '@/client/features/auth';
 import { useRouter } from '../../router';
-import { apiUpdateProfile, apiFetchCurrentUser } from '@/apis/auth/client';
+import { apiUpdateProfile } from '@/apis/auth/client';
 import { UpdateProfileRequest, UserResponse } from '@/apis/auth/types';
 import { toast } from '@/client/components/ui/toast';
 import { ProfileHeader } from './components/ProfileHeader';
@@ -23,6 +23,9 @@ export const Profile = () => {
     const isValidating = useAuthStore((state) => state.isValidating);
     const setValidatedUser = useAuthStore((state) => state.setValidatedUser);
 
+    // React Query hook for fetching/refetching user data
+    const { refetch: refetchUser } = useCurrentUser();
+
     const { navigate } = useRouter();
 
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral image preview before save
@@ -31,27 +34,18 @@ export const Profile = () => {
     const [openImageDialog, setOpenImageDialog] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- local optimistic user data copy
     const [localUser, setLocalUser] = useState<UserResponse | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- local loading indicator
-    const [loadingUserData, setLoadingUserData] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- track which field is being saved
     const [savingField, setSavingField] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Fetch fresh user data from the server
+    // Refetch user data using React Query and sync to auth store
     const fetchUserData = async () => {
-        try {
-            setLoadingUserData(true);
-            const response = await apiFetchCurrentUser();
-            if (response.data?.user) {
-                setLocalUser(response.data.user);
-                setPreviewImage(response.data.user.profilePicture);
-                setValidatedUser(response.data.user);
-            }
-        } catch (error) {
-            console.error("Failed to fetch user data:", error);
-        } finally {
-            setLoadingUserData(false);
+        const result = await refetchUser();
+        if (result.data?.user) {
+            setLocalUser(result.data.user);
+            setPreviewImage(result.data.user.profilePicture);
+            setValidatedUser(result.data.user);
         }
     };
 
@@ -172,7 +166,7 @@ export const Profile = () => {
 
     const displayUser = localUser || user;
 
-    if (isValidating || loadingUserData) {
+    if (isValidating) {
         return (
             <div className="mx-auto max-w-2xl px-4 py-6">
                 <ProfileLoadingSkeleton />

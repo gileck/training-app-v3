@@ -576,8 +576,8 @@ Before auditing, understand this critical distinction:
 1. **Edits / Deletes → Optimistic-only**
    - Update cache in `onMutate`
    - Rollback on `onError`
-   - `onSuccess: () => {}` (empty - never update from server response)
-   - `onSettled: () => {}` (empty - never invalidate from mutations)
+   - `onSuccess`: No STATE updates from server response (UI side effects like toasts are OK)
+   - `onSettled`: No invalidateQueries on the same data (UI side effects are OK)
 
 2. **Creates → Decision required**
    - **Optimistic create** ONLY if client generates stable ID that server persists
@@ -650,10 +650,13 @@ useMutation({
         }
     },
     
-    // STEP 3: EMPTY - never update from server response
-    onSuccess: () => {},
-    
-    // STEP 4: EMPTY - never invalidateQueries from mutations
+    // STEP 3: No STATE updates from server response (UI side effects like toasts are OK)
+    onSuccess: () => {
+        // toast.success('Deleted'); // ✅ OK - UI feedback
+        // logger.info('deleted');   // ✅ OK - logging
+    },
+
+    // STEP 4: No invalidateQueries on same data (UI side effects are OK)
     onSettled: () => {},
 });
 ```
@@ -666,10 +669,12 @@ useMutation({
 | `onMutate` cancels queries first | |
 | `onMutate` snapshots previous for rollback | |
 | Has `onError` with rollback | |
-| `onSuccess` is empty | |
-| `onSettled` is empty | |
+| `onSuccess` has no STATE updates from server response | |
+| `onSettled` has no invalidateQueries on same data | |
 | Does NOT use `invalidateQueries` on same data | |
 | Does NOT use `setQueryData` with server response | |
+
+> **Note on UI Side Effects**: Toasts (`toast.success()`), logging, analytics, and navigation in `onSuccess`/`onError` are **NOT violations**. Only STATE updates from server responses violate the optimistic-only pattern.
 
 **Allowed exception**: `invalidateQueries` on a SEPARATE aggregation query (e.g., `['activity-summary']` after modifying `['activities']`).
 
@@ -822,8 +827,10 @@ useMutation({
     },
     
     onError: (_err, _vars, context) => { /* rollback */ },
-    onSuccess: () => {},  // EMPTY - optimistic-only
-    onSettled: () => {},  // EMPTY
+    onSuccess: () => {
+        // toast.success('Created'); // ✅ OK - UI feedback only
+    },
+    onSettled: () => {},
 });
 ```
 
@@ -2346,11 +2353,13 @@ Complete ALL items to finish the audit:
 | Violation | How to Find | Fix |
 |-----------|-------------|-----|
 | Temp ID replacement | `grep -r "temp-\|tempId\|\`temp"` | Use client-generated UUID or non-optimistic |
-| setQueryData in onSuccess | Check `onSuccess` handlers | Remove - use optimistic-only |
-| invalidateQueries in mutation | `grep -r "invalidateQueries" -B5 -A5` | Remove (except separate aggregation queries) |
-| Non-empty onSettled | Check mutation hooks | Make empty: `onSettled: () => {}` |
+| setQueryData in onSuccess with server data | Check `onSuccess` handlers | Remove - use optimistic-only |
+| invalidateQueries on same data | `grep -r "invalidateQueries" -B5 -A5` | Remove (except separate aggregation queries) |
+| Applying server response to state | Check `onSuccess` for `setState(response)` | Remove - trust optimistic update |
 | Missing offline guard | Check non-optimistic creates | Add `if (!data) return` in onSuccess |
 | Loading spinner on optimistic op | Check confirmation dialogs | Close immediately, no loading |
+
+> **NOT Violations**: Toasts (`toast.success()`), logging (`logger.info()`), analytics, navigation, and `queryClient.removeQueries()` in `onSuccess`/`onError` are **allowed**. They're UI side effects that don't modify application state.
 
 ### 🚨 CRITICAL Violations (docs/zustand-stores.md)
 

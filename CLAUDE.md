@@ -44,6 +44,10 @@ Dual-store architecture optimized for PWA with offline support.
 - All Zustand stores MUST use `createStore` factory from `@/client/stores`
 - Direct zustand imports are blocked by ESLint
 
+**Store Location:**
+- **Cross-route state** → `features/{name}/store.ts` (auth, settings, theme)
+- **Route-specific state** → `routes/{RouteName}/store.ts` (filters, view prefs used only by that route)
+
 ```typescript
 import { createStore } from '@/client/stores';
 

@@ -130,11 +130,18 @@ import { TIME, STORE_DEFAULTS, QUERY_DEFAULTS } from '@/client/config';
 
 ## New Store Checklist
 
-1. Create `src/client/features/{name}/store.ts` using `createStore`
+**Store Location:**
+- **Cross-route state** → `src/client/features/{name}/store.ts`
+- **Route-specific state** (only used by one route) → `src/client/routes/{RouteName}/store.ts`
+
+**Steps:**
+1. Create store file using `createStore`
 2. Choose: `persistOptions` (persisted) OR `inMemoryOnly: true` (in-memory)
-3. Create `src/client/features/{name}/index.ts`
-4. Export from `src/client/features/index.ts`
+3. For feature stores: Create `index.ts` and export from `src/client/features/index.ts`
+4. For route stores: Import directly within the route folder
 5. For TTL validation: use `createTTLValidator(STORE_DEFAULTS.TTL)`
+
+**Rule:** If the store is only imported by files within a single route, keep it in that route folder.
 
 ## Registry Utilities
 
