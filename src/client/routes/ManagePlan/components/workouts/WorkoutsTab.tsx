@@ -150,7 +150,7 @@ export function WorkoutsTab({
                     return {
                         planExerciseId: item.planExerciseId,
                         order: index,
-                        sets: item.sets ?? exercise?.sets ?? 0,
+                        sets: item.sets || exercise?.sets || 0,
                     };
                 }),
             },
