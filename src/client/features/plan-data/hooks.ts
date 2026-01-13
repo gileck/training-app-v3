@@ -302,7 +302,6 @@ export interface ExerciseWeekProgressFromStore {
     planExerciseId: string;
     targetSets: number;
     setsCompleted: number;
-    workoutSets: { workoutId: string; setsCompleted: number }[];  // Per-workout breakdown
     isDone: boolean;
     exerciseDef: PlanExerciseWithDefinition['exerciseDef'];
     planExercise: {
@@ -350,9 +349,8 @@ export function useWeekProgressFromStoreData(
     let completedSets = 0;
 
     const exerciseProgress: ExerciseWeekProgressFromStore[] = exercises.map((ex) => {
-        const progress = weekProgress[ex._id] || { setsCompleted: 0, workoutSets: [], isDone: false };
+        const progress = weekProgress[ex._id] || { setsCompleted: 0, isDone: false };
         const setsCompleted = progress.setsCompleted;
-        const workoutSets = progress.workoutSets || [];
         const isDone = progress.isDone || setsCompleted >= ex.sets;
 
         totalSets += ex.sets;
@@ -362,7 +360,6 @@ export function useWeekProgressFromStoreData(
             planExerciseId: ex._id,
             targetSets: ex.sets,
             setsCompleted,
-            workoutSets,
             isDone,
             exerciseDef: ex.exerciseDef,
             planExercise: {
@@ -582,14 +579,13 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
 
     /**
      * Add a single set to an exercise
-     * @param workoutId - Optional workout ID for workout-specific tracking
      */
     const addSet = useCallback(
-        (exerciseId: string, targetSets: number, workoutId?: string | null) => {
+        (exerciseId: string, targetSets: number) => {
             if (!planId) return;
 
-            // Update store (pass workoutId for workout-specific tracking)
-            incrementSet(planId, weekNumber, exerciseId, targetSets, workoutId);
+            // Update store
+            incrementSet(planId, weekNumber, exerciseId, targetSets);
             syncPlanToServer(planId);
 
             // Create activity log
@@ -606,14 +602,13 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
 
     /**
      * Remove a set from an exercise
-     * @param workoutId - Optional workout ID for workout-specific tracking
      */
     const removeSet = useCallback(
-        (exerciseId: string, workoutId?: string | null) => {
+        (exerciseId: string) => {
             if (!planId) return;
 
-            // Update store (pass workoutId for workout-specific tracking)
-            decrementSet(planId, weekNumber, exerciseId, workoutId);
+            // Update store
+            decrementSet(planId, weekNumber, exerciseId);
             syncPlanToServer(planId);
 
             // Delete activity log
@@ -627,17 +622,16 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
 
     /**
      * Complete all remaining sets for an exercise
-     * @param workoutId - Optional workout ID for workout-specific tracking
      */
     const completeAllSets = useCallback(
-        (exerciseId: string, targetSets: number, currentSetsCompleted: number, workoutId?: string | null) => {
+        (exerciseId: string, targetSets: number, currentSetsCompleted: number) => {
             if (!planId) return;
 
             const remaining = targetSets - currentSetsCompleted;
             if (remaining <= 0) return;
 
-            // Update store (pass workoutId for workout-specific tracking)
-            completeAllSetsAction(planId, weekNumber, exerciseId, targetSets, workoutId);
+            // Update store
+            completeAllSetsAction(planId, weekNumber, exerciseId, targetSets);
             syncPlanToServer(planId);
 
             // Create activity logs for remaining sets

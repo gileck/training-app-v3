@@ -120,7 +120,6 @@ export function useCreatePlanWorkout(planId: string) {
                 items: variables.items.map((item, index) => ({
                     planExerciseId: item.planExerciseId,
                     order: index,
-                    sets: item.sets,
                 })),
                 order: nextOrder,
                 createdAt: new Date().toISOString(),
@@ -199,7 +198,6 @@ export function useUpdatePlanWorkout(planId: string) {
                             updates.items = variables.items.map((item, index) => ({
                                 planExerciseId: item.planExerciseId,
                                 order: index,
-                                sets: item.sets,
                             }));
                         }
 
