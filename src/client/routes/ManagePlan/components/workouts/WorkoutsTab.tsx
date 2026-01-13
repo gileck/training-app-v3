@@ -144,11 +144,15 @@ export function WorkoutsTab({
             {
                 planId,
                 name: `${workout.name} (Copy)`,
-                items: workout.items.map((item, index) => ({
-                    planExerciseId: item.planExerciseId,
-                    order: index,
-                    sets: item.sets,
-                })),
+                items: workout.items.map((item, index) => {
+                    // Fallback to exercise's weekly sets for legacy data without per-workout allocation
+                    const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
+                    return {
+                        planExerciseId: item.planExerciseId,
+                        order: index,
+                        sets: item.sets ?? exercise?.sets ?? 0,
+                    };
+                }),
             },
             {
                 onSuccess: () => {

@@ -59,7 +59,7 @@ export function PlanWorkoutCard({
 
             return {
                 ...ex,
-                workoutTargetSets: item.sets,  // Sets allocated to this workout
+                workoutTargetSets: item.sets ?? ex.targetSets,  // Sets allocated to this workout (fallback to weekly target for legacy data)
                 workoutSetsCompleted: workoutProgress?.setsCompleted || 0,  // Sets completed in this workout
             };
         })
