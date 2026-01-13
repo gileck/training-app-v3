@@ -58,6 +58,7 @@ export const findOrCreateExerciseProgress = async (
         weeklyProgressId: weeklyProgressIdQuery,
         planExerciseId: planExerciseIdQuery,
         setsCompleted: 0,
+        workoutSets: [],
         isDone: false,
         updatedAt: new Date(),
     };

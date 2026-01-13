@@ -24,6 +24,7 @@ export const listPlanWorkouts = async (
         const workoutList = await planWorkouts.listPlanWorkouts(context.userId, request.planId);
 
         // Convert to client format (handles both ObjectId and UUID string IDs)
+        // Note: sets defaults to 0 for backward compatibility with existing data
         const workoutsClient = workoutList.map((workout) => ({
             _id: toStringId(workout._id),
             userId: toStringId(workout.userId),
@@ -32,6 +33,7 @@ export const listPlanWorkouts = async (
             items: workout.items.map((item) => ({
                 planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
+                sets: (item as { sets?: number }).sets ?? 0,
             })),
             order: workout.order,
             createdAt: workout.createdAt.toISOString(),

@@ -209,9 +209,9 @@ export function ActiveWorkout() {
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
-            // Update progress for each eligible exercise
+            // Update progress for each eligible exercise (pass workoutId for workout-specific tracking)
             eligible.forEach((ex) => {
-                addSet(ex.planExerciseId, ex.targetSets);
+                addSet(ex.planExerciseId, ex.targetSets, planWorkoutId);
             });
 
             // Update session state for both exercises
@@ -235,8 +235,8 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        // Update progress
-        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
+        // Update progress (pass workoutId for workout-specific tracking)
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets, planWorkoutId);
 
         // Update session state
         incrementCompletedSets();
@@ -266,7 +266,8 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
+        // Pass workoutId for workout-specific tracking
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets, planWorkoutId);
 
         incrementCompletedSets();
         updateSessionExercises(
@@ -283,7 +284,8 @@ export function ActiveWorkout() {
         if (!currentExercise) return;
         if (currentExercise.setsCompleted <= 0) return;
 
-        removeSet(currentExercise.planExerciseId);
+        // Pass workoutId for workout-specific tracking
+        removeSet(currentExercise.planExerciseId, planWorkoutId);
 
         updateSessionExercises(
             sessionExercises.map((ex) =>
@@ -316,6 +318,7 @@ export function ActiveWorkout() {
                 items: sessionExercises.map((ex, idx) => ({
                     planExerciseId: ex.planExerciseId,
                     order: idx,
+                    sets: ex.targetSets,
                 })),
             },
             {

@@ -99,6 +99,7 @@ async function fetchPlanFromServer(planId: string, weekNumber: number): Promise<
         for (const ex of weekProgressResult.data.exercises) {
             weekProgress[weekNumber][ex.planExerciseId] = {
                 setsCompleted: ex.setsCompleted,
+                workoutSets: [], // TODO: Fetch from server when API supports it
                 isDone: ex.isDone,
             };
         }
@@ -337,6 +338,7 @@ export async function loadWeekProgress(planId: string, weekNumber: number): Prom
             for (const ex of result.data.exercises) {
                 weekProgressForWeek[ex.planExerciseId] = {
                     setsCompleted: ex.setsCompleted,
+                    workoutSets: [], // TODO: Fetch from server when API supports it
                     isDone: ex.isDone,
                 };
             }

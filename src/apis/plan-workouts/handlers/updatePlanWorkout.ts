@@ -71,7 +71,7 @@ export const updatePlanWorkout = async (
         // Build update object
         const update: {
             name?: string;
-            items?: { planExerciseId: ReturnType<typeof toDocumentId>; order: number }[];
+            items?: { planExerciseId: ReturnType<typeof toDocumentId>; order: number; sets: number }[];
             updatedAt: Date;
         } = {
             updatedAt: new Date(),
@@ -85,6 +85,7 @@ export const updatePlanWorkout = async (
             update.items = request.items.map((item, index) => ({
                 planExerciseId: toDocumentId(item.planExerciseId),
                 order: index,
+                sets: item.sets,
             }));
         }
 
@@ -100,6 +101,7 @@ export const updatePlanWorkout = async (
         }
 
         // Convert to client format (handles both ObjectId and UUID string IDs)
+        // Note: sets defaults to 0 for backward compatibility with existing data
         const workoutClient = {
             _id: toStringId(updatedWorkout._id),
             userId: toStringId(updatedWorkout.userId),
@@ -108,6 +110,7 @@ export const updatePlanWorkout = async (
             items: updatedWorkout.items.map((item) => ({
                 planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
+                sets: (item as { sets?: number }).sets ?? 0,
             })),
             order: updatedWorkout.order,
             createdAt: updatedWorkout.createdAt.toISOString(),

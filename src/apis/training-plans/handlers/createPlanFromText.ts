@@ -342,19 +342,23 @@ export async function createPlanFromText(
             // Step 4: Create plan workouts
             let createdPlanWorkoutsCount = 0;
             
+            // Build a map of draftExerciseKey to sets for workout item creation
+            const exerciseSetsMap = new Map(draft.exercises.map(ex => [ex.draftExerciseKey, ex.sets ?? 3]));
+
             for (const workout of draft.workouts) {
                 const items = workout.items.map((item, index) => ({
                     planExerciseId: toDocumentId(planExerciseMap.get(item.draftExerciseKey)!),
                     order: index,
+                    sets: exerciseSetsMap.get(item.draftExerciseKey) ?? 3,
                 }));
-                
+
                 const workoutData = {
                     userId: toDocumentId(context.userId),
                     planId: toDocumentId(planId), // Handle both ObjectId and UUID formats
                     name: workout.name.trim(),
                     items,
                 };
-                
+
                 await planWorkouts.createPlanWorkout(workoutData);
                 createdPlanWorkoutsCount++;
             }

@@ -29,7 +29,7 @@ export interface CreatePlanWorkoutRequest {
     _id?: string; // Client-generated UUID for optimistic updates
     planId: string;
     name: string;
-    items: { planExerciseId: string; order: number }[];
+    items: { planExerciseId: string; order: number; sets: number }[];
 }
 
 export interface CreatePlanWorkoutResponse {
@@ -45,7 +45,7 @@ export interface UpdatePlanWorkoutRequest {
     planId: string;
     workoutId: string;
     name?: string;
-    items?: { planExerciseId: string; order: number }[];
+    items?: { planExerciseId: string; order: number; sets: number }[];
 }
 
 export interface UpdatePlanWorkoutResponse {

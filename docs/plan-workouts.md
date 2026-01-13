@@ -27,6 +27,36 @@ interface PlanWorkout {
 interface PlanWorkoutItem {
     planExerciseId: ObjectId;   // Reference to plan exercise
     order: number;              // Order within the workout
+    sets: number;               // Sets allocated to THIS workout
+}
+```
+
+### Multi-Workout Exercise Allocation
+
+The same exercise can appear in multiple workouts with different set allocations:
+
+```
+Plan: Bicep Curls - 10 sets/week total
+├── Push Day: 5 sets allocated
+└── Pull Day: 5 sets allocated
+```
+
+**Progress Tracking:**
+- **Exercises tab**: Shows total progress (e.g., 3/10 sets completed)
+- **Workout view**: Shows workout-specific progress (e.g., 2/5 sets completed)
+
+**Floating Sets:**
+Sets completed directly from the exercises tab (not through ActiveWorkout) count toward the weekly total but are not attributed to any specific workout.
+
+**ExerciseProgress** tracks per-workout completion:
+```typescript
+interface ExerciseProgress {
+    setsCompleted: number;      // Total sets (all workouts + floating)
+    workoutSets: {              // Per-workout breakdown
+        workoutId: string;
+        setsCompleted: number;
+    }[];
+    isDone: boolean;
 }
 ```
 
@@ -92,13 +122,13 @@ const updateMutation = useUpdatePlanWorkout(planId);
 const deleteMutation = useDeletePlanWorkout(planId);
 const reorderMutation = useReorderPlanWorkouts(planId);
 
-// Create workout
+// Create workout with set allocations
 createMutation.mutate({
     planId,
     name: 'Push Day',
     items: [
-        { planExerciseId: 'abc123', order: 0 },
-        { planExerciseId: 'def456', order: 1 },
+        { planExerciseId: 'abc123', order: 0, sets: 5 },
+        { planExerciseId: 'def456', order: 1, sets: 3 },
     ],
 });
 ```

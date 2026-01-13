@@ -7,6 +7,7 @@ import { ObjectId } from 'mongodb';
 export interface PlanWorkoutItem {
     planExerciseId: ObjectId | string;
     order: number;
+    sets: number;  // Sets allocated to this workout
 }
 
 /**
@@ -37,6 +38,7 @@ export type PlanWorkoutUpdate = Partial<Omit<PlanWorkout, '_id' | 'userId' | 'pl
 export interface PlanWorkoutItemClient {
     planExerciseId: string;
     order: number;
+    sets: number;  // Sets allocated to this workout
 }
 
 export interface PlanWorkoutClient {

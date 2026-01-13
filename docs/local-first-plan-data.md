@@ -203,9 +203,12 @@ interface ExerciseProgress {
 
 | Action | Description |
 |--------|-------------|
-| `incrementSet(planId, weekNumber, exerciseId, targetSets)` | Add one completed set |
-| `decrementSet(planId, weekNumber, exerciseId)` | Remove one completed set |
-| `completeAllSets(planId, weekNumber, exerciseId, targetSets)` | Complete all remaining sets |
+| `incrementSet(planId, weekNumber, exerciseId, targetSets, workoutId?)` | Add one completed set (workoutId for workout-specific tracking) |
+| `decrementSet(planId, weekNumber, exerciseId, workoutId?)` | Remove one completed set (workoutId for workout-specific tracking) |
+| `completeAllSets(planId, weekNumber, exerciseId, targetSets, workoutId?)` | Complete all remaining sets |
+
+**Workout-Specific Progress:**
+When `workoutId` is provided, sets are tracked both in total (`setsCompleted`) and per-workout (`workoutSets[]`). Sets completed without a `workoutId` are "floating" - they count toward the total but not any specific workout.
 
 #### Cache Management
 
