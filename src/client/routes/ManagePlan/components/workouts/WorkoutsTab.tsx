@@ -19,14 +19,14 @@ interface WorkoutsTabProps {
     // Mutations
     createWorkoutMutation: {
         mutate: (
-            params: { planId: string; name: string; items: Array<{ planExerciseId: string; order: number; sets: number }> },
+            params: { planId: string; name: string; items: Array<{ planExerciseId: string; order: number }> },
             options?: { onSuccess?: () => void; onError?: (error: Error) => void }
         ) => void;
         isPending: boolean;
     };
     updateWorkoutMutation: {
         mutate: (
-            params: { planId: string; workoutId: string; name?: string; items?: Array<{ planExerciseId: string; order: number; sets: number }> },
+            params: { planId: string; workoutId: string; name?: string; items?: Array<{ planExerciseId: string; order: number }> },
             options?: { onSuccess?: () => void; onError?: (error: Error) => void }
         ) => void;
         isPending: boolean;
@@ -76,7 +76,18 @@ export function WorkoutsTab({
         setWorkoutDialogOpen(true);
     };
 
-    const handleSaveWorkout = (name: string, items: Array<{ planExerciseId: string; order: number; sets: number }>) => {
+    const handleSaveWorkout = (name: string, selectedExerciseIds: Set<string>) => {
+        // Get selected exercises in their original order
+        const selectedPlanExercises = planExercises.filter((ex) =>
+            selectedExerciseIds.has(ex._id)
+        );
+
+        // Build items array with planExerciseId references
+        const items = selectedPlanExercises.map((ex, index) => ({
+            planExerciseId: ex._id,
+            order: index,
+        }));
+
         if (editingWorkout) {
             updateWorkoutMutation.mutate(
                 {
@@ -144,15 +155,10 @@ export function WorkoutsTab({
             {
                 planId,
                 name: `${workout.name} (Copy)`,
-                items: workout.items.map((item, index) => {
-                    // Fallback to exercise's weekly sets for legacy data without per-workout allocation
-                    const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
-                    return {
-                        planExerciseId: item.planExerciseId,
-                        order: index,
-                        sets: item.sets || exercise?.sets || 0,
-                    };
-                }),
+                items: workout.items.map((item, index) => ({
+                    planExerciseId: item.planExerciseId,
+                    order: index,
+                })),
             },
             {
                 onSuccess: () => {
@@ -266,7 +272,6 @@ export function WorkoutsTab({
                 onOpenChange={setWorkoutDialogOpen}
                 editingWorkout={editingWorkout}
                 planExercises={planExercises}
-                planWorkouts={planWorkouts}
                 onSave={handleSaveWorkout}
                 isPending={createWorkoutMutation.isPending || updateWorkoutMutation.isPending}
             />

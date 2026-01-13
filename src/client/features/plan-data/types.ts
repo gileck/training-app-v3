@@ -15,19 +15,10 @@ export interface PlanExerciseWithDefinition extends PlanExerciseClient {
 }
 
 /**
- * Tracks sets completed within a specific workout
- */
-export interface WorkoutSetsProgress {
-    workoutId: string;
-    setsCompleted: number;
-}
-
-/**
  * Weekly progress for a single exercise
  */
 export interface ExerciseProgress {
-    setsCompleted: number;  // Total sets (all workouts + floating)
-    workoutSets: WorkoutSetsProgress[];  // Per-workout breakdown
+    setsCompleted: number;
     isDone: boolean;
 }
 

@@ -1,14 +1,6 @@
 import { ObjectId } from 'mongodb';
 
 /**
- * Tracks sets completed within a specific workout
- */
-export interface WorkoutSetsCompleted {
-    workoutId: string;
-    setsCompleted: number;
-}
-
-/**
  * Represents progress for a specific exercise within a week
  * Accepts both ObjectId and string (UUID) for ID fields to support client-generated IDs
  */
@@ -16,8 +8,7 @@ export interface ExerciseProgress {
     _id: ObjectId | string;
     weeklyProgressId: ObjectId | string;
     planExerciseId: ObjectId | string;
-    setsCompleted: number;  // Total sets (all workouts + floating)
-    workoutSets: WorkoutSetsCompleted[];  // Per-workout breakdown
+    setsCompleted: number;
     isDone: boolean;
     updatedAt: Date;
 }
@@ -41,8 +32,7 @@ export interface ExerciseProgressClient {
     _id: string;
     weeklyProgressId: string;
     planExerciseId: string;
-    setsCompleted: number;  // Total sets (all workouts + floating)
-    workoutSets: WorkoutSetsCompleted[];  // Per-workout breakdown
+    setsCompleted: number;
     isDone: boolean;
     updatedAt: string;
 }

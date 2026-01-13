@@ -69,13 +69,13 @@ interface PlanDataState {
     // ========================================================================
     // Progress Actions (used by Home)
     // ========================================================================
-
-    /** Increment sets completed for an exercise (workoutId optional for workout-attributed sets) */
-    incrementSet: (planId: string, weekNumber: number, exerciseId: string, targetSets: number, workoutId?: string | null) => void;
-    /** Decrement sets completed for an exercise (workoutId optional for workout-attributed sets) */
-    decrementSet: (planId: string, weekNumber: number, exerciseId: string, workoutId?: string | null) => void;
-    /** Complete all remaining sets for an exercise (workoutId optional for workout-attributed sets) */
-    completeAllSets: (planId: string, weekNumber: number, exerciseId: string, targetSets: number, workoutId?: string | null) => void;
+    
+    /** Increment sets completed for an exercise */
+    incrementSet: (planId: string, weekNumber: number, exerciseId: string, targetSets: number) => void;
+    /** Decrement sets completed for an exercise */
+    decrementSet: (planId: string, weekNumber: number, exerciseId: string) => void;
+    /** Complete all remaining sets for an exercise */
+    completeAllSets: (planId: string, weekNumber: number, exerciseId: string, targetSets: number) => void;
 
     // ========================================================================
     // Cache Management
@@ -299,34 +299,18 @@ export const usePlanDataStore = createStore<PlanDataState>({
         // Progress Actions
         // ====================================================================
 
-        incrementSet: (planId, weekNumber, exerciseId, targetSets, workoutId = null) => {
+        incrementSet: (planId, weekNumber, exerciseId, targetSets) => {
             set((state) => {
                 const plan = state.plans[planId];
                 if (!plan) return state;
 
                 const weekProgress = { ...plan.weekProgress };
                 const currentWeek = weekProgress[weekNumber] || {};
-                const current = currentWeek[exerciseId] || { setsCompleted: 0, workoutSets: [], isDone: false };
-
+                const current = currentWeek[exerciseId] || { setsCompleted: 0, isDone: false };
+                
                 const newSetsCompleted = Math.min(current.setsCompleted + 1, targetSets);
-
-                // Update workout-specific tracking if workoutId provided
-                const newWorkoutSets = [...(current.workoutSets || [])];
-                if (workoutId) {
-                    const existingIdx = newWorkoutSets.findIndex(w => w.workoutId === workoutId);
-                    if (existingIdx >= 0) {
-                        newWorkoutSets[existingIdx] = {
-                            ...newWorkoutSets[existingIdx],
-                            setsCompleted: newWorkoutSets[existingIdx].setsCompleted + 1,
-                        };
-                    } else {
-                        newWorkoutSets.push({ workoutId, setsCompleted: 1 });
-                    }
-                }
-
                 const newProgress: ExerciseProgress = {
                     setsCompleted: newSetsCompleted,
-                    workoutSets: newWorkoutSets,
                     isDone: newSetsCompleted >= targetSets,
                 };
 
@@ -344,32 +328,18 @@ export const usePlanDataStore = createStore<PlanDataState>({
             });
         },
 
-        decrementSet: (planId, weekNumber, exerciseId, workoutId = null) => {
+        decrementSet: (planId, weekNumber, exerciseId) => {
             set((state) => {
                 const plan = state.plans[planId];
                 if (!plan) return state;
 
                 const weekProgress = { ...plan.weekProgress };
                 const currentWeek = weekProgress[weekNumber] || {};
-                const current = currentWeek[exerciseId] || { setsCompleted: 0, workoutSets: [], isDone: false };
-
+                const current = currentWeek[exerciseId] || { setsCompleted: 0, isDone: false };
+                
                 const newSetsCompleted = Math.max(current.setsCompleted - 1, 0);
-
-                // Update workout-specific tracking if workoutId provided
-                const newWorkoutSets = [...(current.workoutSets || [])];
-                if (workoutId) {
-                    const existingIdx = newWorkoutSets.findIndex(w => w.workoutId === workoutId);
-                    if (existingIdx >= 0 && newWorkoutSets[existingIdx].setsCompleted > 0) {
-                        newWorkoutSets[existingIdx] = {
-                            ...newWorkoutSets[existingIdx],
-                            setsCompleted: newWorkoutSets[existingIdx].setsCompleted - 1,
-                        };
-                    }
-                }
-
                 const newProgress: ExerciseProgress = {
                     setsCompleted: newSetsCompleted,
-                    workoutSets: newWorkoutSets,
                     isDone: false, // Can't be done if we just removed a set
                 };
 
@@ -387,34 +357,18 @@ export const usePlanDataStore = createStore<PlanDataState>({
             });
         },
 
-        completeAllSets: (planId, weekNumber, exerciseId, targetSets, workoutId = null) => {
+        completeAllSets: (planId, weekNumber, exerciseId, targetSets) => {
             set((state) => {
                 const plan = state.plans[planId];
                 if (!plan) return state;
 
                 const weekProgress = { ...plan.weekProgress };
                 const currentWeek = weekProgress[weekNumber] || {};
-                const current = currentWeek[exerciseId] || { setsCompleted: 0, workoutSets: [], isDone: false };
-
-                // Update workout-specific tracking if workoutId provided
-                const newWorkoutSets = [...(current.workoutSets || [])];
-                if (workoutId) {
-                    const existingIdx = newWorkoutSets.findIndex(w => w.workoutId === workoutId);
-                    if (existingIdx >= 0) {
-                        newWorkoutSets[existingIdx] = {
-                            ...newWorkoutSets[existingIdx],
-                            setsCompleted: targetSets,
-                        };
-                    } else {
-                        newWorkoutSets.push({ workoutId, setsCompleted: targetSets });
-                    }
-                }
-
+                
                 weekProgress[weekNumber] = {
                     ...currentWeek,
                     [exerciseId]: {
                         setsCompleted: targetSets,
-                        workoutSets: newWorkoutSets,
                         isDone: true,
                     },
                 };
