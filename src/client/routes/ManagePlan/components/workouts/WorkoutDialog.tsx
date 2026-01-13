@@ -47,7 +47,7 @@ export function WorkoutDialog({
             for (const item of workout.items) {
                 // Fallback to exercise's weekly sets for legacy data without per-workout allocation
                 const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
-                const sets = item.sets || exercise?.sets || 0;
+                const sets = item.sets ?? exercise?.sets ?? 0;
                 const current = allocations.get(item.planExerciseId) || 0;
                 allocations.set(item.planExerciseId, current + sets);
             }
@@ -68,7 +68,7 @@ export function WorkoutDialog({
                     const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
                     if (exercise) {
                         // Fallback to exercise's weekly sets for legacy data without per-workout allocation
-                        exerciseMap.set(item.planExerciseId, item.sets || exercise.sets);
+                        exerciseMap.set(item.planExerciseId, item.sets ?? exercise.sets);
                     }
                 }
                 setSelectedExercises(exerciseMap);
