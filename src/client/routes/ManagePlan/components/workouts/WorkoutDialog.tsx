@@ -45,13 +45,16 @@ export function WorkoutDialog({
             if (editingWorkout && workout._id === editingWorkout._id) continue;
 
             for (const item of workout.items) {
+                // Fallback to exercise's weekly sets for legacy data without per-workout allocation
+                const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
+                const sets = item.sets ?? exercise?.sets ?? 0;
                 const current = allocations.get(item.planExerciseId) || 0;
-                allocations.set(item.planExerciseId, current + item.sets);
+                allocations.set(item.planExerciseId, current + sets);
             }
         }
 
         return allocations;
-    }, [planWorkouts, editingWorkout]);
+    }, [planWorkouts, editingWorkout, planExercises]);
 
     // Reset form when dialog opens or editingWorkout changes
     useEffect(() => {
@@ -62,8 +65,10 @@ export function WorkoutDialog({
                 const exerciseMap = new Map<string, number>();
                 for (const item of editingWorkout.items) {
                     // Only include IDs that still exist in planExercises
-                    if (planExercises.some(pe => pe._id === item.planExerciseId)) {
-                        exerciseMap.set(item.planExerciseId, item.sets);
+                    const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
+                    if (exercise) {
+                        // Fallback to exercise's weekly sets for legacy data without per-workout allocation
+                        exerciseMap.set(item.planExerciseId, item.sets ?? exercise.sets);
                     }
                 }
                 setSelectedExercises(exerciseMap);
