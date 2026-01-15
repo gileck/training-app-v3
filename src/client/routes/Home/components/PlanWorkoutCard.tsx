@@ -12,6 +12,8 @@ import { ExerciseCardList } from './ExerciseCard';
 export interface PlanWorkoutCardProps {
     workout: PlanWorkoutClient;
     exercises: ExerciseWeekProgressFromStore[];
+    /** Workout-specific sets: {exerciseId: setsCompleted} for this workout */
+    workoutSets?: Record<string, number>;
     onStart: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
@@ -27,6 +29,7 @@ export interface PlanWorkoutCardProps {
 export function PlanWorkoutCard({
     workout,
     exercises,
+    workoutSets = {},
     onStart,
     isExpanded,
     onToggleExpand,
@@ -40,14 +43,27 @@ export function PlanWorkoutCard({
     // Create a map for quick lookup of exercises by planExerciseId
     const exerciseMap = new Map(exercises.map((ex) => [ex.planExerciseId, ex]));
 
-    // Resolve workout items to exercises with definitions
+    // Resolve workout items to exercises with workout-specific target sets and completed sets
+    // item.sets is the per-workout allocation (undefined means use exercise's weekly sets)
     const resolvedExercises = workout.items
-        .map((item) => exerciseMap.get(item.planExerciseId))
-        .filter((ex): ex is ExerciseWeekProgressFromStore => ex !== undefined);
+        .map((item) => {
+            const ex = exerciseMap.get(item.planExerciseId);
+            if (!ex) return null;
+            // Use workout-specific sets if defined, otherwise fall back to exercise's weekly sets
+            const workoutTargetSets = item.sets ?? ex.targetSets;
+            // Get workout-specific completed sets (not total)
+            const workoutSetsCompleted = workoutSets[item.planExerciseId] ?? 0;
+            return {
+                ...ex,
+                workoutTargetSets,
+                workoutSetsCompleted,
+            };
+        })
+        .filter((ex): ex is ExerciseWeekProgressFromStore & { workoutTargetSets: number; workoutSetsCompleted: number } => ex !== null);
 
-    // Calculate workout progress
-    const totalSets = resolvedExercises.reduce((sum, ex) => sum + ex.targetSets, 0);
-    const completedSets = resolvedExercises.reduce((sum, ex) => sum + Math.min(ex.setsCompleted, ex.targetSets), 0);
+    // Calculate workout progress using workout-specific completed sets
+    const totalSets = resolvedExercises.reduce((sum, ex) => sum + ex.workoutTargetSets, 0);
+    const completedSets = resolvedExercises.reduce((sum, ex) => sum + Math.min(ex.workoutSetsCompleted, ex.workoutTargetSets), 0);
     const progressPercent = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
     const isWorkoutComplete = totalSets > 0 && completedSets >= totalSets;
 
@@ -119,11 +135,18 @@ export function PlanWorkoutCard({
                             </div>
                         ) : (
                             resolvedExercises.map((ex) => {
-                                const isExerciseDone = ex.isDone || ex.setsCompleted >= ex.targetSets;
+                                // Use workout-specific completed sets for completion status
+                                const isExerciseDone = ex.workoutSetsCompleted >= ex.workoutTargetSets;
+                                // Create a modified exercise object with workout-specific progress for display
+                                const displayExercise = {
+                                    ...ex,
+                                    setsCompleted: ex.workoutSetsCompleted,
+                                    targetSets: ex.workoutTargetSets,
+                                };
                                 return (
                                     <ExerciseCardList
                                         key={ex.planExerciseId}
-                                        exercise={ex}
+                                        exercise={displayExercise}
                                         onAddSet={() => onAddSet(ex)}
                                         onRemoveSet={() => onRemoveSet(ex)}
                                         onCompleteAll={() => onCompleteAll(ex)}

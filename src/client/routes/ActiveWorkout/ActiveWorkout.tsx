@@ -120,7 +120,8 @@ export function ActiveWorkout() {
     const createPlanWorkoutMutation = useCreatePlanWorkout(activePlanId || '');
 
     // Set progress actions (unified store + activity logging)
-    const { addSet, removeSet } = useSetProgress(activePlanId, currentWeek);
+    // Pass planWorkoutId to track sets for this specific workout
+    const { addSet, removeSet } = useSetProgress(activePlanId, currentWeek, planWorkoutId);
 
     // Plan exercises (for adding exercises during workout - always available with active plan)
     const { data: weekProgressData } = useWeekProgress(activePlanId, currentWeek);
