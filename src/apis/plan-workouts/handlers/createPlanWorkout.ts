@@ -53,8 +53,6 @@ export const createPlanWorkout = async (
             items: request.items.map((item, index) => ({
                 planExerciseId: toDocumentId(item.planExerciseId),
                 order: index,
-                // Include sets only if explicitly provided (undefined means use exercise's weekly sets)
-                ...(item.sets !== undefined && { sets: item.sets }),
             })),
         };
 
@@ -69,7 +67,6 @@ export const createPlanWorkout = async (
             items: newWorkout.items.map((item) => ({
                 planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
-                ...(item.sets !== undefined && { sets: item.sets }),
             })),
             order: newWorkout.order,
             createdAt: newWorkout.createdAt.toISOString(),
