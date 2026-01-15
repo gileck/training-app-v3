@@ -7,8 +7,6 @@ import { ObjectId } from 'mongodb';
 export interface PlanWorkoutItem {
     planExerciseId: ObjectId | string;
     order: number;
-    /** Sets allocated to this workout (optional - defaults to exercise's weekly sets if not specified) */
-    sets?: number;
 }
 
 /**
@@ -39,8 +37,6 @@ export type PlanWorkoutUpdate = Partial<Omit<PlanWorkout, '_id' | 'userId' | 'pl
 export interface PlanWorkoutItemClient {
     planExerciseId: string;
     order: number;
-    /** Sets allocated to this workout (optional - defaults to exercise's weekly sets if not specified) */
-    sets?: number;
 }
 
 export interface PlanWorkoutClient {

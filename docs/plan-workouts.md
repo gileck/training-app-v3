@@ -27,15 +27,14 @@ interface PlanWorkout {
 interface PlanWorkoutItem {
     planExerciseId: ObjectId;   // Reference to plan exercise
     order: number;              // Order within the workout
-    sets?: number;              // Per-workout set allocation (optional)
 }
 ```
 
 ### Key Design Decisions
 
-1. **No `exerciseDefId` storage**: Workouts reference `planExerciseId` directly, which already contains the exercise definition reference. This ensures workouts stay in sync with plan exercise configuration (reps, weight).
+1. **No `exerciseDefId` storage**: Workouts reference `planExerciseId` directly, which already contains the exercise definition reference. This ensures workouts stay in sync with plan exercise configuration (sets, reps, weight).
 
-2. **Per-workout set allocation**: Each workout item can optionally specify `sets` to override the exercise's weekly sets. This allows splitting an exercise across multiple workouts (see [Multi-Workout Set Allocation](#multi-workout-set-allocation)).
+2. **No per-workout overrides**: Exercises use the plan's configured values. Future versions may add per-workout overrides.
 
 3. **Cascade deletion**: When a plan is deleted, all its workouts should also be deleted.
 
@@ -98,8 +97,8 @@ createMutation.mutate({
     planId,
     name: 'Push Day',
     items: [
-        { planExerciseId: 'abc123', order: 0, sets: 5 },  // Custom set allocation
-        { planExerciseId: 'def456', order: 1 },          // Uses exercise's weekly sets
+        { planExerciseId: 'abc123', order: 0 },
+        { planExerciseId: 'def456', order: 1 },
     ],
 });
 ```
@@ -122,54 +121,6 @@ When starting an active workout session:
 
 ### Always Syncs to Weekly Progress
 Set +/- operations always sync to the backend weekly progress. The `sessionSource` concept was removed since an active plan is always required.
-
-## Multi-Workout Set Allocation
-
-Exercises can be split across multiple workouts with custom set counts per workout.
-
-### Use Case
-
-An exercise with 10 weekly sets can be split into:
-- **Workout A (Push)**: 5 sets
-- **Workout B (Full Body)**: 5 sets
-
-The Exercise Tab shows total progress (e.g., 7/10), while each workout shows its own progress (e.g., 5/5 and 2/5).
-
-### Data Structure
-
-Progress is tracked at two levels:
-
-```typescript
-// In PlanData (plan-data store)
-interface PlanData {
-    // Total weekly progress per exercise
-    weekProgress: Record<number, Record<string, ExerciseProgress>>;
-    // Workout-specific sets: {weekNumber: {workoutId: {exerciseId: setsCompleted}}}
-    workoutSets: Record<number, Record<string, Record<string, number>>>;
-}
-```
-
-### Auto-Fill Logic
-
-When adding/removing sets from the **Exercise Tab** or **ad-hoc workouts**, sets are automatically assigned to workouts without prompting the user:
-
-| Action | Strategy | Example |
-|--------|----------|---------|
-| **Add set** | Fill first workout with capacity | If Workout A is 5/5 and B is 2/5, new set goes to B |
-| **Remove set** | Remove from last workout with sets | If A has 5/5 and B has 2/5, removal comes from B |
-| **Complete all** | Same as Add set (repeated) | Fills A to 5/5, then B to 5/5 |
-
-This FIFO/LIFO approach ensures predictable behavior without user intervention.
-
-### When Starting a Saved Workout
-
-Sets are tracked against that specific workout. The workout card shows workout-specific progress (e.g., "3/5 sets") not total progress.
-
-### Implementation Details
-
-See inline comments in:
-- `src/client/routes/Home/Home.tsx` - Auto-fill functions (`getFirstWorkoutWithCapacity`, `getLastWorkoutWithSets`)
-- `src/client/features/plan-data/store.ts` - Store actions (`incrementSetForWorkout`, `decrementSetForWorkout`)
 
 ## UI Locations
 

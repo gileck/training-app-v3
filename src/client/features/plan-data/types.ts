@@ -30,8 +30,6 @@ export interface PlanData {
     exercises: PlanExerciseWithDefinition[];
     /** Week progress: {weekNumber: {planExerciseId: ExerciseProgress}} */
     weekProgress: Record<number, Record<string, ExerciseProgress>>;
-    /** Workout-specific sets: {weekNumber: {workoutId: {planExerciseId: setsCompleted}}} */
-    workoutSets: Record<number, Record<string, Record<string, number>>>;
     /** Timestamp when data was last synced to server */
     lastSyncedAt: number | null;
     /** Whether local data has unsaved changes */
