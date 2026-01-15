@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "cdc61963505612f4d03030aa3765e81444c58c76",
-  "lastProjectCommit": "005191511f10d6307e89507536f7d5873242ac88",
-  "lastSyncDate": "2026-01-12T08:51:18.884Z",
+  "lastSyncCommit": "3a78a1dad995bf3625826d963afb0b66ae9ee662",
+  "lastProjectCommit": "6a62d1d25ce6dcaf102ab3492e03a9c4fe370966",
+  "lastSyncDate": "2026-01-15T19:33:59.739Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,18 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-15T19:33:59.933Z",
+      "templateCommit": "3a78a1dad995bf3625826d963afb0b66ae9ee662",
+      "projectCommit": "6a62d1d25ce6dcaf102ab3492e03a9c4fe370966",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "3a78a1d docs: clarify that toasts in onSuccess are NOT violations \u001b[90m(15/01/2026)\u001b[0m\n  - Add inline comment in useDeleteReport explaining toast is UI feedback\n  - Add prominent notice in audit command about what is/isn't a violation\n  - Toasts, logging, analytics, navigation in onSuccess are ALLOWED\n  - Only setQueryData/invalidateQueries with server data are violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "1870f5d fix: add permissions for PR comment workflow \u001b[90m(14/01/2026)\u001b[0m\n  Add explicit pull-requests: write permission to allow the\n  PR checks workflow to post comments on PRs.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-12T08:51:19.080Z",
       "templateCommit": "cdc61963505612f4d03030aa3765e81444c58c76",
@@ -280,17 +292,6 @@
         "e95eaf0 feat: add auth debug info to diagnose authentication failures \u001b[90m(09/01/2026)\u001b[0m\n  Add AuthDebugInfo to track and expose authentication state:\n  - cookiePresent: whether auth cookie was in request\n  - tokenError: JWT verification error message if failed\n  - tokenErrorCode: error type (TokenExpiredError, JsonWebTokenError, etc.)\n  \n  Debug info is returned in /me response and logged during preflight,\n  helping diagnose why users see unexpected logged-out state.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "7f7aaf3 feat: enrich investigation prompt with full report details \u001b[90m(09/01/2026)\u001b[0m\n  Add more context to bug investigation prompt:\n  - Report ID, category, status, network status, created date\n  - User info (username, email, userId)\n  - Browser info (userAgent, viewport, language)\n  - Performance entries for performance bugs\n  - Show all session logs instead of last 20\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-09T19:10:49.426Z",
-      "templateCommit": "43356c33880a82f82229118e70cc09f812b6f630",
-      "projectCommit": "0fdaa9c3307cfaf5e828606945c6aee7ff84c797",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "43356c3 fix: improve investigate-bugs script reliability \u001b[90m(09/01/2026)\u001b[0m\n  - Show full thinking output with --stream (remove truncation)\n  - Increase MAX_TURNS from 30 to 100 for complex investigations\n  - Add fallback when JSON parsing fails (saves partial findings as inconclusive)\n  - Update CLI option descriptions\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -502,7 +503,7 @@
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
     "src/client/routes/Reports/Reports.tsx": "d779d86bec86ce3772fec318126463ec",
-    "src/client/routes/Reports/hooks.ts": "328969aea80032801cdbe668411af245",
+    "src/client/routes/Reports/hooks.ts": "6d7bf1b9cd321025e42ec829226961f0",
     "src/client/routes/Reports/index.ts": "d50cbe298a66723e0b120912e51e22cc",
     "src/client/routes/Reports/store.ts": "da914b2cd044bb3f270a94e77e4810de",
     "src/client/routes/Settings/index.ts": "4acb722c393191556f86eabbed9239f2",
@@ -583,7 +584,7 @@
     "src/client/features/index.ts": "255a5c523cb1017049e9c23e4a3bccfb",
     "src/client/routes/Settings/Settings.tsx": "a31f6ac2ce8fbe641c4005ea89a6be37",
     ".claude/commands/contribute-to-template.md": "87ad1b85a9ccb692c368f89feee68598",
-    ".claude/commands/full-project-audit.md": "88efe3a8e4d84540e27b9419b3f664b6",
+    ".claude/commands/full-project-audit.md": "04fd8bf7f69e28534a3f0f6b4ce91181",
     "src/client/components/ui/confirm-dialog.tsx": "23ec45595012722338327c76936a08d7",
     "src/client/routes/Profile/components/AccountInfoCard.tsx": "a7f1505ab9febf582525786b18dd528a",
     "src/client/routes/Profile/components/ImageUploadDialog.tsx": "ff609bad55be6256553cc3501baa2e5e",
@@ -614,7 +615,7 @@
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
     ".github/workflows/deploy-notify.yml": "92ead22c5679ac1ca4cd5229167e5836",
-    ".github/workflows/pr-checks.yml": "dcd77f1dd39112d220a6e94a0d63c00e",
+    ".github/workflows/pr-checks.yml": "14c3e4f2a8dc5e22b93a27686682fe22",
     "scripts/template-scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/template-scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/template-scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",

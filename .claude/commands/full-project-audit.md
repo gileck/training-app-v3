@@ -628,6 +628,16 @@ Create a table of ALL mutations:
 
 #### 3.4.3: Edit/Delete Mutations - Optimistic-Only Pattern
 
+> **🚨 IMPORTANT: What is NOT a violation:**
+> - `toast.success()` or `toast.error()` in `onSuccess`/`onError` → **ALLOWED** (UI feedback)
+> - `logger.info()` or analytics calls → **ALLOWED** (side effects)
+> - Navigation (`navigate()`) → **ALLOWED** (side effects)
+>
+> **Only these are violations:**
+> - `queryClient.setQueryData()` with server response data
+> - `queryClient.invalidateQueries()` on the same data
+> - Any state update derived from server response
+
 **REQUIRED pattern for ALL edits and deletes:**
 
 ```typescript

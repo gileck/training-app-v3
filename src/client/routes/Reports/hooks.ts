@@ -91,9 +91,13 @@ export function useDeleteReport() {
             }
             toast.error('Failed to delete report');
         },
+        // NOTE: Toast here is UI feedback only, NOT a state update.
+        // This does NOT violate the optimistic-only pattern.
+        // See docs/react-query-mutations.md "What's Allowed in onSuccess/onError?"
         onSuccess: () => {
             toast.success('Report deleted successfully');
         },
+        onSettled: () => {},
     });
 }
 
