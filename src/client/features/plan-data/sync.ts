@@ -71,6 +71,7 @@ export async function loadPlan(planId: string, weekNumber: number): Promise<void
         store._setPlanData(planId, {
             exercises: [],
             weekProgress: {},
+            workoutSets: {},
             lastSyncedAt: null,
             isDirty: false,
         });
@@ -107,6 +108,7 @@ async function fetchPlanFromServer(planId: string, weekNumber: number): Promise<
     return {
         exercises,
         weekProgress,
+        workoutSets: {},
         lastSyncedAt: Date.now(),
         isDirty: false,
     };

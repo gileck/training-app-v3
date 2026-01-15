@@ -251,6 +251,55 @@ return <ItemList items={items} />;
 
 ---
 
+## React Rendering & Infinite Loops
+
+Common pitfalls that cause infinite re-renders and hard-to-debug issues.
+
+**Summary:** Zustand selectors returning new object/array references on every render cause infinite loops. These bugs pass TypeScript and ESLint but crash at runtime.
+
+**Key Points:**
+- **CRITICAL**: Never return `{}` or `[]` literals in Zustand selector fallbacks
+- Create module-level constants for empty fallback values
+- Symptoms: `Maximum update depth exceeded`, app freezes on mount
+
+**The Bug:**
+
+```typescript
+// BAD: New {} created every render → infinite loop
+export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
+    return usePlanDataStore((state) => {
+        if (!planId) return {};  // NEW OBJECT EVERY RENDER!
+        return state.plans[planId]?.workoutSets?.[weekNumber] ?? {};
+    });
+}
+```
+
+**The Fix:**
+
+```typescript
+// GOOD: Stable reference prevents infinite loops
+const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
+
+export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
+    return usePlanDataStore((state) => {
+        if (!planId) return EMPTY_WORKOUT_SETS;  // Same reference
+        return state.plans[planId]?.workoutSets?.[weekNumber] ?? EMPTY_WORKOUT_SETS;
+    });
+}
+```
+
+**Existing Stable Fallbacks** (in `src/client/features/plan-data/store.ts`):
+
+```typescript
+const EMPTY_EXERCISES: PlanExerciseWithDefinition[] = [];
+const EMPTY_PROGRESS: Record<string, ExerciseProgress> = {};
+const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
+```
+
+**Docs:** [docs/react-rendering-guidelines.md](docs/react-rendering-guidelines.md)
+
+---
+
 ## Routes & Navigation
 
 Adding routes and keeping navigation menus in sync.

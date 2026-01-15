@@ -71,7 +71,7 @@ export const updatePlanWorkout = async (
         // Build update object
         const update: {
             name?: string;
-            items?: { planExerciseId: ReturnType<typeof toDocumentId>; order: number }[];
+            items?: { planExerciseId: ReturnType<typeof toDocumentId>; order: number; sets?: number }[];
             updatedAt: Date;
         } = {
             updatedAt: new Date(),
@@ -85,6 +85,8 @@ export const updatePlanWorkout = async (
             update.items = request.items.map((item, index) => ({
                 planExerciseId: toDocumentId(item.planExerciseId),
                 order: index,
+                // Include sets only if explicitly provided (undefined means use exercise's weekly sets)
+                ...(item.sets !== undefined && { sets: item.sets }),
             }));
         }
 
@@ -108,6 +110,7 @@ export const updatePlanWorkout = async (
             items: updatedWorkout.items.map((item) => ({
                 planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
+                ...(item.sets !== undefined && { sets: item.sets }),
             })),
             order: updatedWorkout.order,
             createdAt: updatedWorkout.createdAt.toISOString(),

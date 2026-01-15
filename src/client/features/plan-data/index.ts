@@ -27,6 +27,8 @@ export {
     usePlanIsDirty,
     usePlanConflict,
     usePlanHasConflict,
+    useWorkoutSetsForExercise,
+    useWeekWorkoutSets,
 } from './store';
 
 // Sync functions
