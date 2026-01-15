@@ -483,9 +483,17 @@ export function useClearAllPlanData() {
  *
  * This is the unified way to update set progress across the app.
  *
+ * @param planId - The plan ID
+ * @param weekNumber - The week number
+ * @param workoutId - Optional workout ID for workout-specific tracking
+ *
  * @example
  * ```typescript
+ * // For exercise tab (no workout tracking)
  * const { addSet, removeSet, completeAllSets } = useSetProgress(planId, weekNumber);
+ *
+ * // For workout tab (with workout tracking)
+ * const { addSet, removeSet } = useSetProgress(planId, weekNumber, workoutId);
  *
  * // Add a single set
  * addSet(exerciseId, targetSets);
@@ -497,11 +505,13 @@ export function useClearAllPlanData() {
  * completeAllSets(exerciseId, targetSets, currentSetsCompleted);
  * ```
  */
-export function useSetProgress(planId: string | null, weekNumber: number) {
+export function useSetProgress(planId: string | null, weekNumber: number, workoutId?: string | null) {
     const queryClient = useQueryClient();
     const incrementSet = usePlanDataStore((s) => s.incrementSet);
     const decrementSet = usePlanDataStore((s) => s.decrementSet);
     const completeAllSetsAction = usePlanDataStore((s) => s.completeAllSets);
+    const incrementSetForWorkout = usePlanDataStore((s) => s.incrementSetForWorkout);
+    const decrementSetForWorkout = usePlanDataStore((s) => s.decrementSetForWorkout);
 
     // Activity mutations (internal)
     const addActivityMutation = useMutation({
@@ -579,13 +589,22 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
 
     /**
      * Add a single set to an exercise
+     * @param exerciseId - The exercise ID
+     * @param targetSets - The target number of sets
+     * @param overrideWorkoutId - Optional override for workout ID (used by workout picker)
      */
     const addSet = useCallback(
-        (exerciseId: string, targetSets: number) => {
+        (exerciseId: string, targetSets: number, overrideWorkoutId?: string) => {
             if (!planId) return;
 
-            // Update store
-            incrementSet(planId, weekNumber, exerciseId, targetSets);
+            const effectiveWorkoutId = overrideWorkoutId ?? workoutId;
+
+            // Update store (workout-specific or general)
+            if (effectiveWorkoutId) {
+                incrementSetForWorkout(planId, weekNumber, exerciseId, effectiveWorkoutId, targetSets);
+            } else {
+                incrementSet(planId, weekNumber, exerciseId, targetSets);
+            }
             syncPlanToServer(planId);
 
             // Create activity log
@@ -597,18 +616,26 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
                 activityIds,
             });
         },
-        [planId, weekNumber, incrementSet, addActivityMutation]
+        [planId, weekNumber, workoutId, incrementSet, incrementSetForWorkout, addActivityMutation]
     );
 
     /**
      * Remove a set from an exercise
+     * @param exerciseId - The exercise ID
+     * @param overrideWorkoutId - Optional override for workout ID
      */
     const removeSet = useCallback(
-        (exerciseId: string) => {
+        (exerciseId: string, overrideWorkoutId?: string) => {
             if (!planId) return;
 
-            // Update store
-            decrementSet(planId, weekNumber, exerciseId);
+            const effectiveWorkoutId = overrideWorkoutId ?? workoutId;
+
+            // Update store (workout-specific or general)
+            if (effectiveWorkoutId) {
+                decrementSetForWorkout(planId, weekNumber, exerciseId, effectiveWorkoutId);
+            } else {
+                decrementSet(planId, weekNumber, exerciseId);
+            }
             syncPlanToServer(planId);
 
             // Delete activity log
@@ -617,7 +644,7 @@ export function useSetProgress(planId: string | null, weekNumber: number) {
                 date: new Date().toISOString().split('T')[0],
             });
         },
-        [planId, weekNumber, decrementSet, deleteRecentActivityMutation]
+        [planId, weekNumber, workoutId, decrementSet, decrementSetForWorkout, deleteRecentActivityMutation]
     );
 
     /**

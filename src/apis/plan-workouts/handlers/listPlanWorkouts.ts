@@ -32,6 +32,8 @@ export const listPlanWorkouts = async (
             items: workout.items.map((item) => ({
                 planExerciseId: toStringId(item.planExerciseId),
                 order: item.order,
+                // Pass through sets if defined (undefined means use exercise's weekly sets as default)
+                ...(item.sets !== undefined && { sets: item.sets }),
             })),
             order: workout.order,
             createdAt: workout.createdAt.toISOString(),

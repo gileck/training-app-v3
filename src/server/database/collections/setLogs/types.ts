@@ -13,6 +13,8 @@ export interface SetLog {
     weekNumber: number;
     setNumber: number;
     completedAt: Date;
+    /** Optional workout ID - tracks which workout this set was completed in */
+    workoutId?: ObjectId | string;
 }
 
 /**
@@ -31,6 +33,8 @@ export interface SetLogClient {
     weekNumber: number;
     setNumber: number;
     completedAt: string;
+    /** Optional workout ID - tracks which workout this set was completed in */
+    workoutId?: string;
 }
 
 

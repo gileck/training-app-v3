@@ -69,13 +69,24 @@ interface PlanDataState {
     // ========================================================================
     // Progress Actions (used by Home)
     // ========================================================================
-    
+
     /** Increment sets completed for an exercise */
     incrementSet: (planId: string, weekNumber: number, exerciseId: string, targetSets: number) => void;
     /** Decrement sets completed for an exercise */
     decrementSet: (planId: string, weekNumber: number, exerciseId: string) => void;
     /** Complete all remaining sets for an exercise */
     completeAllSets: (planId: string, weekNumber: number, exerciseId: string, targetSets: number) => void;
+
+    // ========================================================================
+    // Workout-Specific Progress Actions
+    // ========================================================================
+
+    /** Increment sets for a specific workout (also updates total) */
+    incrementSetForWorkout: (planId: string, weekNumber: number, exerciseId: string, workoutId: string, targetSets: number) => void;
+    /** Decrement sets for a specific workout (also updates total) */
+    decrementSetForWorkout: (planId: string, weekNumber: number, exerciseId: string, workoutId: string) => void;
+    /** Get sets completed for a specific workout */
+    getWorkoutSets: (planId: string, weekNumber: number, workoutId: string, exerciseId: string) => number;
 
     // ========================================================================
     // Cache Management
@@ -92,6 +103,7 @@ interface PlanDataState {
 const createEmptyPlanData = (): PlanData => ({
     exercises: [],
     weekProgress: {},
+    workoutSets: {},
     lastSyncedAt: null,
     isDirty: false,
 });
@@ -364,7 +376,7 @@ export const usePlanDataStore = createStore<PlanDataState>({
 
                 const weekProgress = { ...plan.weekProgress };
                 const currentWeek = weekProgress[weekNumber] || {};
-                
+
                 weekProgress[weekNumber] = {
                     ...currentWeek,
                     [exerciseId]: {
@@ -380,6 +392,105 @@ export const usePlanDataStore = createStore<PlanDataState>({
                     },
                 };
             });
+        },
+
+        // ====================================================================
+        // Workout-Specific Progress Actions
+        // ====================================================================
+
+        incrementSetForWorkout: (planId, weekNumber, exerciseId, workoutId, targetSets) => {
+            set((state) => {
+                const plan = state.plans[planId];
+                if (!plan) return state;
+
+                // Update total progress (same as incrementSet)
+                const weekProgress = { ...plan.weekProgress };
+                const currentWeek = weekProgress[weekNumber] || {};
+                const current = currentWeek[exerciseId] || { setsCompleted: 0, isDone: false };
+
+                const newSetsCompleted = Math.min(current.setsCompleted + 1, targetSets);
+                const newProgress: ExerciseProgress = {
+                    setsCompleted: newSetsCompleted,
+                    isDone: newSetsCompleted >= targetSets,
+                };
+
+                weekProgress[weekNumber] = {
+                    ...currentWeek,
+                    [exerciseId]: newProgress,
+                };
+
+                // Update workout-specific sets
+                const workoutSets = { ...plan.workoutSets };
+                const weekWorkouts = workoutSets[weekNumber] || {};
+                const workoutExercises = weekWorkouts[workoutId] || {};
+                const currentWorkoutSets = workoutExercises[exerciseId] || 0;
+
+                workoutSets[weekNumber] = {
+                    ...weekWorkouts,
+                    [workoutId]: {
+                        ...workoutExercises,
+                        [exerciseId]: currentWorkoutSets + 1,
+                    },
+                };
+
+                return {
+                    plans: {
+                        ...state.plans,
+                        [planId]: { ...plan, weekProgress, workoutSets, isDirty: true },
+                    },
+                };
+            });
+        },
+
+        decrementSetForWorkout: (planId, weekNumber, exerciseId, workoutId) => {
+            set((state) => {
+                const plan = state.plans[planId];
+                if (!plan) return state;
+
+                // Update total progress (same as decrementSet)
+                const weekProgress = { ...plan.weekProgress };
+                const currentWeek = weekProgress[weekNumber] || {};
+                const current = currentWeek[exerciseId] || { setsCompleted: 0, isDone: false };
+
+                const newSetsCompleted = Math.max(current.setsCompleted - 1, 0);
+                const newProgress: ExerciseProgress = {
+                    setsCompleted: newSetsCompleted,
+                    isDone: false, // Can't be done if we just removed a set
+                };
+
+                weekProgress[weekNumber] = {
+                    ...currentWeek,
+                    [exerciseId]: newProgress,
+                };
+
+                // Update workout-specific sets
+                const workoutSets = { ...plan.workoutSets };
+                const weekWorkouts = workoutSets[weekNumber] || {};
+                const workoutExercises = weekWorkouts[workoutId] || {};
+                const currentWorkoutSets = workoutExercises[exerciseId] || 0;
+
+                workoutSets[weekNumber] = {
+                    ...weekWorkouts,
+                    [workoutId]: {
+                        ...workoutExercises,
+                        [exerciseId]: Math.max(currentWorkoutSets - 1, 0),
+                    },
+                };
+
+                return {
+                    plans: {
+                        ...state.plans,
+                        [planId]: { ...plan, weekProgress, workoutSets, isDirty: true },
+                    },
+                };
+            });
+        },
+
+        getWorkoutSets: (planId, weekNumber, workoutId, exerciseId) => {
+            const state = usePlanDataStore.getState();
+            const plan = state.plans[planId];
+            if (!plan) return 0;
+            return plan.workoutSets?.[weekNumber]?.[workoutId]?.[exerciseId] || 0;
         },
 
         // ====================================================================
@@ -484,7 +595,35 @@ export function usePlanConflict(planId: string | null): PlanConflict | null {
  * Check if plan has a sync conflict
  */
 export function usePlanHasConflict(planId: string | null): boolean {
-    return usePlanDataStore((state) => 
+    return usePlanDataStore((state) =>
         planId ? !!state.conflicts[planId] : false
     );
+}
+
+/**
+ * Get workout-specific sets for an exercise
+ */
+export function useWorkoutSetsForExercise(
+    planId: string | null,
+    weekNumber: number,
+    workoutId: string | null,
+    exerciseId: string
+): number {
+    return usePlanDataStore((state) => {
+        if (!planId || !workoutId) return 0;
+        return state.plans[planId]?.workoutSets?.[weekNumber]?.[workoutId]?.[exerciseId] ?? 0;
+    });
+}
+
+/**
+ * Get all workout sets for a week (for calculating totals)
+ */
+export function useWeekWorkoutSets(
+    planId: string | null,
+    weekNumber: number
+): Record<string, Record<string, number>> {
+    return usePlanDataStore((state) => {
+        if (!planId) return {};
+        return state.plans[planId]?.workoutSets?.[weekNumber] ?? {};
+    });
 }
