@@ -2,38 +2,14 @@
  * Individual Report Card Component
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useUpdateReportStatus, useDeleteReport } from '../hooks';
 import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
-import { Badge } from '@/client/components/ui/badge';
-import {
-    Bug,
-    AlertCircle,
-    Copy,
-    ChevronDown,
-    ChevronUp,
-    Loader2,
-    CheckCircle,
-    Search,
-    Clock,
-    XCircle,
-    Gauge,
-    Trash2,
-    MoreVertical
-} from 'lucide-react';
-import type { ReportClient, ReportStatus, InvestigationStatus } from '@/apis/reports/types';
+import { Loader2 } from 'lucide-react';
+import type { ReportClient, ReportStatus } from '@/apis/reports/types';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
 import { toast } from '@/client/components/ui/toast';
-import { STATUS_COLORS, STATUS_ICONS, formatDate, generatePerformanceSummary } from '../utils';
-
-const INVESTIGATION_STATUS_LABELS: Record<InvestigationStatus, string> = {
-    needs_info: 'Needs More Info',
-    root_cause_found: 'Root Cause Found',
-    complex_fix: 'Complex Fix Required',
-    not_a_bug: 'Not a Bug',
-    inconclusive: 'Inconclusive',
-};
+import { ReportCardHeader, ReportCardActions, ReportCardDetails, formatReportDetails } from './ReportCard/index';
 
 interface ReportCardProps {
     report: ReportClient;
@@ -48,129 +24,6 @@ export function ReportCard({ report }: ReportCardProps) {
     const [showActionsMenu, setShowActionsMenu] = useState(false);
     const updateStatusMutation = useUpdateReportStatus();
     const deleteReportMutation = useDeleteReport();
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        if (!showActionsMenu) return;
-
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setShowActionsMenu(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showActionsMenu]);
-
-    const handleCopyDetails = async () => {
-        const sessionLogsFormatted = report.sessionLogs.length > 0
-            ? report.sessionLogs.map(log =>
-                `  [${log.timestamp}]${log.performanceTime !== undefined ? ` [+${log.performanceTime}ms]` : ''} [${log.level.toUpperCase()}] [${log.feature}] ${log.message}${log.meta ? ` | Meta: ${JSON.stringify(log.meta)}` : ''}${log.route ? ` | Route: ${log.route}` : ''} | Network: ${log.networkStatus}`
-            ).join('\n')
-            : '  No session logs';
-
-        const performanceEntriesFormatted = report.performanceEntries && report.performanceEntries.length > 0
-            ? report.performanceEntries.map(entry =>
-                `  [${entry.entryType}] ${entry.name} | Start: ${entry.startTime}ms | Duration: ${entry.duration}ms${entry.transferSize ? ` | Size: ${entry.transferSize}B` : ''}`
-            ).join('\n')
-            : null;
-
-        // Generate performance summary for performance reports
-        const perfSummary = generatePerformanceSummary(report);
-
-        const details = `
-================================================================================
-BUG/ERROR REPORT
-================================================================================
-
-REPORT METADATA
----------------
-- Report ID: ${report._id}
-- Type: ${report.type.toUpperCase()}${report.category ? ` (${report.category})` : ''}
-- Status: ${report.status}
-- Created: ${formatDate(report.createdAt)}
-- Updated: ${formatDate(report.updatedAt)}
-
-CONTEXT
--------
-- Route/Page: ${report.route}
-- Network Status: ${report.networkStatus}
-
-${report.description ? `DESCRIPTION
------------
-${report.description}
-` : ''}
-${perfSummary ? `PERFORMANCE SUMMARY
--------------------
-${perfSummary}
-` : ''}
-${report.errorMessage ? `ERROR MESSAGE
--------------
-${report.errorMessage}
-` : ''}
-${report.stackTrace ? `STACK TRACE
------------
-${report.stackTrace}
-` : ''}
-${report.investigation ? `INVESTIGATION SUMMARY
----------------------
-- Status: ${INVESTIGATION_STATUS_LABELS[report.investigation.status]}
-- Confidence: ${report.investigation.confidence}
-- Headline: ${report.investigation.headline}
-
-Summary:
-${report.investigation.summary}
-${report.investigation.rootCause ? `
-Root Cause:
-${report.investigation.rootCause}
-` : ''}${report.investigation.proposedFix ? `
-Proposed Fix (${report.investigation.proposedFix.complexity} complexity):
-${report.investigation.proposedFix.description}
-
-Files to change:
-${report.investigation.proposedFix.files.map(f => `  - ${f.path}: ${f.changes}`).join('\n')}
-` : ''}${report.investigation.analysisNotes ? `
-Analysis Notes:
-${report.investigation.analysisNotes}
-` : ''}
-Files Examined: ${report.investigation.filesExamined.length > 0 ? report.investigation.filesExamined.join(', ') : 'None'}
-Investigated: ${formatDate(report.investigation.investigatedAt)} by ${report.investigation.investigatedBy}
-` : ''}
-USER INFORMATION
-----------------
-${report.userInfo ? `- User ID: ${report.userInfo.userId || 'N/A'}
-- Username: ${report.userInfo.username || 'N/A'}
-- Email: ${report.userInfo.email || 'N/A'}` : '- User: Anonymous (not logged in)'}
-
-BROWSER/DEVICE INFORMATION
---------------------------
-- User Agent: ${report.browserInfo.userAgent}
-- Viewport: ${report.browserInfo.viewport.width}x${report.browserInfo.viewport.height}
-- Language: ${report.browserInfo.language}
-
-${report.screenshot ? `SCREENSHOT
-----------
-${report.screenshot.startsWith('data:')
-                ? `[Base64 image data - ${Math.round(report.screenshot.length / 1024)}KB]`
-                : report.screenshot}
-` : ''}
-${performanceEntriesFormatted ? `PERFORMANCE ENTRIES (${report.performanceEntries?.length || 0} entries)
---------------------------------------------------------
-${performanceEntriesFormatted}
-` : ''}
-SESSION LOGS (${report.sessionLogs.length} entries)
---------------------------------------------------
-${sessionLogsFormatted}
-
-================================================================================
-END OF REPORT
-================================================================================
-        `.trim();
-
-        await navigator.clipboard.writeText(details);
-    };
 
     const handleCopyId = async () => {
         try {
@@ -183,7 +36,8 @@ END OF REPORT
 
     const handleCopyDetailsWithToast = async () => {
         try {
-            await handleCopyDetails();
+            const details = formatReportDetails(report);
+            await navigator.clipboard.writeText(details);
             toast.success('Report details copied');
         } catch {
             toast.error('Failed to copy details');
@@ -213,332 +67,24 @@ END OF REPORT
             <CardContent className="p-0">
                 {/* Mobile-first header */}
                 <div className="p-4 pb-3">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {report.type === 'bug' && report.category === 'performance' ? (
-                                <Gauge className="h-5 w-5 text-secondary flex-shrink-0" />
-                            ) : report.type === 'bug' ? (
-                                <Bug className="h-5 w-5 text-destructive flex-shrink-0" />
-                            ) : (
-                                <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                                <div className="font-semibold text-sm truncate">
-                                    {report.type === 'bug' && report.category === 'performance'
-                                        ? 'Performance Issue'
-                                        : report.type === 'bug'
-                                            ? 'Bug Report'
-                                            : 'Error'}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    <Clock className="h-3 w-3" />
-                                    {formatDate(report.createdAt)}
-                                </div>
-                            </div>
-                        </div>
-                        <Badge variant="outline" className={`${STATUS_COLORS[report.status]} text-primary-foreground flex-shrink-0 text-xs`}>
-                            {STATUS_ICONS[report.status]}
-                        </Badge>
-                    </div>
-
-                    {/* Description */}
-                    {report.description && (
-                        <p className="text-sm text-foreground mb-3 line-clamp-2">{report.description}</p>
-                    )}
-                    {report.errorMessage && (
-                        <p className="text-sm font-mono text-destructive mb-3 line-clamp-2 bg-destructive/10 rounded px-2 py-1">
-                            {report.errorMessage}
-                        </p>
-                    )}
-
-                    {/* Investigation Headline */}
-                    {report.investigation && (
-                        <div className="flex items-start gap-2 mb-3 p-2 rounded bg-primary/10 border border-primary/20">
-                            <Search className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-primary">{report.investigation.headline}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                    {INVESTIGATION_STATUS_LABELS[report.investigation.status]} • {report.investigation.confidence} confidence
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Quick Info Pills */}
-                    <div className="flex flex-wrap gap-1.5 text-xs mb-3">
-                        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-muted-foreground">
-                            {report.route}
-                        </span>
-                        {report.userInfo?.username && (
-                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-muted-foreground">
-                                {report.userInfo.username}
-                            </span>
-                        )}
-                        {report.performanceEntries && report.performanceEntries.length > 0 && (
-                            <span className="inline-flex items-center rounded-full bg-secondary/20 px-2.5 py-0.5 text-secondary">
-                                <Gauge className="mr-1 inline h-3 w-3" />
-                                {report.performanceEntries.length}
-                            </span>
-                        )}
-                    </div>
+                    <ReportCardHeader report={report} />
 
                     {/* Mobile Action Bar */}
-                    <div className="flex items-center gap-2 pt-3 mt-3 border-t">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="flex-1 h-9"
-                        >
-                            {isExpanded ? (
-                                <>
-                                    <ChevronUp className="mr-1.5 h-4 w-4" />
-                                    Less
-                                </>
-                            ) : (
-                                <>
-                                    <ChevronDown className="mr-1.5 h-4 w-4" />
-                                    Details
-                                </>
-                            )}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCopyDetailsWithToast}
-                            className="flex-1 h-9"
-                        >
-                            <Copy className="mr-1.5 h-4 w-4" />
-                            Copy Details
-                        </Button>
-                        <div className="relative" ref={menuRef}>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowActionsMenu(!showActionsMenu)}
-                                className="h-9 w-9 p-0"
-                            >
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                            {showActionsMenu && (
-                                <>
-                                    {/* Backdrop */}
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowActionsMenu(false)} />
-                                    {/* Menu */}
-                                    <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border bg-background shadow-lg z-50">
-                                        <div className="p-1">
-                                            <button
-                                                onClick={() => {
-                                                    handleCopyId();
-                                                    setShowActionsMenu(false);
-                                                }}
-                                                className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent text-left"
-                                            >
-                                                <Copy className="h-4 w-4" />
-                                                Copy ID
-                                            </button>
-                                            <div className="my-1 border-t border-b py-1">
-                                                <button
-                                                    onClick={() => {
-                                                        handleStatusChange('new');
-                                                        setShowActionsMenu(false);
-                                                    }}
-                                                    className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent text-left ${report.status === 'new' ? 'bg-accent' : ''}`}
-                                                >
-                                                    <span>New</span>
-                                                    {report.status === 'new' && <CheckCircle className="h-4 w-4" />}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        handleStatusChange('investigating');
-                                                        setShowActionsMenu(false);
-                                                    }}
-                                                    className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent text-left ${report.status === 'investigating' ? 'bg-accent' : ''}`}
-                                                >
-                                                    <span>Investigating</span>
-                                                    {report.status === 'investigating' && <Search className="h-4 w-4" />}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        handleStatusChange('resolved');
-                                                        setShowActionsMenu(false);
-                                                    }}
-                                                    className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent text-left ${report.status === 'resolved' ? 'bg-accent' : ''}`}
-                                                >
-                                                    <span>Resolved</span>
-                                                    {report.status === 'resolved' && <CheckCircle className="h-4 w-4 text-success" />}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        handleStatusChange('closed');
-                                                        setShowActionsMenu(false);
-                                                    }}
-                                                    className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent text-left ${report.status === 'closed' ? 'bg-accent' : ''}`}
-                                                >
-                                                    <span>Closed</span>
-                                                    {report.status === 'closed' && <XCircle className="h-4 w-4" />}
-                                                </button>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setShowDeleteDialog(true);
-                                                    setShowActionsMenu(false);
-                                                }}
-                                                className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10 text-left"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                                Delete Report
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                    <ReportCardActions
+                        isExpanded={isExpanded}
+                        onToggleExpanded={() => setIsExpanded(!isExpanded)}
+                        onCopyDetails={handleCopyDetailsWithToast}
+                        showActionsMenu={showActionsMenu}
+                        onToggleActionsMenu={() => setShowActionsMenu(!showActionsMenu)}
+                        onCopyId={handleCopyId}
+                        currentStatus={report.status}
+                        onStatusChange={handleStatusChange}
+                        onDeleteClick={() => setShowDeleteDialog(true)}
+                    />
                 </div>
 
                 {/* Expanded Details */}
-                {isExpanded && (
-                    <div className="px-4 pb-4 space-y-4 border-t bg-muted/30 pt-4">
-                        {/* Investigation Summary */}
-                        {report.investigation && (
-                            <div>
-                                <h4 className="mb-2 text-sm font-medium flex items-center gap-2">
-                                    <Search className="h-4 w-4" />
-                                    Investigation Summary
-                                </h4>
-                                <div className="rounded bg-muted p-3 text-xs space-y-3">
-                                    <div className="flex flex-wrap gap-2">
-                                        <span className="inline-flex items-center rounded-full bg-primary/20 px-2 py-0.5 text-primary font-medium">
-                                            {INVESTIGATION_STATUS_LABELS[report.investigation.status]}
-                                        </span>
-                                        <span className="inline-flex items-center rounded-full bg-secondary/20 px-2 py-0.5 text-secondary">
-                                            {report.investigation.confidence} confidence
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Summary:</span>
-                                        <p className="mt-1">{report.investigation.summary}</p>
-                                    </div>
-                                    {report.investigation.rootCause && (
-                                        <div>
-                                            <span className="text-muted-foreground">Root Cause:</span>
-                                            <p className="mt-1">{report.investigation.rootCause}</p>
-                                        </div>
-                                    )}
-                                    {report.investigation.proposedFix && (
-                                        <div>
-                                            <span className="text-muted-foreground">
-                                                Proposed Fix ({report.investigation.proposedFix.complexity} complexity):
-                                            </span>
-                                            <p className="mt-1">{report.investigation.proposedFix.description}</p>
-                                            {report.investigation.proposedFix.files.length > 0 && (
-                                                <div className="mt-2">
-                                                    <span className="text-muted-foreground">Files to change:</span>
-                                                    <ul className="mt-1 list-disc list-inside">
-                                                        {report.investigation.proposedFix.files.map((file, idx) => (
-                                                            <li key={idx} className="text-xs">
-                                                                <code className="bg-background px-1 rounded">{file.path}</code>
-                                                                <span className="text-muted-foreground ml-1">- {file.changes}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    {report.investigation.analysisNotes && (
-                                        <div>
-                                            <span className="text-muted-foreground">Analysis Notes:</span>
-                                            <p className="mt-1">{report.investigation.analysisNotes}</p>
-                                        </div>
-                                    )}
-                                    {report.investigation.filesExamined.length > 0 && (
-                                        <div>
-                                            <span className="text-muted-foreground">Files Examined ({report.investigation.filesExamined.length}):</span>
-                                            <p className="mt-1 font-mono text-[10px] break-all">
-                                                {report.investigation.filesExamined.join(', ')}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <div className="text-muted-foreground text-[10px] pt-2 border-t">
-                                        Investigated {formatDate(report.investigation.investigatedAt)} by {report.investigation.investigatedBy}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Performance Summary (for performance reports) */}
-                        {report.category === 'performance' && (() => {
-                            const summary = generatePerformanceSummary(report);
-                            return summary ? (
-                                <div>
-                                    <h4 className="mb-2 text-sm font-medium">Performance Summary</h4>
-                                    <pre className="max-h-64 overflow-auto rounded bg-muted p-3 text-xs font-mono whitespace-pre">
-                                        {summary}
-                                    </pre>
-                                </div>
-                            ) : null;
-                        })()}
-
-                        {/* Screenshot */}
-                        {report.screenshot && (
-                            <div>
-                                <h4 className="mb-2 text-sm font-medium">Screenshot</h4>
-                                <img
-                                    src={report.screenshot}
-                                    alt="Bug screenshot"
-                                    className="w-full rounded border object-contain"
-                                />
-                            </div>
-                        )}
-
-                        {/* Stack Trace */}
-                        {report.stackTrace && (
-                            <div>
-                                <h4 className="mb-2 text-sm font-medium">Stack Trace</h4>
-                                <pre className="max-h-48 overflow-auto rounded bg-muted p-3 text-xs">
-                                    {report.stackTrace}
-                                </pre>
-                            </div>
-                        )}
-
-                        {/* Browser Info */}
-                        <div>
-                            <h4 className="mb-2 text-sm font-medium">Browser Info</h4>
-                            <div className="rounded bg-muted p-3 text-xs space-y-1">
-                                <div><span className="text-muted-foreground">Viewport:</span> {report.browserInfo.viewport.width}x{report.browserInfo.viewport.height}</div>
-                                <div className="text-muted-foreground truncate">{report.browserInfo.userAgent}</div>
-                            </div>
-                        </div>
-
-                        {/* Session Logs */}
-                        {report.sessionLogs.length > 0 && (
-                            <div>
-                                <h4 className="mb-2 text-sm font-medium">
-                                    Session Logs ({report.sessionLogs.length})
-                                </h4>
-                                <div className="max-h-64 overflow-auto rounded bg-muted p-3">
-                                    {report.sessionLogs.map((log) => (
-                                        <div
-                                            key={log.id}
-                                            className={`mb-1 text-xs ${log.level === 'error' ? 'text-destructive' :
-                                                log.level === 'warn' ? 'text-warning' :
-                                                    'text-muted-foreground'
-                                                }`}
-                                        >
-                                            <span className="font-mono">
-                                                [{new Date(log.timestamp).toLocaleTimeString()}]
-                                            </span>
-                                            <span className="ml-1 font-medium">[{log.feature}]</span>
-                                            <span className="ml-1">{log.message}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
+                {isExpanded && <ReportCardDetails report={report} />}
 
                 <ConfirmDialog
                     open={showDeleteDialog}

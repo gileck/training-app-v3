@@ -1,23 +1,15 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
 import { toast } from '@/client/components/ui/toast';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/client/components/ui/select';
-import { Plus, ArrowUpDown, Dumbbell } from 'lucide-react';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-import { useManagePlanStore, type PlanExerciseGroupBy } from '../../store';
-import { PlanExerciseList } from './PlanExerciseList';
+import { useManagePlanStore } from '../../store';
 import { AddExerciseDialog } from './AddExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';
 import { DeleteExerciseDialog } from './DeleteExerciseDialog';
+import { ExercisesToolbar } from './ExercisesToolbar';
+import { ExercisesEmptyState } from './ExercisesEmptyState';
+import { ExercisesListView } from './ExercisesListView';
 
 interface ExercisesTabProps {
     planId: string;
@@ -196,11 +188,11 @@ export function ExercisesTab({
     const confirmDelete = () => {
         if (!exerciseToDelete) return;
         const exerciseId = exerciseToDelete._id;
-        
+
         // Close dialog immediately - optimistic update already removed from list
         setDeleteDialogOpen(false);
         setExerciseToDelete(null);
-        
+
         deleteExerciseMutation.mutate(
             { planExerciseId: exerciseId },
             {
@@ -282,103 +274,34 @@ export function ExercisesTab({
     const confirmDeleteExerciseDef = () => {
         if (!exerciseDefToDelete) return;
         const exerciseId = exerciseDefToDelete._id;
-        
+
         // Close dialog immediately - optimistic update already removed from list
         setDeleteExerciseDefDialogOpen(false);
         setExerciseDefToDelete(null);
-        
+
         deleteExerciseDefMutation.mutate({ exerciseId });
     };
 
     return (
         <div className="space-y-4">
             {/* Toolbar */}
-            <div className="flex gap-2 justify-between items-center">
-                {/* Group By dropdown */}
-                <div className="flex items-center gap-2">
-                    {planExercises.length > 0 && (
-                        <Select
-                            value={planExerciseGroupBy}
-                            onValueChange={(v) => setPlanExerciseGroupBy(v as PlanExerciseGroupBy)}
-                        >
-                            <SelectTrigger className="w-[140px] h-10 rounded-xl text-sm">
-                                <SelectValue placeholder="Group by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">List All</SelectItem>
-                                <SelectItem value="primaryMuscle">By Muscle</SelectItem>
-                                <SelectItem value="type">By Type</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                </div>
-                {/* Add/Reorder buttons */}
-                <div className="flex gap-2">
-                    {planExercises.length > 1 && (
-                        <Button
-                            variant={isReorderMode ? 'secondary' : 'outline'}
-                            size="icon"
-                            onClick={() => setIsReorderMode(!isReorderMode)}
-                            className="rounded-xl h-10 w-10"
-                            disabled={!!groupedExercises}
-                        >
-                            <ArrowUpDown className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <Button onClick={() => setAddDialogOpen(true)} className="rounded-xl">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Exercise
-                    </Button>
-                </div>
-            </div>
+            <ExercisesToolbar
+                planExercisesCount={planExercises.length}
+                groupBy={planExerciseGroupBy}
+                onGroupByChange={setPlanExerciseGroupBy}
+                isReorderMode={isReorderMode}
+                onToggleReorderMode={() => setIsReorderMode(!isReorderMode)}
+                onAddClick={() => setAddDialogOpen(true)}
+                isGrouped={!!groupedExercises}
+            />
 
             {/* Exercise list or empty state */}
             {planExercises.length === 0 ? (
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No exercises yet</h3>
-                        <p className="text-sm text-muted-foreground mb-4 text-center">
-                            Add exercises from the library to build your plan
-                        </p>
-                        <Button onClick={() => setAddDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Exercise
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : groupedExercises ? (
-                <div className="space-y-6">
-                    {groupedExercises.map(([groupName, exercises]) => {
-                        const totalSets = exercises.reduce((sum, ex) => sum + ex.sets, 0);
-                        return (
-                            <div key={groupName}>
-                                <div className="py-2 mb-2 border-b border-border flex items-center gap-2">
-                                    <h3 className="font-semibold text-sm text-foreground">
-                                        {groupName}
-                                    </h3>
-                                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                                        {exercises.length}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                        · {totalSets} sets
-                                    </span>
-                                </div>
-                                <PlanExerciseList
-                                    exercises={exercises}
-                                    isReorderMode={false}
-                                    isReorderPending={false}
-                                    onEdit={handleEditExercise}
-                                    onDelete={handleDeleteExercise}
-                                    onMove={() => {}}
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
+                <ExercisesEmptyState onAddClick={() => setAddDialogOpen(true)} />
             ) : (
-                <PlanExerciseList
-                    exercises={planExercises}
+                <ExercisesListView
+                    planExercises={planExercises}
+                    groupedExercises={groupedExercises}
                     isReorderMode={isReorderMode}
                     isReorderPending={reorderMutation.isPending}
                     onEdit={handleEditExercise}

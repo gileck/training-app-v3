@@ -1,6 +1,6 @@
 /**
  * Create Plan With AI Dialog
- * 
+ *
  * Two-mode dialog with tabs:
  * 1. In-app AI: Describe plan → AI generates → preview → commit
  * 2. ChatGPT: Open ChatGPT with prompt → paste JSON → preview → commit
@@ -8,9 +8,6 @@
 
 import { useState, useCallback } from 'react';
 import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
-import { Textarea } from '@/client/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
@@ -19,27 +16,17 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/client/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import {
     Sparkles,
     ArrowLeft,
-    ClipboardPaste,
-    X,
     Check,
     AlertCircle,
     RefreshCw,
     Loader2,
-    ExternalLink,
     MessageSquare,
 } from 'lucide-react';
-import { getAllModels, type AIModelDefinition } from '@/common/ai/models';
+import { getAllModels } from '@/common/ai/models';
 import { useSettingsStore } from '@/client/features/settings';
 import { useEffectiveOffline } from '@/client/features/settings';
 import { useGeneratePlanFromText, useCreatePlanFromText, useMatchImportedPlan, useExerciseLibrary } from '../hooks';
@@ -47,15 +34,17 @@ import type { DraftPlan, PlanExportData } from '@/apis/training-plans/types';
 import { toast } from '@/client/components/ui/toast';
 import { PlanPreview } from './PlanPreview';
 import type { ExerciseResolution } from './ExerciseResolver';
-import { 
-    validatePlanExportJson, 
+import {
+    validatePlanExportJson,
     buildChatGptPlanPrompt,
     buildChatGptUrl,
 } from '../utils';
-
-// Input validation limits (matching server)
-const MAX_TEXT_LENGTH = 10000;
-const MAX_PLAN_NAME_LENGTH = 100;
+import {
+    InAppAiEditStep,
+    ChatGptEditStep,
+    MAX_TEXT_LENGTH,
+    type PromptInput,
+} from './CreatePlanWithAiDialog/index';
 
 interface CreatePlanWithAiDialogProps {
     open: boolean;
@@ -66,17 +55,6 @@ interface CreatePlanWithAiDialogProps {
 
 type DialogStep = 'edit' | 'preview';
 type AiMode = 'inapp' | 'chatgpt';
-
-// Prompt input state (extensible for Phase 2)
-interface PromptInput {
-    text: string;
-    // Phase 2 fields:
-    // level?: 'beginner' | 'intermediate' | 'advanced';
-    // daysPerWeek?: number;
-    // goals?: string[];
-    // equipment?: string[];
-    // musclesFocus?: string[];
-}
 
 export function CreatePlanWithAiDialog({
     open,
@@ -618,323 +596,5 @@ export function CreatePlanWithAiDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-// ============================================================================
-// In-app AI Edit Step Component
-// ============================================================================
-
-interface InAppAiEditStepProps {
-    planName: string;
-    setPlanName: (value: string) => void;
-    durationWeeks: number;
-    setDurationWeeks: (value: number | ((prev: number) => number)) => void;
-    selectedModelId: string;
-    setSelectedModelId: (value: string) => void;
-    promptInput: PromptInput;
-    setPromptInput: (value: PromptInput | ((prev: PromptInput) => PromptInput)) => void;
-    models: AIModelDefinition[];
-    selectedModel: AIModelDefinition | undefined;
-    charCount: number;
-    charCountColor: string;
-    isGenerating: boolean;
-    isOffline: boolean;
-    error: string | null;
-    onPaste: () => void;
-    onClear: () => void;
-}
-
-function InAppAiEditStep({
-    planName,
-    setPlanName,
-    durationWeeks,
-    setDurationWeeks,
-    selectedModelId,
-    setSelectedModelId,
-    promptInput,
-    setPromptInput,
-    models,
-    selectedModel,
-    charCount,
-    charCountColor,
-    isGenerating,
-    isOffline,
-    error,
-    onPaste,
-    onClear,
-}: InAppAiEditStepProps) {
-    return (
-        <div className="grid gap-4">
-            {/* Plan Name */}
-            <div className="grid gap-2">
-                <Label htmlFor="ai-plan-name">Plan Name</Label>
-                <Input
-                    id="ai-plan-name"
-                    value={planName}
-                    onChange={(e) => setPlanName(e.target.value.slice(0, MAX_PLAN_NAME_LENGTH))}
-                    placeholder="e.g., Push/Pull/Legs, Full Body 3x"
-                    disabled={isGenerating}
-                />
-            </div>
-
-            {/* Duration */}
-            <div className="grid gap-2">
-                <Label htmlFor="ai-plan-weeks">Duration (weeks)</Label>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setDurationWeeks((w) => Math.max(1, w - 1))}
-                        disabled={durationWeeks <= 1 || isGenerating}
-                    >
-                        -
-                    </Button>
-                    <span className="w-12 text-center font-semibold text-lg">
-                        {durationWeeks}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setDurationWeeks((w) => Math.min(52, w + 1))}
-                        disabled={durationWeeks >= 52 || isGenerating}
-                    >
-                        +
-                    </Button>
-                </div>
-            </div>
-            
-            {/* AI Model Selection */}
-            <div className="grid gap-2">
-                <Label htmlFor="ai-model">AI Model</Label>
-                <Select
-                    value={selectedModelId}
-                    onValueChange={setSelectedModelId}
-                    disabled={isGenerating}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {models.map((model: AIModelDefinition) => (
-                            <SelectItem key={model.id} value={model.id}>
-                                {model.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            
-            {/* Text Input */}
-            <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="ai-prompt">Describe Your Plan</Label>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onPaste}
-                            disabled={isGenerating}
-                            className="h-8 text-xs"
-                        >
-                            <ClipboardPaste className="h-3 w-3 mr-1" />
-                            Paste
-                        </Button>
-                        {promptInput.text && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onClear}
-                                disabled={isGenerating}
-                                className="h-8 text-xs"
-                            >
-                                <X className="h-3 w-3 mr-1" />
-                                Clear
-                            </Button>
-                        )}
-                    </div>
-                </div>
-                <Textarea
-                    id="ai-prompt"
-                    value={promptInput.text}
-                    onChange={(e) => setPromptInput({ text: e.target.value })}
-                    placeholder={`Enter anything from generic to specific:
-
-Generic: "Create a basic push/pull/legs workout plan for building muscle"
-
-Specific:
-"Day 1 - Push:
-Bench Press — 3×8
-Overhead Press — 3×10
-Incline Dumbbell Press — 3×12
-
-Day 2 - Pull:
-Deadlifts — 3×5
-Barbell Rows — 3×8
-Pull-ups — 3×10"`}
-                    className="min-h-[200px] font-mono text-sm"
-                    disabled={isGenerating}
-                />
-                <div className="flex justify-between items-center">
-                    <span className={`text-xs ${charCountColor}`}>
-                        {charCount.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()} characters
-                    </span>
-                    {selectedModel && (
-                        <span className="text-xs text-muted-foreground">
-                            Using {selectedModel.name}
-                        </span>
-                    )}
-                </div>
-            </div>
-            
-            {/* Error Display */}
-            {error && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>{error}</span>
-                </div>
-            )}
-            
-            {/* Offline Warning */}
-            {isOffline && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning text-sm">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>You&apos;re offline. AI generation requires an internet connection.</span>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ============================================================================
-// ChatGPT Edit Step Component
-// ============================================================================
-
-interface ChatGptEditStepProps {
-    jsonInput: string;
-    onJsonChange: (value: string) => void;
-    validationError: string | null;
-    isValidJson: boolean;
-    parsedData: PlanExportData | null;
-    onOpenChatGpt: () => void;
-    onPaste: () => void;
-    onClear: () => void;
-    error: string | null;
-}
-
-function ChatGptEditStep({
-    jsonInput,
-    onJsonChange,
-    validationError,
-    isValidJson,
-    parsedData,
-    onOpenChatGpt,
-    onPaste,
-    onClear,
-    error,
-}: ChatGptEditStepProps) {
-    return (
-        <div className="grid gap-4">
-            {/* Step 1: Open ChatGPT */}
-            <div className="p-4 rounded-lg border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                        1
-                    </div>
-                    <div className="flex-1">
-                        <h4 className="font-medium mb-1">Create your plan in ChatGPT</h4>
-                        <p className="text-sm text-muted-foreground mb-3">
-                            Click below to open ChatGPT with a pre-filled prompt. Answer a few questions to design your perfect training plan.
-                        </p>
-                        <Button onClick={onOpenChatGpt} className="w-full sm:w-auto">
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open in ChatGPT
-                        </Button>
-                    </div>
-                </div>
-            </div>
-            
-            {/* Step 2: Paste JSON */}
-            <div className="p-4 rounded-lg border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                        2
-                    </div>
-                    <div className="flex-1">
-                        <h4 className="font-medium mb-1">Paste the JSON plan</h4>
-                        <p className="text-sm text-muted-foreground mb-3">
-                            Once ChatGPT generates your plan, copy the JSON and paste it below.
-                        </p>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 mb-3">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={onPaste}
-                            >
-                                <ClipboardPaste className="h-4 w-4 mr-2" />
-                                Paste from Clipboard
-                            </Button>
-                            {jsonInput && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={onClear}
-                                >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Clear
-                                </Button>
-                            )}
-                        </div>
-                        
-                        {/* JSON Textarea */}
-                        <Textarea
-                            value={jsonInput}
-                            onChange={(e) => onJsonChange(e.target.value)}
-                            placeholder={`Paste the JSON from ChatGPT here...
-
-Example format:
-{
-  "version": "1.0",
-  "planName": "My Plan",
-  "durationWeeks": 8,
-  "workouts": [...]
-}`}
-                            className="min-h-[150px] font-mono text-sm"
-                        />
-                        
-                        {/* Validation Status */}
-                        {jsonInput && (
-                            <div className={`flex items-start gap-2 p-3 rounded-lg text-sm mt-3 ${
-                                isValidJson 
-                                    ? 'bg-success/10 text-success' 
-                                    : 'bg-destructive/10 text-destructive'
-                            }`}>
-                                {isValidJson ? (
-                                    <>
-                                        <Check className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                        <span>Valid JSON - {parsedData?.planName} ({parsedData?.workouts.length} workouts)</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                        <span>{validationError}</span>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            
-            {/* Error Display (from API call) */}
-            {error && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>{error}</span>
-                </div>
-            )}
-        </div>
     );
 }

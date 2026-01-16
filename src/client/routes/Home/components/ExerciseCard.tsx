@@ -117,7 +117,7 @@ export function ExerciseCardGrid({
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
                     <Badge
                         variant="outline"
-                        className="bg-[hsl(210,100%,95%)] text-[hsl(210,100%,40%)] border-[hsl(210,100%,85%)] dark:bg-[hsl(210,100%,20%)] dark:text-[hsl(210,100%,80%)]"
+                        className="bg-primary/10 text-primary border-primary/20"
                     >
                         {exercise.exerciseDef.primaryMuscle}
                     </Badge>

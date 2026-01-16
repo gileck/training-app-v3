@@ -1,65 +1,25 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
-import { Badge } from '@/client/components/ui/badge';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card } from '@/client/components/ui/card';
 import { toast } from '@/client/components/ui/toast';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/client/components/ui/dialog';
-import { Plus, Calendar, Trash2, Settings2, CheckCircle, Copy, Edit2, Sparkles, MoreVertical, Download, FileJson, ChevronDown, Save, Clipboard, Share2, Link, Bot } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan, useDuplicatePlan, useExportPlan } from './hooks';
 import { useWorkoutStore } from '@/client/features/workout';
 import { useTrainingPlansStore } from './store';
 import { ManagePlan } from '../ManagePlan';
-import { CreatePlanWithAiDialog, ImportPlanDialog, SharePlanDialog } from './components';
-import type { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
-
-/**
- * Get display info for plan creation source
- */
-function getCreationSourceInfo(source?: PlanCreationSource): { icon: React.ReactNode; label: string } | null {
-    switch (source) {
-        case 'ai':
-            return { icon: <Bot className="h-3 w-3" />, label: 'AI Generated' };
-        case 'import':
-            return { icon: <FileJson className="h-3 w-3" />, label: 'Imported' };
-        case 'share':
-            return { icon: <Link className="h-3 w-3" />, label: 'Shared' };
-        case 'duplicate':
-            return { icon: <Copy className="h-3 w-3" />, label: 'Duplicated' };
-        case 'manual':
-            return { icon: <Plus className="h-3 w-3" />, label: 'Created' };
-        default:
-            return null; // Don't show for plans without creationSource (legacy)
-    }
-}
-
-/**
- * Format date for display
- */
-function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-    });
-}
+import {
+    CreatePlanWithAiDialog,
+    ImportPlanDialog,
+    SharePlanDialog,
+    PlanCard,
+    CreatePlanDialog,
+    EditPlanDialog,
+    DeletePlanConfirm,
+    ExportPlanDialog,
+    PlansLoadingSkeleton,
+    PlansEmptyState,
+    PlansHeader,
+} from './components';
+import { useExportHandlers } from './useExportHandlers';
+import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
 export function TrainingPlans() {
     // Queries and mutations
@@ -85,10 +45,6 @@ export function TrainingPlans() {
     const [aiDialogOpen, setAiDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [importDialogOpen, setImportDialogOpen] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [newPlanName, setNewPlanName] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [newPlanWeeks, setNewPlanWeeks] = useState(8);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
@@ -97,10 +53,6 @@ export function TrainingPlans() {
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [planToEdit, setPlanToEdit] = useState<TrainingPlanClient | null>(null);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [editPlanName, setEditPlanName] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form input
-    const [editPlanWeeks, setEditPlanWeeks] = useState(8);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [exportDialogOpen, setExportDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
@@ -118,16 +70,12 @@ export function TrainingPlans() {
     });
     const hasData = data !== undefined;
 
-    const handleCreatePlan = async () => {
-        if (!newPlanName.trim()) return;
-
+    const handleCreatePlan = async (name: string, weeks: number) => {
         createPlanMutation.mutate(
-            { name: newPlanName.trim(), durationWeeks: newPlanWeeks },
+            { name, durationWeeks: weeks },
             {
                 onSuccess: (newPlan) => {
                     setCreateDialogOpen(false);
-                    setNewPlanName('');
-                    setNewPlanWeeks(8);
                     // If this is the first plan, set it as active in store
                     if (newPlan && plans.length === 0) {
                         setActivePlan(newPlan._id);
@@ -187,19 +135,15 @@ export function TrainingPlans() {
 
     const handleEditPlan = (plan: TrainingPlanClient) => {
         setPlanToEdit(plan);
-        setEditPlanName(plan.name);
-        setEditPlanWeeks(plan.durationWeeks);
         setEditDialogOpen(true);
     };
 
-    const confirmEdit = () => {
-        if (!planToEdit || !editPlanName.trim()) return;
-
+    const confirmEdit = (planId: string, name: string, weeks: number) => {
         updatePlanMutation.mutate(
             {
-                planId: planToEdit._id,
-                name: editPlanName.trim(),
-                durationWeeks: editPlanWeeks,
+                planId,
+                name,
+                durationWeeks: weeks,
             },
             {
                 onSuccess: () => {
@@ -224,65 +168,13 @@ export function TrainingPlans() {
         setShareDialogOpen(true);
     };
 
-    const handleExportAsFile = () => {
-        if (!planToExport) return;
-        
-        exportPlanMutation.mutate(
-            { planId: planToExport._id },
-            {
-                onSuccess: (data) => {
-                    if (!data.exportData) return;
-                    
-                    // Create JSON blob and trigger download
-                    const jsonString = JSON.stringify(data.exportData, null, 2);
-                    const blob = new Blob([jsonString], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${data.exportData.planName.replace(/[^a-z0-9]/gi, '_')}_plan.json`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    toast.success(`Exported "${planToExport.name}" successfully`);
-                    setExportDialogOpen(false);
-                    setPlanToExport(null);
-                },
-                onError: (error) => {
-                    toast.error(error.message || 'Failed to export plan');
-                },
-            }
-        );
-    };
-
-    const handleExportCopyJson = () => {
-        if (!planToExport) return;
-        
-        exportPlanMutation.mutate(
-            { planId: planToExport._id },
-            {
-                onSuccess: async (data) => {
-                    if (!data.exportData) return;
-                    
-                    const jsonString = JSON.stringify(data.exportData, null, 2);
-                    
-                    try {
-                        await navigator.clipboard.writeText(jsonString);
-                        toast.success('JSON copied to clipboard');
-                        setExportDialogOpen(false);
-                        setPlanToExport(null);
-                    } catch {
-                        toast.error('Failed to copy to clipboard');
-                    }
-                },
-                onError: (error) => {
-                    toast.error(error.message || 'Failed to export plan');
-                },
-            }
-        );
-    };
+    // Export handlers
+    const { handleExportAsFile, handleExportCopyJson } = useExportHandlers({
+        planToExport,
+        exportPlanMutation,
+        setExportDialogOpen,
+        setPlanToExport,
+    });
 
     const handleAiPlanSuccess = (planId: string) => {
         // If this is the first plan, set it as active in store
@@ -304,31 +196,7 @@ export function TrainingPlans() {
 
     // Loading state - show skeleton when loading without cached data
     if (isLoading || !hasData) {
-        return (
-            <div className="p-4 pb-20 space-y-4">
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-xl font-semibold">Training Plans</h1>
-                    <Skeleton className="h-10 w-32" />
-                </div>
-                {[1, 2, 3].map((i) => (
-                    <Card key={i} className="rounded-2xl border-0 shadow-sm">
-                        <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="space-y-2">
-                                    <Skeleton className="h-6 w-48" />
-                                    <Skeleton className="h-4 w-32" />
-                                </div>
-                                <Skeleton className="h-6 w-16" />
-                            </div>
-                            <div className="flex gap-2">
-                                <Skeleton className="h-9 w-24" />
-                                <Skeleton className="h-9 w-24" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        );
+        return <PlansLoadingSkeleton />;
     }
 
     // Error state
@@ -358,382 +226,78 @@ export function TrainingPlans() {
     return (
         <div className="p-4 pb-20 space-y-4">
             {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-                <h1 className="text-xl font-semibold">Training Plans</h1>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button className="rounded-xl">
-                            <Plus className="mr-2 h-4 w-4" />
-                            New Plan
-                            <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setCreateDialogOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Manually
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAiDialogOpen(true)}>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Create with AI
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-                            <FileJson className="h-4 w-4 mr-2" />
-                            Import from JSON
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+            <PlansHeader
+                onCreateManual={() => setCreateDialogOpen(true)}
+                onCreateWithAi={() => setAiDialogOpen(true)}
+                onImport={() => setImportDialogOpen(true)}
+            />
 
             {/* Empty state */}
             {plans.length === 0 ? (
-                <Card className="rounded-2xl border-0 shadow-sm">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No training plans yet</h3>
-                        <p className="text-sm text-muted-foreground mb-4 text-center">
-                            Create a training plan to start tracking your workouts
-                        </p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            <Button onClick={() => setCreateDialogOpen(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create Manually
-                            </Button>
-                            <Button onClick={() => setAiDialogOpen(true)} variant="outline">
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                Create with AI
-                            </Button>
-                            <Button onClick={() => setImportDialogOpen(true)} variant="outline">
-                                <FileJson className="mr-2 h-4 w-4" />
-                                Import JSON
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                <PlansEmptyState
+                    onCreateManual={() => setCreateDialogOpen(true)}
+                    onCreateWithAi={() => setAiDialogOpen(true)}
+                    onImport={() => setImportDialogOpen(true)}
+                />
             ) : (
                 /* Plan list */
                 <div className="space-y-3">
                     {plans.map((plan) => (
-                        <Card
+                        <PlanCard
                             key={plan._id}
-                            className={`rounded-2xl border-0 shadow-sm transition-all cursor-pointer hover:bg-muted/50 active:scale-[0.99] ${
-                                plan.isActive ? 'ring-2 ring-primary bg-primary/5' : ''
-                            }`}
-                            onClick={() => handleManagePlan(plan)}
-                        >
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 className="text-lg font-semibold">{plan.name}</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            {plan.durationWeeks} weeks
-                                        </p>
-                                        {/* Creation source and date */}
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                            {(() => {
-                                                const sourceInfo = getCreationSourceInfo(plan.creationSource);
-                                                if (sourceInfo) {
-                                                    return (
-                                                        <>
-                                                            {sourceInfo.icon}
-                                                            <span>{sourceInfo.label} · {formatDate(plan.createdAt)}</span>
-                                                        </>
-                                                    );
-                                                }
-                                                // Legacy plans without creationSource - just show date
-                                                return (
-                                                    <>
-                                                        <Calendar className="h-3 w-3" />
-                                                        <span>{formatDate(plan.createdAt)}</span>
-                                                    </>
-                                                );
-                                            })()}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                        {plan.isActive && (
-                                            <Badge className="bg-primary text-primary-foreground">
-                                                <CheckCircle className="h-3 w-3 mr-1" />
-                                                Active
-                                            </Badge>
-                                        )}
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="rounded-lg h-8 w-8 p-0"
-                                                >
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            {!plan.isActive && (
-                                                <>
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleSetActive(plan)}
-                                                        disabled={setActivePlanMutation.isPending}
-                                                        className="text-primary focus:text-primary"
-                                                    >
-                                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                                        Set Active
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                </>
-                                            )}
-                                            <DropdownMenuItem onClick={() => handleEditPlan(plan)}>
-                                                <Edit2 className="h-4 w-4 mr-2" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem 
-                                                onClick={() => handleDuplicatePlan(plan)}
-                                                disabled={duplicatePlanMutation.isPending}
-                                            >
-                                                <Copy className="h-4 w-4 mr-2" />
-                                                Duplicate
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem 
-                                                onClick={() => handleExportPlan(plan)}
-                                                disabled={exportPlanMutation.isPending}
-                                            >
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Export JSON
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleSharePlan(plan)}>
-                                                <Share2 className="h-4 w-4 mr-2" />
-                                                Share
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem 
-                                                onClick={() => handleDeletePlan(plan)}
-                                                className="text-destructive focus:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleManagePlan(plan);
-                                    }}
-                                    className="rounded-lg"
-                                >
-                                    <Settings2 className="h-4 w-4 mr-2" />
-                                    Manage
-                                </Button>
-                            </CardContent>
-                        </Card>
+                            plan={plan}
+                            onManage={handleManagePlan}
+                            onSetActive={handleSetActive}
+                            onEdit={handleEditPlan}
+                            onDuplicate={handleDuplicatePlan}
+                            onExport={handleExportPlan}
+                            onShare={handleSharePlan}
+                            onDelete={handleDeletePlan}
+                            isSetActiveLoading={setActivePlanMutation.isPending}
+                            isDuplicateLoading={duplicatePlanMutation.isPending}
+                            isExportLoading={exportPlanMutation.isPending}
+                        />
                     ))}
                 </div>
             )}
 
             {/* Create Plan Dialog */}
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create Training Plan</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="plan-name">Plan Name</Label>
-                            <Input
-                                id="plan-name"
-                                value={newPlanName}
-                                onChange={(e) => setNewPlanName(e.target.value)}
-                                placeholder="e.g., Push/Pull/Legs"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="plan-weeks">Duration (weeks)</Label>
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setNewPlanWeeks((w) => Math.max(1, w - 1))}
-                                    disabled={newPlanWeeks <= 1}
-                                >
-                                    -
-                                </Button>
-                                <span className="w-12 text-center font-semibold text-lg">
-                                    {newPlanWeeks}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setNewPlanWeeks((w) => Math.min(52, w + 1))}
-                                    disabled={newPlanWeeks >= 52}
-                                >
-                                    +
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setCreateDialogOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleCreatePlan}
-                            disabled={!newPlanName.trim() || createPlanMutation.isPending}
-                        >
-                            {createPlanMutation.isPending ? 'Creating...' : 'Create'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CreatePlanDialog
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+                onConfirm={handleCreatePlan}
+                isLoading={createPlanMutation.isPending}
+            />
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete Plan?</DialogTitle>
-                        <DialogDescription>
-                            This will permanently delete &quot;{planToDelete?.name}&quot; and all its
-                            exercises. This cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setDeleteDialogOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={confirmDelete}
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <DeletePlanConfirm
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                plan={planToDelete}
+                onConfirm={confirmDelete}
+            />
 
             {/* Edit Plan Dialog */}
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Training Plan</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-plan-name">Plan Name</Label>
-                            <Input
-                                id="edit-plan-name"
-                                value={editPlanName}
-                                onChange={(e) => setEditPlanName(e.target.value)}
-                                placeholder="e.g., Push/Pull/Legs"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-plan-weeks">Duration (weeks)</Label>
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setEditPlanWeeks((w) => Math.max(1, w - 1))}
-                                    disabled={editPlanWeeks <= 1}
-                                >
-                                    -
-                                </Button>
-                                <span className="w-12 text-center font-semibold text-lg">
-                                    {editPlanWeeks}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setEditPlanWeeks((w) => Math.min(52, w + 1))}
-                                    disabled={editPlanWeeks >= 52}
-                                >
-                                    +
-                                </Button>
-                            </div>
-                            {planToEdit && editPlanWeeks < planToEdit.durationWeeks && (
-                                <p className="text-sm text-warning">
-                                    Warning: Reducing weeks may result in loss of progress data for removed weeks.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setEditDialogOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={confirmEdit}
-                            disabled={!editPlanName.trim() || updatePlanMutation.isPending}
-                        >
-                            {updatePlanMutation.isPending ? 'Saving...' : 'Save'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <EditPlanDialog
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                plan={planToEdit}
+                onConfirm={confirmEdit}
+                isLoading={updatePlanMutation.isPending}
+            />
 
             {/* Export Plan Dialog */}
-            <Dialog open={exportDialogOpen} onOpenChange={(open) => {
-                setExportDialogOpen(open);
-                if (!open) setPlanToExport(null);
-            }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Export Plan</DialogTitle>
-                        <DialogDescription>
-                            Choose how to export &quot;{planToExport?.name}&quot;
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-3 py-4">
-                        <Button
-                            variant="outline"
-                            className="h-14 justify-start"
-                            onClick={handleExportAsFile}
-                            disabled={exportPlanMutation.isPending}
-                        >
-                            <Save className="h-5 w-5 mr-3" />
-                            <div className="text-left">
-                                <div className="font-medium">Save as File</div>
-                                <div className="text-sm text-muted-foreground">Download JSON file to your device</div>
-                            </div>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-14 justify-start rounded-xl"
-                            onClick={handleExportCopyJson}
-                            disabled={exportPlanMutation.isPending}
-                        >
-                            <Clipboard className="h-5 w-5 mr-3" />
-                            <div className="text-left">
-                                <div className="font-medium">Copy JSON</div>
-                                <div className="text-sm text-muted-foreground">Copy to clipboard for pasting elsewhere</div>
-                            </div>
-                        </Button>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="ghost"
-                            onClick={() => {
-                                setExportDialogOpen(false);
-                                setPlanToExport(null);
-                            }}
-                            className="rounded-lg"
-                        >
-                            Cancel
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ExportPlanDialog
+                open={exportDialogOpen}
+                onOpenChange={(open) => {
+                    setExportDialogOpen(open);
+                    if (!open) setPlanToExport(null);
+                }}
+                plan={planToExport}
+                onExportAsFile={handleExportAsFile}
+                onCopyJson={handleExportCopyJson}
+                isLoading={exportPlanMutation.isPending}
+            />
 
             {/* Create Plan with AI Dialog */}
             <CreatePlanWithAiDialog
