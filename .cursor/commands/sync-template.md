@@ -23,6 +23,60 @@ This enables accurate categorization:
 - ⚠️ **Conflicts** - Both changed → needs manual merge
 - ⏭️ **Skipped** - Ignored or project-specific files
 
+### package.json Auto-Merge
+
+When both the template and your project have modified `package.json`, the sync tool performs **smart field-level merging**:
+
+| Scenario | Result |
+|----------|--------|
+| Template added new scripts/deps | ✅ Auto-merged into your file |
+| You added custom scripts/deps | ✅ Your additions are preserved |
+| Both changed **different** fields | ✅ Both changes merged automatically |
+| Both changed the **same** field | 🔀 Interactive prompt to choose |
+
+**Interactive conflict resolution:**
+
+When the same field is changed in both template and project, you'll be prompted to choose which value to keep:
+
+```
+════════════════════════════════════════════════════════════
+📦 PACKAGE.JSON FIELD CONFLICTS
+════════════════════════════════════════════════════════════
+
+2 field(s) changed in both template and project.
+Choose which value to use for each field:
+
+────────────────────────────────────────────────────────────
+
+📦 Field: version
+
+  Template value:
+    "2.0.0"
+
+  Project value:
+    "1.5.0"
+
+  Base value:
+    "1.0.0"
+
+Choose value for "version":
+
+❯ [1] Keep project value
+  [2] Use template value
+  [3] Skip (decide later)
+```
+
+**Example output after resolution:**
+```
+📦 package.json - auto-merged
+  ✅ Auto-merged from template: scripts.newCommand, dependencies.new-pkg
+  📌 Kept project values: scripts.myCustomScript
+
+✅ Resolved: version (template), description (project)
+```
+
+This eliminates manual merging for most package.json conflicts!
+
 ## Process
 
 ### Step 1: Check if Template Tracking is Initialized
@@ -46,7 +100,7 @@ Replace `YOUR_USERNAME` with the actual GitHub username/org of the template repo
 This creates `.template-sync.json` which tracks:
 - Template repository URL
 - Last sync commit
-- Ignored files (package.json, .env, etc.)
+- Ignored files (.env, etc.)
 - Project-specific files to skip
 
 ### Step 2: Ensure Clean Working Directory

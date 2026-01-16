@@ -4,8 +4,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { SyncContext, SyncMode, AnalysisResult, SyncResult, ConflictResolutionMap, TEMPLATE_DIR } from '../types';
 import { getFileHash, storeFileHash } from '../files';
+import { writePackageJson, formatMergeSummary, formatConflictMessage, resolveFieldConflictsInteractively } from '../utils/package-json-merge';
 
 /**
  * Apply sync changes based on mode and conflict resolutions
@@ -39,18 +41,49 @@ export async function syncFiles(
     const projectFilePath = path.join(context.projectRoot, change.path);
 
     try {
-      if (!context.options.dryRun) {
-        const dir = path.dirname(projectFilePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.copyFileSync(templateFilePath, projectFilePath);
+      // Special handling for package.json with auto-merge
+      if (change.path === 'package.json' && analysis.packageJsonMerge?.success && analysis.packageJsonMerge.merged) {
+        let mergeResult = analysis.packageJsonMerge;
 
-        // Store the hash of the synced file for future comparison
-        const hash = getFileHash(templateFilePath);
-        storeFileHash(context.config, change.path, hash);
+        // If there are field conflicts, prompt user to resolve them interactively
+        if (mergeResult.conflicts.length > 0 && !context.options.dryRun) {
+          mergeResult = await resolveFieldConflictsInteractively(mergeResult);
+        }
+
+        if (!context.options.dryRun && mergeResult.merged) {
+          // Write the merged package.json
+          writePackageJson(projectFilePath, mergeResult.merged);
+
+          // Calculate and store hash of the merged content
+          const mergedContent = JSON.stringify(mergeResult.merged, null, 2) + '\n';
+          const hash = crypto.createHash('md5').update(mergedContent).digest('hex');
+          storeFileHash(context.config, change.path, hash);
+        }
+
+        // Display merge summary
+        console.log('  📦 package.json - auto-merged');
+        console.log(formatMergeSummary(mergeResult));
+
+        if (mergeResult.conflicts.length > 0) {
+          console.log(formatConflictMessage(mergeResult.conflicts));
+        }
+
+        result.autoMerged.push(change.path);
+      } else {
+        // Standard file copy for all other files
+        if (!context.options.dryRun) {
+          const dir = path.dirname(projectFilePath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          fs.copyFileSync(templateFilePath, projectFilePath);
+
+          // Store the hash of the synced file for future comparison
+          const hash = getFileHash(templateFilePath);
+          storeFileHash(context.config, change.path, hash);
+        }
+        result.autoMerged.push(change.path);
       }
-      result.autoMerged.push(change.path);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       result.errors.push(`${change.path}: ${message}`);

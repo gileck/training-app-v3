@@ -74,6 +74,24 @@ export interface AnalysisResult {
   projectOnlyChanges: FileChange[]; // Only changed in project - keep as-is
   skipped: string[];
   newChanges: Set<string>;          // Track which changes are NEW (since last sync)
+  packageJsonMerge?: PackageJsonMergeResult;  // Result of package.json auto-merge (if applicable)
+}
+
+export interface FieldConflict {
+  field: string;
+  baseValue: unknown;
+  templateValue: unknown;
+  projectValue: unknown;
+}
+
+export interface PackageJsonMergeResult {
+  success: boolean;
+  merged: Record<string, unknown> | null;
+  autoMergedFields: string[];         // Fields that were auto-merged from template
+  projectKeptFields: string[];        // Fields where project changes were kept
+  conflicts: FieldConflict[];         // Fields where both changed (kept project value)
+  templateOnlyFields: string[];       // Fields only in template (added)
+  projectOnlyFields: string[];        // Fields only in project (kept)
 }
 
 export interface ConflictResolutionMap {

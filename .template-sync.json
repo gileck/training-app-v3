@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "3a78a1dad995bf3625826d963afb0b66ae9ee662",
-  "lastProjectCommit": "6a62d1d25ce6dcaf102ab3492e03a9c4fe370966",
-  "lastSyncDate": "2026-01-15T19:33:59.739Z",
+  "lastSyncCommit": "732a494437aeba59586abb4cbf86653c12fe0ce6",
+  "lastProjectCommit": "fe600e8b82e6654a6b00724e7c728d309730322d",
+  "lastSyncDate": "2026-01-16T14:33:43.455Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,18 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-16T14:33:43.672Z",
+      "templateCommit": "732a494437aeba59586abb4cbf86653c12fe0ce6",
+      "projectCommit": "fe600e8b82e6654a6b00724e7c728d309730322d",
+      "filesApplied": 10,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "732a494 feat: add package.json auto-merge with interactive conflict resolution \u001b[90m(16/01/2026)\u001b[0m\n  Adds smart field-level merging for package.json during template sync:\n  - Auto-merges fields changed only in template or only in project\n  - Interactive prompt when same field changed in both (choose which value)\n  - Uses 3-way merge with baseline for accurate change detection\n  - Non-interactive mode keeps project values with warning\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "0278590 feat: add Vercel CLI tool for deployment management \u001b[90m(16/01/2026)\u001b[0m\n  - Add scripts/vercel-cli.ts with commands: list, info, logs, env, env:push, project\n  - Auto-detects project from .vercel/project.json\n  - Add env:push command to upload .env variables to Vercel\n  - Add .cursor/rules/vercel-cli-usage.mdc with usage guidelines\n  - Update CLAUDE.md with Vercel CLI documentation\n  - Add vercel-cli script to package.json\n  - Add reminder in init-project.js to run vercel link\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-15T19:33:59.933Z",
       "templateCommit": "3a78a1dad995bf3625826d963afb0b66ae9ee662",
@@ -279,19 +291,6 @@
         "831750e feat: add --cloud-proxy flag to github-pr CLI for Claude Code Web \u001b[90m(10/01/2026)\u001b[0m\n  Enables github-pr to work in cloud environments by:\n  - Configuring HTTP proxy via undici ProxyAgent\n  - Stripping quotes from GITHUB_TOKEN env var\n  - Parsing proxy git remote URLs (/git/owner/repo format)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "5749e10 feat: add per-user Telegram notifications \u001b[90m(10/01/2026)\u001b[0m\n  - Add Telegram notification service (src/server/telegram)\n  - Store telegramChatId per user in database\n  - Add chat ID field to Profile page for users to configure\n  - Send notification when todo is marked as done\n  - Add telegram-setup script to help users get their chat ID\n  - Fix Alert component transparency issue\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-10T07:28:10.978Z",
-      "templateCommit": "3947adcd5f9a25e0ca42cbff46672728a5861615",
-      "projectCommit": "4fd80d3870fa9e23b4a51d329133e0753856bc47",
-      "filesApplied": 3,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "3947adc feat: add create command to github-pr CLI \u001b[90m(10/01/2026)\u001b[0m\n  Add ability to create PRs directly from the CLI:\n  - Auto-detects current branch for --head\n  - Auto-detects repo default branch for --base\n  - Supports --draft flag for draft PRs\n  - Validates head != base before creating\n  \n  Update CLAUDE.md documentation with new command.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "e95eaf0 feat: add auth debug info to diagnose authentication failures \u001b[90m(09/01/2026)\u001b[0m\n  Add AuthDebugInfo to track and expose authentication state:\n  - cookiePresent: whether auth cookie was in request\n  - tokenError: JWT verification error message if failed\n  - tokenErrorCode: error type (TokenExpiredError, JsonWebTokenError, etc.)\n  \n  Debug info is returned in /me response and logged during preflight,\n  helping diagnose why users see unexpected logged-out state.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "7f7aaf3 feat: enrich investigation prompt with full report details \u001b[90m(09/01/2026)\u001b[0m\n  Add more context to bug investigation prompt:\n  - Report ID, category, status, network status, created date\n  - User info (username, email, userId)\n  - Browser info (userAgent, viewport, language)\n  - Performance entries for performance bugs\n  - Show all session logs instead of last 20\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -307,7 +306,7 @@
     ".cursor/commands/audit-react-query-mutations.md": "da2183e2571b0976da22e9424aa7980a",
     ".cursor/commands/debug-bug-report.md": "259a7854a6f9601291954473deaacd0b",
     ".cursor/commands/full-project-audit.md": "04d5a9346a6ce017a11880465d7c4e0a",
-    ".cursor/commands/sync-template.md": "5233213ecf78cfc75ec94a5758f679f8",
+    ".cursor/commands/sync-template.md": "5cdf49709d839a330012e8eee378a06a",
     ".cursor/commands/template-diff.md": "a701807f4375b52b15b84f9f75b785e1",
     ".cursor/rules/ai-models-api-usage.mdc": "60fc8d4ec7ffac07cfa0329ba465f441",
     ".cursor/rules/app-guidelines-checklist.mdc": "85a4bff29b4d29276c7de3e5a74c1ad1",
@@ -383,7 +382,7 @@
     "scripts/debug-eslint.js": "08d2e4bc622ca1ec50e0db6260d234c6",
     "scripts/generate-icons.ts": "649bd7b923ee54aa820863fb0e4b5d50",
     "scripts/get-report.mjs": "b5136a8413bc15c76541eb294be73288",
-    "scripts/init-project.js": "b23cee2a2320c0cfc6b8a4525fb4db07",
+    "scripts/init-project.js": "50e646bac27a8f946a92b864ebd9374b",
     "scripts/init-template.ts": "19a7ea27167225723ad5999795c0e55f",
     "scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
     "scripts/watch-checks.js": "b5252fd663f2434ad5cebf5b25b53a78",
@@ -622,7 +621,7 @@
     "scripts/template-scripts/cli-utils.ts": "8202934c471755656d2843740613b4f0",
     "scripts/template-scripts/init-template.ts": "19a7ea27167225723ad5999795c0e55f",
     "scripts/template-scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
-    "scripts/template-scripts/sync-template/analysis/change-analysis.ts": "aaf1e5fab26629da3913261a0c6286ec",
+    "scripts/template-scripts/sync-template/analysis/change-analysis.ts": "89e43e65797a678c5ad7dad37160f34c",
     "scripts/template-scripts/sync-template/analysis/diff-utils.ts": "f15edcf324a7ec38ae8bf1e9bb60a8fc",
     "scripts/template-scripts/sync-template/analysis/index.ts": "4cc2f24ccbfa0c6b135c572f406d6bb9",
     "scripts/template-scripts/sync-template/files/comparison.ts": "70e163f14e01935cf816a6531af9e66f",
@@ -644,16 +643,16 @@
     "scripts/template-scripts/sync-template/reporting/index.ts": "4b83d0482d46520cebedcdf05120ddc5",
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
-    "scripts/template-scripts/sync-template/sync/operations.ts": "ad1f040c6403202c8787ec6dac572c31",
+    "scripts/template-scripts/sync-template/sync/operations.ts": "8d336d1efccf2959eeb7be557ff924dd",
     "scripts/template-scripts/sync-template/sync-template-tool.ts": "6d78057ef7fe4118d10ffda8ba381c08",
-    "scripts/template-scripts/sync-template/types/index.ts": "43d8b62ccd36b137f5746600c379b131",
+    "scripts/template-scripts/sync-template/types/index.ts": "e15ef1ca4d4e442ce5dc27407ce55f83",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
     "scripts/template-scripts/sync-template/ui/index.ts": "217ab4757c14c954b0d495ab650e92cd",
     "scripts/template-scripts/sync-template/ui/prompts.ts": "9e9001088c6dee9c499ab3a399a6af5b",
     "scripts/template-scripts/sync-template/utils/config.ts": "778b2b7e15a3270809497e10ff0275d6",
     "scripts/template-scripts/sync-template/utils/exec.ts": "24a36e9169d5ca30fdd0997b6edf5450",
-    "scripts/template-scripts/sync-template/utils/index.ts": "d6863f8f721e30c688a9f7c18fcd1d0c",
+    "scripts/template-scripts/sync-template/utils/index.ts": "e51d340d93f783d504ab95c6f868a14e",
     "scripts/template-scripts/sync-template/utils/logging.ts": "3efe0373a36eb533f6f1264d3d2beb3a",
     "src/middleware.ts": "95a1ff872795b4a36f1fffa10f4915ad",
     "scripts/setup-github-secrets.ts": "840c439a2dc664ba063197638df89da1",
@@ -666,6 +665,9 @@
     ".claude/commands/sync-children.md": "9ed8e252ec2a3a6cf28d0856a0c113a1",
     "scripts/hooks/post-push": "125d3e054884998b90fb6a1d8804b985",
     "scripts/hooks/setup-hooks.sh": "1aad6f6fa24300605d422d64b7ecdbde",
-    "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220"
+    "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220",
+    ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
+    "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
+    "scripts/vercel-cli.ts": "635106764b4d32d44291ec3922702620"
   }
 }

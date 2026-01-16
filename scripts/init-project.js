@@ -404,6 +404,7 @@ async function main() {
     deleteTemplateExampleFeatures();
 
     console.log('\n=== Initialization complete ===');
+    console.log('\n📋 Optional: To use vercel-cli, run: vercel link');
 }
 
 main().catch((err) => {
