@@ -9,15 +9,22 @@ import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
 
+interface ToastAction {
+    label: string;
+    onClick: () => void;
+}
+
 interface Toast {
     id: string;
     message: string;
     type: ToastType;
+    actions?: ToastAction[];
+    duration?: number; // Custom duration in ms (default 4000)
 }
 
 interface ToastStore {
     toasts: Toast[];
-    addToast: (message: string, type: ToastType) => void;
+    addToast: (message: string, type: ToastType, options?: { actions?: ToastAction[]; duration?: number }) => void;
     removeToast: (id: string) => void;
 }
 
@@ -27,17 +34,18 @@ const useToastStore = createStore<ToastStore>({
     inMemoryOnly: true,
     creator: (set) => ({
         toasts: [],
-        addToast: (message, type) => {
+        addToast: (message, type, options) => {
             const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const duration = options?.duration ?? 4000;
             set((state) => ({
-                toasts: [...state.toasts, { id, message, type }],
+                toasts: [...state.toasts, { id, message, type, actions: options?.actions, duration }],
             }));
-            // Auto-remove after 4 seconds
+            // Auto-remove after duration
             setTimeout(() => {
                 set((state) => ({
                     toasts: state.toasts.filter((t) => t.id !== id),
                 }));
-            }, 4000);
+            }, duration);
         },
         removeToast: (id) => {
             set((state) => ({
@@ -49,9 +57,12 @@ const useToastStore = createStore<ToastStore>({
 
 // Toast API for use anywhere in the app
 export const toast = {
-    success: (message: string) => useToastStore.getState().addToast(message, 'success'),
-    error: (message: string) => useToastStore.getState().addToast(message, 'error'),
-    info: (message: string) => useToastStore.getState().addToast(message, 'info'),
+    success: (message: string, options?: { actions?: ToastAction[]; duration?: number }) =>
+        useToastStore.getState().addToast(message, 'success', options),
+    error: (message: string, options?: { actions?: ToastAction[]; duration?: number }) =>
+        useToastStore.getState().addToast(message, 'error', options),
+    info: (message: string, options?: { actions?: ToastAction[]; duration?: number }) =>
+        useToastStore.getState().addToast(message, 'info', options),
 };
 
 const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
@@ -69,16 +80,34 @@ const TOAST_STYLES: Record<ToastType, string> = {
 function ToastItem({ toast: t, onRemove }: { toast: Toast; onRemove: () => void }) {
     return (
         <div
-            className={`flex items-center gap-3 rounded-lg border border-border border-l-4 px-4 py-3 shadow-xl ${TOAST_STYLES[t.type]} animate-in slide-in-from-right-full duration-300`}
+            className={`flex flex-col gap-2 rounded-lg border border-border border-l-4 px-4 py-3 shadow-xl ${TOAST_STYLES[t.type]} animate-in slide-in-from-right-full duration-300`}
         >
-            {TOAST_ICONS[t.type]}
-            <span className="flex-1 text-sm font-medium">{t.message}</span>
-            <button
-                onClick={onRemove}
-                className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity"
-            >
-                <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-3">
+                {TOAST_ICONS[t.type]}
+                <span className="flex-1 text-sm font-medium">{t.message}</span>
+                <button
+                    onClick={onRemove}
+                    className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+            {t.actions && t.actions.length > 0 && (
+                <div className="flex gap-2 ml-8">
+                    {t.actions.map((action, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => {
+                                action.onClick();
+                                onRemove();
+                            }}
+                            className="text-xs font-medium px-3 py-1.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                        >
+                            {action.label}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

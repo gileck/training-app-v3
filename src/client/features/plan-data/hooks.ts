@@ -592,9 +592,10 @@ export function useSetProgress(planId: string | null, weekNumber: number, workou
      * @param exerciseId - The exercise ID
      * @param targetSets - The target number of sets
      * @param overrideWorkoutId - Optional override for workout ID (used by workout picker)
+     * @param onSuccess - Optional callback called with activity IDs after logging
      */
     const addSet = useCallback(
-        (exerciseId: string, targetSets: number, overrideWorkoutId?: string) => {
+        (exerciseId: string, targetSets: number, overrideWorkoutId?: string, onSuccess?: (activityIds: string[]) => void) => {
             if (!planId) return;
 
             const effectiveWorkoutId = overrideWorkoutId ?? workoutId;
@@ -615,6 +616,11 @@ export function useSetProgress(planId: string | null, weekNumber: number, workou
                 numberOfSets: 1,
                 activityIds,
             });
+
+            // Call onSuccess callback with activity IDs
+            if (onSuccess) {
+                onSuccess(activityIds);
+            }
         },
         [planId, weekNumber, workoutId, incrementSet, incrementSetForWorkout, addActivityMutation]
     );

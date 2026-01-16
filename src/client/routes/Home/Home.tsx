@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+import { toast } from '@/client/components/ui/toast';
 import { Calendar } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useRouter } from '../../router';
@@ -42,6 +43,7 @@ import {
     WorkoutsTabContent,
 } from './components';
 import { getFirstWorkoutWithCapacity, getLastWorkoutWithSets } from './utils/setAllocation';
+import { useDeleteActivity } from '@/client/routes/Progress/hooks';
 
 export function Home() {
     const { navigate } = useRouter();
@@ -68,6 +70,9 @@ export function Home() {
 
     // Set progress actions (unified store + activity logging)
     const { addSet, removeSet } = useSetProgress(activePlanId, currentWeek);
+
+    // Delete activity mutation
+    const deleteActivityMutation = useDeleteActivity();
 
     // Selection mode state
     const selectedExerciseIds = useSelectedExerciseIds();
@@ -132,7 +137,34 @@ export function Home() {
             exercises,
             weekWorkoutSets
         );
-        addSet(exercise.planExerciseId, exercise.targetSets, workoutId ?? undefined);
+
+        addSet(exercise.planExerciseId, exercise.targetSets, workoutId ?? undefined, (activityIds) => {
+            // Show toast with delete action
+            const activityId = activityIds[0];
+
+            toast.success('Progress logged successfully', {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete',
+                        onClick: () => {
+                            // Delete only the activity log (not the set count in plan data)
+                            deleteActivityMutation.mutate(
+                                { activityId },
+                                {
+                                    onSuccess: () => {
+                                        toast.success('Log deleted');
+                                    },
+                                    onError: () => {
+                                        toast.error('Failed to delete log');
+                                    },
+                                }
+                            );
+                        },
+                    },
+                ],
+            });
+        });
     };
 
     // Handle removing a set from the Exercise Tab or ad-hoc workout
@@ -152,10 +184,35 @@ export function Home() {
             workout.items.some((item) => item.planExerciseId === exerciseId)
         );
 
+        const allActivityIds: string[] = [];
+        const workoutIdsForSets: (string | undefined)[] = [];
+
         // If exercise isn't in any workout, just add sets without workout tracking
         if (containingWorkouts.length === 0) {
             for (let i = 0; i < remainingSets; i++) {
-                addSet(exerciseId, exercise.targetSets, undefined);
+                addSet(exerciseId, exercise.targetSets, undefined, (activityIds) => {
+                    allActivityIds.push(...activityIds);
+                    workoutIdsForSets.push(undefined);
+                });
+            }
+
+            // Show toast after all sets are logged
+            if (allActivityIds.length > 0) {
+                toast.success(`${remainingSets} set${remainingSets > 1 ? 's' : ''} logged`, {
+                    duration: 6000,
+                    actions: [
+                        {
+                            label: 'Delete All',
+                            onClick: () => {
+                                // Delete only the activity logs (not the set count in plan data)
+                                allActivityIds.forEach((activityId) => {
+                                    deleteActivityMutation.mutate({ activityId });
+                                });
+                                toast.success('All logs deleted');
+                            },
+                        },
+                    ],
+                });
             }
             return;
         }
@@ -183,10 +240,32 @@ export function Home() {
                 }
             }
 
-            addSet(exerciseId, exercise.targetSets, targetWorkoutId);
+            addSet(exerciseId, exercise.targetSets, targetWorkoutId, (activityIds) => {
+                allActivityIds.push(...activityIds);
+                workoutIdsForSets.push(targetWorkoutId);
+            });
             if (targetWorkoutId) {
                 localAllocations[targetWorkoutId]++;
             }
+        }
+
+        // Show toast after all sets are logged
+        if (allActivityIds.length > 0 && activePlanId) {
+            toast.success(`${remainingSets} set${remainingSets > 1 ? 's' : ''} logged`, {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete All',
+                        onClick: () => {
+                            // Delete only the activity logs (not the set count in plan data)
+                            allActivityIds.forEach((activityId) => {
+                                deleteActivityMutation.mutate({ activityId });
+                            });
+                            toast.success('All logs deleted');
+                        },
+                    },
+                ],
+            });
         }
     };
 

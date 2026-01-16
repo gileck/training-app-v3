@@ -40,6 +40,7 @@ import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
 import { useSetProgress } from '@/client/features/plan-data';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import { useDeleteActivity } from '@/client/routes/Progress/hooks';
 
 /**
  * Aggregates all state needed for an active workout session.
@@ -284,6 +285,8 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         workoutName,
     } = state;
 
+    const deleteActivityMutation = useDeleteActivity();
+
     const handleStartSet = () => {
         setIsInSet(true);
         cancelRestTimer();
@@ -298,9 +301,32 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
             const eligible = supersetExercises.filter((ex) => ex.setsCompleted < ex.targetSets);
             if (eligible.length === 0) return;
 
+            const allActivityIds: string[] = [];
             eligible.forEach((ex) => {
-                addSet(ex.planExerciseId, ex.targetSets);
+                addSet(ex.planExerciseId, ex.targetSets, undefined, (activityIds) => {
+                    allActivityIds.push(...activityIds);
+                });
             });
+
+            // Show toast after both sets are logged
+            if (allActivityIds.length > 0) {
+                const exerciseNames = eligible.map((ex) => ex.exerciseDef.name).join(' + ');
+                toast.success(`Progress logged for ${exerciseNames}`, {
+                    duration: 6000,
+                    actions: [
+                        {
+                            label: 'Delete',
+                            onClick: () => {
+                                // Delete only the activity logs (not the set count in plan data)
+                                allActivityIds.forEach((activityId) => {
+                                    deleteActivityMutation.mutate({ activityId });
+                                });
+                                toast.success('Logs deleted');
+                            },
+                        },
+                    ],
+                });
+            }
 
             for (let i = 0; i < eligible.length; i++) {
                 incrementCompletedSets();
@@ -322,7 +348,33 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets, undefined, (activityIds) => {
+            // Show toast with delete action
+            const activityId = activityIds[0];
+
+            toast.success('Progress logged successfully', {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete',
+                        onClick: () => {
+                            // Delete only the activity log (not the set count in plan data)
+                            deleteActivityMutation.mutate(
+                                { activityId },
+                                {
+                                    onSuccess: () => {
+                                        toast.success('Log deleted');
+                                    },
+                                    onError: () => {
+                                        toast.error('Failed to delete log');
+                                    },
+                                }
+                            );
+                        },
+                    },
+                ],
+            });
+        });
         incrementCompletedSets();
 
         updateSessionExercises(
@@ -346,7 +398,33 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         if (!currentExercise) return;
         if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
 
-        addSet(currentExercise.planExerciseId, currentExercise.targetSets);
+        addSet(currentExercise.planExerciseId, currentExercise.targetSets, undefined, (activityIds) => {
+            // Show toast with delete action
+            const activityId = activityIds[0];
+
+            toast.success('Progress logged successfully', {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete',
+                        onClick: () => {
+                            // Delete only the activity log (not the set count in plan data)
+                            deleteActivityMutation.mutate(
+                                { activityId },
+                                {
+                                    onSuccess: () => {
+                                        toast.success('Log deleted');
+                                    },
+                                    onError: () => {
+                                        toast.error('Failed to delete log');
+                                    },
+                                }
+                            );
+                        },
+                    },
+                ],
+            });
+        });
         incrementCompletedSets();
         updateSessionExercises(
             sessionExercises.map((ex) =>
