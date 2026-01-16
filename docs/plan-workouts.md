@@ -177,6 +177,47 @@ See inline comments in:
 2. **Home > Workouts Tab**: View and start workouts for the active plan
 3. **ActiveWorkout**: Save ad-hoc sessions as new plan-workouts
 
+## Workout Dialog UI
+
+The workout creation/editing dialog (`WorkoutDialog.tsx`) uses a tabbed interface for better organization:
+
+### Tabs
+
+**Exercises Tab**
+- Select exercises from the plan
+- Shows "Selected" and "Available" sections
+- Displays allocation status (X/Y allocated)
+- "All"/"None" quick selection buttons
+- No auto-focus on workout name (click pencil icon to edit)
+
+**Sets Tab**
+- Configure sets for selected exercises only
+- +/- buttons for set count adjustment
+- Shows "Already allocated" info only when exercise is used in other workouts
+- Over-allocation warnings with clear messaging
+- Empty state guides user to select exercises first
+
+### Allocation Bug Fix
+
+Fixed default set allocation when selecting fully-allocated exercises:
+- **Before**: Selected exercise defaulted to full weekly sets (e.g., 3) even when already allocated (3/3), causing false warnings
+- **After**: Defaults to remaining capacity (0 if fully allocated in other workouts)
+
+### Components
+
+```
+WorkoutDialog/
+├── WorkoutNameEditor.tsx    # Editable name with pencil icon (no auto-focus)
+├── ExercisesTab.tsx        # Exercise selection with sections
+└── SetsTab.tsx             # Sets configuration with +/- controls
+```
+
+### Dark Mode Support
+
+Warning messages use custom oklch colors that adapt to theme:
+- Light mode: `oklch(0.47 0.14 51.32)` - darker orange for contrast
+- Dark mode: `oklch(0.70 0.14 51.32)` - lighter orange for visibility
+
 ## File Structure
 
 ```

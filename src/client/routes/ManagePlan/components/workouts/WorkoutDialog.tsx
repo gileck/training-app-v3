@@ -1,16 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/client/components/ui/dialog';
-import { Check, Dumbbell, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+import { AlertTriangle } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import { WorkoutNameEditor } from './WorkoutDialog/WorkoutNameEditor';
+import { ExercisesTab } from './WorkoutDialog/ExercisesTab';
+import { SetsTab } from './WorkoutDialog/SetsTab';
 
 interface WorkoutDialogProps {
     open: boolean;
@@ -36,6 +38,8 @@ export function WorkoutDialog({
     // Map of planExerciseId -> sets (undefined means use exercise's weekly sets)
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral selection with sets
     const [selectedExercises, setSelectedExercises] = useState<Map<string, number | undefined>>(new Map());
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
+    const [activeTab, setActiveTab] = useState<'exercises' | 'sets'>('exercises');
 
     // Calculate allocated sets per exercise across all workouts (excluding current editing workout)
     const allocationMap = useMemo(() => {
@@ -86,11 +90,10 @@ export function WorkoutDialog({
             if (newMap.has(exerciseId)) {
                 newMap.delete(exerciseId);
             } else {
-                // Default to remaining sets (what's not allocated to other workouts)
+                // Default to remaining sets (0 if fully allocated in other workouts)
                 const allocated = allocationMap.get(exerciseId) || 0;
                 const remaining = Math.max(0, exercise.sets - allocated);
-                // If all sets are allocated, default to exercise's weekly sets
-                newMap.set(exerciseId, remaining > 0 ? remaining : exercise.sets);
+                newMap.set(exerciseId, remaining);
             }
             return newMap;
         });
@@ -109,7 +112,7 @@ export function WorkoutDialog({
         for (const exercise of planExercises) {
             const allocated = allocationMap.get(exercise._id) || 0;
             const remaining = Math.max(0, exercise.sets - allocated);
-            newMap.set(exercise._id, remaining > 0 ? remaining : exercise.sets);
+            newMap.set(exercise._id, remaining);
         }
         setSelectedExercises(newMap);
     };
@@ -155,156 +158,60 @@ export function WorkoutDialog({
                         </DialogTitle>
                     </DialogHeader>
 
-                    {/* Workout Name Input */}
+                    {/* Workout Name Editor */}
                     <div className="mt-4">
-                        <Input
-                            id="workout-name"
+                        <WorkoutNameEditor
                             value={workoutName}
-                            onChange={(e) => setWorkoutName(e.target.value)}
+                            onChange={setWorkoutName}
                             placeholder="Workout name..."
-                            className="h-12 rounded-xl border-2 border-muted text-base font-medium placeholder:text-muted-foreground/50 focus:border-primary transition-colors"
                         />
                     </div>
                 </div>
 
-                {/* Exercise Selection Section */}
-                <div className="flex-1 flex flex-col min-h-0 bg-muted/30">
-                    {/* Selection Header */}
-                    <div className="flex items-center justify-between px-6 py-3 border-b bg-background/80 backdrop-blur-sm sticky top-0">
-                        <span className="text-sm font-medium">
-                            {selectedExercises.size === 0
-                                ? 'Select exercises'
-                                : `${selectedExercises.size} selected`}
-                        </span>
-                        <div className="flex gap-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleSelectAll}
-                                className="text-xs h-8 px-3 rounded-lg hover:bg-primary/10 hover:text-primary"
-                            >
-                                All
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleDeselectAll}
-                                className="text-xs h-8 px-3 rounded-lg hover:bg-destructive/10 hover:text-destructive"
-                            >
-                                None
-                            </Button>
-                        </div>
+                {/* Tabbed Interface */}
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => setActiveTab(v as 'exercises' | 'sets')}
+                    className="flex-1 flex flex-col min-h-0"
+                >
+                    <div className="px-6 pt-2 pb-0">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="exercises">
+                                Exercises {selectedExercises.size > 0 && `(${selectedExercises.size})`}
+                            </TabsTrigger>
+                            <TabsTrigger value="sets">
+                                Sets {selectedExercises.size > 0 && `(${selectedExercises.size})`}
+                            </TabsTrigger>
+                        </TabsList>
                     </div>
 
-                    {/* Exercise List */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
-                        {planExercises.map((exercise) => {
-                            const isSelected = selectedExercises.has(exercise._id);
-                            const selectedSets = selectedExercises.get(exercise._id) ?? exercise.sets;
-                            const alreadyAllocated = allocationMap.get(exercise._id) || 0;
-                            const isFullyAllocated = alreadyAllocated >= exercise.sets;
-                            const totalWithThis = alreadyAllocated + (isSelected ? selectedSets : 0);
-                            const isOverAllocated = totalWithThis > exercise.sets;
+                    <TabsContent value="exercises" className="mt-2 flex-1 flex flex-col min-h-0">
+                        <ExercisesTab
+                            planExercises={planExercises}
+                            selectedExercises={selectedExercises}
+                            allocationMap={allocationMap}
+                            onToggleExercise={handleToggleExercise}
+                            onSelectAll={handleSelectAll}
+                            onDeselectAll={handleDeselectAll}
+                        />
+                    </TabsContent>
 
-                            return (
-                                <div
-                                    key={exercise._id}
-                                    className={`rounded-xl transition-all ${
-                                        isSelected
-                                            ? 'bg-primary/10 ring-1 ring-primary/30'
-                                            : isFullyAllocated
-                                                ? 'bg-muted/50 opacity-60'
-                                                : 'bg-background hover:bg-background/80'
-                                    }`}
-                                >
-                                    <div
-                                        onClick={() => handleToggleExercise(exercise._id, exercise)}
-                                        className="flex items-center gap-3 p-3 cursor-pointer active:scale-[0.98]"
-                                    >
-                                        {/* Checkbox */}
-                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                                            isSelected
-                                                ? 'bg-primary border-primary scale-110'
-                                                : 'border-muted-foreground/20 bg-background'
-                                        }`}>
-                                            {isSelected && <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />}
-                                        </div>
-
-                                        {/* Exercise image */}
-                                        <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden flex-shrink-0 relative border border-border/50">
-                                            {exercise.exerciseDef.imageUrl ? (
-                                                <Image
-                                                    src={exercise.exerciseDef.imageUrl}
-                                                    alt={exercise.exerciseDef.name}
-                                                    fill
-                                                    className="object-contain p-1"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Dumbbell className="h-5 w-5 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Exercise info */}
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
-                                                {exercise.exerciseDef.name}
-                                            </h4>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <span>
-                                                    {exercise.reps} reps
-                                                    {exercise.weight > 0 && ` · ${exercise.weight}kg`}
-                                                </span>
-                                                <span className="text-muted-foreground/50">·</span>
-                                                <span className={`${
-                                                    isOverAllocated
-                                                        ? 'text-warning'
-                                                        : isFullyAllocated
-                                                            ? 'text-success'
-                                                            : ''
-                                                }`}>
-                                                    {alreadyAllocated}/{exercise.sets} allocated
-                                                    {isFullyAllocated && !isSelected && ' ✓'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Sets input (shown when selected) */}
-                                    {isSelected && (
-                                        <div className="px-3 pb-3 flex items-center gap-2">
-                                            <span className="text-sm text-muted-foreground ml-9">Sets:</span>
-                                            <Input
-                                                type="number"
-                                                min={0}
-                                                max={exercise.sets}
-                                                value={selectedSets}
-                                                onChange={(e) => handleSetsChange(exercise._id, parseInt(e.target.value) || 0)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="w-20 h-8 text-center"
-                                            />
-                                            <span className="text-sm text-muted-foreground">
-                                                / {exercise.sets} weekly
-                                            </span>
-                                            {isOverAllocated && (
-                                                <AlertTriangle className="h-4 w-4 text-warning ml-auto" />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                    <TabsContent value="sets" className="mt-2 flex-1 flex flex-col min-h-0">
+                        <SetsTab
+                            planExercises={planExercises}
+                            selectedExercises={selectedExercises}
+                            allocationMap={allocationMap}
+                            onSetsChange={handleSetsChange}
+                        />
+                    </TabsContent>
+                </Tabs>
 
                 {/* Footer */}
                 <div className="p-4 border-t bg-background">
                     {hasOverAllocation && (
-                        <div className="flex items-center gap-2 text-warning text-sm mb-3">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>Some exercises exceed their weekly allocation</span>
+                        <div className="flex items-center gap-2 text-sm mb-3 rounded-lg p-2.5 border border-border/50 text-[oklch(0.47_0.14_51.32)] dark:text-[oklch(0.70_0.14_51.32)]">
+                            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                            <span className="font-medium">Some exercises exceed their weekly allocation</span>
                         </div>
                     )}
                     <Button
