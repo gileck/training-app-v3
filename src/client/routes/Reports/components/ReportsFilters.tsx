@@ -5,15 +5,16 @@
 import { Button } from '@/client/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select';
 import { List, Layers } from 'lucide-react';
-import type { ReportType, ReportStatus } from '@/apis/reports/types';
+import type { ReportType } from '@/apis/reports/types';
+import type { StatusFilterOption } from '../store';
 
 interface ReportsFiltersProps {
     viewMode: 'individual' | 'grouped';
     setViewMode: (mode: 'individual' | 'grouped') => void;
     typeFilter: ReportType | 'all';
     setTypeFilter: (type: ReportType | 'all') => void;
-    statusFilter: ReportStatus | 'all';
-    setStatusFilter: (status: ReportStatus | 'all') => void;
+    statusFilter: StatusFilterOption;
+    setStatusFilter: (status: StatusFilterOption) => void;
     sortOrder: 'asc' | 'desc';
     setSortOrder: (order: 'asc' | 'desc') => void;
 }
@@ -65,12 +66,13 @@ export function ReportsFilters({
                     </SelectContent>
                 </Select>
 
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ReportStatus | 'all')}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilterOption)}>
                     <SelectTrigger className="h-9 text-xs">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
                         <SelectItem value="new">New</SelectItem>
                         <SelectItem value="investigating">Investigating</SelectItem>
                         <SelectItem value="resolved">Resolved</SelectItem>

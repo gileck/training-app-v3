@@ -9,7 +9,9 @@ import {
     API_UPDATE_REPORT_STATUS,
     API_DELETE_REPORT,
     API_DELETE_ALL_REPORTS,
-    API_UPDATE_INVESTIGATION
+    API_UPDATE_INVESTIGATION,
+    API_BATCH_UPDATE_STATUS,
+    API_BATCH_DELETE
 } from './index';
 
 // Import handlers
@@ -20,6 +22,8 @@ import { updateReportStatus } from './handlers/updateReportStatus';
 import { deleteReport } from './handlers/deleteReport';
 import { deleteAllReports } from './handlers/deleteAllReports';
 import { updateInvestigation } from './handlers/updateInvestigation';
+import { batchUpdateStatus } from './handlers/batchUpdateStatus';
+import { batchDeleteReports } from './handlers/batchDeleteReports';
 
 // Export consolidated handlers object
 export const reportsApiHandlers = {
@@ -30,5 +34,7 @@ export const reportsApiHandlers = {
     [API_DELETE_REPORT]: { process: deleteReport },
     [API_DELETE_ALL_REPORTS]: { process: deleteAllReports },
     [API_UPDATE_INVESTIGATION]: { process: updateInvestigation },
+    [API_BATCH_UPDATE_STATUS]: { process: batchUpdateStatus },
+    [API_BATCH_DELETE]: { process: batchDeleteReports },
 };
 

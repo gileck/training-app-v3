@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "761726e9245af1638e7309d422836f9f2671cbfe",
-  "lastProjectCommit": "f8cd291b619018f96ecdb516b655917918b3806f",
-  "lastSyncDate": "2026-01-17T15:58:39.520Z",
+  "lastSyncCommit": "f56876439dce5f703b728656bbd8e5277d66d683",
+  "lastProjectCommit": "dc134b9ddbfc75e3c7dde3ec9df3421438722de8",
+  "lastSyncDate": "2026-01-17T16:29:09.506Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-17T16:29:09.708Z",
+      "templateCommit": "f56876439dce5f703b728656bbd8e5277d66d683",
+      "projectCommit": "dc134b9ddbfc75e3c7dde3ec9df3421438722de8",
+      "filesApplied": 11,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "f568764 feat: add batch operations for report groups and \"Open\" status filter \u001b[90m(17/01/2026)\u001b[0m\n  Batch operations:\n  - Add batch update status and batch delete APIs\n  - Add actions menu to grouped report cards with options to mark all as\n    New/Investigating/Resolved/Closed or delete all reports in group\n  - Includes loading overlay and confirmation dialogs\n  \n  Open status filter:\n  - Add \"Open\" filter option that shows New + Investigating reports\n  - Set as default filter when entering Reports page\n  - UI-only filter with client-side filtering\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-17T15:58:39.792Z",
       "templateCommit": "761726e9245af1638e7309d422836f9f2671cbfe",
@@ -276,18 +287,6 @@
       "templateCommits": [
         "6fce383 feat: add AI-powered conflict analysis using Claude Code SDK \u001b[90m(10/01/2026)\u001b[0m\n  - Create scripts/ai-agents/ folder with modular AI agents:\n    - gemini-agent.ts: Original Gemini implementation (requires API key)\n    - claude-code-agent.ts: Claude Code SDK (uses CLI auth, no API key)\n  - Add analyzeConflict() function that provides:\n    - What changed in template vs project\n    - Merge difficulty assessment (easy/moderate/hard)\n    - Recommendation (take-template/keep-project/manual-merge)\n  - Update sync-template.ts to use claude-code-agent for:\n    - Safe change descriptions\n    - Detailed conflict analysis with color-coded output\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-10T08:48:18.268Z",
-      "templateCommit": "ef31b04023458d9240f1345e0985e6411aeb3c0f",
-      "projectCommit": "2c6e4ec4ca977730c3475ee487abf33ca7c30074",
-      "filesApplied": 2,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "ef31b04 feat: show line stats (+/-) for each file in sync-template analysis \u001b[90m(10/01/2026)\u001b[0m\n  Adds colored line count statistics next to each file in the\n  ANALYSIS SUMMARY section, similar to GitHub's diff display.\n  Shows green +N for additions and red -N for removals.\n  \n  Example: • src/file.ts (+15/-8)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "dfea758 feat: add --all option to merge-template script \u001b[90m(10/01/2026)\u001b[0m\n  Adds --all flag that automatically finds and processes all files\n  that are modified by BOTH template AND project (true conflicts).\n  Uses hash-based comparison against the sync baseline to detect\n  which files have changes on both sides.\n  \n  Usage: yarn merge-template --all\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -397,15 +396,15 @@
     "src/apis/index.ts": "f8d1fbafc6777692f7b8c0d21e0008d4",
     "src/apis/processApiCall.ts": "9f0bfbbc2ab4ebd105962385ae89364b",
     "src/apis/registry.ts": "6d37ea6c95c345a9c8e343ed9915774c",
-    "src/apis/reports/client.ts": "1d4ade3756694d75e4483c6534ce7895",
+    "src/apis/reports/client.ts": "e8e2aa9a2225b8959fc1a0879516f4ea",
     "src/apis/reports/handlers/createReport.ts": "19ccab6136ca863c648dbcd851208d3d",
     "src/apis/reports/handlers/deleteReport.ts": "bdbcdb6823011f0155e3853093072f80",
     "src/apis/reports/handlers/getReport.ts": "c7b7cf7df2f220c8467dad7b8bf52e1b",
     "src/apis/reports/handlers/getReports.ts": "b456ced4e1d7cc925f3468c216b4a085",
     "src/apis/reports/handlers/updateReportStatus.ts": "2ab5d5a22d42b1e90c4ea749c57b18e3",
-    "src/apis/reports/index.ts": "7da639ac73aaa4d90c9fceb0495ee2f8",
-    "src/apis/reports/server.ts": "fe29938e525b43f832fe7e4d55a59e90",
-    "src/apis/reports/types.ts": "5ca3c522d0334ff415a9406fcaf0b044",
+    "src/apis/reports/index.ts": "282b8207e48961e6efd4ec7e1c27e9b3",
+    "src/apis/reports/server.ts": "6351c1e8649930a420438adf625a429c",
+    "src/apis/reports/types.ts": "0b777d27f97e25562fc4c8e1408390ce",
     "src/apis/settings/clearCache/client.ts": "317e787b422873b894ebca37965914d4",
     "src/apis/settings/clearCache/index.ts": "6ccd70af803dbde88fd43b41f7298285",
     "src/apis/settings/clearCache/server.ts": "c0679f33b104b037a5b914465e36ae0f",
@@ -498,10 +497,10 @@
     "src/client/routes/Profile/Profile.tsx": "155a4cf7e894a29d39ab5409996bacf3",
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
-    "src/client/routes/Reports/Reports.tsx": "d779d86bec86ce3772fec318126463ec",
-    "src/client/routes/Reports/hooks.ts": "6d7bf1b9cd321025e42ec829226961f0",
+    "src/client/routes/Reports/Reports.tsx": "133db9031a795fc0c0ccaac54fad747d",
+    "src/client/routes/Reports/hooks.ts": "8d632fed36d15e56cbcda2484cb012d8",
     "src/client/routes/Reports/index.ts": "d50cbe298a66723e0b120912e51e22cc",
-    "src/client/routes/Reports/store.ts": "da914b2cd044bb3f270a94e77e4810de",
+    "src/client/routes/Reports/store.ts": "5adc2a180bf9cd3273894fcfc44c7f83",
     "src/client/routes/Settings/index.ts": "4acb722c393191556f86eabbed9239f2",
     "src/client/routes/Theme/Theme.tsx": "7a5a44536df7fbb7d5f00f475200832d",
     "src/client/routes/Theme/index.ts": "cbe6cbce9b94a9f445c36665d43dde51",
@@ -586,9 +585,9 @@
     "src/client/routes/Profile/components/ImageUploadDialog.tsx": "ff609bad55be6256553cc3501baa2e5e",
     "src/client/routes/Profile/components/ProfileCard.tsx": "c5a5b7a37772291a4d1a045a0d473fa6",
     "src/client/routes/Profile/components/index.ts": "2442a712a8fb66f8cfa5e383e40ec720",
-    "src/client/routes/Reports/components/GroupedReportCard.tsx": "e524d449cc78c3d74c14400a4524dba4",
+    "src/client/routes/Reports/components/GroupedReportCard.tsx": "54643aefab0c3988ffd7eeddccd105f3",
     "src/client/routes/Reports/components/ReportCard.tsx": "5cdd40327e22f5565c50717841bf2f73",
-    "src/client/routes/Reports/components/ReportsFilters.tsx": "b33b3f4fcbff974f742978b0359378fd",
+    "src/client/routes/Reports/components/ReportsFilters.tsx": "17f0c3d5af2e8f0d99d795cb71c852d1",
     "src/client/routes/Reports/components/ReportsHeader.tsx": "4f0403d3917c9356ccae28aaa92ca524",
     "src/client/routes/Reports/components/index.ts": "e452620f13cca7ea14ad7c93ac5871f1",
     "src/client/routes/Reports/utils.ts": "53158fadf217744671e416b818f2012a",
@@ -665,6 +664,8 @@
     "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220",
     ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
     "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
-    "scripts/vercel-cli.ts": "635106764b4d32d44291ec3922702620"
+    "scripts/vercel-cli.ts": "635106764b4d32d44291ec3922702620",
+    "src/apis/reports/handlers/batchDeleteReports.ts": "f568613feaf75d7b661c9ab5f4769224",
+    "src/apis/reports/handlers/batchUpdateStatus.ts": "e139673c083dffdf8f6bb5cc74b89e05"
   }
 }

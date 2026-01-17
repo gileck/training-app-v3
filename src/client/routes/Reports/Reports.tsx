@@ -31,11 +31,20 @@ export function Reports() {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
-    const { data: reports, isLoading, error } = useReports({
+    // For 'open' filter, we fetch all and filter client-side
+    // This is because 'open' is a UI-only concept (new + investigating)
+    const apiStatusFilter = statusFilter === 'open' || statusFilter === 'all' ? undefined : statusFilter;
+
+    const { data: rawReports, isLoading, error } = useReports({
         type: typeFilter === 'all' ? undefined : typeFilter,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        status: apiStatusFilter,
         sortOrder,
     });
+
+    // Apply client-side filtering for 'open' status
+    const reports = statusFilter === 'open' && rawReports
+        ? rawReports.filter(r => r.status === 'new' || r.status === 'investigating')
+        : rawReports;
 
     // Determine if we should show loading state:
     // - isLoading is true when fetching without cached data

@@ -87,6 +87,27 @@ export interface DeleteAllReportsResponse {
     error?: string;
 }
 
+// Batch update status
+export interface BatchUpdateStatusRequest {
+    reportIds: string[];
+    status: ReportStatus;
+}
+
+export interface BatchUpdateStatusResponse {
+    updatedCount?: number;
+    error?: string;
+}
+
+// Batch delete reports
+export interface BatchDeleteReportsRequest {
+    reportIds: string[];
+}
+
+export interface BatchDeleteReportsResponse {
+    deletedCount?: number;
+    error?: string;
+}
+
 // Update investigation
 export interface UpdateInvestigationRequest {
     reportId: string;

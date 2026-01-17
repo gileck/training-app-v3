@@ -15,4 +15,6 @@ export const API_UPDATE_REPORT_STATUS = 'admin/reports/updateStatus';
 export const API_DELETE_REPORT = 'admin/reports/delete';
 export const API_DELETE_ALL_REPORTS = 'admin/reports/deleteAll';
 export const API_UPDATE_INVESTIGATION = 'admin/reports/updateInvestigation';
+export const API_BATCH_UPDATE_STATUS = 'admin/reports/batchUpdateStatus';
+export const API_BATCH_DELETE = 'admin/reports/batchDelete';
 

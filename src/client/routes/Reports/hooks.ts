@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getReports, updateReportStatus, deleteReport, deleteAllReports } from '@/apis/reports/client';
+import { getReports, updateReportStatus, deleteReport, deleteAllReports, batchUpdateStatus, batchDeleteReports } from '@/apis/reports/client';
 import type { GetReportsRequest, ReportStatus } from '@/apis/reports/types';
 import { useQueryDefaults } from '@/client/query';
 import { toast } from '@/client/components/ui/toast';
@@ -125,6 +125,80 @@ export function useDeleteAllReports() {
             }
         },
         onSuccess: () => {},
+        onSettled: () => {},
+    });
+}
+
+export function useBatchUpdateStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ reportIds, status }: { reportIds: string[]; status: ReportStatus }) => {
+            const result = await batchUpdateStatus({ reportIds, status });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        onMutate: async ({ reportIds, status }) => {
+            await queryClient.cancelQueries({ queryKey: reportsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: reportsBaseQueryKey });
+
+            queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map((report) =>
+                    reportIds.includes(report._id) ? { ...report, status } : report
+                );
+            });
+
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+            toast.error('Failed to update reports');
+        },
+        onSuccess: (_data, { reportIds, status }) => {
+            toast.success(`Updated ${reportIds.length} report(s) to ${status}`);
+        },
+        onSettled: () => {},
+    });
+}
+
+export function useBatchDeleteReports() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (reportIds: string[]) => {
+            const result = await batchDeleteReports({ reportIds });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        onMutate: async (reportIds) => {
+            await queryClient.cancelQueries({ queryKey: reportsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: reportsBaseQueryKey });
+
+            queryClient.setQueriesData({ queryKey: reportsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter((report) => !reportIds.includes(report._id));
+            });
+
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+            toast.error('Failed to delete reports');
+        },
+        onSuccess: (_data, reportIds) => {
+            toast.success(`Deleted ${reportIds.length} report(s)`);
+        },
         onSettled: () => {},
     });
 }

@@ -1,12 +1,14 @@
 import apiClient from '@/client/utils/apiClient';
 import { CacheResult } from '@/common/cache/types';
-import { 
-    API_CREATE_REPORT, 
-    API_GET_REPORTS, 
-    API_GET_REPORT, 
+import {
+    API_CREATE_REPORT,
+    API_GET_REPORTS,
+    API_GET_REPORT,
     API_UPDATE_REPORT_STATUS,
     API_DELETE_REPORT,
-    API_DELETE_ALL_REPORTS
+    API_DELETE_ALL_REPORTS,
+    API_BATCH_UPDATE_STATUS,
+    API_BATCH_DELETE
 } from './index';
 import {
     CreateReportRequest,
@@ -21,6 +23,10 @@ import {
     DeleteReportResponse,
     DeleteAllReportsRequest,
     DeleteAllReportsResponse,
+    BatchUpdateStatusRequest,
+    BatchUpdateStatusResponse,
+    BatchDeleteReportsRequest,
+    BatchDeleteReportsResponse,
 } from './types';
 
 /**
@@ -77,4 +83,22 @@ export const deleteAllReports = async (
     params: DeleteAllReportsRequest = {}
 ): Promise<CacheResult<DeleteAllReportsResponse>> => {
     return apiClient.post(API_DELETE_ALL_REPORTS, params);
+};
+
+/**
+ * Batch update status for multiple reports
+ */
+export const batchUpdateStatus = async (
+    params: BatchUpdateStatusRequest
+): Promise<CacheResult<BatchUpdateStatusResponse>> => {
+    return apiClient.post(API_BATCH_UPDATE_STATUS, params);
+};
+
+/**
+ * Batch delete multiple reports
+ */
+export const batchDeleteReports = async (
+    params: BatchDeleteReportsRequest
+): Promise<CacheResult<BatchDeleteReportsResponse>> => {
+    return apiClient.post(API_BATCH_DELETE, params);
 };

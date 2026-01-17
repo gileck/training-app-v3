@@ -8,13 +8,18 @@ export type ReportsViewMode = 'individual' | 'grouped';
 
 export type ReportsSortOrder = 'asc' | 'desc';
 
+/**
+ * UI-only status filter that includes 'open' (new + investigating)
+ */
+export type StatusFilterOption = ReportStatus | 'all' | 'open';
+
 interface ReportsState {
     typeFilter: ReportType | 'all';
-    statusFilter: ReportStatus | 'all';
+    statusFilter: StatusFilterOption;
     sortOrder: ReportsSortOrder;
     viewMode: ReportsViewMode;
     setTypeFilter: (type: ReportType | 'all') => void;
-    setStatusFilter: (status: ReportStatus | 'all') => void;
+    setStatusFilter: (status: StatusFilterOption) => void;
     setSortOrder: (order: ReportsSortOrder) => void;
     setViewMode: (mode: ReportsViewMode) => void;
 }
@@ -27,11 +32,11 @@ export const useReportsStore = createStore<ReportsState>({
     label: 'Reports',
     creator: (set) => ({
         typeFilter: 'all',
-        statusFilter: 'all',
+        statusFilter: 'open', // Default to 'open' (new + investigating)
         sortOrder: 'desc',
         viewMode: 'individual',
         setTypeFilter: (type: ReportType | 'all') => set({ typeFilter: type }),
-        setStatusFilter: (status: ReportStatus | 'all') => set({ statusFilter: status }),
+        setStatusFilter: (status: StatusFilterOption) => set({ statusFilter: status }),
         setSortOrder: (order: ReportsSortOrder) => set({ sortOrder: order }),
         setViewMode: (mode: ReportsViewMode) => set({ viewMode: mode }),
     }),
