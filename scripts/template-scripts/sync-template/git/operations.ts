@@ -66,7 +66,8 @@ export function checkGitStatus(context: SyncContext): void {
 }
 
 /**
- * Clone the template repository to the temp directory
+ * Clone the template repository to the temp directory.
+ * If templateLocalPath is configured, uses local clone for better performance.
  */
 export function cloneTemplate(context: SyncContext): void {
   const templatePath = path.join(context.projectRoot, TEMPLATE_DIR);
@@ -76,6 +77,29 @@ export function cloneTemplate(context: SyncContext): void {
     fs.rmSync(templatePath, { recursive: true, force: true });
   }
 
+  // Check if local path is configured and valid
+  const localPath = context.config.templateLocalPath;
+  if (localPath) {
+    const resolvedLocalPath = path.isAbsolute(localPath)
+      ? localPath
+      : path.resolve(context.projectRoot, localPath);
+
+    if (fs.existsSync(resolvedLocalPath) && fs.existsSync(path.join(resolvedLocalPath, '.git'))) {
+      log(context.options, `📥 Using local template from ${localPath}...`);
+      // Use local clone (much faster than network clone)
+      exec(
+        `git clone --local --branch ${context.config.templateBranch} "${resolvedLocalPath}" ${TEMPLATE_DIR}`,
+        context.projectRoot,
+        { silent: true }
+      );
+      return;
+    } else {
+      log(context.options, `⚠️  Local template path not found or not a git repo: ${localPath}`);
+      log(context.options, '   Falling back to remote clone...');
+    }
+  }
+
+  // Fall back to remote clone
   const repoUrl = getRepoUrl(context);
   log(context.options, `📥 Cloning template from ${repoUrl}...`);
   // Clone with full history to enable comparison with lastSyncCommit

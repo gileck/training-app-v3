@@ -48,7 +48,7 @@ export interface TemplateSyncConfig {
   ignoredFiles: string[];
   projectSpecificFiles: string[];
   templateIgnoredFiles?: string[];  // Template files to never sync (e.g., example/demo code)
-  templateLocalPath?: string;  // Local path to template repo (for contributing changes back)
+  templateLocalPath?: string;  // Local path to template repo (for faster sync and contributing changes)
   syncHistory?: SyncHistoryEntry[];  // Track sync history
   fileHashes?: Record<string, string>;  // Hash of each file at last sync time
 }

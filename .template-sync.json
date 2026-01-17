@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "8697f9b5ebf51dcf18bc34891f8ca3984dc93a22",
-  "lastProjectCommit": "4fced9229a04af9df8a667172848c2e202af2c06",
-  "lastSyncDate": "2026-01-17T16:45:35.890Z",
+  "lastSyncCommit": "70da8a3f74b150118bed6c3cc864d8e423736800",
+  "lastProjectCommit": "9950b1cd9c3f751aee05f687805e3e0e09693d9c",
+  "lastSyncDate": "2026-01-17T16:53:57.282Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-17T16:53:57.596Z",
+      "templateCommit": "70da8a3f74b150118bed6c3cc864d8e423736800",
+      "projectCommit": "9950b1cd9c3f751aee05f687805e3e0e09693d9c",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "70da8a3 feat: add local template path support for faster sync \u001b[90m(17/01/2026)\u001b[0m\n  When templateLocalPath is configured in .template-sync.json, uses local\n  git clone instead of network clone for much faster sync operations.\n  Falls back to remote clone if local path is invalid.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-17T16:43:05.337Z",
       "templateCommit": "8697f9b5ebf51dcf18bc34891f8ca3984dc93a22",
@@ -275,18 +286,6 @@
       "templateCommits": [
         "4dd8a55 fix: add permissions for deployment API access \u001b[90m(10/01/2026)\u001b[0m\n  Fixes \"Resource not accessible by integration (HTTP 403)\" error\n  when accessing deployments API in GitHub Actions.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-10T12:31:55.143Z",
-      "templateCommit": "876cc8961ba72908fa75390d604fe6dfb6e235b4",
-      "projectCommit": "aadcac70072a1796346ebb07e8d58c3569b15fc1",
-      "filesApplied": 5,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "876cc89 fix: replace OWNER_TELEGRAM_CHAT_ID with LOCAL_TELEGRAM_CHAT_ID everywhere \u001b[90m(10/01/2026)\u001b[0m\n  GitHub secrets and workflows now use LOCAL_TELEGRAM_CHAT_ID consistently.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "20778fe fix: make PR checks show as failed when ts/lint fails \u001b[90m(10/01/2026)\u001b[0m\n  - Removed continue-on-error so check shows red X on failure\n  - Check is still non-blocking (not a required check)\n  - Comments and notifications still work on failure\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -347,7 +346,7 @@
     "docs/template-sync/template-sync-implementation.md": "723ea0ab52f8444e7355813aeb956f95",
     "docs/template-sync/template-sync-quick-start.md": "5ab956fa147e6190a204d6a99ca5dc99",
     "docs/template-sync/template-sync-visual-guide.md": "0b930d2e919a74cd10e3ace9410c3168",
-    "docs/template-sync/template-sync.md": "e936d2f0b71e3e08a782713e23ffb8e2",
+    "docs/template-sync/template-sync.md": "a6e01ba6c90b4aaf85669e801db3e5b5",
     "docs/theming.md": "681e533f18a3628d4aee2cfad84c6797",
     "eslint-plugin-api-guidelines/index.js": "e04e1aefd7323b75255b23c1cfb34f28",
     "eslint-plugin-api-guidelines/rules/api-names-from-index.js": "e13771ec7fcf0e9655a662617c401186",
@@ -626,7 +625,7 @@
     "scripts/template-scripts/sync-template/files/index.ts": "d2eec3885334a904a491b1a1257df0cf",
     "scripts/template-scripts/sync-template/files/scanning.ts": "9440759cec950e05ce81861992a4e3b1",
     "scripts/template-scripts/sync-template/git/index.ts": "80003edffc5c816dd735274928bd7d6f",
-    "scripts/template-scripts/sync-template/git/operations.ts": "662eb0827adf61682e8a3a279e75d0d6",
+    "scripts/template-scripts/sync-template/git/operations.ts": "f62cd04232c4fab625d43ca9e2525086",
     "scripts/template-scripts/sync-template/index.ts": "99c138a6c646d1601d183603265a227d",
     "scripts/template-scripts/sync-template/modes/changelog.ts": "458613ee5d58ec20964879c3e7b31d92",
     "scripts/template-scripts/sync-template/modes/diff-summary.ts": "d77bf47f2e513e51524e5a224bd72912",
@@ -641,7 +640,7 @@
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
     "scripts/template-scripts/sync-template/sync/operations.ts": "8d336d1efccf2959eeb7be557ff924dd",
     "scripts/template-scripts/sync-template/sync-template-tool.ts": "6d78057ef7fe4118d10ffda8ba381c08",
-    "scripts/template-scripts/sync-template/types/index.ts": "e15ef1ca4d4e442ce5dc27407ce55f83",
+    "scripts/template-scripts/sync-template/types/index.ts": "f58f425ff1c58734f94f7850f5757f04",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
     "scripts/template-scripts/sync-template/ui/index.ts": "217ab4757c14c954b0d495ab650e92cd",

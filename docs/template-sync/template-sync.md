@@ -49,6 +49,7 @@ Edit `.template-sync.json` to specify:
 {
   "templateRepo": "git@github.com:yourusername/app-template-ai.git",
   "templateBranch": "main",
+  "templateLocalPath": "../app-template-ai",
   "baseCommit": "abc123...",
   "lastSyncCommit": "abc123...",
   "lastSyncDate": "2024-01-01T00:00:00.000Z",
@@ -80,10 +81,33 @@ Edit `.template-sync.json` to specify:
 ```
 
 **Key fields:**
+- `templateRepo`: Remote git URL for the template (used as fallback)
+- `templateLocalPath`: Local path to template repo for faster syncing (optional, see below)
 - `ignoredFiles`: Files that should never be synced (config files, registry files)
 - `projectSpecificFiles`: Your custom code that doesn't exist in template
 - `templateIgnoredFiles`: Template example/demo code to completely ignore (never sync, never show)
 - `fileHashes`: Auto-managed baseline hashes for change detection (don't edit manually)
+
+### Local Template Path (Performance Optimization)
+
+If you have the template repository cloned locally (e.g., you're developing both the template and child projects), you can configure `templateLocalPath` for much faster syncing:
+
+```json
+{
+  "templateLocalPath": "../app-template-ai"
+}
+```
+
+**Benefits:**
+- **Much faster**: Uses local `git clone --local` instead of network clone
+- **Works offline**: No network required when local path is available
+- **Automatic fallback**: If local path is invalid, falls back to remote clone
+
+**Path format:**
+- Relative paths (e.g., `../app-template-ai`) are resolved from the project root
+- Absolute paths (e.g., `/Users/me/projects/app-template-ai`) work too
+
+**Note:** The local path must be a valid git repository with a `.git` directory.
 
 **Glob pattern support:**
 Both arrays support glob patterns:
