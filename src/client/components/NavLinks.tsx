@@ -9,14 +9,18 @@ export const navItems: NavItem[] = [
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
-// Drawer menu with additional items
+/** Regular app menu items (non-admin) */
 export const menuItems: NavItem[] = [
   { path: '/', label: 'Workout', icon: <Dumbbell size={18} /> },
   { path: '/training-plans', label: 'Training Plans', icon: <Calendar size={18} /> },
   { path: '/progress', label: 'Progress', icon: <TrendingUp size={18} /> },
-  { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
   { path: '/theme', label: 'Theme', icon: <Palette size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
+];
+
+/** Admin-only menu items (shown in separate section) */
+export const adminMenuItems: NavItem[] = [
+  { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
 ];
 
 export function filterAdminNavItems(items: NavItem[], isAdmin: boolean): NavItem[] {

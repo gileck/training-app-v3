@@ -40,8 +40,7 @@
     "public/icons/*",
     "public/manifest.json",
     "src/config/pwa.config.ts",
-    "src/client/features/index.ts",
-    "src/client/components/Layout.tsx"
+    "src/client/features/index.ts"
   ],
   "templateIgnoredFiles": [
     "src/apis/todos",
