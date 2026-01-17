@@ -45,18 +45,17 @@ export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
 
 1. **Never return `{}` or `[]` literals** in selector fallback paths
 2. **Create module-level constants** for empty fallback values
-3. **Name them clearly**: `EMPTY_EXERCISES`, `EMPTY_PROGRESS`, `EMPTY_WORKOUT_SETS`
+3. **Name them clearly**: `EMPTY_ITEMS`, `EMPTY_MAP`, `EMPTY_LIST`
 4. **Place constants near selectors** in the same file for visibility
 
-### Existing Stable Fallbacks
-
-In `src/client/features/plan-data/store.ts`:
+### Example Stable Fallbacks
 
 ```typescript
+// At the top of your store file
 // Stable fallback references (prevent infinite loops)
-const EMPTY_EXERCISES: PlanExerciseWithDefinition[] = [];
-const EMPTY_PROGRESS: Record<string, ExerciseProgress> = {};
-const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
+const EMPTY_ITEMS: Item[] = [];
+const EMPTY_MAP: Record<string, unknown> = {};
+const EMPTY_LIST: string[] = [];
 ```
 
 ---
