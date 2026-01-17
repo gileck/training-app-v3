@@ -1,5 +1,8 @@
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 
+export type ActiveWorkoutTab = 'active' | 'exercises';
+export type ExercisesViewMode = 'grid' | 'list';
+
 export interface WorkoutSession {
     isActive: boolean;
     startedAt: number | null;
@@ -19,6 +22,10 @@ export interface WorkoutSession {
     /** Super set mode state */
     supersetEnabled: boolean;
     supersetExerciseIds: string[]; // planExerciseIds (2 items when enabled)
+    /** Active tab in the ActiveWorkout page */
+    activeWorkoutTab: ActiveWorkoutTab;
+    /** View mode for the Exercises tab */
+    exercisesViewMode: ExercisesViewMode;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -37,6 +44,8 @@ export interface WorkoutSessionState extends WorkoutSession {
     setIsInSet: (isInSet: boolean) => void;
     setSupersetEnabled: (enabled: boolean) => void;
     setSupersetExerciseIds: (exerciseIds: string[]) => void;
+    setActiveWorkoutTab: (tab: ActiveWorkoutTab) => void;
+    setExercisesViewMode: (mode: ExercisesViewMode) => void;
 }
 
 // Default rest times by exercise type

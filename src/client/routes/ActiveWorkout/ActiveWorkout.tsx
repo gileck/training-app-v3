@@ -1,3 +1,8 @@
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
+import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ActiveWorkoutTab } from '@/client/features/workout';
 import {
     AllExercisesView,
     EmptyState,
@@ -5,6 +10,7 @@ import {
     TimerZone,
     WorkoutCompleteCard,
     WorkoutCardContainer,
+    ExercisesTabContent,
 } from './components';
 import {
     SaveWorkoutDialog,
@@ -17,6 +23,17 @@ import { useActiveWorkoutState, useWorkoutHandlers } from './hooks';
 export function ActiveWorkout() {
     const state = useActiveWorkoutState();
     const handlers = useWorkoutHandlers(state);
+
+    // Exercise details dialog state (must be before early returns)
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgress | null>(null);
+
+    const handleOpenExerciseDetails = (exercise: ExerciseWeekProgress) => {
+        setSelectedExerciseForDetails(exercise);
+        setExerciseDetailsOpen(true);
+    };
 
     // Empty state when no active session
     if (!state.isSessionActive) {
@@ -78,49 +95,95 @@ export function ActiveWorkout() {
                 onDisableSuperset={handlers.handleDisableSuperset}
             />
 
-            {state.isWorkoutComplete ? (
-                <WorkoutCompleteCard
-                    completedSets={state.completedSets}
-                    duration={state.duration}
-                    onFinishWorkout={handlers.handleEndWorkout}
-                    onRestart={() => {
-                        state.updateSessionExercises(
-                            state.sessionExercises.map((ex) => ({ ...ex, setsCompleted: 0 }))
-                        );
-                        state.setCurrentExerciseAction(0);
-                    }}
-                />
-            ) : (
-                <TimerZone
-                    isInSet={state.isInSet}
-                    isRestTimerRunning={state.isRestTimerRunning}
-                    remainingSeconds={state.remainingSeconds}
-                    restTimerProgress={state.restTimerProgress}
-                    onStartRestTimer={state.startRestTimer}
-                    onCancelRestTimer={state.cancelRestTimer}
-                />
-            )}
+            {/* Tabs for Active / Exercises */}
+            <Tabs value={state.activeTab} onValueChange={(v) => state.setActiveTab(v as ActiveWorkoutTab)} className="w-full px-4 mt-2">
+                <TabsList className="bg-muted p-1 rounded-xl flex-1 w-full">
+                    <TabsTrigger value="active" className="flex-1 rounded-lg text-sm font-medium">
+                        Active
+                    </TabsTrigger>
+                    <TabsTrigger value="exercises" className="flex-1 rounded-lg text-sm font-medium">
+                        Exercises
+                    </TabsTrigger>
+                </TabsList>
 
-            {state.currentExercise && !state.isWorkoutComplete && (
-                <WorkoutCardContainer
-                    currentExercise={state.currentExercise}
-                    currentExerciseIndex={state.currentExerciseIndex}
-                    sessionExercisesLength={state.sessionExercises.length}
-                    isInSet={state.isInSet}
-                    isRestTimerRunning={state.isRestTimerRunning}
-                    isExerciseComplete={isExerciseComplete}
-                    supersetEnabled={state.supersetEnabled}
-                    supersetExercises={handlers.supersetExercises}
-                    supersetComplete={supersetComplete}
-                    onPreviousExercise={() => state.setCurrentExerciseAction(state.currentExerciseIndex - 1)}
-                    onNextExercise={() => state.setCurrentExerciseAction(state.currentExerciseIndex + 1)}
-                    onStartSet={handlers.handleStartSet}
-                    onCompleteSet={handlers.handleCompleteSet}
-                    onAddSet={handlers.handleAddSet}
-                    onRemoveSet={handlers.handleRemoveSet}
-                    onOpenSupersetDialog={handlers.openSupersetDialog}
-                />
-            )}
+                {/* Active Tab Content */}
+                <TabsContent value="active" className="mt-4">
+                    {state.isWorkoutComplete ? (
+                        <WorkoutCompleteCard
+                            completedSets={state.completedSets}
+                            duration={state.duration}
+                            onFinishWorkout={handlers.handleEndWorkout}
+                            onRestart={() => {
+                                state.updateSessionExercises(
+                                    state.sessionExercises.map((ex) => ({ ...ex, setsCompleted: 0 }))
+                                );
+                                state.setCurrentExerciseAction(0);
+                            }}
+                        />
+                    ) : (
+                        <TimerZone
+                            isInSet={state.isInSet}
+                            isRestTimerRunning={state.isRestTimerRunning}
+                            remainingSeconds={state.remainingSeconds}
+                            restTimerProgress={state.restTimerProgress}
+                            onStartRestTimer={state.startRestTimer}
+                            onCancelRestTimer={state.cancelRestTimer}
+                        />
+                    )}
+
+                    {state.currentExercise && !state.isWorkoutComplete && (
+                        <WorkoutCardContainer
+                            currentExercise={state.currentExercise}
+                            currentExerciseIndex={state.currentExerciseIndex}
+                            sessionExercisesLength={state.sessionExercises.length}
+                            isInSet={state.isInSet}
+                            isRestTimerRunning={state.isRestTimerRunning}
+                            isExerciseComplete={isExerciseComplete}
+                            supersetEnabled={state.supersetEnabled}
+                            supersetExercises={handlers.supersetExercises}
+                            supersetComplete={supersetComplete}
+                            onPreviousExercise={() => state.setCurrentExerciseAction(state.currentExerciseIndex - 1)}
+                            onNextExercise={() => state.setCurrentExerciseAction(state.currentExerciseIndex + 1)}
+                            onStartSet={handlers.handleStartSet}
+                            onCompleteSet={handlers.handleCompleteSet}
+                            onAddSet={handlers.handleAddSet}
+                            onRemoveSet={handlers.handleRemoveSet}
+                            onOpenSupersetDialog={handlers.openSupersetDialog}
+                        />
+                    )}
+                </TabsContent>
+
+                {/* Exercises Tab Content */}
+                <TabsContent value="exercises" className="mt-4 pb-20">
+                    <ExercisesTabContent
+                        sessionExercises={state.sessionExercises}
+                        onAddSet={handlers.handleExercisesTabAddSet}
+                        onRemoveSet={handlers.handleExercisesTabRemoveSet}
+                        onCompleteAll={handlers.handleExercisesTabCompleteAll}
+                        onOpenDetails={handleOpenExerciseDetails}
+                        isInSet={state.isInSet}
+                        isRestTimerRunning={state.isRestTimerRunning}
+                        remainingSeconds={state.remainingSeconds}
+                        restTimerProgress={state.restTimerProgress}
+                        onStartRestTimer={state.startRestTimer}
+                        onCancelRestTimer={state.cancelRestTimer}
+                    />
+                </TabsContent>
+            </Tabs>
+
+            {/* Exercise Details Sheet */}
+            <ExerciseDetails
+                exercise={selectedExerciseForDetails?.exerciseDef || null}
+                open={exerciseDetailsOpen}
+                onOpenChange={setExerciseDetailsOpen}
+                sets={selectedExerciseForDetails?.targetSets}
+                reps={selectedExerciseForDetails?.planExercise.reps}
+                weight={selectedExerciseForDetails?.planExercise.weight}
+                durationSeconds={selectedExerciseForDetails?.planExercise.durationSeconds}
+                comments={selectedExerciseForDetails?.planExercise.comments}
+                planId={state.activePlanId || undefined}
+                weekNumber={state.currentWeek}
+            />
 
             {/* Dialogs */}
             <SaveWorkoutDialog

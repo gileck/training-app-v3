@@ -35,6 +35,8 @@ import {
     useSetSupersetEnabled,
     useSetSupersetExerciseIds,
     useWeekProgress,
+    useActiveWorkoutTab,
+    useSetActiveWorkoutTab,
 } from '@/client/features/workout';
 import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
 import { useSetProgress } from '@/client/features/plan-data';
@@ -101,6 +103,10 @@ export function useActiveWorkoutState() {
 
     // Plan exercises (for adding exercises during workout)
     const { data: weekProgressData } = useWeekProgress(activePlanId, currentWeek);
+
+    // Tab state for Active/Exercises tabs (persisted in session store)
+    const activeTab = useActiveWorkoutTab();
+    const setActiveTab = useSetActiveWorkoutTab();
 
     // Local state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral timer state
@@ -232,6 +238,8 @@ export function useActiveWorkoutState() {
         totalSets,
         completedSets,
         isWorkoutComplete,
+        activeTab,
+        setActiveTab,
     };
 }
 
@@ -549,6 +557,95 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         setSupersetExerciseIds([]);
     };
 
+    // Exercises Tab Handlers - for interacting with any exercise (not just current)
+    const handleExercisesTabAddSet = (exercise: ExerciseWeekProgress) => {
+        if (exercise.setsCompleted >= exercise.targetSets) return;
+
+        addSet(exercise.planExerciseId, exercise.targetSets, undefined, (activityIds) => {
+            const activityId = activityIds[0];
+            toast.success('Progress logged successfully', {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete',
+                        onClick: () => {
+                            deleteActivityMutation.mutate(
+                                { activityId },
+                                {
+                                    onSuccess: () => toast.success('Log deleted'),
+                                    onError: () => toast.error('Failed to delete log'),
+                                }
+                            );
+                        },
+                    },
+                ],
+            });
+        });
+        incrementCompletedSets();
+        updateSessionExercises(
+            sessionExercises.map((ex) =>
+                ex.planExerciseId === exercise.planExerciseId
+                    ? { ...ex, setsCompleted: ex.setsCompleted + 1 }
+                    : ex
+            )
+        );
+        // Auto-start rest timer after adding a set
+        startRestTimer();
+    };
+
+    const handleExercisesTabRemoveSet = (exercise: ExerciseWeekProgress) => {
+        if (exercise.setsCompleted <= 0) return;
+
+        removeSet(exercise.planExerciseId);
+        updateSessionExercises(
+            sessionExercises.map((ex) =>
+                ex.planExerciseId === exercise.planExerciseId
+                    ? { ...ex, setsCompleted: Math.max(0, ex.setsCompleted - 1) }
+                    : ex
+            )
+        );
+    };
+
+    const handleExercisesTabCompleteAll = (exercise: ExerciseWeekProgress) => {
+        const remainingSets = exercise.targetSets - exercise.setsCompleted;
+        if (remainingSets <= 0) return;
+
+        const allActivityIds: string[] = [];
+        for (let i = 0; i < remainingSets; i++) {
+            addSet(exercise.planExerciseId, exercise.targetSets, undefined, (activityIds) => {
+                allActivityIds.push(...activityIds);
+            });
+            incrementCompletedSets();
+        }
+
+        updateSessionExercises(
+            sessionExercises.map((ex) =>
+                ex.planExerciseId === exercise.planExerciseId
+                    ? { ...ex, setsCompleted: exercise.targetSets }
+                    : ex
+            )
+        );
+
+        if (allActivityIds.length > 0) {
+            toast.success(`${remainingSets} set${remainingSets > 1 ? 's' : ''} logged`, {
+                duration: 6000,
+                actions: [
+                    {
+                        label: 'Delete All',
+                        onClick: () => {
+                            allActivityIds.forEach((activityId) => {
+                                deleteActivityMutation.mutate({ activityId });
+                            });
+                            toast.success('All logs deleted');
+                        },
+                    },
+                ],
+            });
+        }
+        // Auto-start rest timer after completing all sets
+        startRestTimer();
+    };
+
     return {
         handleStartSet,
         handleCompleteSet,
@@ -565,5 +662,9 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         handleSaveSuperset,
         handleDisableSuperset,
         supersetExercises,
+        // Exercises Tab Handlers
+        handleExercisesTabAddSet,
+        handleExercisesTabRemoveSet,
+        handleExercisesTabCompleteAll,
     };
 }

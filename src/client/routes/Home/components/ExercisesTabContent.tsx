@@ -1,13 +1,12 @@
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
-import { Plus, Dumbbell, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
+import { Plus, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { ExerciseCardGrid, ExerciseCardList } from './ExerciseCard';
 import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
 
 interface ExercisesTabContentProps {
     viewMode: 'grid' | 'list';
-    onViewModeChange: (mode: 'grid' | 'list') => void;
     exercises: ExerciseWeekProgressFromStore[];
     incompleteExercises: ExerciseWeekProgressFromStore[];
     completedExercises: ExerciseWeekProgressFromStore[];
@@ -22,7 +21,6 @@ interface ExercisesTabContentProps {
 
 export function ExercisesTabContent({
     viewMode,
-    onViewModeChange,
     exercises,
     incompleteExercises,
     completedExercises,
@@ -39,28 +37,6 @@ export function ExercisesTabContent({
 
     return (
         <div className="space-y-4">
-            {/* View Toggle */}
-            <div className="flex justify-end">
-                <div className="bg-muted rounded-lg p-1 flex gap-1">
-                    <Button
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => onViewModeChange('grid')}
-                        className="h-8 w-8 p-0 rounded-md"
-                    >
-                        <LayoutGrid className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => onViewModeChange('list')}
-                        className="h-8 w-8 p-0 rounded-md"
-                    >
-                        <List className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-
             {/* No exercises */}
             {exercises.length === 0 && (
                 <Card className="rounded-2xl border-0 shadow-sm">

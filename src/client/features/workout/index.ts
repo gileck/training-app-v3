@@ -56,13 +56,17 @@ export {
     useSupersetExerciseIds,
     useSetSupersetEnabled,
     useSetSupersetExerciseIds,
+    useActiveWorkoutTab,
+    useSetActiveWorkoutTab,
+    useExercisesViewMode,
+    useSetExercisesViewMode,
 } from './session-store';
 
 // Export rest timer hook
 export { useRestTimer, formatTime } from './use-rest-timer';
 
 // Export session types and utilities
-export type { WorkoutSession, WorkoutSessionState } from './session-types';
+export type { WorkoutSession, WorkoutSessionState, ActiveWorkoutTab, ExercisesViewMode } from './session-types';
 export { DEFAULT_REST_TIMES, getRecommendedRestTime } from './session-types';
 
 // Export types

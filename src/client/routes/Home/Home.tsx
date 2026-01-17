@@ -3,7 +3,7 @@ import { Button } from '@/client/components/ui/button';
 import { Skeleton } from '@/client/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import { toast } from '@/client/components/ui/toast';
-import { Calendar } from 'lucide-react';
+import { Calendar, LayoutGrid, List } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useRouter } from '../../router';
 import {
@@ -383,20 +383,41 @@ export function Home() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as WorkoutTab)} className="w-full">
-                <TabsList className="bg-muted p-1 rounded-xl flex-1 w-full">
-                    <TabsTrigger value="exercises" className="flex-1 rounded-lg text-sm font-medium">
-                        Exercises
-                    </TabsTrigger>
-                    <TabsTrigger value="workouts" className="flex-1 rounded-lg text-sm font-medium">
-                        Workouts
-                    </TabsTrigger>
-                </TabsList>
+                <div className="flex items-center justify-between gap-2">
+                    <TabsList className="bg-muted p-1 rounded-xl flex-1">
+                        <TabsTrigger value="exercises" className="flex-1 rounded-lg text-sm font-medium">
+                            Exercises
+                        </TabsTrigger>
+                        <TabsTrigger value="workouts" className="flex-1 rounded-lg text-sm font-medium">
+                            Workouts
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* View Toggle */}
+                    <div className="bg-muted rounded-lg p-1 flex gap-1">
+                        <Button
+                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                            className="h-8 w-8 p-0 rounded-md"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('list')}
+                            className="h-8 w-8 p-0 rounded-md"
+                        >
+                            <List className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
 
                 {/* Exercises Tab Content */}
                 <TabsContent value="exercises" className="mt-4">
                     <ExercisesTabContent
                         viewMode={viewMode}
-                        onViewModeChange={setViewMode}
                         exercises={exercises}
                         incompleteExercises={incompleteExercises}
                         completedExercises={completedExercises}

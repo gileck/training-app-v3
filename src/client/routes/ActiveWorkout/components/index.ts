@@ -8,3 +8,4 @@ export { WorkoutCompleteCard } from './WorkoutCompleteCard';
 export { WorkoutCardContainer } from './WorkoutCardContainer';
 export { ExerciseCard } from './ExerciseCard';
 export { SupersetCard } from './SupersetCard';
+export { ExercisesTabContent } from './ExercisesTabContent';

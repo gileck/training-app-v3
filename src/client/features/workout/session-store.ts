@@ -16,6 +16,8 @@ const initialSessionState: WorkoutSession = {
     isInSet: false,
     supersetEnabled: false,
     supersetExerciseIds: [],
+    activeWorkoutTab: 'active',
+    exercisesViewMode: 'grid',
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -36,6 +38,8 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             isInSet: state.isInSet,
             supersetEnabled: state.supersetEnabled,
             supersetExerciseIds: state.supersetExerciseIds,
+            activeWorkoutTab: state.activeWorkoutTab,
+            exercisesViewMode: state.exercisesViewMode,
             // Don't persist restTimerEndAt as it's timestamp-based
         }),
     },
@@ -55,7 +59,12 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
         },
 
         endSession: () => {
-            set(initialSessionState);
+            // Preserve tab and view mode preferences across workout sessions
+            set((state) => ({
+                ...initialSessionState,
+                activeWorkoutTab: state.activeWorkoutTab,
+                exercisesViewMode: state.exercisesViewMode,
+            }));
         },
 
         setCurrentExercise: (index: number) => {
@@ -122,6 +131,14 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
                 supersetEnabled: exerciseIds.length >= 2,
             });
         },
+
+        setActiveWorkoutTab: (tab) => {
+            set({ activeWorkoutTab: tab });
+        },
+
+        setExercisesViewMode: (mode) => {
+            set({ exercisesViewMode: mode });
+        },
     }),
 });
 
@@ -162,5 +179,9 @@ export const useSupersetEnabled = () => useWorkoutSessionStore((state) => state.
 export const useSupersetExerciseIds = () => useWorkoutSessionStore((state) => state.supersetExerciseIds);
 export const useSetSupersetEnabled = () => useWorkoutSessionStore((state) => state.setSupersetEnabled);
 export const useSetSupersetExerciseIds = () => useWorkoutSessionStore((state) => state.setSupersetExerciseIds);
+export const useActiveWorkoutTab = () => useWorkoutSessionStore((state) => state.activeWorkoutTab);
+export const useSetActiveWorkoutTab = () => useWorkoutSessionStore((state) => state.setActiveWorkoutTab);
+export const useExercisesViewMode = () => useWorkoutSessionStore((state) => state.exercisesViewMode);
+export const useSetExercisesViewMode = () => useWorkoutSessionStore((state) => state.setExercisesViewMode);
 
 
