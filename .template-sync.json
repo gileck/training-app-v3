@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "732a494437aeba59586abb4cbf86653c12fe0ce6",
-  "lastProjectCommit": "fe600e8b82e6654a6b00724e7c728d309730322d",
-  "lastSyncDate": "2026-01-16T14:33:43.455Z",
+  "lastSyncCommit": "6cb99e8d4cfbfcc0ecbb5a9f17fa401e0c2585a2",
+  "lastProjectCommit": "4246abadf5c92059f857a1cbbf3a645b7cd04bee",
+  "lastSyncDate": "2026-01-17T12:55:42.853Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-17T12:55:43.042Z",
+      "templateCommit": "6cb99e8d4cfbfcc0ecbb5a9f17fa401e0c2585a2",
+      "projectCommit": "4246abadf5c92059f857a1cbbf3a645b7cd04bee",
+      "filesApplied": 3,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "6cb99e8 feat: add duplicate detection and token usage tracking to investigate-bugs \u001b[90m(17/01/2026)\u001b[0m\n  After investigating a bug report, the script now queries reports from +/- 2 days\n  and asks Claude to identify duplicates based on description/error similarity.\n  Duplicates are marked in the database and automatically excluded from future runs.\n  \n  Also adds token usage tracking to display input/output tokens and cost per\n  investigation and in the final summary.\n  \n  Changes:\n  - Add duplicateOf field to ReportDocument for tracking duplicate relationships\n  - Add findReportsInTimeRange() and markReportAsDuplicate() database methods\n  - Update findUninvestigatedReports() to exclude duplicates\n  - Add detectDuplicates() function using Claude to identify similar reports\n  - Display token count and cost per investigation and in summary\n  - Rename --limit to --limit-reports for clarity\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-16T14:33:43.672Z",
       "templateCommit": "732a494437aeba59586abb4cbf86653c12fe0ce6",
@@ -276,20 +287,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "9bc71fd fix: ensure sync-template validation fails if either ts or lint fails \u001b[90m(10/01/2026)\u001b[0m\n  Run TypeScript and ESLint checks separately in sync-template.ts\n  and require BOTH to pass before committing. Previously, the script\n  called yarn checks which uses semicolon (;) separator, causing\n  it to return success if only the last command (lint) passed.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T08:30:14.581Z",
-      "templateCommit": "bfff7a357eba09ac18c6516f3ff0592992b392bf",
-      "projectCommit": "0b871d642ce013de24b1b16d5c38a329d76aa2aa",
-      "filesApplied": 11,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "bfff7a3 feat: improve dark mode card contrast \u001b[90m(10/01/2026)\u001b[0m\n  - presets.ts: increase card/popover lightness from 6% to 11%\n  - globals.css: sync card/popover CSS variables with preset\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "9458135 feat: add send-telegram CLI script for Claude Code agent \u001b[90m(10/01/2026)\u001b[0m\n  - Add scripts/send-telegram.ts for CLI/Cloud messaging to developer\n  - Add LOCAL_TELEGRAM_CHAT_ID env var support\n  - Update CLAUDE.md with two separate Telegram sections:\n    - App Runtime notifications (for end users)\n    - Claude Code agent messages (for developer)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "831750e feat: add --cloud-proxy flag to github-pr CLI for Claude Code Web \u001b[90m(10/01/2026)\u001b[0m\n  Enables github-pr to work in cloud environments by:\n  - Configuring HTTP proxy via undici ProxyAgent\n  - Stripping quotes from GITHUB_TOKEN env var\n  - Parsing proxy git remote URLs (/git/owner/repo format)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "5749e10 feat: add per-user Telegram notifications \u001b[90m(10/01/2026)\u001b[0m\n  - Add Telegram notification service (src/server/telegram)\n  - Store telegramChatId per user in database\n  - Add chat ID field to Profile page for users to configure\n  - Send notification when todo is marked as done\n  - Add telegram-setup script to help users get their chat ID\n  - Fix Alert component transparency issue\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -550,8 +547,8 @@
     "src/server/cache/providers.ts": "caaaba57a92ec166320ac0cff375e868",
     "src/server/cache/s3Cache.ts": "f7b36af0a2455da3ca07f118e4cf4fa4",
     "src/server/database/collections/reports/index.ts": "6f087952abb36cb8f82931a46bc73c83",
-    "src/server/database/collections/reports/reports.ts": "b516f58f5e2aef3932e8f5208a9c5bb7",
-    "src/server/database/collections/reports/types.ts": "bdaa9cf96338bbc94b3f61247924f4ff",
+    "src/server/database/collections/reports/reports.ts": "461713a521ee6339bd378adcc1a8aeb2",
+    "src/server/database/collections/reports/types.ts": "b45f66de0233a7d9accdb3c86105c9d0",
     "src/server/database/collections/users/index.ts": "b52422edb018193c1123cc795b8d64a2",
     "src/server/database/collections/users/types.ts": "75c0ce9867a3f4efb7eda5bdb8792dde",
     "src/server/database/collections/users/users.ts": "d67ea7c5984ee6f06b2929e5f86426d9",
@@ -599,7 +596,7 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "2a48fefa452a0a2508a6dea9fd1cedd3",
+    "scripts/investigate-bugs.ts": "32f9424f356f42b0956cb0d13d2ce62a",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",

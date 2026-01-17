@@ -27,7 +27,8 @@ import {
     InvestigationStatus,
     ConfidenceLevel,
     SessionLogEntry,
-} from '../src/server/database/collections/reports/types';
+    ReportSummary,
+} from '../src/server/database/collections/reports';
 
 // ============================================================
 // CONFIGURATION
@@ -247,14 +248,23 @@ const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', 
 // CLAUDE CODE SDK EXECUTION
 // ============================================================
 
+interface UsageStats {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadInputTokens: number;
+    cacheCreationInputTokens: number;
+    totalCostUSD: number;
+}
+
 async function runInvestigation(
     prompt: string,
     options: { verbose: boolean; stream: boolean; timeout: number }
-): Promise<{ result: string; filesExamined: string[] }> {
+): Promise<{ result: string; filesExamined: string[]; usage: UsageStats | null }> {
     const startTime = Date.now();
     let lastResult = '';
     let toolCallCount = 0;
     const filesExamined: string[] = [];
+    let usage: UsageStats | null = null;
 
     let spinnerInterval: NodeJS.Timeout | null = null;
     let spinnerFrame = 0;
@@ -359,15 +369,32 @@ async function runInvestigation(
                 if (resultMsg.subtype === 'success' && resultMsg.result) {
                     lastResult = resultMsg.result;
                 }
+                // Extract usage stats
+                if (resultMsg.usage) {
+                    usage = {
+                        inputTokens: resultMsg.usage.input_tokens ?? 0,
+                        outputTokens: resultMsg.usage.output_tokens ?? 0,
+                        cacheReadInputTokens: resultMsg.usage.cache_read_input_tokens ?? 0,
+                        cacheCreationInputTokens: resultMsg.usage.cache_creation_input_tokens ?? 0,
+                        totalCostUSD: resultMsg.total_cost_usd ?? 0,
+                    };
+                }
             }
         }
 
         clearTimeout(timeoutId);
         if (spinnerInterval) clearInterval(spinnerInterval);
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        console.log(`\r  \x1b[32m✓ Investigation complete (${elapsed}s, ${toolCallCount} tool calls)\x1b[0m\x1b[K`);
 
-        return { result: lastResult, filesExamined };
+        // Format usage info for display
+        let usageInfo = '';
+        if (usage) {
+            const totalTokens = usage.inputTokens + usage.outputTokens;
+            usageInfo = `, ${totalTokens.toLocaleString()} tokens, $${usage.totalCostUSD.toFixed(4)}`;
+        }
+        console.log(`\r  \x1b[32m✓ Investigation complete (${elapsed}s, ${toolCallCount} tool calls${usageInfo})\x1b[0m\x1b[K`);
+
+        return { result: lastResult, filesExamined, usage };
     } catch (error) {
         clearTimeout(timeoutId);
         if (spinnerInterval) clearInterval(spinnerInterval);
@@ -390,7 +417,7 @@ async function runInvestigation(
 async function investigateReport(
     report: ReportDocument,
     options: CLIOptions
-): Promise<Investigation | null> {
+): Promise<{ investigation: Investigation | null; usage: UsageStats | null }> {
     const prompt = buildInvestigationPrompt(report);
 
     if (options.verbose && !options.stream) {
@@ -401,7 +428,7 @@ async function investigateReport(
 
     try {
         console.log(''); // New line before spinner
-        const { result, filesExamined } = await runInvestigation(prompt, {
+        const { result, filesExamined, usage } = await runInvestigation(prompt, {
             verbose: options.verbose,
             stream: options.stream,
             timeout: options.timeout,
@@ -448,10 +475,10 @@ async function investigateReport(
             };
         }
 
-        return investigation;
+        return { investigation, usage };
     } catch (error) {
         console.error('  Investigation error:', error instanceof Error ? error.message : error);
-        return null;
+        return { investigation: null, usage: null };
     }
 }
 
@@ -507,6 +534,155 @@ function parseInvestigationOutput(text: string): InvestigationOutput | null {
     } catch (error) {
         console.error('  JSON parse error:', error);
         return null;
+    }
+}
+
+// ============================================================
+// DUPLICATE DETECTION
+// ============================================================
+
+function buildDuplicateDetectionPrompt(
+    investigatedReport: ReportDocument,
+    potentialDuplicates: ReportSummary[]
+): string {
+    const duplicatesList = potentialDuplicates
+        .map((r, i) => {
+            return `${i + 1}. ID: ${r._id.toString()}
+   Description: "${r.description || 'None'}"
+   Error: "${r.errorMessage || 'None'}"
+   Route: ${r.route}
+   Created: ${r.createdAt.toISOString()}`;
+        })
+        .join('\n\n');
+
+    return `You just investigated a bug report. Now identify if any other reports in the same time period are DUPLICATES of this report.
+
+## Investigated Report
+
+**ID:** ${investigatedReport._id.toString()}
+**Description:** "${investigatedReport.description || 'None'}"
+**Error:** "${investigatedReport.errorMessage || 'None'}"
+**Route:** ${investigatedReport.route}
+
+## Potential Duplicates
+
+${duplicatesList}
+
+## Instructions
+
+A report is a DUPLICATE if:
+- It describes the SAME underlying bug/issue (not just similar symptoms)
+- The error message is identical or nearly identical
+- It's on the same route with the same failure mode
+
+A report is NOT a duplicate if:
+- It's a different bug that just happened around the same time
+- It's on a different route (unless it's clearly the same underlying issue)
+- The error is different even if the route is the same
+
+## Response Format
+
+Respond with ONLY a JSON array of duplicate report IDs. Include only reports you are confident are duplicates.
+
+Examples:
+- If reports 1 and 3 are duplicates: ["${potentialDuplicates[0]?._id.toString() || 'abc123'}", "${potentialDuplicates[2]?._id.toString() || 'def456'}"]
+- If no duplicates found: []
+
+Your response (JSON array only):`;
+}
+
+async function detectDuplicates(
+    investigatedReport: ReportDocument,
+    options: CLIOptions,
+    reportsModule: Awaited<ReturnType<typeof getDatabase>>['reports']
+): Promise<string[]> {
+    // Fetch reports in +/- 2 day window
+    const potentialDuplicates = await reportsModule.findReportsInTimeRange(
+        investigatedReport.createdAt,
+        2, // days before
+        2, // days after
+        [investigatedReport._id] // exclude the investigated report itself
+    );
+
+    if (potentialDuplicates.length === 0) {
+        if (options.verbose) {
+            console.log('    No potential duplicates found in time range.');
+        }
+        return [];
+    }
+
+    console.log(`    Checking ${potentialDuplicates.length} potential duplicate(s)...`);
+
+    const prompt = buildDuplicateDetectionPrompt(investigatedReport, potentialDuplicates);
+
+    try {
+        // Use a simpler query for duplicate detection (no tools needed)
+        let lastResult = '';
+
+        for await (const message of query({
+            prompt,
+            options: {
+                allowedTools: [], // No tools needed - just analysis
+                cwd: PROJECT_ROOT,
+                model: MODEL,
+                maxTurns: 1, // Single turn response
+                permissionMode: 'bypassPermissions',
+                allowDangerouslySkipPermissions: true,
+            },
+        })) {
+            if (message.type === 'assistant') {
+                const assistantMsg = message as SDKAssistantMessage;
+                for (const block of assistantMsg.message.content) {
+                    if (block.type === 'text') {
+                        lastResult += (block as { type: 'text'; text: string }).text;
+                    }
+                }
+            }
+            if (message.type === 'result') {
+                const resultMsg = message as SDKResultMessage;
+                if (resultMsg.subtype === 'success' && resultMsg.result) {
+                    lastResult = resultMsg.result;
+                }
+            }
+        }
+
+        // Parse the response - expect a JSON array of IDs
+        const cleanedResult = lastResult.trim();
+
+        // Try to extract JSON array from the response
+        let jsonStr = cleanedResult;
+
+        // If wrapped in code block, extract it
+        const codeBlockMatch = cleanedResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (codeBlockMatch) {
+            jsonStr = codeBlockMatch[1];
+        }
+
+        // Try to find array pattern
+        const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+            jsonStr = arrayMatch[0];
+        }
+
+        const duplicateIds: string[] = JSON.parse(jsonStr);
+
+        if (!Array.isArray(duplicateIds)) {
+            console.warn('    Duplicate detection returned non-array, skipping.');
+            return [];
+        }
+
+        // Validate that returned IDs are in the potential duplicates list
+        const validIds = potentialDuplicates.map(r => r._id.toString());
+        const confirmedDuplicates = duplicateIds.filter(id => validIds.includes(id));
+
+        if (confirmedDuplicates.length !== duplicateIds.length) {
+            console.warn(`    Warning: Some returned IDs were not in the candidate list.`);
+        }
+
+        return confirmedDuplicates;
+    } catch (error) {
+        console.warn('    Duplicate detection failed:', error instanceof Error ? error.message : error);
+        return [];
     }
 }
 
@@ -587,6 +763,9 @@ async function main(): Promise<void> {
             succeeded: 0,
             failed: 0,
             statuses: {} as Record<InvestigationStatus, number>,
+            totalInputTokens: 0,
+            totalOutputTokens: 0,
+            totalCostUSD: 0,
         };
 
         // Process each report
@@ -601,7 +780,14 @@ async function main(): Promise<void> {
             console.log(`  Description: ${report.description?.slice(0, 100) || 'None'}...`);
             console.log(`  Investigating...`);
 
-            const investigation = await investigateReport(report, options);
+            const { investigation, usage } = await investigateReport(report, options);
+
+            // Accumulate usage stats
+            if (usage) {
+                results.totalInputTokens += usage.inputTokens;
+                results.totalOutputTokens += usage.outputTokens;
+                results.totalCostUSD += usage.totalCostUSD;
+            }
 
             if (investigation) {
                 results.succeeded++;
@@ -626,8 +812,27 @@ async function main(): Promise<void> {
                 if (!options.dryRun) {
                     await reports.updateReportInvestigation(reportId, investigation);
                     console.log(`    Saved to database.`);
+
+                    // Detect and mark duplicates
+                    const duplicateIds = await detectDuplicates(report, options, reports);
+                    if (duplicateIds.length > 0) {
+                        console.log(`    Found ${duplicateIds.length} duplicate(s):`);
+                        for (const dupId of duplicateIds) {
+                            await reports.markReportAsDuplicate(dupId, report._id);
+                            console.log(`      - Marked ${dupId} as duplicate`);
+                        }
+                    }
                 } else {
                     console.log(`    [DRY RUN] Would save to database.`);
+
+                    // Still run duplicate detection in dry-run mode to show what would happen
+                    const duplicateIds = await detectDuplicates(report, options, reports);
+                    if (duplicateIds.length > 0) {
+                        console.log(`    [DRY RUN] Would mark ${duplicateIds.length} duplicate(s):`);
+                        for (const dupId of duplicateIds) {
+                            console.log(`      - Would mark ${dupId} as duplicate`);
+                        }
+                    }
                 }
             } else {
                 results.failed++;
@@ -649,6 +854,12 @@ async function main(): Promise<void> {
         for (const [status, count] of Object.entries(results.statuses)) {
             console.log(`    ${status}: ${count}`);
         }
+        console.log('');
+        console.log('  Token usage:');
+        console.log(`    Input tokens:  ${results.totalInputTokens.toLocaleString()}`);
+        console.log(`    Output tokens: ${results.totalOutputTokens.toLocaleString()}`);
+        console.log(`    Total tokens:  ${(results.totalInputTokens + results.totalOutputTokens).toLocaleString()}`);
+        console.log(`    Total cost:    $${results.totalCostUSD.toFixed(4)}`);
         console.log('========================================\n');
     } finally {
         await closeDbConnection();

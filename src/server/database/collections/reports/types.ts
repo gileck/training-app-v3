@@ -163,6 +163,7 @@ export interface ReportDocument {
     category?: BugCategory;
     performanceEntries?: PerformanceEntryData[];
     investigation?: Investigation;
+    duplicateOf?: ObjectId;  // ID of the original report this is a duplicate of
     createdAt: Date;
     updatedAt: Date;
 }
@@ -176,7 +177,7 @@ export type ReportCreate = Omit<ReportDocument, '_id'>;
 /**
  * Type for updating a report
  */
-export type ReportUpdate = Partial<Pick<ReportDocument, 'status' | 'investigation' | 'updatedAt'>>;
+export type ReportUpdate = Partial<Pick<ReportDocument, 'status' | 'investigation' | 'duplicateOf' | 'updatedAt'>>;
 
 /**
  * Client-friendly report with string IDs
@@ -197,6 +198,7 @@ export interface ReportClient {
     category?: BugCategory;
     performanceEntries?: PerformanceEntryData[];
     investigation?: InvestigationClient;
+    duplicateOf?: string;  // ID of the original report this is a duplicate of
     createdAt: string;
     updatedAt: string;
 }
