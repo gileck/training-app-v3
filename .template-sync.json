@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "f56876439dce5f703b728656bbd8e5277d66d683",
-  "lastProjectCommit": "dc134b9ddbfc75e3c7dde3ec9df3421438722de8",
-  "lastSyncDate": "2026-01-17T16:29:09.506Z",
+  "lastSyncCommit": "8697f9b5ebf51dcf18bc34891f8ca3984dc93a22",
+  "lastProjectCommit": "4fced9229a04af9df8a667172848c2e202af2c06",
+  "lastSyncDate": "2026-01-17T16:43:04.803Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-17T16:43:05.337Z",
+      "templateCommit": "8697f9b5ebf51dcf18bc34891f8ca3984dc93a22",
+      "projectCommit": "4fced9229a04af9df8a667172848c2e202af2c06",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "8697f9b feat: separate admin pages from app pages in sidebar menu \u001b[90m(17/01/2026)\u001b[0m\n  Add visual separation in drawer menu with dedicated \"Admin\" section\n  for admin-only pages, shown only to admin users.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-17T16:29:09.708Z",
       "templateCommit": "f56876439dce5f703b728656bbd8e5277d66d683",
@@ -276,17 +287,6 @@
         "876cc89 fix: replace OWNER_TELEGRAM_CHAT_ID with LOCAL_TELEGRAM_CHAT_ID everywhere \u001b[90m(10/01/2026)\u001b[0m\n  GitHub secrets and workflows now use LOCAL_TELEGRAM_CHAT_ID consistently.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "20778fe fix: make PR checks show as failed when ts/lint fails \u001b[90m(10/01/2026)\u001b[0m\n  - Removed continue-on-error so check shows red X on failure\n  - Check is still non-blocking (not a required check)\n  - Comments and notifications still work on failure\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-10T09:01:45.518Z",
-      "templateCommit": "6fce3831e17a3d1349157225bda1e194a06cad73",
-      "projectCommit": "c6f0d3cb958f7b9d474b60dd1e41dae577ac18f3",
-      "filesApplied": 5,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "6fce383 feat: add AI-powered conflict analysis using Claude Code SDK \u001b[90m(10/01/2026)\u001b[0m\n  - Create scripts/ai-agents/ folder with modular AI agents:\n    - gemini-agent.ts: Original Gemini implementation (requires API key)\n    - claude-code-agent.ts: Claude Code SDK (uses CLI auth, no API key)\n  - Add analyzeConflict() function that provides:\n    - What changed in template vs project\n    - Merge difficulty assessment (easy/moderate/hard)\n    - Recommendation (take-template/keep-project/manual-merge)\n  - Update sync-template.ts to use claude-code-agent for:\n    - Safe change descriptions\n    - Detailed conflict analysis with color-coded output\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -413,7 +413,7 @@
     "src/client/components/Layout.tsx": "0aabd0550b0c6d62347b8e3c85c54df1",
     "src/client/components/ThemeProvider.tsx": "a75c137e769521a05821f415fbc55c3c",
     "src/client/components/layout/BottomNavBar.tsx": "be49421660ff822e971114c0d139900d",
-    "src/client/components/layout/DrawerMenu.tsx": "8c838b22bcad8fc30b39919551e9fe3c",
+    "src/client/components/layout/DrawerMenu.tsx": "d505d14929b7632050a549ce53a6e80f",
     "src/client/components/layout/Footer.tsx": "020de99ef0e26b4dff579af286a0a4bd",
     "src/client/components/layout/TopNavBar.tsx": "575c96ec012304f9c8a0a3623caa06f3",
     "src/client/components/layout/index.ts": "fe7ba2b0edb7a7e006467a2a59fa60f4",
