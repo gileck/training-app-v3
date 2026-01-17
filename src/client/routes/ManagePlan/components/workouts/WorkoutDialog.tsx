@@ -44,10 +44,12 @@ export function WorkoutDialog({
     // Calculate allocated sets per exercise across all workouts (excluding current editing workout)
     const allocationMap = useMemo(() => {
         const allocations = new Map<string, number>();
+        const editingWorkoutId = editingWorkout?._id ? String(editingWorkout._id) : null;
 
         for (const workout of planWorkouts) {
-            // Skip current workout when editing
-            if (editingWorkout && workout._id === editingWorkout._id) continue;
+            // Skip current workout when editing - use String() for robust comparison
+            const workoutId = String(workout._id);
+            if (editingWorkoutId && workoutId === editingWorkoutId) continue;
 
             for (const item of workout.items) {
                 // Use item.sets if defined, otherwise use exercise's weekly sets
