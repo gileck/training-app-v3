@@ -5,7 +5,7 @@
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "bfc54f2673672247043a5e3db556fb0ed6ebff70",
   "lastProjectCommit": "9950b1cd9c3f751aee05f687805e3e0e09693d9c",
-  "lastSyncDate": "2026-01-17T17:03:23.979Z",
+  "lastSyncDate": "2026-01-17T17:22:37.067Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -409,7 +409,7 @@
     "src/apis/settings/clearCache/server.ts": "c0679f33b104b037a5b914465e36ae0f",
     "src/apis/settings/clearCache/types.ts": "86e0df77cb6c2c55c3788f064f5d1afc",
     "src/apis/types.ts": "11a64f3dd95e09c39bd4a44e4ab94cb5",
-    "src/client/components/Layout.tsx": "0aabd0550b0c6d62347b8e3c85c54df1",
+    "src/client/components/Layout.tsx": "f5cabedd72cb61ab2b84a0fc1b53dac7",
     "src/client/components/ThemeProvider.tsx": "a75c137e769521a05821f415fbc55c3c",
     "src/client/components/layout/BottomNavBar.tsx": "be49421660ff822e971114c0d139900d",
     "src/client/components/layout/DrawerMenu.tsx": "d505d14929b7632050a549ce53a6e80f",
