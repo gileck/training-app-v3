@@ -18,6 +18,8 @@ const initialSessionState: WorkoutSession = {
     supersetExerciseIds: [],
     activeWorkoutTab: 'active',
     exercisesViewMode: 'grid',
+    generatedWarmup: null,
+    warmupCost: null,
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -40,6 +42,8 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
             supersetExerciseIds: state.supersetExerciseIds,
             activeWorkoutTab: state.activeWorkoutTab,
             exercisesViewMode: state.exercisesViewMode,
+            generatedWarmup: state.generatedWarmup,
+            warmupCost: state.warmupCost,
             // Don't persist restTimerEndAt as it's timestamp-based
         }),
     },
@@ -139,6 +143,14 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
         setExercisesViewMode: (mode) => {
             set({ exercisesViewMode: mode });
         },
+
+        setGeneratedWarmup: (warmup) => {
+            set({ generatedWarmup: warmup });
+        },
+
+        setWarmupCost: (cost) => {
+            set({ warmupCost: cost });
+        },
     }),
 });
 
@@ -183,5 +195,9 @@ export const useActiveWorkoutTab = () => useWorkoutSessionStore((state) => state
 export const useSetActiveWorkoutTab = () => useWorkoutSessionStore((state) => state.setActiveWorkoutTab);
 export const useExercisesViewMode = () => useWorkoutSessionStore((state) => state.exercisesViewMode);
 export const useSetExercisesViewMode = () => useWorkoutSessionStore((state) => state.setExercisesViewMode);
+export const useGeneratedWarmup = () => useWorkoutSessionStore((state) => state.generatedWarmup);
+export const useSetGeneratedWarmup = () => useWorkoutSessionStore((state) => state.setGeneratedWarmup);
+export const useWarmupCost = () => useWorkoutSessionStore((state) => state.warmupCost);
+export const useSetWarmupCost = () => useWorkoutSessionStore((state) => state.setWarmupCost);
 
 

@@ -60,6 +60,10 @@ export {
     useSetActiveWorkoutTab,
     useExercisesViewMode,
     useSetExercisesViewMode,
+    useGeneratedWarmup,
+    useSetGeneratedWarmup,
+    useWarmupCost,
+    useSetWarmupCost,
 } from './session-store';
 
 // Export rest timer hook

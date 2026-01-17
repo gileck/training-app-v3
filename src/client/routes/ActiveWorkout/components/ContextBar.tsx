@@ -13,6 +13,7 @@ import {
     Square,
     Timer,
     PanelsLeftRight,
+    Sparkles,
 } from 'lucide-react';
 
 interface ContextBarProps {
@@ -31,6 +32,7 @@ interface ContextBarProps {
     onOpenAllExercises: () => void;
     onOpenRestDialog: () => void;
     onDisableSuperset: () => void;
+    onOpenWarmupDialog: () => void;
 }
 
 export function ContextBar({
@@ -49,6 +51,7 @@ export function ContextBar({
     onOpenAllExercises,
     onOpenRestDialog,
     onDisableSuperset,
+    onOpenWarmupDialog,
 }: ContextBarProps) {
     return (
         <div className="flex items-center justify-between py-1 px-4 max-h-14 gap-3">
@@ -121,6 +124,10 @@ export function ContextBar({
                         <DropdownMenuItem onClick={onOpenRestDialog}>
                             <Timer className="mr-2 h-4 w-4" />
                             Manage rest time
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={onOpenWarmupDialog}>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            AI Warmup
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onOpenSupersetDialog}>
                             <PanelsLeftRight className="mr-2 h-4 w-4" />

@@ -37,12 +37,18 @@ import {
     useWeekProgress,
     useActiveWorkoutTab,
     useSetActiveWorkoutTab,
+    useGeneratedWarmup,
+    useSetGeneratedWarmup,
+    useWarmupCost,
+    useSetWarmupCost,
 } from '@/client/features/workout';
 import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
 import { useSetProgress } from '@/client/features/plan-data';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { useDeleteActivity } from '@/client/routes/Progress/hooks';
+import { generateWarmup } from '@/apis/workout-warmup/client';
+import type { WarmupExerciseData } from '@/apis/workout-warmup/types';
 
 /**
  * Aggregates all state needed for an active workout session.
@@ -108,6 +114,12 @@ export function useActiveWorkoutState() {
     const activeTab = useActiveWorkoutTab();
     const setActiveTab = useSetActiveWorkoutTab();
 
+    // AI Warmup state (persisted in session store)
+    const generatedWarmup = useGeneratedWarmup();
+    const setGeneratedWarmup = useSetGeneratedWarmup();
+    const warmupCost = useWarmupCost();
+    const setWarmupCost = useSetWarmupCost();
+
     // Local state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral timer state
     const [duration, setDuration] = useState('0:00');
@@ -131,6 +143,12 @@ export function useActiveWorkoutState() {
     const [supersetSelection, setSupersetSelection] = useState<string[]>([]);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral error state
     const [supersetError, setSupersetError] = useState<string | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [warmupDialogOpen, setWarmupDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral loading state
+    const [isGeneratingWarmup, setIsGeneratingWarmup] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral model selection state
+    const [warmupModelId, setWarmupModelId] = useState('gemini-2.5-flash');
 
     // Calculate total and completed sets from actual exercise data
     const totalSets = sessionExercises.reduce((sum, ex) => sum + ex.targetSets, 0);
@@ -240,6 +258,16 @@ export function useActiveWorkoutState() {
         isWorkoutComplete,
         activeTab,
         setActiveTab,
+        generatedWarmup,
+        setGeneratedWarmup,
+        warmupCost,
+        setWarmupCost,
+        warmupDialogOpen,
+        setWarmupDialogOpen,
+        isGeneratingWarmup,
+        setIsGeneratingWarmup,
+        warmupModelId,
+        setWarmupModelId,
     };
 }
 
@@ -291,9 +319,61 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         activePlanId,
         restTimerDuration,
         workoutName,
+        setGeneratedWarmup,
+        setWarmupCost,
+        setIsGeneratingWarmup,
+        warmupModelId,
     } = state;
 
     const deleteActivityMutation = useDeleteActivity();
+
+    /**
+     * Generate AI warmup based on session exercises
+     */
+    const handleGenerateWarmup = async () => {
+        if (sessionExercises.length === 0) {
+            toast.error('No exercises in workout');
+            return;
+        }
+
+        setIsGeneratingWarmup(true);
+
+        try {
+            // Convert exercises to warmup data format
+            const exerciseData: WarmupExerciseData[] = sessionExercises.map((ex) => ({
+                name: ex.exerciseDef.name,
+                primaryMuscle: ex.exerciseDef.primaryMuscle,
+                secondaryMuscles: ex.exerciseDef.secondaryMuscles,
+                type: ex.exerciseDef.type,
+                isBodyweight: ex.exerciseDef.isBodyweight,
+                isStatic: ex.exerciseDef.isStatic,
+                sets: ex.targetSets,
+                reps: ex.planExercise.reps,
+                weight: ex.planExercise.weight,
+                durationSeconds: ex.planExercise.durationSeconds,
+            }));
+
+            const response = await generateWarmup({ exercises: exerciseData, modelId: warmupModelId });
+
+            if (response.data?.error) {
+                toast.error(response.data.error);
+                return;
+            }
+
+            if (response.data?.warmup) {
+                setGeneratedWarmup(response.data.warmup);
+                if (response.data.cost) {
+                    setWarmupCost(response.data.cost);
+                }
+                toast.success('Warmup generated!');
+            }
+        } catch (error) {
+            console.error('Error generating warmup:', error);
+            toast.error('Failed to generate warmup');
+        } finally {
+            setIsGeneratingWarmup(false);
+        }
+    };
 
     const handleStartSet = () => {
         setIsInSet(true);
@@ -666,5 +746,7 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         handleExercisesTabAddSet,
         handleExercisesTabRemoveSet,
         handleExercisesTabCompleteAll,
+        // Warmup Handler
+        handleGenerateWarmup,
     };
 }

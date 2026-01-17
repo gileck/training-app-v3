@@ -17,6 +17,7 @@ import {
     RestManagementDialog,
     SupersetSelectionDialog,
     EndWorkoutConfirmation,
+    WarmupDialog,
 } from './dialogs';
 import { useActiveWorkoutState, useWorkoutHandlers } from './hooks';
 
@@ -93,6 +94,7 @@ export function ActiveWorkout() {
                 onOpenAllExercises={() => state.setAllExercisesOpen(true)}
                 onOpenRestDialog={handlers.openRestDialog}
                 onDisableSuperset={handlers.handleDisableSuperset}
+                onOpenWarmupDialog={() => state.setWarmupDialogOpen(true)}
             />
 
             {/* Tabs for Active / Exercises */}
@@ -222,6 +224,18 @@ export function ActiveWorkout() {
                 onOpenChange={state.setEndDialogOpen}
                 planWorkoutId={state.planWorkoutId}
                 onConfirm={handlers.handleEndWorkout}
+            />
+
+            <WarmupDialog
+                open={state.warmupDialogOpen}
+                onOpenChange={state.setWarmupDialogOpen}
+                warmup={state.generatedWarmup}
+                cost={state.warmupCost}
+                isLoading={state.isGeneratingWarmup}
+                selectedModelId={state.warmupModelId}
+                onModelChange={state.setWarmupModelId}
+                onGenerate={handlers.handleGenerateWarmup}
+                onRegenerate={handlers.handleGenerateWarmup}
             />
         </div>
         </>

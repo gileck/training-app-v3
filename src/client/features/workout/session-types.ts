@@ -26,6 +26,10 @@ export interface WorkoutSession {
     activeWorkoutTab: ActiveWorkoutTab;
     /** View mode for the Exercises tab */
     exercisesViewMode: ExercisesViewMode;
+    /** AI-generated warmup for the current session (cached) */
+    generatedWarmup: string | null;
+    /** Cost info for the generated warmup */
+    warmupCost: { totalCost: number; modelId: string; modelName: string } | null;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -46,6 +50,8 @@ export interface WorkoutSessionState extends WorkoutSession {
     setSupersetExerciseIds: (exerciseIds: string[]) => void;
     setActiveWorkoutTab: (tab: ActiveWorkoutTab) => void;
     setExercisesViewMode: (mode: ExercisesViewMode) => void;
+    setGeneratedWarmup: (warmup: string | null) => void;
+    setWarmupCost: (cost: { totalCost: number; modelId: string; modelName: string } | null) => void;
 }
 
 // Default rest times by exercise type
