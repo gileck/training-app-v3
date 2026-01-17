@@ -132,14 +132,51 @@ function formatUserInfo(userInfo: ReportDocument['userInfo']): string {
     return parts.length > 0 ? parts.join(', ') : 'Anonymous user';
 }
 
+function hasReactMinifiedError(errorMessage: string | undefined, stackTrace: string | undefined): string | null {
+    // React minified errors contain URLs like: https://reactjs.org/docs/error-decoder.html?invariant=XXX
+    // or https://react.dev/errors/XXX
+    const text = `${errorMessage || ''} ${stackTrace || ''}`;
+
+    const reactErrorMatch = text.match(/https:\/\/react\.dev\/errors\/\d+[^\s)"]*/);
+    if (reactErrorMatch) {
+        return reactErrorMatch[0];
+    }
+
+    const legacyMatch = text.match(/https:\/\/reactjs\.org\/docs\/error-decoder\.html\?invariant=\d+[^\s)"]*/);
+    if (legacyMatch) {
+        return legacyMatch[0];
+    }
+
+    return null;
+}
+
 function buildInvestigationPrompt(report: ReportDocument): string {
+    const reactErrorUrl = hasReactMinifiedError(report.errorMessage, report.stackTrace);
+
     return `You are investigating a bug report. Your task is to:
 1. Understand the bug from the report details
 2. Search the codebase to find the relevant code
 3. Identify the root cause (if possible)
 4. Propose a high-level fix (files to change and what to change)
 
-IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, and Grep tools.
+IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
+
+## CRITICAL: First Steps Before Investigation
+
+${reactErrorUrl ? `### 🚨 REACT MINIFIED ERROR DETECTED
+The error contains a React minified error URL. You MUST fetch the full unminified error FIRST before doing anything else:
+
+**Fetch this URL immediately:** ${reactErrorUrl}
+
+Use WebFetch to get the full error message, then proceed with investigation.
+
+` : ''}### 🎯 Route-Based Investigation
+The bug occurred on route: \`${report.route}\`
+
+**Your first step:** Read \`src/client/routes/index.ts\` to find which component handles this route.
+The file maps routes to components like: \`'/path': ComponentName\` or \`'/path/:param': ComponentName\`
+
+Once you identify the component, investigate it at \`src/client/routes/{ComponentName}/\`
 
 ## Bug Report Details
 
@@ -183,6 +220,14 @@ ${JSON.stringify(report.performanceEntries, null, 2)}
 
 Investigate this bug and provide your findings. At the END of your investigation, you MUST output a JSON block with your findings.
 
+## Investigation Strategy
+
+1. ${reactErrorUrl ? '**FIRST**: Fetch the React error URL to get the full unminified error message' : '**FIRST**: Read `src/client/routes/index.ts` to find the component for route `' + report.route + '`'}
+2. ${reactErrorUrl ? '**THEN**: Read `src/client/routes/index.ts` to find the component for route `' + report.route + '`' : 'Read the component at `src/client/routes/{ComponentName}/`'}
+3. Look at hooks, stores, and API calls used by this component
+4. Check session logs for clues about what happened before the error
+5. Identify the root cause and propose a fix
+
 ## Output Schema
 
 Your final output MUST be a JSON object in this exact format (wrapped in \`\`\`json code block):
@@ -225,15 +270,6 @@ Choose ONE status:
 - **high**: Clear evidence in code, reproducible logic path identified
 - **medium**: Reasonably confident but some assumptions made
 - **low**: Best guess based on limited evidence
-
-## Guidelines
-
-1. Start by understanding the error/route mentioned in the report
-2. Search for relevant files using Glob and Grep
-3. Read the code to understand the flow
-4. Identify where the bug might occur
-5. Track all files you examine for the filesExamined list
-6. Be honest about confidence - don't overclaim
 
 Now investigate the bug and provide your JSON findings at the end.`;
 }
@@ -290,7 +326,7 @@ async function runInvestigation(
         for await (const message of query({
             prompt,
             options: {
-                allowedTools: ['Read', 'Glob', 'Grep'],
+                allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch'],
                 cwd: PROJECT_ROOT,
                 model: MODEL,
                 maxTurns: MAX_TURNS,

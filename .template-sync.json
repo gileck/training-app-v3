@@ -2,9 +2,9 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "6cb99e8d4cfbfcc0ecbb5a9f17fa401e0c2585a2",
-  "lastProjectCommit": "4246abadf5c92059f857a1cbbf3a645b7cd04bee",
-  "lastSyncDate": "2026-01-17T12:55:42.853Z",
+  "lastSyncCommit": "761726e9245af1638e7309d422836f9f2671cbfe",
+  "lastProjectCommit": "f8cd291b619018f96ecdb516b655917918b3806f",
+  "lastSyncDate": "2026-01-17T15:58:39.520Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-17T15:58:39.792Z",
+      "templateCommit": "761726e9245af1638e7309d422836f9f2671cbfe",
+      "projectCommit": "f8cd291b619018f96ecdb516b655917918b3806f",
+      "filesApplied": 1,
+      "filesSkipped": 15,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "761726e fix: improve investigate-bugs agent prompt for faster investigation \u001b[90m(17/01/2026)\u001b[0m\n  - Add route-to-component mapping so agent starts at the correct component\n  - Detect React minified error URLs and instruct agent to fetch them FIRST\n  - Add WebFetch to allowed tools for fetching React error details\n  - Provide clear investigation strategy based on route location\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-17T12:55:43.042Z",
       "templateCommit": "6cb99e8d4cfbfcc0ecbb5a9f17fa401e0c2585a2",
@@ -276,17 +287,6 @@
       "templateCommits": [
         "ef31b04 feat: show line stats (+/-) for each file in sync-template analysis \u001b[90m(10/01/2026)\u001b[0m\n  Adds colored line count statistics next to each file in the\n  ANALYSIS SUMMARY section, similar to GitHub's diff display.\n  Shows green +N for additions and red -N for removals.\n  \n  Example: • src/file.ts (+15/-8)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "dfea758 feat: add --all option to merge-template script \u001b[90m(10/01/2026)\u001b[0m\n  Adds --all flag that automatically finds and processes all files\n  that are modified by BOTH template AND project (true conflicts).\n  Uses hash-based comparison against the sync baseline to detect\n  which files have changes on both sides.\n  \n  Usage: yarn merge-template --all\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T08:39:26.449Z",
-      "templateCommit": "9bc71fd62cf5e5ed34b0c226a5994eacc313820c",
-      "projectCommit": "c748b7aa56be499b2a6a5ef8fff3bd066405578d",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "9bc71fd fix: ensure sync-template validation fails if either ts or lint fails \u001b[90m(10/01/2026)\u001b[0m\n  Run TypeScript and ESLint checks separately in sync-template.ts\n  and require BOTH to pass before committing. Previously, the script\n  called yarn checks which uses semicolon (;) separator, causing\n  it to return success if only the last command (lint) passed.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -596,7 +596,7 @@
     "src/client/routes/Settings/components/CacheSection.tsx": "e959f4297ad635807b8d4d20e04e70a0",
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
-    "scripts/investigate-bugs.ts": "32f9424f356f42b0956cb0d13d2ce62a",
+    "scripts/investigate-bugs.ts": "265bbec9fd0112e2d597b86cb52827fe",
     "src/apis/reports/handlers/updateInvestigation.ts": "c43ace74b7bf56376821f1eba0509ff6",
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
