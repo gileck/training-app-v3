@@ -27,14 +27,18 @@ export async function syncFiles(
   };
 
   if (mode === 'none') {
-    console.log('\n❌ Cancelled. No changes applied.');
+    if (!context.options.json) {
+      console.log('\n❌ Cancelled. No changes applied.');
+    }
     return result;
   }
 
   const templatePath = path.join(context.projectRoot, TEMPLATE_DIR);
 
   // Apply safe changes
-  console.log(`\n🔄 Applying safe changes (${analysis.safeChanges.length} files)...\n`);
+  if (!context.options.json) {
+    console.log(`\n🔄 Applying safe changes (${analysis.safeChanges.length} files)...\n`);
+  }
 
   for (const change of analysis.safeChanges) {
     const templateFilePath = path.join(templatePath, change.path);

@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "3fdfa6055c142fe65ca5ec664ade4af054ddec41",
-  "lastProjectCommit": "df6ecb92ad7a7dbe84d47744fbbe3df34dcc39df",
-  "lastSyncDate": "2026-01-18T09:40:34.039Z",
+  "lastSyncCommit": "5ae81e7f71b2e39eb0535f5855318df7e21170e2",
+  "lastProjectCommit": "5eba73653b3d50d7745a8d452e1cabfda6b8f239",
+  "lastSyncDate": "2026-01-18T09:43:05.955Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-18T09:43:06.093Z",
+      "templateCommit": "5ae81e7f71b2e39eb0535f5855318df7e21170e2",
+      "projectCommit": "5eba73653b3d50d7745a8d452e1cabfda6b8f239",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "5ae81e7 fix: suppress console output in JSON mode for syncFiles \u001b[90m(18/01/2026)\u001b[0m\n  Prevents \"Applying safe changes\" log from appearing before JSON output.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-18T09:20:40.256Z",
       "templateCommit": "4b8502acfb3b68288f2903faf8506363e863527e",
@@ -275,17 +286,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "bc78e6a fix: expand COMMIT_SHA variable in Open Commit button URL \u001b[90m(10/01/2026)\u001b[0m\n  Variable wasn't expanding inside single quotes.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T12:44:22.233Z",
-      "templateCommit": "67703fa1da70a0ad2d4d41892b18034d2399efca",
-      "projectCommit": "727ad59b560a3cc81d532fc6c44f6e3faabca1ac",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "67703fa feat: show commit message and Open Commit button for production notifications \u001b[90m(10/01/2026)\u001b[0m\n  Both Production Started and Production Complete now show:\n  - Commit message (first line) instead of hash\n  - Open Commit button\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -639,7 +639,7 @@
     "scripts/template-scripts/sync-template/reporting/index.ts": "4b83d0482d46520cebedcdf05120ddc5",
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
-    "scripts/template-scripts/sync-template/sync/operations.ts": "8d336d1efccf2959eeb7be557ff924dd",
+    "scripts/template-scripts/sync-template/sync/operations.ts": "1b9a9215c22f45f8cc1ea1e10a741a20",
     "scripts/template-scripts/sync-template/sync-template-tool.ts": "61462b35f1c15ffd459fec44f50c04e3",
     "scripts/template-scripts/sync-template/types/index.ts": "b4846f9f96243c2c48e015b81367c554",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
