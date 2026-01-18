@@ -16,8 +16,8 @@ interface WorkoutCardContainerProps {
     onNextExercise: () => void;
     onStartSet: () => void;
     onCompleteSet: () => void;
-    onAddSet: () => void;
-    onRemoveSet: () => void;
+    onAddSet: (exercise: ExerciseWeekProgress) => void;
+    onRemoveSet: (exercise: ExerciseWeekProgress) => void;
     onOpenSupersetDialog: () => void;
 }
 
@@ -77,8 +77,8 @@ export function WorkoutCardContainer({
                         onNextExercise={onNextExercise}
                         onStartSet={onStartSet}
                         onCompleteSet={onCompleteSet}
-                        onAddSet={onAddSet}
-                        onRemoveSet={onRemoveSet}
+                        onAddSet={() => onAddSet(currentExercise)}
+                        onRemoveSet={() => onRemoveSet(currentExercise)}
                     />
                 )}
             </div>

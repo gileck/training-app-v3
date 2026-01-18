@@ -482,11 +482,11 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         }
     };
 
-    const handleAddSet = () => {
-        if (!currentExercise) return;
-        if (currentExercise.setsCompleted >= currentExercise.targetSets) return;
+    const handleAddSet = (exercise: ExerciseWeekProgress) => {
+        if (!exercise) return;
+        if (exercise.setsCompleted >= exercise.targetSets) return;
 
-        addSet(currentExercise.planExerciseId, currentExercise.targetSets, undefined, (activityIds) => {
+        addSet(exercise.planExerciseId, exercise.targetSets, undefined, (activityIds) => {
             // Show toast with delete action
             const activityId = activityIds[0];
 
@@ -516,21 +516,21 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         incrementCompletedSets();
         updateSessionExercises(
             sessionExercises.map((ex) =>
-                ex.planExerciseId === currentExercise.planExerciseId
+                ex.planExerciseId === exercise.planExerciseId
                     ? { ...ex, setsCompleted: ex.setsCompleted + 1 }
                     : ex
             )
         );
     };
 
-    const handleRemoveSet = () => {
-        if (!currentExercise) return;
-        if (currentExercise.setsCompleted <= 0) return;
+    const handleRemoveSet = (exercise: ExerciseWeekProgress) => {
+        if (!exercise) return;
+        if (exercise.setsCompleted <= 0) return;
 
-        removeSet(currentExercise.planExerciseId);
+        removeSet(exercise.planExerciseId);
         updateSessionExercises(
             sessionExercises.map((ex) =>
-                ex.planExerciseId === currentExercise.planExerciseId
+                ex.planExerciseId === exercise.planExerciseId
                     ? { ...ex, setsCompleted: Math.max(0, ex.setsCompleted - 1) }
                     : ex
             )
