@@ -30,7 +30,7 @@ import { syncFiles } from './sync';
 import { printResults, generateSyncReport, getTemplateCommitsSinceLastSync, formatSyncCommitMessage, addSyncHistoryEntry } from './reporting';
 
 // Modes
-import { runInitHashes, runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, initializeIdenticalFileHashes } from './modes';
+import { runInitHashes, runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, initializeIdenticalFileHashes, runJsonMode } from './modes';
 
 /**
  * Main Template Sync Tool class
@@ -58,6 +58,13 @@ export class TemplateSyncTool {
   }
 
   async run(): Promise<void> {
+    // Handle JSON mode - run silently and output structured result
+    if (this.context.options.json) {
+      await runJsonMode(this.context);
+      this.rl.close();
+      return;
+    }
+
     log(this.context.options, '🔄 Template Sync Tool');
     log(this.context.options, '='.repeat(60));
 

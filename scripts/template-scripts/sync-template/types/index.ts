@@ -113,6 +113,28 @@ export interface SyncOptions {
   useHTTPS: boolean;
   initHashes: boolean;
   projectDiffs: boolean;
+  json: boolean;  // Output JSON result (for programmatic use)
+}
+
+/**
+ * JSON output structure for --json mode.
+ * Used by sync-child-projects for programmatic sync status.
+ */
+export interface SyncJsonResult {
+  status: 'success' | 'no-changes' | 'checks-failed' | 'error';
+  message: string;
+  filesApplied: string[];
+  filesSkipped: string[];
+  filesConflicted: string[];
+  projectOnlyChanges: string[];
+  errors: string[];
+  templateCommit?: string;
+  projectCommit?: string;
+  checksResult?: {
+    passed: boolean;
+    tsErrors: string[];
+    lintErrors: string[];
+  };
 }
 
 export interface TotalDiffSummary {

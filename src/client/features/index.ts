@@ -1,19 +1,14 @@
 /**
  * Client Features
- * 
- * Feature-based organization for client code.
- * Each feature contains its own store, hooks, components, and types.
+ *
+ * This file re-exports template features and adds project-specific features.
+ * Template features are in index.template.ts (synced from template).
+ *
+ * Add your project-specific feature exports below the template re-export.
  */
 
-// Re-export all features for convenience
-export * from './auth';
-export * from './settings';
-export * from './router';
-export * from './offline-sync';
-export * from './session-logs';
-export * from './bug-report';
-export * from './error-tracking';
-export * from './theme';
-export * from './plan-data';
-export * from './boot-performance';
+// Re-export all template features
+export * from './index.template';
 
+// Project-specific features:
+export * from './plan-data';

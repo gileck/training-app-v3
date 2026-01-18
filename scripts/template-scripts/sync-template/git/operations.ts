@@ -52,12 +52,21 @@ export function getRepoUrl(context: SyncContext): string {
 }
 
 /**
- * Check if there are uncommitted changes in the project
+ * Check if there are uncommitted changes in the project.
+ * Throws an error if there are uncommitted changes (unless --force is used).
  */
 export function checkGitStatus(context: SyncContext): void {
   const status = exec('git status --porcelain', context.projectRoot, { silent: true });
 
   if (status && !context.options.force) {
+    const errorMsg = 'You have uncommitted changes. Please commit or stash your changes before syncing, or use --force to override.';
+
+    // In JSON mode, throw so the error can be caught and returned as JSON
+    if (context.options.json) {
+      throw new Error(errorMsg);
+    }
+
+    // In normal mode, print friendly error and exit
     console.error('❌ Error: You have uncommitted changes.');
     console.error('Please commit or stash your changes before syncing the template.');
     console.error('Or use --force to override this check.');

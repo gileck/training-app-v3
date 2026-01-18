@@ -62,11 +62,12 @@ const options: SyncOptions = {
   changelog: args.includes('--changelog'),
   showDrift: args.includes('--show-drift'),
   report: args.includes('--report'),
-  quiet: args.includes('--quiet'),
+  quiet: args.includes('--quiet') || args.includes('--json'),  // JSON mode implies quiet
   verbose: args.includes('--verbose'),
   useHTTPS: args.includes('--use-https'),
   initHashes: args.includes('--init-hashes'),
   projectDiffs: args.includes('--project-diffs'),
+  json: args.includes('--json'),
 };
 
 const tool = new TemplateSyncTool(options);
