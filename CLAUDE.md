@@ -288,12 +288,20 @@ export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
 }
 ```
 
-**Existing Stable Fallbacks** (in `src/client/features/plan-data/store.ts`):
+**Best Practice: Define stable fallbacks at module level**
 
 ```typescript
-const EMPTY_EXERCISES: PlanExerciseWithDefinition[] = [];
-const EMPTY_PROGRESS: Record<string, ExerciseProgress> = {};
-const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
+// At the top of your store file
+const EMPTY_ITEMS: Item[] = [];
+const EMPTY_MAP: Record<string, unknown> = {};
+
+// Use in selectors
+export function useItems(id: string | null) {
+    return useMyStore((state) => {
+        if (!id) return EMPTY_ITEMS;
+        return state.data[id]?.items ?? EMPTY_ITEMS;
+    });
+}
 ```
 
 **Docs:** [docs/react-rendering-guidelines.md](docs/react-rendering-guidelines.md)
