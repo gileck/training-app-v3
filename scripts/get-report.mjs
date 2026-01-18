@@ -39,10 +39,35 @@ function formatReport(report) {
         : '  No session logs';
 
     const performanceEntriesFormatted = report.performanceEntries && report.performanceEntries.length > 0
-        ? report.performanceEntries.map(entry => 
+        ? report.performanceEntries.map(entry =>
             `  [${entry.entryType}] ${entry.name} | Start: ${entry.startTime}ms | Duration: ${entry.duration}ms${entry.transferSize ? ` | Size: ${entry.transferSize}B` : ''}`
         ).join('\n')
         : null;
+
+    const investigationFormatted = report.investigation ? `
+INVESTIGATION RESULTS
+---------------------
+Status: ${report.investigation.status}
+Headline: ${report.investigation.headline}
+Confidence: ${report.investigation.confidence}
+Investigated By: ${report.investigation.investigatedBy}
+Investigated At: ${formatDate(report.investigation.investigatedAt)}
+
+Summary:
+${report.investigation.summary}
+
+${report.investigation.rootCause ? `Root Cause:
+${report.investigation.rootCause}
+` : ''}${report.investigation.proposedFix ? `Proposed Fix:
+- Description: ${report.investigation.proposedFix.description}
+- Complexity: ${report.investigation.proposedFix.complexity}
+- Files to Change (${report.investigation.proposedFix.files.length}):
+${report.investigation.proposedFix.files.map(f => `  * ${f.path}\n    Changes: ${f.changes}`).join('\n')}
+` : ''}${report.investigation.analysisNotes ? `Analysis Notes:
+${report.investigation.analysisNotes}
+` : ''}Files Examined (${report.investigation.filesExamined.length}):
+${report.investigation.filesExamined.map(f => `  - ${f}`).join('\n')}
+` : '';
 
     return `
 ================================================================================
@@ -98,6 +123,7 @@ SESSION LOGS (${report.sessionLogs?.length || 0} entries)
 --------------------------------------------------
 ${sessionLogsFormatted}
 
+${investigationFormatted}
 ================================================================================
 END OF REPORT
 ================================================================================

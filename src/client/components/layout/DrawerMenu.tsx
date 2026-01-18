@@ -3,7 +3,8 @@ import React from 'react';
 import { useRouter } from '../../router';
 import { NavItem } from '../../components/layout/types';
 import { useOpenBugReportDialog } from '@/client/features/bug-report';
-import { Bug } from 'lucide-react';
+import { useOpenFeatureRequestDialog } from '@/client/features/feature-request';
+import { Bug, Lightbulb } from 'lucide-react';
 import { Separator } from '@/client/components/ui/separator';
 
 interface DrawerMenuProps {
@@ -16,6 +17,7 @@ interface DrawerMenuProps {
 export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle }: DrawerMenuProps) => {
   const { currentPath, navigate } = useRouter();
   const openBugReportDialog = useOpenBugReportDialog();
+  const openFeatureRequestDialog = useOpenFeatureRequestDialog();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -25,6 +27,11 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
   const handleReportBug = () => {
     onDrawerToggle();
     openBugReportDialog();
+  };
+
+  const handleRequestFeature = () => {
+    onDrawerToggle();
+    openFeatureRequestDialog();
   };
 
   const renderNavItem = (item: NavItem) => {
@@ -64,7 +71,16 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
       )}
 
       <Separator className="my-2" />
-      <div className="px-2">
+      <div className="grid gap-0.5 px-2">
+        <button
+          onClick={handleRequestFeature}
+          className="flex h-9 w-full items-center justify-start gap-2.5 rounded-md px-3 text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <span className="inline-flex h-4 w-4 items-center justify-center">
+            <Lightbulb size={18} />
+          </span>
+          <span>Request a Feature</span>
+        </button>
         <button
           onClick={handleReportBug}
           className="flex h-9 w-full items-center justify-start gap-2.5 rounded-md px-3 text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
