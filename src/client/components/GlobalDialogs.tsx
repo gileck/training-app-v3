@@ -8,11 +8,12 @@
  */
 
 import { TemplateDialogs } from './GlobalDialogs.template';
+import { FloatingWorkoutBar } from './layout/FloatingWorkoutBar';
 
 export const GlobalDialogs = () => (
   <>
     <TemplateDialogs />
-    {/* Add project-specific dialogs below: */}
-    {/* <MyCustomDialog /> */}
+    {/* Project-specific dialogs/overlays: */}
+    <FloatingWorkoutBar />
   </>
 );

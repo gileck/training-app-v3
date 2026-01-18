@@ -3,10 +3,10 @@ import { TopNavBar } from './layout/TopNavBar';
 import { BottomNavBar } from './layout/BottomNavBar';
 import { DrawerMenu } from './layout/DrawerMenu';
 import { Footer } from './layout/Footer';
-import { FloatingWorkoutBar } from './layout/FloatingWorkoutBar';
 import { NavigatorStandalone } from './layout/types';
 import { filterAdminNavItems, menuItems, navItems, adminMenuItems } from './NavLinks';
-import { BugReportDialog, FeatureRequestDialog, useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client/features';
+import { useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client/features';
+import { GlobalDialogs } from './GlobalDialogs';
 import { ToastContainer } from './ui/toast';
 import { useIsAdmin } from '@/client/features/auth';
 
@@ -36,7 +36,7 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
   // The BottomNavBar sits at the flex container bottom (no position:fixed needed).
   // See BottomNavBar.tsx for full documentation of the iOS viewport fix.
   return (
-    <div 
+    <div
       className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`}
       style={{
         height: isMobile ? '100dvh' : undefined,
@@ -59,7 +59,7 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
       />
 
       {/* Main Content - scrolls internally on mobile */}
-      <main 
+      <main
         className="mx-auto w-full max-w-screen-lg flex-1 overflow-y-auto px-2 py-3 sm:px-4"
       >
         <ErrorBoundary>
@@ -70,17 +70,11 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
       {/* Footer (hidden on mobile) */}
       <Footer isStandalone={isStandalone} />
 
-      {/* Floating Workout Bar (shows when workout is active) */}
-      <FloatingWorkoutBar />
-
       {/* Bottom Navigation (mobile only) */}
       <BottomNavBar navItems={filterAdminNavItems(navItems, isAdmin)} />
 
-      {/* Bug Report Dialog */}
-      <BugReportDialog />
-
-      {/* Feature Request Dialog */}
-      <FeatureRequestDialog />
+      {/* Global Dialogs (template + project) */}
+      <GlobalDialogs />
 
       {/* Toast Notifications */}
       <ToastContainer />
