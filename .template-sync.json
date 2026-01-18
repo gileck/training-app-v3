@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "5ae81e7f71b2e39eb0535f5855318df7e21170e2",
-  "lastProjectCommit": "5eba73653b3d50d7745a8d452e1cabfda6b8f239",
-  "lastSyncDate": "2026-01-18T09:43:05.955Z",
+  "lastSyncCommit": "3fd533183ef5713030402298d306d30fe04f76c1",
+  "lastProjectCommit": "a45bf62f9d287de0c1f8f15fd0f5510983f633ac",
+  "lastSyncDate": "2026-01-18T09:57:58.427Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,19 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-18T09:57:58.596Z",
+      "templateCommit": "3fd533183ef5713030402298d306d30fe04f76c1",
+      "projectCommit": "a45bf62f9d287de0c1f8f15fd0f5510983f633ac",
+      "filesApplied": 2,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "3fd5331 refactor: extract global dialogs for easier template sync \u001b[90m(18/01/2026)\u001b[0m\n  Split global dialogs into template + project parts to prevent\n  merge conflicts in Layout.tsx:\n  - GlobalDialogs.template.tsx: Template dialogs (BugReport, FeatureRequest)\n  - GlobalDialogs.tsx: Imports template + adds project dialogs\n  \n  Layout.tsx now just imports <GlobalDialogs />, making it easier to\n  sync template changes without conflicting with project dialogs.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "5ede9df docs: add troubleshooting guide for checks-failed projects \u001b[90m(18/01/2026)\u001b[0m\n  - Add section on handling \"Checks Failed\" projects\n  - Document three root cause categories: template bug, integration\n    issue with skipped files, and project-specific code issue\n  - Explain the common case of skipped files causing integration issues\n  - Add guidance on manually merging skipped files\n  - Document edge cases on large template changes\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "df8d042 docs: update sync-children documentation for JSON mode \u001b[90m(18/01/2026)\u001b[0m\n  - Document JSON mode usage and structured output\n  - Add \"Checks Failed\" section with error details\n  - Show new summary format with file lists\n  - Document backward compatibility with legacy fallback\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-18T09:43:06.093Z",
       "templateCommit": "5ae81e7f71b2e39eb0535f5855318df7e21170e2",
@@ -275,17 +288,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "e7868dc feat: add Open Diff and Show Commits buttons for multi-commit deployments \u001b[90m(10/01/2026)\u001b[0m\n  Single commit: shows commit message + Open Commit button\n  Multiple commits: shows count + Open Diff + Show Commits buttons\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T12:46:15.493Z",
-      "templateCommit": "bc78e6af07d7eb9f31e71f1659ae78e538475a1d",
-      "projectCommit": "769429edac6c32c9a0d41bdc1f2db2cf58d1d377",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "bc78e6a fix: expand COMMIT_SHA variable in Open Commit button URL \u001b[90m(10/01/2026)\u001b[0m\n  Variable wasn't expanding inside single quotes.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -718,6 +720,8 @@
     "src/client/features/index.template.ts": "98deb9c73264f8847b2d70b58eaf446b",
     "src/client/routes/index.template.ts": "811a5d253ad61f7d7479414542324360",
     "src/server/database/collections/index.template.ts": "4ac802dc8fbd21b217658634d4593d55",
-    "scripts/template-scripts/sync-template/modes/json-mode.ts": "6855428d0de9cdd9a369b439d67d01b6"
+    "scripts/template-scripts/sync-template/modes/json-mode.ts": "6855428d0de9cdd9a369b439d67d01b6",
+    "src/client/components/GlobalDialogs.template.tsx": "7a78314a3ca0efdf90ca1e6a394a7436",
+    "src/client/components/GlobalDialogs.tsx": "75334a01aae5e0cf09d87d192db4a1aa"
   }
 }
