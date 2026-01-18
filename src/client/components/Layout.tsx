@@ -36,7 +36,7 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
   // The BottomNavBar sits at the flex container bottom (no position:fixed needed).
   // See BottomNavBar.tsx for full documentation of the iOS viewport fix.
   return (
-    <div
+    <div 
       className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`}
       style={{
         height: isMobile ? '100dvh' : undefined,
@@ -59,7 +59,7 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
       />
 
       {/* Main Content - scrolls internally on mobile */}
-      <main
+      <main 
         className="mx-auto w-full max-w-screen-lg flex-1 overflow-y-auto px-2 py-3 sm:px-4"
       >
         <ErrorBoundary>

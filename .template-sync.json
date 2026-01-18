@@ -31,6 +31,7 @@
     "src/apis/chat/**",
     "src/client/routes/index.ts",
     "src/client/components/NavLinks.tsx",
+    "src/client/components/GlobalDialogs.tsx",
     "src/apis/apis.ts",
     "src/server/database/collections/index.ts",
     "src/server/database/collections/todos",
