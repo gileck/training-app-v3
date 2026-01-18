@@ -1,9 +1,10 @@
-import { ObjectId } from 'mongodb';
 import { API_CREATE_FEATURE_REQUEST } from '../index';
 import { CreateFeatureRequestRequest, CreateFeatureRequestResponse } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
+import { toDocumentId } from '@/server/utils';
+import type { ObjectId } from 'mongodb';
 
 export const createFeatureRequest = async (
     request: CreateFeatureRequestRequest,
@@ -30,7 +31,7 @@ export const createFeatureRequest = async (
             page: request.page?.trim() || undefined,
             status: 'new' as const,
             needsUserInput: false,
-            requestedBy: new ObjectId(context.userId),
+            requestedBy: toDocumentId(context.userId) as ObjectId,
             comments: [],
             createdAt: now,
             updatedAt: now,

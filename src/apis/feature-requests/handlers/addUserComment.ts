@@ -5,6 +5,7 @@ import { featureRequests, users } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
 import { FeatureRequestComment } from '@/server/database/collections/feature-requests/types';
+import { toDocumentId } from '@/server/utils';
 
 export const addUserComment = async (
     request: AddUserCommentRequest,
@@ -39,7 +40,7 @@ export const addUserComment = async (
 
         const comment: FeatureRequestComment = {
             id: new ObjectId().toString(),
-            authorId: new ObjectId(context.userId),
+            authorId: toDocumentId(context.userId) as ObjectId,
             authorName,
             isAdmin: false,
             content: request.content.trim(),

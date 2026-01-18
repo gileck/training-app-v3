@@ -2,7 +2,8 @@ import { BatchDeleteReportsRequest, BatchDeleteReportsResponse } from '../types'
 import { ApiHandlerContext } from '@/apis/types';
 import { getDb } from '@/server/database';
 import { fileStorageAPI } from '@/server/blob';
-import { ObjectId } from 'mongodb';
+import { toQueryId } from '@/server/utils';
+import type { ObjectId } from 'mongodb';
 
 export const batchDeleteReports = async (
     request: BatchDeleteReportsRequest,
@@ -18,8 +19,8 @@ export const batchDeleteReports = async (
         const db = await getDb();
         const collection = db.collection('reports');
 
-        // Convert string IDs to ObjectIds
-        const objectIds = reportIds.map(id => new ObjectId(id));
+        // Convert string IDs to query format (reports always use ObjectId format)
+        const objectIds = reportIds.map(id => toQueryId(id) as ObjectId);
 
         // First, get all reports to find screenshots
         const reports = await collection.find({ _id: { $in: objectIds } }).toArray();

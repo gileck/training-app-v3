@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "7bdc43cc62ca28a34a4fc637e0a7707bac255fb7",
-  "lastProjectCommit": "9950b1cd9c3f751aee05f687805e3e0e09693d9c",
-  "lastSyncDate": "2026-01-18T07:29:55.812Z",
+  "lastSyncCommit": "4b8502acfb3b68288f2903faf8506363e863527e",
+  "lastProjectCommit": "df6ecb92ad7a7dbe84d47744fbbe3df34dcc39df",
+  "lastSyncDate": "2026-01-18T09:20:40.071Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -56,6 +56,18 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-18T09:20:40.256Z",
+      "templateCommit": "4b8502acfb3b68288f2903faf8506363e863527e",
+      "projectCommit": "df6ecb92ad7a7dbe84d47744fbbe3df34dcc39df",
+      "filesApplied": 10,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "4b8502a refactor: separate template and project code for easier sync \u001b[90m(18/01/2026)\u001b[0m\n  Split 5 aggregation files into template + project parts to prevent\n  merge conflicts during template sync:\n  - features/index.ts -> index.template.ts + index.ts\n  - NavLinks.tsx -> NavLinks.template.tsx + NavLinks.tsx\n  - collections/index.ts -> index.template.ts + index.ts\n  - routes/index.ts -> index.template.ts + index.ts\n  - apis.ts -> apis.template.ts + apis.ts\n  \n  Template code lives in *.template.ts files (synced from template).\n  Project code imports from template and adds customizations.\n  Added project files to .template-sync.json ignoredFiles.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "f574b79 fix: use ID utilities instead of direct ObjectId construction \u001b[90m(18/01/2026)\u001b[0m\n  Replaced `new ObjectId(variable)` with `toDocumentId()` and `toQueryId()`\n  utilities to properly handle both ObjectId and UUID formats:\n  \n  - Feature request handlers: use toDocumentId() for authorId and requestedBy\n  - Report batch handlers: use toQueryId() for query operations\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-17T16:53:57.596Z",
       "templateCommit": "70da8a3f74b150118bed6c3cc864d8e423736800",
@@ -274,17 +286,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "67703fa feat: show commit message and Open Commit button for production notifications \u001b[90m(10/01/2026)\u001b[0m\n  Both Production Started and Production Complete now show:\n  - Commit message (first line) instead of hash\n  - Open Commit button\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T12:41:30.577Z",
-      "templateCommit": "4dd8a55dc2e5719fd7e5ef855b5637d29bcde637",
-      "projectCommit": "9c56c3a06333c54953bb389393e5c9fafb32d3ca",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "4dd8a55 fix: add permissions for deployment API access \u001b[90m(10/01/2026)\u001b[0m\n  Fixes \"Resource not accessible by integration (HTTP 403)\" error\n  when accessing deployments API in GitHub Actions.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -664,8 +665,8 @@
     ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
     "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
     "scripts/vercel-cli.ts": "635106764b4d32d44291ec3922702620",
-    "src/apis/reports/handlers/batchDeleteReports.ts": "f568613feaf75d7b661c9ab5f4769224",
-    "src/apis/reports/handlers/batchUpdateStatus.ts": "e139673c083dffdf8f6bb5cc74b89e05",
+    "src/apis/reports/handlers/batchDeleteReports.ts": "352186152611c0591f485daca5b0302d",
+    "src/apis/reports/handlers/batchUpdateStatus.ts": "f2cf3457d5d85afc9a57d13358f89b0f",
     "docs/react-rendering-guidelines.md": "900bb7b3286b7a88584b77b141797044",
     "src/client/routes/Reports/components/ReportCard/ReportCardActions.tsx": "759999be5691eb5b9e8a91a2c84179c2",
     "src/client/routes/Reports/components/ReportCard/ReportCardDetails.tsx": "58b766e574f28b5e01052c68c6ee7424",
@@ -676,9 +677,9 @@
     "scripts/design-features.ts": "0005fb5b5960bd95668fcc90c29501b4",
     "scripts/list-reports.mjs": "87dc4715b56ee48e5e9d11cedf4943c1",
     "src/apis/feature-requests/client.ts": "12aba097ac9d8444c7e1db124ee08d20",
-    "src/apis/feature-requests/handlers/addAdminComment.ts": "1bd4426e0eb135067b80c0db69f0a8be",
-    "src/apis/feature-requests/handlers/addUserComment.ts": "7affa594ef11fbe4b6e7b29209c5f492",
-    "src/apis/feature-requests/handlers/createFeatureRequest.ts": "42573705166ed1ce4459b6da9c227dff",
+    "src/apis/feature-requests/handlers/addAdminComment.ts": "5838dbf01b1ee8480b5670d5e887f683",
+    "src/apis/feature-requests/handlers/addUserComment.ts": "167b82fc93e55a179edc32d5e29fa1ce",
+    "src/apis/feature-requests/handlers/createFeatureRequest.ts": "92d7a29b1e62eeaa2e2882db2294f8aa",
     "src/apis/feature-requests/handlers/deleteFeatureRequest.ts": "4c293c60edba0af63c3f1e298ff0abc8",
     "src/apis/feature-requests/handlers/getFeatureRequest.ts": "049fad45ecc6be85af32aa496c6283d6",
     "src/apis/feature-requests/handlers/getFeatureRequests.ts": "2a4ca28b4c25255b287e52371f28f021",
@@ -711,6 +712,11 @@
     "src/client/routes/MyFeatureRequests/index.ts": "ed7deb02899a4302622f1b44097ab790",
     "src/server/database/collections/feature-requests/feature-requests.ts": "5d9ff70b751c37404a92799063c2e631",
     "src/server/database/collections/feature-requests/index.ts": "31cb6fa0b467a90dc190121c7f04caf2",
-    "src/server/database/collections/feature-requests/types.ts": "0e38e203adb54dbd48ecc9114d705aec"
+    "src/server/database/collections/feature-requests/types.ts": "0e38e203adb54dbd48ecc9114d705aec",
+    "src/apis/apis.template.ts": "365eb69d82339ef6f5ea901a34387407",
+    "src/client/components/NavLinks.template.tsx": "44c8e13c06bab18ac3ab85e7f6bea054",
+    "src/client/features/index.template.ts": "98deb9c73264f8847b2d70b58eaf446b",
+    "src/client/routes/index.template.ts": "811a5d253ad61f7d7479414542324360",
+    "src/server/database/collections/index.template.ts": "4ac802dc8fbd21b217658634d4593d55"
   }
 }

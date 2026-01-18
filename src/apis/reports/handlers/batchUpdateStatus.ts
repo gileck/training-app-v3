@@ -1,7 +1,8 @@
 import { BatchUpdateStatusRequest, BatchUpdateStatusResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
 import { getDb } from '@/server/database';
-import { ObjectId } from 'mongodb';
+import { toQueryId } from '@/server/utils';
+import type { ObjectId } from 'mongodb';
 
 export const batchUpdateStatus = async (
     request: BatchUpdateStatusRequest,
@@ -17,8 +18,8 @@ export const batchUpdateStatus = async (
         const db = await getDb();
         const collection = db.collection('reports');
 
-        // Convert string IDs to ObjectIds
-        const objectIds = reportIds.map(id => new ObjectId(id));
+        // Convert string IDs to query format (reports always use ObjectId format)
+        const objectIds = reportIds.map(id => toQueryId(id) as ObjectId);
 
         // Update all reports in a single operation
         const result = await collection.updateMany(
