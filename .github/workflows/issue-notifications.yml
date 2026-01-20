@@ -1,0 +1,93 @@
+name: Issue Notifications
+
+# Trigger on issue and comment events
+on:
+  issues:
+    types: [opened, closed, reopened, labeled, assigned]
+  issue_comment:
+    types: [created]
+  # Project card events (for project board moves)
+  project_card:
+    types: [moved]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # Only run if TELEGRAM_BOT_TOKEN is configured
+    if: ${{ vars.TELEGRAM_NOTIFICATIONS_ENABLED == 'true' }}
+
+    steps:
+      - name: Send Telegram Notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          # Build the message based on event type
+          MESSAGE=""
+
+          # Issue events
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_TITLE="${{ github.event.issue.title }}"
+            ISSUE_URL="${{ github.event.issue.html_url }}"
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+            ISSUE_USER="${{ github.event.issue.user.login }}"
+
+            case "$EVENT_ACTION" in
+              opened)
+                MESSAGE="🆕 *New Issue #${ISSUE_NUMBER}*%0A%0A${ISSUE_TITLE}%0A%0A👤 by ${ISSUE_USER}%0A🔗 ${ISSUE_URL}"
+                ;;
+              closed)
+                CLOSED_BY="${{ github.event.sender.login }}"
+                MESSAGE="✅ *Issue #${ISSUE_NUMBER} Closed*%0A%0A${ISSUE_TITLE}%0A%0A👤 by ${CLOSED_BY}%0A🔗 ${ISSUE_URL}"
+                ;;
+              reopened)
+                REOPENED_BY="${{ github.event.sender.login }}"
+                MESSAGE="🔄 *Issue #${ISSUE_NUMBER} Reopened*%0A%0A${ISSUE_TITLE}%0A%0A👤 by ${REOPENED_BY}%0A🔗 ${ISSUE_URL}"
+                ;;
+              labeled)
+                LABEL="${{ github.event.label.name }}"
+                MESSAGE="🏷️ *Label Added to Issue #${ISSUE_NUMBER}*%0A%0A${ISSUE_TITLE}%0A%0ALabel: ${LABEL}%0A🔗 ${ISSUE_URL}"
+                ;;
+              assigned)
+                ASSIGNEE="${{ github.event.assignee.login }}"
+                MESSAGE="👤 *Issue #${ISSUE_NUMBER} Assigned*%0A%0A${ISSUE_TITLE}%0A%0AAssigned to: ${ASSIGNEE}%0A🔗 ${ISSUE_URL}"
+                ;;
+            esac
+          fi
+
+          # Comment events
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            ISSUE_TITLE="${{ github.event.issue.title }}"
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+            COMMENT_URL="${{ github.event.comment.html_url }}"
+            COMMENT_USER="${{ github.event.comment.user.login }}"
+            COMMENT_BODY="${{ github.event.comment.body }}"
+
+            # Truncate comment if too long
+            if [ ${#COMMENT_BODY} -gt 200 ]; then
+              COMMENT_BODY="${COMMENT_BODY:0:200}..."
+            fi
+
+            # URL encode the comment body
+            COMMENT_BODY=$(echo "$COMMENT_BODY" | sed 's/%/%25/g; s/ /%20/g; s/!/%21/g; s/"/%22/g; s/#/%23/g; s/\$/%24/g; s/\&/%26/g; s/'"'"'/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2a/g; s/+/%2b/g; s/,/%2c/g; s/\//%2f/g; s/:/%3a/g; s/;/%3b/g; s/=/%3d/g; s/?/%3f/g; s/@/%40/g; s/\[/%5b/g; s/\]/%5d/g')
+
+            MESSAGE="💬 *New Comment on Issue #${ISSUE_NUMBER}*%0A%0A${ISSUE_TITLE}%0A%0A👤 ${COMMENT_USER}:%0A${COMMENT_BODY}%0A%0A🔗 ${COMMENT_URL}"
+          fi
+
+          # Project card moved
+          if [ "$EVENT_NAME" = "project_card" ] && [ "$EVENT_ACTION" = "moved" ]; then
+            COLUMN_NAME="${{ github.event.project_card.column_name }}"
+            # Note: project_card events have limited info, may need to fetch issue details
+            MESSAGE="📋 *Card Moved*%0A%0AMoved to: ${COLUMN_NAME}"
+          fi
+
+          # Send the message if we have one
+          if [ -n "$MESSAGE" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${MESSAGE}" \
+              -d "parse_mode=Markdown" \
+              -d "disable_web_page_preview=true"
+          fi

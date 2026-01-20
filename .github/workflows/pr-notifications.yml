@@ -1,0 +1,89 @@
+name: PR Notifications
+
+# Trigger on PR events
+on:
+  pull_request:
+    types: [opened, closed, reopened, review_requested, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # Only run if TELEGRAM_NOTIFICATIONS_ENABLED is set
+    if: ${{ vars.TELEGRAM_NOTIFICATIONS_ENABLED == 'true' }}
+
+    steps:
+      - name: Send Telegram Notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          MESSAGE=""
+
+          # Pull request events
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_URL="${{ github.event.pull_request.html_url }}"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            PR_USER="${{ github.event.pull_request.user.login }}"
+
+            case "$EVENT_ACTION" in
+              opened)
+                MESSAGE="🔀 *New PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
+                ;;
+              closed)
+                if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+                  MERGED_BY="${{ github.event.pull_request.merged_by.login }}"
+                  MESSAGE="🎉 *PR #${PR_NUMBER} Merged*%0A%0A${PR_TITLE}%0A%0A👤 by ${MERGED_BY}%0A🔗 ${PR_URL}"
+                else
+                  CLOSED_BY="${{ github.event.sender.login }}"
+                  MESSAGE="❌ *PR #${PR_NUMBER} Closed*%0A%0A${PR_TITLE}%0A%0A👤 by ${CLOSED_BY}%0A🔗 ${PR_URL}"
+                fi
+                ;;
+              reopened)
+                REOPENED_BY="${{ github.event.sender.login }}"
+                MESSAGE="🔄 *PR #${PR_NUMBER} Reopened*%0A%0A${PR_TITLE}%0A%0A👤 by ${REOPENED_BY}%0A🔗 ${PR_URL}"
+                ;;
+              review_requested)
+                REVIEWER="${{ github.event.requested_reviewer.login }}"
+                MESSAGE="👀 *Review Requested on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0AReviewer: ${REVIEWER}%0A🔗 ${PR_URL}"
+                ;;
+              ready_for_review)
+                MESSAGE="✅ *PR #${PR_NUMBER} Ready for Review*%0A%0A${PR_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
+                ;;
+            esac
+          fi
+
+          # PR review events
+          if [ "$EVENT_NAME" = "pull_request_review" ]; then
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_URL="${{ github.event.pull_request.html_url }}"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            REVIEWER="${{ github.event.review.user.login }}"
+            REVIEW_STATE="${{ github.event.review.state }}"
+            REVIEW_URL="${{ github.event.review.html_url }}"
+
+            case "$REVIEW_STATE" in
+              approved)
+                MESSAGE="✅ *PR #${PR_NUMBER} Approved*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                ;;
+              changes_requested)
+                MESSAGE="🔄 *Changes Requested on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                ;;
+              commented)
+                MESSAGE="💬 *Review Comment on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                ;;
+            esac
+          fi
+
+          # Send the message if we have one
+          if [ -n "$MESSAGE" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${MESSAGE}" \
+              -d "parse_mode=Markdown" \
+              -d "disable_web_page_preview=true"
+          fi
