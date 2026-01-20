@@ -474,6 +474,56 @@ Strict TypeScript guidelines.
 
 ---
 
+## Validation & Quality Checks
+
+**CRITICAL: Always run `yarn checks` before completing work.**
+
+### For Claude Code (Planning Mode)
+
+When working in planning mode, **ALWAYS** include a final task in your plan to run `yarn checks`:
+
+```markdown
+## Implementation Plan
+
+1. [Task 1: Implementation step]
+2. [Task 2: Implementation step]
+3. [Task 3: Implementation step]
+4. **Run `yarn checks` and fix any TypeScript/ESLint errors** ⚠️ REQUIRED
+```
+
+**Why this matters:**
+- Ensures all TypeScript types are correct
+- Catches ESLint violations early
+- Prevents breaking changes from being synced to child projects
+- Validates the codebase is in a clean state
+
+### General Development
+
+**Before any of these actions:**
+- ✅ Committing code
+- ✅ Creating pull requests
+- ✅ Syncing to child projects (see `/sync-children`)
+- ✅ Deploying to production
+
+**Always run:**
+```bash
+yarn checks
+```
+
+**Expected output:**
+```
+✔ No TypeScript errors
+✔ No ESLint warnings or errors
+```
+
+**If errors occur:**
+1. Fix all TypeScript errors first (type safety is critical)
+2. Fix all ESLint errors second (code quality and consistency)
+3. Re-run `yarn checks` until it passes
+4. Only then proceed with commit/PR/sync/deploy
+
+---
+
 ## Guidelines Compliance Checklist
 
 Systematic verification of codebase compliance.

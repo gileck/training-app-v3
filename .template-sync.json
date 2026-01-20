@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "696c4e4d07d5a37cccaf72fe7a9666543049bd98",
-  "lastProjectCommit": "a8157a3d717cb17d6b02fa9381730458a37510f0",
-  "lastSyncDate": "2026-01-20T17:22:25.927Z",
+  "lastSyncCommit": "02e0155a3cfb0e6d2b8865275b734508069d1165",
+  "lastProjectCommit": "288257a7d5e2ed56a550dff499f29a357f3eda6b",
+  "lastSyncDate": "2026-01-20T17:26:30.806Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-20T17:26:30.955Z",
+      "templateCommit": "02e0155a3cfb0e6d2b8865275b734508069d1165",
+      "projectCommit": "288257a7d5e2ed56a550dff499f29a357f3eda6b",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "02e0155 docs: add critical yarn checks requirements \u001b[90m(20/01/2026)\u001b[0m\n  CLAUDE.md:\n  - Add new \"Validation & Quality Checks\" section before Guidelines Compliance\n  - CRITICAL requirement for Claude Code planning mode: always include yarn checks as final task\n  - Emphasize running yarn checks before commits, PRs, syncs, and deploys\n  - Clear expected output and error handling workflow\n  \n  .claude/commands/sync-children.md:\n  - Add \"CRITICAL: Run Yarn Checks First\" section at top\n  - Explain why running yarn checks before sync is critical:\n    - Prevents breaking changes from propagating to all children\n    - Saves time by fixing template once instead of in every child\n    - Maintains quality standards\n    - Avoids cascading failures\n  - Add Step 0: Validate Template (REQUIRED) in Process section\n  - Clear workflow: validate template → only then sync children\n  \n  Rationale:\n  Previous sync-children runs propagated TypeScript errors to all child projects,\n  requiring manual fixes in each project. This adds mandatory validation step to\n  prevent broken code from being synced.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-20T17:22:26.105Z",
       "templateCommit": "696c4e4d07d5a37cccaf72fe7a9666543049bd98",
@@ -277,19 +288,6 @@
       "templateCommits": [
         "20eccd2 feat: add native browser history support for routing \u001b[90m(10/01/2026)\u001b[0m\n  Add proper history state tracking for back/forward navigation and iOS\n  PWA swipe-back gestures. Changes include history state objects with\n  unique keys, scroll-to-top on navigation, and initial state setup.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-10T14:06:21.277Z",
-      "templateCommit": "54e9ec5782649e420440798053608751241e2c62",
-      "projectCommit": "90380a29190531983f9b50b73ac3166a828b5761",
-      "filesApplied": 11,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "54e9ec5 feat: add notifications toggle and catch-all routing \u001b[90m(10/01/2026)\u001b[0m\n  - Add notificationsEnabled boolean field to user profile\n  - Add notifications toggle switch in Profile page\n  - Conditionally show Telegram Chat ID field when notifications enabled\n  - Add info icon with dialog explaining how to get Chat ID\n  - Include clickable Telegram URL (t.me/userinfobot) in instructions\n  - Add catch-all page for client-side routing (fixes 404 on refresh)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "e4b40ef feat: redesign Profile page with modern iOS-inspired UI \u001b[90m(10/01/2026)\u001b[0m\n  - Add hero-style ProfileHeader with avatar and gradient accent\n  - Add ProfileSection for grouped info display\n  - Add EditableField with mobile-friendly bottom sheet editing\n  - Modernize ImageUploadDialog with card-based options\n  - Add email field to profile update API\n  - Use semantic color tokens throughout\n  - Meet 44px minimum touch targets for mobile\n  - Replace ProfileCard and AccountInfoCard with new components\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "d22b25d update package.json \u001b[90m(10/01/2026)\u001b[0m"
-      ]
     }
   ],
   "fileHashes": {
@@ -325,7 +323,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "05aaf77361057c43d0c1f760db0dbe4f",
+    "CLAUDE.md": "353bb14e3a6b9ac0579282b66d1d6c7f",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
