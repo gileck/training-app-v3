@@ -26,7 +26,7 @@
  *   yarn agent:implement --stream           # Stream Claude output
  */
 
-import 'dotenv/config';
+import './shared/loadEnv';
 import { execSync } from 'child_process';
 import { Command } from 'commander';
 import {

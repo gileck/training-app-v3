@@ -8,7 +8,7 @@
  *   yarn send-telegram "Your message here"
  */
 
-import 'dotenv/config';
+import '../src/agents/shared/loadEnv';
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 

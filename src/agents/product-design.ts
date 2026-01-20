@@ -24,7 +24,7 @@
  *   yarn agent:product-design --stream           # Stream Claude output
  */
 
-import 'dotenv/config';
+import './shared/loadEnv';
 import { Command } from 'commander';
 import {
     // Config

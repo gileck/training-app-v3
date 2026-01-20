@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "02e0155a3cfb0e6d2b8865275b734508069d1165",
-  "lastProjectCommit": "288257a7d5e2ed56a550dff499f29a357f3eda6b",
-  "lastSyncDate": "2026-01-20T17:26:30.806Z",
+  "lastSyncCommit": "106bae449b2e700dea6c84deefede9313683397d",
+  "lastProjectCommit": "9e6531d7d91c8aebda0b27f519b492f03d744c91",
+  "lastSyncDate": "2026-01-20T17:36:56.474Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-20T17:36:56.662Z",
+      "templateCommit": "106bae449b2e700dea6c84deefede9313683397d",
+      "projectCommit": "9e6531d7d91c8aebda0b27f519b492f03d744c91",
+      "filesApplied": 12,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "106bae4 fix: agents and scripts now load .env.local files \u001b[90m(20/01/2026)\u001b[0m\n  All agent scripts (product-design, tech-design, implement, auto-advance)\n  and utility scripts (github-pr, telegram-*, vercel-cli, mark-issue-done)\n  now properly load environment variables from both .env and .env.local\n  files, with .env.local taking priority.\n  \n  Created shared loadEnv utility that follows Next.js convention:\n  - Loads .env first (base config)\n  - Loads .env.local second (overrides with local secrets)\n  \n  This fixes the \"Missing required environment variable\" errors that\n  occurred when GitHub Projects variables existed only in .env.local.\n  \n  Changes:\n  - Created src/agents/shared/loadEnv.ts utility\n  - Updated src/agents/shared/index.ts to import loadEnv\n  - Replaced 'dotenv/config' with loadEnv in 4 agent files\n  - Replaced 'dotenv/config' with loadEnv in 6 script files\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-20T17:26:30.955Z",
       "templateCommit": "02e0155a3cfb0e6d2b8865275b734508069d1165",
@@ -276,17 +287,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "4aa96f1 feat: enhance init-project with idempotency and template cleanup \u001b[90m(10/01/2026)\u001b[0m\n  - Copy .env from ../app-template-ai/ before loading dotenv\n  - Run init-template.ts to set up template tracking\n  - Delete template example features (Todos, Chat, AIChat, Home)\n  - Make all steps idempotent (safe to run multiple times)\n  - Add consistent logging with [Step] prefix format\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-10T15:34:44.817Z",
-      "templateCommit": "20eccd2557f64aa9e20bf3a2debdf8d401655f36",
-      "projectCommit": "717fb1679856247816e6c3a4c412b307d52da31d",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "20eccd2 feat: add native browser history support for routing \u001b[90m(10/01/2026)\u001b[0m\n  Add proper history state tracking for back/forward navigation and iOS\n  PWA swipe-back gestures. Changes include history state objects with\n  unique keys, scroll-to-top on navigation, and initial state setup.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -601,11 +601,11 @@
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
-    "scripts/github-pr.ts": "e5466e4eced44dcf4dc5a5c71ba377e0",
+    "scripts/github-pr.ts": "d0c40c2982e2562e3cb397754e117cea",
     "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee",
     "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
-    "scripts/send-telegram.ts": "e7157ae960bde0b15de07f40572a1076",
-    "scripts/telegram-setup.ts": "616c63878a63d636646f008586fa257a",
+    "scripts/send-telegram.ts": "2a4e16b5f85e820590a73dad7e0c09d6",
+    "scripts/telegram-setup.ts": "d6c1671518cd55b4d8600dbdf1f277a6",
     "src/server/telegram/index.ts": "c2113d60259cf44fcf2d408f48fde7be",
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
@@ -665,7 +665,7 @@
     "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220",
     ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
     "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
-    "scripts/vercel-cli.ts": "635106764b4d32d44291ec3922702620",
+    "scripts/vercel-cli.ts": "35db5ec7d81d1c8a17a3772930440309",
     "src/apis/reports/handlers/batchDeleteReports.ts": "352186152611c0591f485daca5b0302d",
     "src/apis/reports/handlers/batchUpdateStatus.ts": "f2cf3457d5d85afc9a57d13358f89b0f",
     "docs/react-rendering-guidelines.md": "900bb7b3286b7a88584b77b141797044",
@@ -730,20 +730,20 @@
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "25baf7eab699427a822d5037379969c1",
     "docs/init-github-projects-workflow.md": "123ee314240d2b9d406eef8cea691bf0",
-    "scripts/mark-issue-done.ts": "59f32941c69ad5383fc7ca4d9177ea90",
-    "scripts/telegram-webhook-setup.ts": "1deaa5dfcca345a5a731a914f2988686",
-    "src/agents/auto-advance.ts": "2b6d9806cc1af69327f31ef8b5f789f2",
-    "src/agents/implement.ts": "279913f4bbe2a945516e5706c44e9510",
+    "scripts/mark-issue-done.ts": "e0cc1fee2362e658636974146cc96e7b",
+    "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
+    "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
+    "src/agents/implement.ts": "d5baa2623f10b69497ae7a0356e31f05",
     "src/agents/index.ts": "96ffbe50cf615fe1f857983ca342fc64",
-    "src/agents/product-design.ts": "116fce4d4613a2fe87b1b88d9598af88",
+    "src/agents/product-design.ts": "37a709c207fdfd5a112bf0e79c3a942b",
     "src/agents/shared/claude.ts": "9f263cb07d6ab8e6223ee54ae1bbe827",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
-    "src/agents/shared/index.ts": "3264ed6bbf2db31bbaaf1828d64cf230",
+    "src/agents/shared/index.ts": "79512afdaff807b8644c86264abca9da",
     "src/agents/shared/notifications.ts": "0caf4776865fff64b328450284b476cc",
     "src/agents/shared/prompts.ts": "f52531ce8d6c7d93501c0f054fd3d931",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
     "src/agents/shared/utils.ts": "39bfe87c7134d89e098c71ea02d5cf42",
-    "src/agents/tech-design.ts": "ea486fb3bf1ec8c2a377218f2e670e91",
+    "src/agents/tech-design.ts": "73aaf00e295623f55639c845b678a988",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
     "src/apis/feature-requests/handlers/getGitHubStatuses.ts": "0eabde636f273832e64d2b82e7291ac9",
@@ -757,6 +757,7 @@
     "src/server/project-management/adapters/github.ts": "f7af05e7a4f5554dc33aef8b64982e88",
     "src/server/project-management/config.ts": "34c83d2ec1c678fe35c9dab9eb9e4207",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
-    "src/server/project-management/types.ts": "4059208ce2881e36022b05d9b0220157"
+    "src/server/project-management/types.ts": "4059208ce2881e36022b05d9b0220157",
+    "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0"
   }
 }

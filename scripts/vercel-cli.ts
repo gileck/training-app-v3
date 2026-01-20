@@ -1,5 +1,5 @@
 #!/usr/bin/env npx tsx
-import 'dotenv/config';
+import '../src/agents/shared/loadEnv';
 
 /**
  * Vercel CLI Tool

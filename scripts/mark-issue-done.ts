@@ -7,7 +7,7 @@
  * project item, and updates its status to "Done".
  */
 
-import 'dotenv/config';
+import '../src/agents/shared/loadEnv';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { STATUSES } from '@/server/project-management/config';
 import { sendNotificationToOwner } from '@/server/telegram';

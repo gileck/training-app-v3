@@ -15,7 +15,7 @@
  *   yarn agent:auto-advance --dry-run    # Preview without changes
  */
 
-import 'dotenv/config';
+import './shared/loadEnv';
 import { Command } from 'commander';
 import {
     STATUSES,

@@ -4,6 +4,9 @@
  * Re-exports all shared modules for convenient importing.
  */
 
+// Load environment variables from .env.local and .env files
+import './loadEnv';
+
 // Configuration - re-exports from @/server/project-management plus agent-specific config
 export {
     // Status constants
