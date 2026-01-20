@@ -22,8 +22,8 @@ function getCurrentRoute(): string | undefined {
     return undefined;
 }
 
-// Maximum size for logged data (2KB is reasonable for debugging small payloads)
-const MAX_LOG_DATA_SIZE = 2048;
+// Maximum size for logged data (1KB keeps bug reports manageable)
+const MAX_LOG_DATA_SIZE = 1024;
 
 /**
  * Sanitize data for logging

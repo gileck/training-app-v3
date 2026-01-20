@@ -695,6 +695,72 @@ Use `--cloud-proxy` when running in Claude Code cloud environment. This enables:
 
 ---
 
+## GitHub Projects Integration
+
+Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
+
+**Summary:** CLI agents that automate the design and development workflow:
+1. Sync approved feature requests to GitHub Issues
+2. Generate Product Design documents using Claude
+3. Generate Technical Design documents using Claude
+4. Implement features and create PRs using Claude
+
+**Key Features:**
+- **Squash-merge ready PRs**: PRs are formatted with title and body that require no editing before squash merge
+- **Auto-completion**: When PR is merged, GitHub Action automatically marks issue as Done in both GitHub Projects and MongoDB
+- **Simplified MongoDB schema**: MongoDB tracks only 4 high-level statuses (`new`, `in_progress`, `done`, `rejected`), detailed workflow tracking happens in GitHub Projects
+- **Two-tier status tracking**: Eliminates duplication between MongoDB and GitHub Projects
+
+**Getting Started (Child Projects):**
+
+If you're setting up this workflow in a child project for the first time, follow the comprehensive getting started guide:
+
+📚 **[docs/init-github-projects-workflow.md](docs/init-github-projects-workflow.md)** - Complete setup guide with step-by-step instructions for:
+- GitHub Project V2 creation and configuration
+- Environment variables (.env)
+- Telegram bot setup (IMPORTANT: each project needs its own bot)
+- GitHub repository secrets and variables
+- Vercel environment variables
+- Verification and testing
+
+**Quick Setup (For Reference):**
+1. Create a GitHub Project with required statuses (see docs)
+2. Add `GITHUB_TOKEN` to `.env` with `repo` and `project` scopes
+3. Set environment variables: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_PROJECT_NUMBER`, `GITHUB_OWNER_TYPE`
+4. Create a Telegram bot (each project needs its own bot due to webhook limitations)
+5. Configure GitHub repository secrets via `yarn setup-github-secrets`
+
+**CLI Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `yarn agent:product-design` | Generate product design documents |
+| `yarn agent:tech-design` | Generate technical design documents |
+| `yarn agent:implement` | Implement features and create PRs |
+
+**Architecture:**
+
+The project management system uses an adapter pattern for flexibility:
+- `src/server/project-management/` - Abstraction layer with types, config, and adapters
+- `src/agents/` - CLI agents that use the project management adapter
+
+**Common Options:**
+- `--id <id>` - Process specific item
+- `--dry-run` - Preview without changes
+- `--stream` - Stream Claude output
+- `--limit <n>` - Limit items to process
+
+**Workflow:**
+```
+Feature Request → GitHub Issue → Product Design → Tech Design → PR → Merge → Auto-marked Done
+```
+
+Each phase has a review step where admin can approve or request changes. PRs are formatted for immediate squash merge without editing.
+
+**Docs:** [docs/github-projects-integration.md](docs/github-projects-integration.md)
+
+---
+
 ## Vercel CLI Tool
 
 Command-line tool for managing Vercel deployments and projects.

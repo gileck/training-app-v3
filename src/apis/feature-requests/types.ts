@@ -163,6 +163,62 @@ export interface DeleteFeatureRequestResponse {
     error?: string;
 }
 
+// Approve feature request (creates GitHub issue)
+export interface ApproveFeatureRequestRequest {
+    requestId: string;
+}
+
+export interface ApproveFeatureRequestResponse {
+    featureRequest?: FeatureRequestClient;
+    githubIssueUrl?: string;
+    githubIssueNumber?: number;
+    error?: string;
+}
+
+// Get GitHub Project status
+export interface GetGitHubStatusRequest {
+    requestId: string;
+}
+
+export interface GetGitHubStatusResponse {
+    status?: string | null;
+    reviewStatus?: string | null;
+    issueState?: 'OPEN' | 'CLOSED' | null;
+    issueUrl?: string;
+    error?: string;
+}
+
+// Get available GitHub statuses
+export type GetGitHubStatusesRequest = Record<string, never>;
+
+export interface GetGitHubStatusesResponse {
+    statuses?: string[];
+    reviewStatuses?: string[];
+    error?: string;
+}
+
+// Update GitHub Project status
+export interface UpdateGitHubStatusRequest {
+    requestId: string;
+    status: string;
+}
+
+export interface UpdateGitHubStatusResponse {
+    success?: boolean;
+    error?: string;
+}
+
+// Update GitHub Project review status
+export interface UpdateGitHubReviewStatusRequest {
+    requestId: string;
+    reviewStatus: string;
+}
+
+export interface UpdateGitHubReviewStatusResponse {
+    success?: boolean;
+    error?: string;
+}
+
 // Re-export types for convenience
 export type {
     FeatureRequestClient,

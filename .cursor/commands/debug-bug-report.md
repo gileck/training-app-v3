@@ -4,19 +4,59 @@ You are debugging a bug/error report from the application. Analyze the provided 
 
 ## Getting Report Data
 
-If the user provides a **report ID** (24-character hex string like `692f08157586bdebbe6f3042`), fetch the report details by running:
+### Option 1: List New Reports
+
+If the user hasn't provided a specific report ID, list new reports from the database:
+
+```bash
+node scripts/list-reports.mjs
+```
+
+This shows all new reports with their IDs. You can filter by status or type:
+
+```bash
+# List reports by status (new, investigating, resolved, closed)
+node scripts/list-reports.mjs --status investigating
+
+# List reports by type (bug, error)
+node scripts/list-reports.mjs --type error
+
+# Combine filters and set limit
+node scripts/list-reports.mjs --status new --type bug --limit 20
+```
+
+The output includes:
+- Report ID (use this to fetch full details)
+- Type, status, and creation date
+- Route where the issue occurred
+- Brief message/description
+
+### Option 2: Fetch Specific Report
+
+If the user provides a **report ID** (24-character hex string like `692f08157586bdebbe6f3042`), fetch the full report details:
 
 ```bash
 node scripts/get-report.mjs <report-id>
 ```
 
-This script connects directly to MongoDB and outputs the full report details.
+This script connects directly to MongoDB and outputs the complete report details.
+
+## Typical Workflow
+
+1. **List reports** - Run `node scripts/list-reports.mjs` to see available reports
+2. **Select a report** - Pick a report ID from the list
+3. **Fetch full details** - Run `node scripts/get-report.mjs <report-id>`
+4. **Analyze** - Follow the analysis steps below
+5. **Debug** - Investigate the issue and propose a fix
 
 ## Input
 
 The user will provide either:
-1. A **report ID** - Run the script above to get details
-2. A **full report** in the following format:
+1. **Nothing** → List new reports and ask user which one to debug
+2. **A report ID** → Fetch full details using `get-report.mjs`
+3. **A full report** → Analyze directly (user copied the report data)
+
+Report format includes:
 - Report metadata (type, status, timestamps)
 - Context (route, network status)
 - Description or error message

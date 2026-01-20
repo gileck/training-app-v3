@@ -64,6 +64,18 @@ export const findReportById = async (
 };
 
 /**
+ * Find a report by GitHub issue number
+ * @param issueNumber - The GitHub issue number
+ * @returns The report document or null if not found
+ */
+export const findByGitHubIssueNumber = async (
+    issueNumber: number
+): Promise<ReportDocument | null> => {
+    const collection = await getReportsCollection();
+    return collection.findOne({ githubIssueNumber: issueNumber });
+};
+
+/**
  * Create a new report
  * @param report - The report data to create
  * @returns The created report document
@@ -101,6 +113,33 @@ export const updateReportStatus = async (
     const result = await collection.findOneAndUpdate(
         { _id: reportIdObj },
         { $set: update },
+        { returnDocument: 'after' }
+    );
+
+    return result || null;
+};
+
+/**
+ * Update a report with partial data
+ * @param reportId - The ID of the report to update
+ * @param update - Partial report data to update
+ * @returns The updated report document or null if not found
+ */
+export const updateReport = async (
+    reportId: ObjectId | string,
+    update: ReportUpdate
+): Promise<ReportDocument | null> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    const updateWithTimestamp: ReportUpdate = {
+        ...update,
+        updatedAt: new Date(),
+    };
+
+    const result = await collection.findOneAndUpdate(
+        { _id: reportIdObj },
+        { $set: updateWithTimestamp },
         { returnDocument: 'after' }
     );
 
@@ -281,7 +320,7 @@ export const markReportAsDuplicate = async (
  */
 export const getReportCounts = async (): Promise<Record<ReportStatus, number>> => {
     const collection = await getReportsCollection();
-    
+
     const pipeline = [
         {
             $group: {
@@ -292,7 +331,7 @@ export const getReportCounts = async (): Promise<Record<ReportStatus, number>> =
     ];
 
     const results = await collection.aggregate(pipeline).toArray();
-    
+
     const counts: Record<ReportStatus, number> = {
         new: 0,
         investigating: 0,
@@ -307,5 +346,44 @@ export const getReportCounts = async (): Promise<Record<ReportStatus, number>> =
     }
 
     return counts;
+};
+
+/**
+ * Update approval token (or remove it by passing null)
+ * @param reportId - The ID of the report to update
+ * @param token - The new token, or null to remove it
+ * @returns True if updated successfully
+ */
+export const updateApprovalToken = async (
+    reportId: ObjectId | string,
+    token: string | null
+): Promise<boolean> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    if (token === null) {
+        // Remove the token field
+        const result = await collection.updateOne(
+            { _id: reportIdObj },
+            {
+                $unset: { approvalToken: '' },
+                $set: { updatedAt: new Date() },
+            }
+        );
+        return result.modifiedCount === 1;
+    }
+
+    // Set the token
+    const result = await collection.updateOne(
+        { _id: reportIdObj },
+        {
+            $set: {
+                approvalToken: token,
+                updatedAt: new Date(),
+            },
+        }
+    );
+
+    return result.modifiedCount === 1;
 };
 

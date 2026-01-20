@@ -2,18 +2,19 @@ import { ObjectId } from 'mongodb';
 
 /**
  * Main workflow status for a feature request
+ *
+ * Simplified schema - detailed workflow tracking happens in GitHub Projects.
+ * MongoDB only tracks high-level state:
+ * - new: Not yet synced to GitHub
+ * - in_progress: Synced to GitHub, check GitHub Project for detailed status
+ * - done: Completed and merged
+ * - rejected: Not going to implement
  */
 export type FeatureRequestStatus =
-    | 'new'              // Just submitted, not yet reviewed
-    | 'in_review'        // Admin is reviewing the request
-    | 'product_design'   // In product design phase
-    | 'tech_design'      // In technical design phase
-    | 'ready_for_dev'    // Design complete, ready for development
-    | 'in_development'   // Being built
-    | 'ready_for_qa'     // Development complete, testing needed
-    | 'done'             // Shipped
-    | 'rejected'         // Not going to do
-    | 'on_hold';         // Paused for later
+    | 'new'              // Not yet synced to GitHub
+    | 'in_progress'      // Exists in GitHub (detailed status tracked in GitHub Projects)
+    | 'done'             // Completed
+    | 'rejected';        // Not going to implement
 
 /**
  * Review status within a design phase
@@ -99,11 +100,24 @@ export interface FeatureRequestDocument {
     // User interaction
     needsUserInput: boolean;          // True when admin needs more info from user
     requestedBy: ObjectId;            // User who submitted
+    requestedByName?: string;         // Username of who submitted
     comments: FeatureRequestComment[];
 
     // Admin-only fields
     adminNotes?: string;              // Internal notes (not shown to user)
     priority?: FeatureRequestPriority;
+
+    // GitHub integration fields
+    githubIssueUrl?: string;          // URL to the GitHub issue
+    githubIssueNumber?: number;       // GitHub issue number
+    githubProjectItemId?: string;     // GitHub Project item ID (for status updates)
+    githubProjectStatus?: string;     // Current status in GitHub Project (e.g., "Product Design")
+    githubReviewStatus?: string;      // Review Status in GitHub Project (e.g., "Waiting for Review")
+    githubPrUrl?: string;             // URL to the pull request
+    githubPrNumber?: number;          // GitHub PR number
+
+    // Approval token for Telegram quick-approve link
+    approvalToken?: string;           // Secure token for one-click approval
 
     // Timestamps
     createdAt: Date;
@@ -128,9 +142,18 @@ export interface FeatureRequestClient {
     techDesign?: DesignPhaseClient;
     needsUserInput: boolean;
     requestedBy: string;
+    requestedByName: string;
     comments: FeatureRequestCommentClient[];
     adminNotes?: string;
     priority?: FeatureRequestPriority;
+    // GitHub integration fields
+    githubIssueUrl?: string;
+    githubIssueNumber?: number;
+    githubProjectItemId?: string;
+    githubProjectStatus?: string;
+    githubReviewStatus?: string;
+    githubPrUrl?: string;
+    githubPrNumber?: number;
     createdAt: string;
     updatedAt: string;
 }

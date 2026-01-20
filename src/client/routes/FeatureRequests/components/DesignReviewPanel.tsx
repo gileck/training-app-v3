@@ -46,22 +46,22 @@ const reviewStatusConfig: Record<
     in_progress: {
         label: 'Agent Working',
         icon: <Hammer className="h-4 w-4" />,
-        className: 'text-blue-500',
+        className: 'text-info',
     },
     pending_review: {
         label: 'Pending Your Review',
         icon: <AlertCircle className="h-4 w-4" />,
-        className: 'text-yellow-500',
+        className: 'text-warning',
     },
     approved: {
         label: 'Approved',
         icon: <CheckCircle className="h-4 w-4" />,
-        className: 'text-green-500',
+        className: 'text-success',
     },
     rejected: {
         label: 'Rejected - Needs Rework',
         icon: <XCircle className="h-4 w-4" />,
-        className: 'text-red-500',
+        className: 'text-destructive',
     },
 };
 
@@ -123,40 +123,45 @@ export function DesignReviewPanel({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                     {/* Status */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
                         <span className="text-sm font-medium">Status:</span>
-                        <span className={`flex items-center gap-1 ${statusConfig.className}`}>
+                        <span className={`flex items-center gap-1 font-medium ${statusConfig.className}`}>
                             {statusConfig.icon}
                             {statusConfig.label}
                         </span>
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <span>Iteration: {design.iterations}</span>
+                    <div className="flex flex-wrap gap-2 text-sm">
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
+                            <span className="font-medium">Iteration:</span>
+                            <span className="text-muted-foreground">{design.iterations}</span>
+                        </div>
                         {design.generatedAt && (
-                            <span>
-                                Generated: {new Date(design.generatedAt).toLocaleString()}
-                            </span>
+                            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
+                                <span className="font-medium">Generated:</span>
+                                <span className="text-muted-foreground">{new Date(design.generatedAt).toLocaleString()}</span>
+                            </div>
                         )}
                         {design.approvedAt && (
-                            <span>
-                                Approved: {new Date(design.approvedAt).toLocaleString()}
-                            </span>
+                            <div className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1">
+                                <span className="font-medium text-success">Approved:</span>
+                                <span className="text-success">{new Date(design.approvedAt).toLocaleString()}</span>
+                            </div>
                         )}
                     </div>
 
                     {/* Design Content */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Design Document</CardTitle>
+                    <Card className="border-2">
+                        <CardHeader className="bg-muted/30 pb-3">
+                            <CardTitle className="text-base">Design Document</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-4">
                             {design.content ? (
                                 <div className="prose prose-sm max-h-96 max-w-none overflow-y-auto">
-                                    <pre className="whitespace-pre-wrap rounded-md bg-muted p-4 text-sm">
+                                    <pre className="whitespace-pre-wrap rounded-md bg-muted/50 p-4 text-sm">
                                         {design.content}
                                     </pre>
                                 </div>
@@ -170,14 +175,14 @@ export function DesignReviewPanel({
 
                     {/* Previous Feedback (if rejected before) */}
                     {design.adminComments && design.reviewStatus !== 'pending_review' && (
-                        <Card className="border-dashed">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm text-muted-foreground">
+                        <Card className="border-2 border-dashed border-warning/30 bg-warning/5">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm text-warning-foreground">
                                     Previous Feedback
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="whitespace-pre-wrap text-sm">
+                                <p className="whitespace-pre-wrap text-sm text-warning-foreground">
                                     {design.adminComments}
                                 </p>
                             </CardContent>

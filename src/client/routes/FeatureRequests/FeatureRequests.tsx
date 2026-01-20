@@ -23,15 +23,9 @@ const statusOptions: { value: StatusFilterOption; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
     { value: 'new', label: 'New' },
-    { value: 'in_review', label: 'In Review' },
-    { value: 'product_design', label: 'Product Design' },
-    { value: 'tech_design', label: 'Tech Design' },
-    { value: 'ready_for_dev', label: 'Ready for Dev' },
-    { value: 'in_development', label: 'In Development' },
-    { value: 'ready_for_qa', label: 'Ready for QA' },
+    { value: 'in_progress', label: 'In Progress' },
     { value: 'done', label: 'Done' },
     { value: 'rejected', label: 'Rejected' },
-    { value: 'on_hold', label: 'On Hold' },
 ];
 
 const priorityOptions: { value: FeatureRequestPriority | 'all'; label: string }[] = [
@@ -43,15 +37,7 @@ const priorityOptions: { value: FeatureRequestPriority | 'all'; label: string }[
 ];
 
 // Active statuses (excludes done, rejected)
-const activeStatuses: FeatureRequestStatus[] = [
-    'new',
-    'in_review',
-    'product_design',
-    'tech_design',
-    'ready_for_dev',
-    'in_development',
-    'ready_for_qa',
-];
+const activeStatuses: FeatureRequestStatus[] = ['new', 'in_progress'];
 
 export function FeatureRequests() {
     // Persistent UI state from store
@@ -170,7 +156,7 @@ export function FeatureRequests() {
                     </CardContent>
                 </Card>
             ) : (
-                <div>
+                <div className="space-y-4">
                     {requests?.map((request) => (
                         <FeatureRequestCard key={request._id} request={request} />
                     ))}

@@ -649,21 +649,24 @@ async function main(): Promise<void> {
             }
 
             // Determine which phase to work on
+            // NOTE: With simplified status schema, this script is deprecated
+            // Use yarn agent:product-design or yarn agent:tech-design instead
             let phase: DesignPhaseType | null = null;
-            if (request.status === 'product_design') {
+            if (request.status === 'in_progress') {
                 const reviewStatus = request.productDesign?.reviewStatus || 'not_started';
                 if (reviewStatus === 'not_started' || reviewStatus === 'rejected') {
                     phase = 'product';
-                }
-            } else if (request.status === 'tech_design') {
-                const reviewStatus = request.techDesign?.reviewStatus || 'not_started';
-                if (reviewStatus === 'not_started' || reviewStatus === 'rejected') {
-                    phase = 'tech';
+                } else {
+                    const techReviewStatus = request.techDesign?.reviewStatus || 'not_started';
+                    if (techReviewStatus === 'not_started' || techReviewStatus === 'rejected') {
+                        phase = 'tech';
+                    }
                 }
             }
 
             if (!phase) {
-                console.log('Request is not in a designable state (must be in product_design or tech_design with not_started or rejected reviewStatus)');
+                console.log('Request is not in a designable state (must be in_progress with design phases needing work)');
+                console.log('NOTE: This script is deprecated - use yarn agent:product-design or yarn agent:tech-design instead');
                 process.exit(0);
             }
 
@@ -682,7 +685,8 @@ async function main(): Promise<void> {
             requestsToProcess = pendingRequests.map(request => {
                 // Determine which phase needs work
                 let phase: DesignPhaseType;
-                if (request.status === 'product_design') {
+                const productReviewStatus = request.productDesign?.reviewStatus;
+                if (productReviewStatus === 'not_started' || productReviewStatus === 'rejected' || !request.productDesign) {
                     phase = 'product';
                 } else {
                     phase = 'tech';

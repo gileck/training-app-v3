@@ -14,6 +14,11 @@ import {
     API_UPDATE_PRIORITY,
     API_SET_NEEDS_USER_INPUT,
     API_DELETE_FEATURE_REQUEST,
+    API_APPROVE_FEATURE_REQUEST,
+    API_GET_GITHUB_STATUS,
+    API_GET_GITHUB_STATUSES,
+    API_UPDATE_GITHUB_STATUS,
+    API_UPDATE_GITHUB_REVIEW_STATUS,
 } from './index';
 import {
     CreateFeatureRequestRequest,
@@ -42,6 +47,16 @@ import {
     SetNeedsUserInputResponse,
     DeleteFeatureRequestRequest,
     DeleteFeatureRequestResponse,
+    ApproveFeatureRequestRequest,
+    ApproveFeatureRequestResponse,
+    GetGitHubStatusRequest,
+    GetGitHubStatusResponse,
+    GetGitHubStatusesRequest,
+    GetGitHubStatusesResponse,
+    UpdateGitHubStatusRequest,
+    UpdateGitHubStatusResponse,
+    UpdateGitHubReviewStatusRequest,
+    UpdateGitHubReviewStatusResponse,
 } from './types';
 
 // ============================================================
@@ -167,4 +182,54 @@ export const deleteFeatureRequest = async (
     params: DeleteFeatureRequestRequest
 ): Promise<CacheResult<DeleteFeatureRequestResponse>> => {
     return apiClient.post(API_DELETE_FEATURE_REQUEST, params);
+};
+
+/**
+ * Approve a feature request and create GitHub issue (admin only)
+ */
+export const approveFeatureRequest = async (
+    params: ApproveFeatureRequestRequest
+): Promise<CacheResult<ApproveFeatureRequestResponse>> => {
+    return apiClient.post(API_APPROVE_FEATURE_REQUEST, params);
+};
+
+// ============================================================
+// GitHub Status Endpoint
+// ============================================================
+
+/**
+ * Get GitHub Project status for a feature request
+ * Users can view status of their own requests, admins can view any
+ */
+export const getGitHubStatus = async (
+    params: GetGitHubStatusRequest
+): Promise<CacheResult<GetGitHubStatusResponse>> => {
+    return apiClient.call(API_GET_GITHUB_STATUS, params);
+};
+
+/**
+ * Get available GitHub Project statuses
+ */
+export const getGitHubStatuses = async (
+    params: GetGitHubStatusesRequest = {}
+): Promise<CacheResult<GetGitHubStatusesResponse>> => {
+    return apiClient.call(API_GET_GITHUB_STATUSES, params);
+};
+
+/**
+ * Update GitHub Project status for a feature request (admin only)
+ */
+export const updateGitHubStatus = async (
+    params: UpdateGitHubStatusRequest
+): Promise<CacheResult<UpdateGitHubStatusResponse>> => {
+    return apiClient.post(API_UPDATE_GITHUB_STATUS, params);
+};
+
+/**
+ * Update GitHub Project review status for a feature request (admin only)
+ */
+export const updateGitHubReviewStatus = async (
+    params: UpdateGitHubReviewStatusRequest
+): Promise<CacheResult<UpdateGitHubReviewStatusResponse>> => {
+    return apiClient.post(API_UPDATE_GITHUB_REVIEW_STATUS, params);
 };

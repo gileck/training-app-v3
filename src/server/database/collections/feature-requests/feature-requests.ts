@@ -90,6 +90,16 @@ export const findFeatureRequestById = async (
 };
 
 /**
+ * Find a feature request by GitHub issue number
+ */
+export const findByGitHubIssueNumber = async (
+    issueNumber: number
+): Promise<FeatureRequestDocument | null> => {
+    const collection = await getFeatureRequestsCollection();
+    return collection.findOne({ githubIssueNumber: issueNumber });
+};
+
+/**
  * Create a new feature request
  */
 export const createFeatureRequest = async (
@@ -116,33 +126,10 @@ export const updateFeatureRequestStatus = async (
     const collection = await getFeatureRequestsCollection();
     const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
 
-    // When moving to product_design, initialize the design phase if not exists
     const updateData: Partial<FeatureRequestDocument> = {
         status,
         updatedAt: new Date(),
     };
-
-    if (status === 'product_design') {
-        // Initialize product design phase with not_started status
-        const existing = await collection.findOne({ _id: requestIdObj });
-        if (!existing?.productDesign) {
-            updateData.productDesign = {
-                content: '',
-                reviewStatus: 'not_started',
-                iterations: 0,
-            };
-        }
-    } else if (status === 'tech_design') {
-        // Initialize tech design phase with not_started status
-        const existing = await collection.findOne({ _id: requestIdObj });
-        if (!existing?.techDesign) {
-            updateData.techDesign = {
-                content: '',
-                reviewStatus: 'not_started',
-                iterations: 0,
-            };
-        }
-    }
 
     const result = await collection.findOneAndUpdate(
         { _id: requestIdObj },
@@ -221,32 +208,10 @@ export const setDesignReviewStatus = async (
         approvedAt: reviewStatus === 'approved' ? new Date() : currentPhase.approvedAt,
     };
 
-    // If approved, auto-advance to next status
-    let nextStatus: FeatureRequestStatus | undefined;
-    if (reviewStatus === 'approved') {
-        if (phase === 'product' && existing.status === 'product_design') {
-            nextStatus = 'tech_design';
-        } else if (phase === 'tech' && existing.status === 'tech_design') {
-            nextStatus = 'ready_for_dev';
-        }
-    }
-
     const updateData: Partial<FeatureRequestDocument> = {
         [fieldName]: updatedPhase,
         updatedAt: new Date(),
     };
-
-    if (nextStatus) {
-        updateData.status = nextStatus;
-        // Initialize next phase if needed
-        if (nextStatus === 'tech_design' && !existing.techDesign) {
-            updateData.techDesign = {
-                content: '',
-                reviewStatus: 'not_started',
-                iterations: 0,
-            };
-        }
-    }
 
     const result = await collection.findOneAndUpdate(
         { _id: requestIdObj },
@@ -259,9 +224,12 @@ export const setDesignReviewStatus = async (
 
 /**
  * Find feature requests that need design work (for agent)
- * Returns requests where:
- * - status = 'product_design' AND productDesign.reviewStatus IN ('not_started', 'rejected')
- * - OR status = 'tech_design' AND techDesign.reviewStatus IN ('not_started', 'rejected')
+ *
+ * NOTE: With simplified status schema, agents should query GitHub Projects directly.
+ * This function is kept for backwards compatibility but is no longer the primary
+ * way to find work - agents use GitHub Projects API instead.
+ *
+ * Returns in_progress requests with design phases that need work.
  */
 export const findPendingDesignWork = async (
     phase?: DesignPhaseType,
@@ -273,7 +241,7 @@ export const findPendingDesignWork = async (
 
     if (!phase || phase === 'product') {
         conditions.push({
-            status: 'product_design',
+            status: 'in_progress',
             $or: [
                 { 'productDesign.reviewStatus': 'not_started' },
                 { 'productDesign.reviewStatus': 'rejected' },
@@ -284,7 +252,7 @@ export const findPendingDesignWork = async (
 
     if (!phase || phase === 'tech') {
         conditions.push({
-            status: 'tech_design',
+            status: 'in_progress',
             $or: [
                 { 'techDesign.reviewStatus': 'not_started' },
                 { 'techDesign.reviewStatus': 'rejected' },
@@ -446,6 +414,73 @@ export const deleteFeatureRequest = async (
 };
 
 /**
+ * Update GitHub fields on a feature request
+ */
+export const updateGitHubFields = async (
+    requestId: ObjectId | string,
+    fields: {
+        githubIssueUrl?: string;
+        githubIssueNumber?: number;
+        githubProjectItemId?: string;
+        githubProjectStatus?: string;
+        githubReviewStatus?: string;
+        githubPrUrl?: string;
+        githubPrNumber?: number;
+    }
+): Promise<FeatureRequestDocument | null> => {
+    const collection = await getFeatureRequestsCollection();
+    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
+
+    const result = await collection.findOneAndUpdate(
+        { _id: requestIdObj },
+        {
+            $set: {
+                ...fields,
+                updatedAt: new Date(),
+            },
+        },
+        { returnDocument: 'after' }
+    );
+
+    return result || null;
+};
+
+/**
+ * Update or clear the approval token
+ */
+export const updateApprovalToken = async (
+    requestId: ObjectId | string,
+    token: string | null
+): Promise<boolean> => {
+    const collection = await getFeatureRequestsCollection();
+    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
+
+    if (token === null) {
+        // Remove the token field
+        const result = await collection.updateOne(
+            { _id: requestIdObj },
+            {
+                $unset: { approvalToken: '' },
+                $set: { updatedAt: new Date() },
+            }
+        );
+        return result.modifiedCount === 1;
+    }
+
+    const result = await collection.updateOne(
+        { _id: requestIdObj },
+        {
+            $set: {
+                approvalToken: token,
+                updatedAt: new Date(),
+            },
+        }
+    );
+
+    return result.modifiedCount === 1;
+};
+
+/**
  * Get feature request counts by status
  */
 export const getFeatureRequestCounts = async (): Promise<Record<FeatureRequestStatus, number>> => {
@@ -464,15 +499,9 @@ export const getFeatureRequestCounts = async (): Promise<Record<FeatureRequestSt
 
     const counts: Record<FeatureRequestStatus, number> = {
         new: 0,
-        in_review: 0,
-        product_design: 0,
-        tech_design: 0,
-        ready_for_dev: 0,
-        in_development: 0,
-        ready_for_qa: 0,
+        in_progress: 0,
         done: 0,
         rejected: 0,
-        on_hold: 0,
     };
 
     for (const result of results) {

@@ -12,6 +12,11 @@ import {
     updatePriority,
     deleteFeatureRequest,
     addAdminComment,
+    approveFeatureRequest,
+    getGitHubStatus,
+    getGitHubStatuses,
+    updateGitHubStatus,
+    updateGitHubReviewStatus,
 } from '@/apis/feature-requests/client';
 import type {
     GetFeatureRequestsRequest,
@@ -265,5 +270,165 @@ export function useAddAdminComment() {
         },
         onSuccess: () => {},
         onSettled: () => {},
+    });
+}
+
+export function useApproveFeatureRequest() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (requestId: string) => {
+            const result = await approveFeatureRequest({ requestId });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        onMutate: async (requestId) => {
+            await queryClient.cancelQueries({ queryKey: featureRequestsBaseQueryKey });
+            const previous = queryClient.getQueriesData({ queryKey: featureRequestsBaseQueryKey });
+
+            // Optimistically update status to product_design
+            queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map((request) =>
+                    request._id === requestId
+                        ? { ...request, status: 'product_design' as FeatureRequestStatus }
+                        : request
+                );
+            });
+
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+            toast.error('Failed to approve feature request');
+        },
+        onSuccess: (data) => {
+            // Update with actual GitHub data
+            if (data.featureRequest) {
+                queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
+                    if (!Array.isArray(old)) return old;
+                    return old.map((request) =>
+                        request._id === data.featureRequest?._id ? data.featureRequest : request
+                    );
+                });
+            }
+            if (data.githubIssueUrl) {
+                toast.success(`Approved! GitHub Issue #${data.githubIssueNumber} created`);
+            } else {
+                toast.success('Feature request approved');
+            }
+        },
+        onSettled: () => {},
+    });
+}
+
+/**
+ * Hook to fetch GitHub Project status for a feature request
+ * Only enabled when there's a GitHub project item ID
+ */
+export function useGitHubStatus(requestId: string | null, enabled: boolean = true) {
+    return useQuery({
+        queryKey: ['github-status', requestId],
+        queryFn: async () => {
+            if (!requestId) return null;
+            const result = await getGitHubStatus({ requestId });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        enabled: enabled && !!requestId,
+        staleTime: 30000, // 30 seconds - status can change frequently
+        refetchOnWindowFocus: true,
+    });
+}
+
+/**
+ * Hook to fetch available GitHub Project statuses
+ */
+export function useGitHubStatuses() {
+    return useQuery({
+        queryKey: ['github-statuses'],
+        queryFn: async () => {
+            const result = await getGitHubStatuses();
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes - statuses rarely change
+    });
+}
+
+/**
+ * Hook to update GitHub Project status
+ */
+export function useUpdateGitHubStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ requestId, status }: { requestId: string; status: string }) => {
+            const result = await updateGitHubStatus({ requestId, status });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        onSuccess: (_data, { requestId }) => {
+            // Invalidate the GitHub status query to refetch
+            queryClient.invalidateQueries({ queryKey: ['github-status', requestId] });
+            toast.success('GitHub status updated');
+        },
+        onError: () => {
+            toast.error('Failed to update GitHub status');
+        },
+    });
+}
+
+/**
+ * Hook to update GitHub Project review status
+ */
+export function useUpdateGitHubReviewStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ requestId, reviewStatus }: { requestId: string; reviewStatus: string }) => {
+            const result = await updateGitHubReviewStatus({ requestId, reviewStatus });
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data;
+        },
+        onMutate: async ({ requestId, reviewStatus }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['github-status', requestId] });
+
+            // Snapshot previous value
+            const previous = queryClient.getQueryData(['github-status', requestId]);
+
+            // Optimistically update UI
+            queryClient.setQueryData(['github-status', requestId], (old: unknown) => ({
+                ...(old as Record<string, unknown>),
+                reviewStatus
+            }));
+
+            return { previous };
+        },
+        onError: (_err, { requestId }, context) => {
+            // Rollback on error
+            if (context?.previous) {
+                queryClient.setQueryData(['github-status', requestId], context.previous);
+            }
+            toast.error('Failed to update GitHub review status');
+        },
+        onSuccess: () => {
+            toast.success('GitHub review status updated');
+            // No invalidateQueries needed - UI already updated optimistically
+        },
     });
 }
