@@ -409,10 +409,15 @@ export async function notifyAgentStarted(
     phase: string,
     title: string,
     issueNumber: number,
-    mode: 'new' | 'feedback',
+    mode: 'new' | 'feedback' | 'clarification',
     itemType: 'bug' | 'feature' = 'feature'
 ): Promise<SendResult> {
-    const status = mode === 'new' ? '🚀 Started' : '🔄 Addressing Feedback';
+    const status =
+        mode === 'new'
+            ? '🚀 Started'
+            : mode === 'feedback'
+              ? '🔄 Addressing Feedback'
+              : '💬 Resuming After Clarification';
     const issueUrl = getIssueUrl(issueNumber);
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';

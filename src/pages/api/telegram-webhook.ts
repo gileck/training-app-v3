@@ -161,6 +161,29 @@ async function editMessageWithResult(
 }
 
 /**
+ * Simple helper to edit message text
+ */
+async function editMessageText(
+    botToken: string,
+    chatId: number,
+    messageId: number,
+    text: string,
+    parseMode: 'HTML' | 'Markdown' = 'HTML'
+): Promise<void> {
+    await fetch(`${TELEGRAM_API_URL}${botToken}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chatId,
+            message_id: messageId,
+            text,
+            parse_mode: parseMode,
+            disable_web_page_preview: true,
+        }),
+    });
+}
+
+/**
  * Find project item by issue number
  */
 async function findItemByIssueNumber(

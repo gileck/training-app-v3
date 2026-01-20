@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "83e87b317b66569c6355d4b0f41a16d3eec8edb4",
-  "lastProjectCommit": "a45bf62f9d287de0c1f8f15fd0f5510983f633ac",
-  "lastSyncDate": "2026-01-20T17:15:39.954Z",
+  "lastSyncCommit": "696c4e4d07d5a37cccaf72fe7a9666543049bd98",
+  "lastProjectCommit": "a8157a3d717cb17d6b02fa9381730458a37510f0",
+  "lastSyncDate": "2026-01-20T17:22:25.927Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-20T17:22:26.105Z",
+      "templateCommit": "696c4e4d07d5a37cccaf72fe7a9666543049bd98",
+      "projectCommit": "a8157a3d717cb17d6b02fa9381730458a37510f0",
+      "filesApplied": 5,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "696c4e4 fix: resolve TypeScript errors in agents and telegram webhook \u001b[90m(20/01/2026)\u001b[0m\n  - Update notifyAgentStarted to accept 'clarification' mode\n    - Add status message for clarification mode: \"💬 Resuming After Clarification\"\n    - Fixes type errors in implement.ts, product-design.ts, tech-design.ts\n  \n  - Fix type mismatches in agent prompt builders\n    - Pass properly typed objects to buildImplementationClarificationPrompt\n    - Pass properly typed objects to buildProductDesignClarificationPrompt\n    - Pass properly typed objects to buildTechDesignClarificationPrompt\n    - Extract issueNumber and construct typed objects instead of passing raw content\n  \n  - Fix handleClarificationRequest calls\n    - Create properly typed item objects with non-null content\n    - Ensures type safety when passing to handleClarificationRequest\n  \n  - Add missing editMessageText helper function\n    - Simple wrapper around Telegram API editMessageText endpoint\n    - Used in clarification received flow\n    - Consistent with other message editing helpers\n  \n  All TypeScript errors resolved, yarn checks passes cleanly.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-18T09:57:58.596Z",
       "templateCommit": "3fd533183ef5713030402298d306d30fe04f76c1",
@@ -278,17 +289,6 @@
         "54e9ec5 feat: add notifications toggle and catch-all routing \u001b[90m(10/01/2026)\u001b[0m\n  - Add notificationsEnabled boolean field to user profile\n  - Add notifications toggle switch in Profile page\n  - Conditionally show Telegram Chat ID field when notifications enabled\n  - Add info icon with dialog explaining how to get Chat ID\n  - Include clickable Telegram URL (t.me/userinfobot) in instructions\n  - Add catch-all page for client-side routing (fixes 404 on refresh)\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "e4b40ef feat: redesign Profile page with modern iOS-inspired UI \u001b[90m(10/01/2026)\u001b[0m\n  - Add hero-style ProfileHeader with avatar and gradient accent\n  - Add ProfileSection for grouped info display\n  - Add EditableField with mobile-friendly bottom sheet editing\n  - Modernize ImageUploadDialog with card-based options\n  - Add email field to profile update API\n  - Use semantic color tokens throughout\n  - Meet 44px minimum touch targets for mobile\n  - Replace ProfileCard and AccountInfoCard with new components\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "d22b25d update package.json \u001b[90m(10/01/2026)\u001b[0m"
-      ]
-    },
-    {
-      "date": "2026-01-10T12:56:07.787Z",
-      "templateCommit": "e7868dc119313844dd1c49d166c952b062a6c660",
-      "projectCommit": "32b40c03411b5d11c30450088d6c145e159f5130",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "e7868dc feat: add Open Diff and Show Commits buttons for multi-commit deployments \u001b[90m(10/01/2026)\u001b[0m\n  Single commit: shows commit message + Open Commit button\n  Multiple commits: shows count + Open Diff + Show Commits buttons\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -735,17 +735,17 @@
     "scripts/mark-issue-done.ts": "59f32941c69ad5383fc7ca4d9177ea90",
     "scripts/telegram-webhook-setup.ts": "1deaa5dfcca345a5a731a914f2988686",
     "src/agents/auto-advance.ts": "2b6d9806cc1af69327f31ef8b5f789f2",
-    "src/agents/implement.ts": "819ce6df3df2a0fc2e852cfed62cd2d1",
+    "src/agents/implement.ts": "279913f4bbe2a945516e5706c44e9510",
     "src/agents/index.ts": "96ffbe50cf615fe1f857983ca342fc64",
-    "src/agents/product-design.ts": "f71e472f46759428cc8d713e4d1ea7ab",
+    "src/agents/product-design.ts": "116fce4d4613a2fe87b1b88d9598af88",
     "src/agents/shared/claude.ts": "9f263cb07d6ab8e6223ee54ae1bbe827",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
     "src/agents/shared/index.ts": "3264ed6bbf2db31bbaaf1828d64cf230",
-    "src/agents/shared/notifications.ts": "d63a79dd3cbb78f7a413a6ea8a09275a",
+    "src/agents/shared/notifications.ts": "0caf4776865fff64b328450284b476cc",
     "src/agents/shared/prompts.ts": "f52531ce8d6c7d93501c0f054fd3d931",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
     "src/agents/shared/utils.ts": "39bfe87c7134d89e098c71ea02d5cf42",
-    "src/agents/tech-design.ts": "66fdd8631797ba5db3d8161c5563facb",
+    "src/agents/tech-design.ts": "ea486fb3bf1ec8c2a377218f2e670e91",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
     "src/apis/feature-requests/handlers/getGitHubStatuses.ts": "0eabde636f273832e64d2b82e7291ac9",
@@ -753,7 +753,7 @@
     "src/apis/feature-requests/handlers/updateGitHubStatus.ts": "9f72422f1685d2674d6b22ea3688d880",
     "src/apis/reports/handlers/approveBugReport.ts": "182b0ea59beae5fea90c66f133eac1df",
     "src/pages/api/feature-requests/approve/[requestId].ts": "60c0b11fdc89106809fc4399e8d2fc4e",
-    "src/pages/api/telegram-webhook.ts": "8b8cb7050c9636d6060d38851609846f",
+    "src/pages/api/telegram-webhook.ts": "c2b9ee1c5c08c0dda4fdfac8fb8b03a0",
     "src/server/github-status/index.ts": "2a3d85bf730ecff2ce00701e06650ae2",
     "src/server/github-sync/index.ts": "cae1963a7d07cded01dd376a867ad0b2",
     "src/server/project-management/adapters/github.ts": "f7af05e7a4f5554dc33aef8b64982e88",

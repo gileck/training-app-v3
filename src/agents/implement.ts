@@ -329,7 +329,14 @@ async function processItem(
                 return { success: false, error: 'No clarification comment found' };
             }
 
-            prompt = buildImplementationClarificationPrompt(content, productDesign, techDesign, branchName, issueComments, clarification);
+            prompt = buildImplementationClarificationPrompt(
+                { title: content.title, number: issueNumber, body: content.body },
+                productDesign,
+                techDesign,
+                branchName,
+                issueComments,
+                clarification
+            );
         }
 
         // Checkout the feature branch
@@ -397,7 +404,7 @@ async function processItem(
                 git(`checkout ${originalBranch}`);
                 return await handleClarificationRequest(
                     adapter,
-                    item,
+                    { id: item.id, content: { number: issueNumber, title: content.title, labels: content.labels } },
                     issueNumber,
                     clarificationRequest,
                     'Implementation',

@@ -163,7 +163,12 @@ async function processItem(
                 return { success: false, error: 'No clarification comment found' };
             }
 
-            prompt = buildTechDesignClarificationPrompt(content, productDesign, issueComments, clarification);
+            prompt = buildTechDesignClarificationPrompt(
+                { title: content.title, number: issueNumber, body: content.body },
+                productDesign,
+                issueComments,
+                clarification
+            );
         }
 
         // Run the agent
@@ -196,7 +201,7 @@ async function processItem(
             console.log('  🤔 Agent needs clarification');
             return await handleClarificationRequest(
                 adapter,
-                item,
+                { id: item.id, content: { number: issueNumber, title: content.title, labels: content.labels } },
                 issueNumber,
                 clarificationRequest,
                 'Technical Design',
