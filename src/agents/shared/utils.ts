@@ -152,3 +152,73 @@ export async function handleClarificationRequest(
 
     return { success: true, needsClarification: true };
 }
+
+// ============================================================
+// FEEDBACK RESOLUTION
+// ============================================================
+
+/**
+ * Feedback resolution item (original feedback and how it was addressed)
+ */
+export interface FeedbackResolution {
+    number: number;
+    original: string;
+    resolution: string;
+}
+
+/**
+ * Extract feedback resolution from agent output
+ */
+export function extractFeedbackResolution(text: string): FeedbackResolution[] | null {
+    if (!text) return null;
+
+    try {
+        // Look for ```feedback-resolution ... ``` pattern
+        const blockMatch = text.match(/```feedback-resolution\s*([\s\S]*?)\s*```/);
+        if (!blockMatch?.[1]) {
+            return null;
+        }
+
+        const content = blockMatch[1].trim();
+        const resolutions: FeedbackResolution[] = [];
+
+        // Parse numbered items: "1. [original] → [resolution]"
+        const lines = content.split('\n');
+        for (const line of lines) {
+            const match = line.match(/^(\d+)\.\s*(.+?)\s*→\s*(.+)$/);
+            if (match) {
+                resolutions.push({
+                    number: parseInt(match[1], 10),
+                    original: match[2].trim(),
+                    resolution: match[3].trim(),
+                });
+            }
+        }
+
+        return resolutions.length > 0 ? resolutions : null;
+    } catch (error) {
+        console.error('  Failed to parse feedback resolution:', error);
+        return null;
+    }
+}
+
+/**
+ * Format feedback resolution as a markdown table for PR comment
+ */
+export function formatFeedbackResolution(resolutions: FeedbackResolution[]): string {
+    if (resolutions.length === 0) {
+        return 'Addressed review feedback. Ready for re-review.';
+    }
+
+    const rows = resolutions.map((r) => {
+        return `| ${r.number} | ${r.original} | ${r.resolution} |`;
+    });
+
+    return `## Feedback Addressed
+
+| # | Original Feedback | Resolution |
+|---|------------------|------------|
+${rows.join('\n')}
+
+Ready for re-review.`;
+}

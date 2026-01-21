@@ -24,6 +24,35 @@ import type {
 import { getProjectConfig, REVIEW_STATUS_FIELD, type ProjectConfig } from '../config';
 
 /**
+ * Execute with exponential backoff retry on rate limit
+ */
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries = 3,
+    baseDelayMs = 1000
+): Promise<T> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: unknown) {
+            const isRateLimit =
+                error instanceof Error &&
+                'status' in error &&
+                (error as { status: number }).status === 403;
+
+            if (isRateLimit && attempt < maxRetries - 1) {
+                const delay = baseDelayMs * Math.pow(2, attempt);
+                console.warn(`  Rate limited, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+}
+
+/**
  * GitHub Projects V2 Adapter
  */
 export class GitHubProjectsAdapter implements ProjectManagementAdapter {
@@ -188,10 +217,11 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     // ============================================================
 
     async listItems(options?: ListItemsOptions): Promise<ProjectItem[]> {
-        const oc = this.getOctokit();
-        const limit = options?.limit || 50;
+        return withRetry(async () => {
+            const oc = this.getOctokit();
+            const limit = options?.limit || 50;
 
-        const query = `query($projectId: ID!, $first: Int!) {
+            const query = `query($projectId: ID!, $first: Int!) {
             node(id: $projectId) {
                 ... on ProjectV2 {
                     items(first: $first) {
@@ -310,6 +340,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }
 
         return items;
+        });
     }
 
     async getItem(itemId: string): Promise<ProjectItem | null> {
@@ -488,72 +519,76 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async updateItemStatus(itemId: string, status: string): Promise<void> {
-        const oc = this.getOctokit();
+        return withRetry(async () => {
+            const oc = this.getOctokit();
 
-        const optionId = this.statusOptions.get(status);
-        if (!optionId) {
-            throw new Error(
-                `Unknown status: ${status}. Available: ${Array.from(this.statusOptions.keys()).join(', ')}`
-            );
-        }
-
-        const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-            updateProjectV2ItemFieldValue(
-                input: {
-                    projectId: $projectId
-                    itemId: $itemId
-                    fieldId: $fieldId
-                    value: { singleSelectOptionId: $optionId }
-                }
-            ) {
-                projectV2Item {
-                    id
-                }
+            const optionId = this.statusOptions.get(status);
+            if (!optionId) {
+                throw new Error(
+                    `Unknown status: ${status}. Available: ${Array.from(this.statusOptions.keys()).join(', ')}`
+                );
             }
-        }`;
 
-        await oc.graphql(mutation, {
-            projectId: this.projectId,
-            itemId,
-            fieldId: this.statusFieldId,
-            optionId,
+            const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(
+                    input: {
+                        projectId: $projectId
+                        itemId: $itemId
+                        fieldId: $fieldId
+                        value: { singleSelectOptionId: $optionId }
+                    }
+                ) {
+                    projectV2Item {
+                        id
+                    }
+                }
+            }`;
+
+            await oc.graphql(mutation, {
+                projectId: this.projectId,
+                itemId,
+                fieldId: this.statusFieldId,
+                optionId,
+            });
         });
     }
 
     async updateItemReviewStatus(itemId: string, reviewStatus: string): Promise<void> {
-        const oc = this.getOctokit();
+        return withRetry(async () => {
+            const oc = this.getOctokit();
 
-        if (!this.reviewStatusFieldId) {
-            throw new Error(`Review Status field "${REVIEW_STATUS_FIELD}" not found in project`);
-        }
-
-        const optionId = this.reviewStatusOptions.get(reviewStatus);
-        if (!optionId) {
-            throw new Error(
-                `Unknown review status: ${reviewStatus}. Available: ${Array.from(this.reviewStatusOptions.keys()).join(', ')}`
-            );
-        }
-
-        const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-            updateProjectV2ItemFieldValue(
-                input: {
-                    projectId: $projectId
-                    itemId: $itemId
-                    fieldId: $fieldId
-                    value: { singleSelectOptionId: $optionId }
-                }
-            ) {
-                projectV2Item {
-                    id
-                }
+            if (!this.reviewStatusFieldId) {
+                throw new Error(`Review Status field "${REVIEW_STATUS_FIELD}" not found in project`);
             }
-        }`;
 
-        await oc.graphql(mutation, {
-            projectId: this.projectId,
-            itemId,
-            fieldId: this.reviewStatusFieldId,
-            optionId,
+            const optionId = this.reviewStatusOptions.get(reviewStatus);
+            if (!optionId) {
+                throw new Error(
+                    `Unknown review status: ${reviewStatus}. Available: ${Array.from(this.reviewStatusOptions.keys()).join(', ')}`
+                );
+            }
+
+            const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(
+                    input: {
+                        projectId: $projectId
+                        itemId: $itemId
+                        fieldId: $fieldId
+                        value: { singleSelectOptionId: $optionId }
+                    }
+                ) {
+                    projectV2Item {
+                        id
+                    }
+                }
+            }`;
+
+            await oc.graphql(mutation, {
+                projectId: this.projectId,
+                itemId,
+                fieldId: this.reviewStatusFieldId,
+                optionId,
+            });
         });
     }
 
@@ -621,17 +656,19 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async addIssueComment(issueNumber: number, body: string): Promise<number> {
-        const oc = this.getOctokit();
-        const { owner, repo } = this.config.github;
+        return withRetry(async () => {
+            const oc = this.getOctokit();
+            const { owner, repo } = this.config.github;
 
-        const { data } = await oc.issues.createComment({
-            owner,
-            repo,
-            issue_number: issueNumber,
-            body,
+            const { data } = await oc.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body,
+            });
+
+            return data.id;
         });
-
-        return data.id;
     }
 
     async getIssueComments(issueNumber: number): Promise<ProjectItemComment[]> {
@@ -751,18 +788,20 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async addPRComment(prNumber: number, body: string): Promise<number> {
-        const oc = this.getOctokit();
-        const { owner, repo } = this.config.github;
+        return withRetry(async () => {
+            const oc = this.getOctokit();
+            const { owner, repo } = this.config.github;
 
-        // PR comments are actually issue comments
-        const { data } = await oc.issues.createComment({
-            owner,
-            repo,
-            issue_number: prNumber,
-            body,
+            // PR comments are actually issue comments
+            const { data } = await oc.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body,
+            });
+
+            return data.id;
         });
-
-        return data.id;
     }
 
     // ============================================================

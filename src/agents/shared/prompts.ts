@@ -703,10 +703,20 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After making changes, provide a brief summary of:
-1. What feedback was addressed
-2. What changes were made
-3. Any feedback that couldn't be addressed and why
+After making changes, you MUST provide a feedback resolution mapping in this exact format:
+
+\`\`\`feedback-resolution
+1. [Original feedback summary] → [What you changed to address it]
+2. [Original feedback summary] → [What you changed to address it]
+...
+\`\`\`
+
+Example:
+\`\`\`feedback-resolution
+1. Missing null check in file.ts:42 → Added null check with early return
+2. Variable name unclear → Renamed 'x' to 'userCount'
+3. Missing error handling → Added try-catch with user-friendly message
+\`\`\`
 
 Begin addressing the feedback now.`;
 }

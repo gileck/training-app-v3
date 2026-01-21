@@ -12,7 +12,8 @@ import { getProjectManagementAdapter } from '@/server/project-management';
 import { STATUSES } from '@/server/project-management/config';
 import { sendNotificationToOwner } from '@/server/telegram';
 import { appConfig } from '@/app.config';
-import { findByGitHubIssueNumber, updateFeatureRequestStatus } from '@/server/database/collections/feature-requests';
+import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/feature-requests';
+import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/reports';
 
 async function main() {
     const prNumber = process.env.PR_NUMBER;
@@ -79,14 +80,21 @@ async function main() {
             console.log('Cleared review status');
         }
 
-        // Update feature request in MongoDB to 'done'
-        console.log('\nUpdating feature request in database...');
-        const featureRequest = await findByGitHubIssueNumber(issueNumber);
+        // Update feature request OR bug report in MongoDB
+        console.log('\nUpdating database...');
+        const featureRequest = await findFeatureByIssue(issueNumber);
         if (featureRequest) {
             await updateFeatureRequestStatus(featureRequest._id, 'done');
             console.log('✅ Feature request marked as done in database');
         } else {
-            console.log('ℹ️ No feature request found in database for this issue');
+            // Try bug reports collection
+            const bugReport = await findReportByIssue(issueNumber);
+            if (bugReport) {
+                await updateReport(bugReport._id.toString(), { status: 'resolved' });
+                console.log('✅ Bug report marked as resolved in database');
+            } else {
+                console.log('ℹ️ No feature request or bug report found for this issue');
+            }
         }
 
         // Send Telegram notification

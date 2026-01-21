@@ -3,6 +3,29 @@
  *
  * Status constants and configuration for the project management system.
  * These values are shared across the app (server APIs, agents, etc.)
+ *
+ * ============================================================
+ * STATUS TRACKING DESIGN - TWO-TIER SYSTEM
+ * ============================================================
+ *
+ * The workflow uses a TWO-TIER status system:
+ *
+ * 1. MongoDB (high-level): `new` → `in_progress` → `done` | `rejected`
+ *    - Purpose: User-facing feature request list, basic filtering
+ *    - Updated: On approval (→ in_progress) and PR merge (→ done)
+ *    - Simplified view for end users
+ *
+ * 2. GitHub Projects (detailed): Backlog → Product Design → Tech Design →
+ *    Implementation → PR Review → Done
+ *    - Purpose: Agent workflow, detailed progress tracking
+ *    - Source of truth for: Current workflow phase
+ *    - Detailed view for agents/admins
+ *
+ * Why this design?
+ * - MongoDB provides a simplified view for users who don't need workflow details
+ * - GitHub Projects provides detailed phase tracking for agents and admins
+ * - MongoDB `in_progress` spans all active workflow phases (design through implementation)
+ * - This eliminates duplication and keeps each system focused on its purpose
  */
 
 // ============================================================

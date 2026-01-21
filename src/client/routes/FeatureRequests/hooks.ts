@@ -17,6 +17,7 @@ import {
     getGitHubStatuses,
     updateGitHubStatus,
     updateGitHubReviewStatus,
+    createFeatureRequest,
 } from '@/apis/feature-requests/client';
 import type {
     GetFeatureRequestsRequest,
@@ -24,6 +25,7 @@ import type {
     FeatureRequestPriority,
     DesignPhaseType,
     DesignReviewStatus,
+    CreateFeatureRequestRequest,
 } from '@/apis/feature-requests/types';
 import { useQueryDefaults } from '@/client/query';
 import { toast } from '@/client/components/ui/toast';
@@ -430,5 +432,63 @@ export function useUpdateGitHubReviewStatus() {
             toast.success('GitHub review status updated');
             // No invalidateQueries needed - UI already updated optimistically
         },
+    });
+}
+
+/**
+ * Hook to create a new feature request (admin only)
+ */
+export function useCreateFeatureRequest() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (params: CreateFeatureRequestRequest) => {
+            const result = await createFeatureRequest(params);
+            if (result.data.error) {
+                throw new Error(result.data.error);
+            }
+            return result.data.featureRequest;
+        },
+        onMutate: async (params) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: featureRequestsBaseQueryKey });
+
+            // Get current data for rollback
+            const previous = queryClient.getQueriesData({ queryKey: featureRequestsBaseQueryKey });
+
+            // Optimistically update - add new request to cache
+            queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
+                if (!Array.isArray(old)) return old;
+
+                const newRequest = {
+                    _id: `temp-${Date.now()}`, // Temporary ID
+                    ...params,
+                    status: 'new',
+                    priority: null,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    likes: 0,
+                    githubIssueNumber: null,
+                    githubStatus: null,
+                    comments: [],
+                };
+
+                return [newRequest, ...old];
+            });
+
+            // Show success toast immediately
+            toast.success('Feature request created successfully');
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback on error
+            if (!context?.previous) return;
+            for (const [key, data] of context.previous) {
+                queryClient.setQueryData(key, data);
+            }
+            toast.error('Failed to create feature request');
+        },
+        onSuccess: () => {}, // EMPTY - never update from server response
+        onSettled: () => {}, // EMPTY - never invalidateQueries
     });
 }

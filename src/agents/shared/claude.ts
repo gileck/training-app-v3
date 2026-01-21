@@ -35,6 +35,8 @@ export interface RunAgentOptions {
     timeout?: number;
     /** Custom label for progress indicator */
     progressLabel?: string;
+    /** Enable Claude Code slash commands (requires settingSources: ['project']) */
+    useSlashCommands?: boolean;
 }
 
 // ============================================================
@@ -53,6 +55,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentResult> {
         verbose = false,
         timeout = agentConfig.claude.timeoutSeconds,
         progressLabel = 'Processing',
+        useSlashCommands = false,
     } = options;
 
     // Determine allowed tools
@@ -100,6 +103,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentResult> {
                 permissionMode: 'bypassPermissions',
                 allowDangerouslySkipPermissions: true,
                 abortController,
+                ...(useSlashCommands ? { settingSources: ['project'] as const } : {}),
             },
         })) {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -367,6 +371,45 @@ export function extractJSON<T>(text: string): T | null {
         console.error('  JSON parse error:', error);
         return null;
     }
+}
+
+/**
+ * Extract review content from agent output
+ */
+export function extractReview(text: string): string | null {
+    if (!text) return null;
+
+    try {
+        // Look for ```review ... ``` pattern
+        const reviewBlockMatch = text.match(/```review\s*([\s\S]*?)\s*```/);
+        if (reviewBlockMatch?.[1]) {
+            return reviewBlockMatch[1].trim();
+        }
+
+        // If no code block, return the entire text if it looks like a review
+        if (text.includes('## Review Decision') || text.includes('DECISION:')) {
+            return text.trim();
+        }
+
+        return null;
+    } catch (error) {
+        console.error('  Review parse error:', error);
+        return null;
+    }
+}
+
+/**
+ * Parse review decision from review content
+ */
+export function parseReviewDecision(reviewContent: string): 'approved' | 'request_changes' | null {
+    if (!reviewContent) return null;
+
+    const decisionMatch = reviewContent.match(/DECISION:\s*(APPROVED|REQUEST_CHANGES)/i);
+    if (decisionMatch) {
+        return decisionMatch[1].toUpperCase() === 'APPROVED' ? 'approved' : 'request_changes';
+    }
+
+    return null;
 }
 
 // ============================================================

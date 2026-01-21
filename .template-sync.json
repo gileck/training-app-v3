@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "a47a324ccfb82588dbc05d082ff637b8317de3f3",
-  "lastProjectCommit": "c718c87cf74be8e959eee358238c8b5a6eb7f4b5",
-  "lastSyncDate": "2026-01-21T09:35:45.510Z",
+  "lastSyncCommit": "48164a317ce667cd33e729813f507e65d72f278e",
+  "lastProjectCommit": "4f3ad86a9825775fb451330736cf564a366093b7",
+  "lastSyncDate": "2026-01-21T14:29:49.961Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,21 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-21T14:29:50.161Z",
+      "templateCommit": "48164a317ce667cd33e729813f507e65d72f278e",
+      "projectCommit": "4f3ad86a9825775fb451330736cf564a366093b7",
+      "filesApplied": 15,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "48164a3 fix: resolve 3 critical issues in GitHub Projects workflow \u001b[90m(21/01/2026)\u001b[0m\n  1. Bug Reports Not Marked Done in MongoDB (HIGH)\n     - Updated mark-issue-done.ts to handle both feature requests and bug reports\n     - Script now checks reports collection if no feature request is found\n     - Bug reports are marked as 'resolved' when PR is merged\n  \n  2. GitHub API Rate Limit Handling (MEDIUM)\n     - Added withRetry() helper with exponential backoff to github.ts adapter\n     - Wrapped 5 high-frequency API calls: listItems, updateItemStatus,\n       updateItemReviewStatus, addIssueComment, addPRComment\n     - Retries up to 3 times with delays of 1s, 2s, 4s on 403 rate limit errors\n  \n  3. MongoDB Status Tracking Documentation (LOW)\n     - Added comprehensive documentation to config.ts explaining two-tier design\n     - Updated CLAUDE.md GitHub Projects section with status tracking details\n     - Clarifies that MongoDB tracks high-level statuses while GitHub Projects\n       tracks detailed workflow phases\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "2a5684f feat: add PR reviewer agent with slash command support \u001b[90m(21/01/2026)\u001b[0m\n  Add automated PR review agent using Claude Code slash commands and improve\n  implementor feedback response with structured resolution mapping.\n  \n  New PR Reviewer Agent:\n  - Created /pr-review slash command for automated code review\n  - Agent checks out feature branches and reviews PRs\n  - Posts structured feedback with APPROVED/REQUEST_CHANGES decision\n  - Updates GitHub Project review status automatically\n  - Integrated into orchestrator workflow\n  \n  Slash Command Support:\n  - Added useSlashCommands option to runAgent()\n  - Enables settingSources: ['project'] for Claude Code features\n  - Added extractReview() and parseReviewDecision() helpers\n  \n  Improved Implementor Feedback:\n  - Updated buildPRRevisionPrompt() to request structured output\n  - Added extractFeedbackResolution() and formatFeedbackResolution()\n  - Implementor now posts detailed table mapping feedback to resolutions\n  \n  Notifications:\n  - Added notifyPRReviewComplete() for PR review results\n  - Includes Telegram buttons to view PR and issue\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "d9a7be9 feat: add the ability to add a feature request straight from the feature-request page (#16) \u001b[90m(21/01/2026)\u001b[0m\n  * feat: add the ability to add a feature request straight from the feature-request page\n  \n  Closes #15\n  \n  * fix: address review feedback for #15\n  \n  * Apply suggestion from @gileck\n  \n  * Apply suggestion from @gileck",
+        "08cdc5c fix: improve implementor agent workflow and yarn checks detection \u001b[90m(21/01/2026)\u001b[0m\n  - Ensure agent always starts on clean default branch (main)\n  - Verify all commits are pushed before creating PR\n  - Always return to default branch after work completes\n  - Fix yarn checks success/failure detection\n  - Add output logging when pre-checks fail\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "bc720d1 fix: replace dynamic import with static import in agent notifications \u001b[90m(21/01/2026)\u001b[0m\n  Root cause: Agent Telegram notifications consistently failed with 404 error\n  because the dynamic import `await import('@/app.config')` in getOwnerChatId()\n  failed to resolve in CLI context (tsx), causing chatId to be null.\n  \n  Solution: Replace dynamic import with static import at module level.\n  This works in both Next.js (test endpoint) and CLI agents (tsx).\n  \n  Before: Dynamic import failed → null chatId → Telegram API 404\n  After: Static import succeeds → correct chatId → notification sent\n  \n  Test endpoint (/api/test-telegram) worked because webpack resolves @/ alias,\n  but CLI agents running via tsx couldn't resolve the TypeScript path alias.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-21T09:35:45.698Z",
       "templateCommit": "a47a324ccfb82588dbc05d082ff637b8317de3f3",
@@ -281,22 +296,6 @@
         "f9d5be5 docs: add iOS PWA fixes documentation \u001b[90m(11/01/2026)\u001b[0m\n  - Created docs/ios-pwa-fixes.md with detailed guide on iOS PWA issues\n  - Added iOS PWA Fixes section to CLAUDE.md with quick reference\n  - Documents visualViewport API pattern for keyboard handling\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "266e18e fix: iOS PWA keyboard hiding input in profile edit sheet \u001b[90m(11/01/2026)\u001b[0m\n  On iOS PWA, the virtual keyboard overlays the viewport without resizing\n  it, causing bottom sheets to be hidden behind the keyboard. Added\n  useIOSKeyboardOffset hook that uses visualViewport API to detect\n  keyboard height and translates the sheet upward accordingly.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-11T09:43:49.441Z",
-      "templateCommit": "55a4afc61d8e4dcfee211bf069e85e00afa2dc3e",
-      "projectCommit": "86190fe7ff2465ea8609f3e561570c921b561acf",
-      "filesApplied": 9,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "55a4afc feat: add sync-children command with template-side ignore list \u001b[90m(11/01/2026)\u001b[0m",
-        "b74fca0 fix: only trigger PR check failure notifications when checks step fails \u001b[90m(11/01/2026)\u001b[0m\n  - Added condition to check steps.checks.outcome == 'failure'\n  - Added try/catch for reading checks_output.txt\n  - Prevents errors when earlier steps (like install) fail\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "b80c3a9 docs: update sync-child-projects section with hook setup \u001b[90m(10/01/2026)\u001b[0m",
-        "c51b28b feat: add post-push git hook for sync-children \u001b[90m(10/01/2026)\u001b[0m",
-        "2b85fcf docs: add sync-child-projects section to CLAUDE.md \u001b[90m(10/01/2026)\u001b[0m",
-        "e39edb2 fix: handle non-interactive shell in push-sync \u001b[90m(10/01/2026)\u001b[0m"
-      ]
     }
   ],
   "fileHashes": {
@@ -332,7 +331,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "e8a673163d7713e37e5c2b8d626ba246",
+    "CLAUDE.md": "d499b43e718d6198fde4802fd44dba84",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -708,11 +707,11 @@
     "src/client/features/feature-request/hooks.ts": "1c93bb0bdb6d7ca72a7d2450f12843da",
     "src/client/features/feature-request/index.ts": "7aab193b621c95e4f3ec3be4155ff8ad",
     "src/client/features/feature-request/store.ts": "ae09835f282057fd304453547fe3974b",
-    "src/client/routes/FeatureRequests/FeatureRequests.tsx": "113e2a9a9c26725195a3d289f9cac29a",
+    "src/client/routes/FeatureRequests/FeatureRequests.tsx": "349dc53f61c39d98d93bd5b4074d63ee",
     "src/client/routes/FeatureRequests/components/DesignReviewPanel.tsx": "e74e3e4f434d5a4b2f8f6eddd24d446b",
     "src/client/routes/FeatureRequests/components/FeatureRequestCard.tsx": "003ca1c6d5e3b94df7ec060d861d2c6f",
     "src/client/routes/FeatureRequests/components/StatusBadge.tsx": "217bc98e4199c4f97f63c7f1ecff2eb3",
-    "src/client/routes/FeatureRequests/hooks.ts": "fdc1c97e9a94c9dbfdfe1ef7546c6a32",
+    "src/client/routes/FeatureRequests/hooks.ts": "06bd908768d685e0ad21774fdab425db",
     "src/client/routes/FeatureRequests/index.ts": "6e8de8ec1012a8343ba2cf566ec889f0",
     "src/client/routes/FeatureRequests/store.ts": "aeb4a1e5cb96ba00c2015c069dfd7fea",
     "src/client/routes/MyFeatureRequests/MyFeatureRequests.tsx": "77db1551a2c98e9376e3261e64ab4e79",
@@ -739,19 +738,19 @@
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "25baf7eab699427a822d5037379969c1",
     "docs/init-github-projects-workflow.md": "c6258f2a17a32d2ade516b65eb9d0493",
-    "scripts/mark-issue-done.ts": "e0cc1fee2362e658636974146cc96e7b",
+    "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
-    "src/agents/implement.ts": "d5baa2623f10b69497ae7a0356e31f05",
-    "src/agents/index.ts": "96ffbe50cf615fe1f857983ca342fc64",
+    "src/agents/implement.ts": "490f4c4e9c8c2fe36fb17b4fc96936a6",
+    "src/agents/index.ts": "76efe16a56939c60fb7a978ea38f2d6f",
     "src/agents/product-design.ts": "37a709c207fdfd5a112bf0e79c3a942b",
-    "src/agents/shared/claude.ts": "e660c3d4cf89949fa89bcf347519df78",
+    "src/agents/shared/claude.ts": "dc4edb4e24866c880f9ca121c5bbb909",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
-    "src/agents/shared/index.ts": "79512afdaff807b8644c86264abca9da",
-    "src/agents/shared/notifications.ts": "0caf4776865fff64b328450284b476cc",
-    "src/agents/shared/prompts.ts": "f52531ce8d6c7d93501c0f054fd3d931",
+    "src/agents/shared/index.ts": "37f03ba2f5bad9a0d1d2db88c89c0922",
+    "src/agents/shared/notifications.ts": "3db5d50269c4e19611a1b4b541df7f35",
+    "src/agents/shared/prompts.ts": "22a198aec105aeffab4da8af935cb3c4",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
-    "src/agents/shared/utils.ts": "39bfe87c7134d89e098c71ea02d5cf42",
+    "src/agents/shared/utils.ts": "f035982358e28810ce0e579f38c5ffd8",
     "src/agents/tech-design.ts": "73aaf00e295623f55639c845b678a988",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
@@ -763,13 +762,15 @@
     "src/pages/api/telegram-webhook.ts": "c2b9ee1c5c08c0dda4fdfac8fb8b03a0",
     "src/server/github-status/index.ts": "2a3d85bf730ecff2ce00701e06650ae2",
     "src/server/github-sync/index.ts": "cae1963a7d07cded01dd376a867ad0b2",
-    "src/server/project-management/adapters/github.ts": "f7af05e7a4f5554dc33aef8b64982e88",
-    "src/server/project-management/config.ts": "34c83d2ec1c678fe35c9dab9eb9e4207",
+    "src/server/project-management/adapters/github.ts": "0fe9d72b71e39391adb06664c47e3a3c",
+    "src/server/project-management/config.ts": "552f907d3e6a300bd03500a819e31e27",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
     "src/server/project-management/types.ts": "4059208ce2881e36022b05d9b0220157",
     "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
     "scripts/verify-github-projects-setup.ts": "b7e87dec1d05490c54a4e41d1acc50ea",
-    "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b"
+    "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
+    ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
+    "src/agents/pr-review.ts": "712d766e9cad8f858f31b47bd929726b"
   }
 }

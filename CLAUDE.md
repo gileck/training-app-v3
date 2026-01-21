@@ -760,6 +760,12 @@ Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 - **Auto-completion**: When PR is merged, GitHub Action automatically marks issue as Done in both GitHub Projects and MongoDB
 - **Simplified MongoDB schema**: MongoDB tracks only 4 high-level statuses (`new`, `in_progress`, `done`, `rejected`), detailed workflow tracking happens in GitHub Projects
 - **Two-tier status tracking**: Eliminates duplication between MongoDB and GitHub Projects
+  - **MongoDB (high-level)**: `new` → `in_progress` → `done` | `rejected`
+    - Purpose: User-facing feature request list, basic filtering
+    - `in_progress` spans all active workflow phases (design through implementation)
+  - **GitHub Projects (detailed)**: Backlog → Product Design → Tech Design → Implementation → PR Review → Done
+    - Purpose: Agent workflow, detailed progress tracking
+    - Source of truth for current workflow phase
 
 **Getting Started (Child Projects):**
 
