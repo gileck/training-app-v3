@@ -30,8 +30,13 @@ const userStatusConfig: Record<
     },
 };
 
+const unknownConfig = {
+    label: 'Unknown',
+    className: 'bg-muted text-muted-foreground',
+};
+
 export function UserStatusBadge({ status }: UserStatusBadgeProps) {
-    const config = userStatusConfig[status];
+    const config = userStatusConfig[status] ?? unknownConfig;
 
     return (
         <span

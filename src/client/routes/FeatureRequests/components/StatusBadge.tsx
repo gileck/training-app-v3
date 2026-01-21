@@ -21,8 +21,10 @@ const statusConfig: Record<
     rejected: { label: 'Rejected', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
 };
 
+const unknownConfig = { label: 'Unknown', variant: 'outline' as const, icon: <CircleDot className="h-3 w-3" /> };
+
 export function StatusBadge({ status }: StatusBadgeProps) {
-    const config = statusConfig[status];
+    const config = statusConfig[status] ?? unknownConfig;
 
     return (
         <Badge variant={config.variant} className="gap-1">

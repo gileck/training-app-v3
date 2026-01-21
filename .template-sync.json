@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "106bae449b2e700dea6c84deefede9313683397d",
-  "lastProjectCommit": "9e6531d7d91c8aebda0b27f519b492f03d744c91",
-  "lastSyncDate": "2026-01-20T17:36:56.474Z",
+  "lastSyncCommit": "33210dc5df61240c5d99944448052fe5f17fb1d0",
+  "lastProjectCommit": "cf816d404070ed662e2037f504aeeb060eb135c6",
+  "lastSyncDate": "2026-01-21T08:39:52.285Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,19 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-21T08:39:52.478Z",
+      "templateCommit": "33210dc5df61240c5d99944448052fe5f17fb1d0",
+      "projectCommit": "cf816d404070ed662e2037f504aeeb060eb135c6",
+      "filesApplied": 5,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "33210dc docs: add critical GitHub status production deployment troubleshooting \u001b[90m(21/01/2026)\u001b[0m\n  Extended the init guide with comprehensive troubleshooting for the\n  common production issue where GitHub statuses show as empty in the\n  feature-request page.\n  \n  Changes to docs/init-github-projects-workflow.md:\n  - Added new \"GitHub Status Integration Issues\" section in Troubleshooting\n  - Enhanced Step 5 with critical warnings about required GitHub env vars\n  - Added verification steps to confirm all 5 GitHub variables are set\n  - Included detailed fix instructions using vercel-cli\n  \n  This addresses the production integration issue where:\n  - GitHub workflows work locally but not in production\n  - Feature-request page shows empty GitHub statuses\n  - Missing GITHUB_OWNER, GITHUB_REPO, GITHUB_PROJECT_NUMBER, or\n    GITHUB_OWNER_TYPE environment variables in Vercel\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "3ad3d23 docs: add critical production deployment notes for GitHub integration \u001b[90m(21/01/2026)\u001b[0m\n  Added section in GitHub Projects Integration documenting the critical\n  requirement to push GitHub environment variables to Vercel production.\n  \n  Without GITHUB_OWNER, GITHUB_REPO, GITHUB_PROJECT_NUMBER, and\n  GITHUB_OWNER_TYPE in production, GitHub statuses will show as empty\n  in the feature-request page.\n  \n  Includes commands for:\n  - Pushing env vars to Vercel\n  - Verifying variables are set\n  - Triggering redeployment\n  \n  This addresses the production integration issue where GitHub workflows\n  work locally but not in production.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "fc017de fix: add null check for unknown feature request status values (#14) \u001b[90m(20/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-20T17:36:56.662Z",
       "templateCommit": "106bae449b2e700dea6c84deefede9313683397d",
@@ -277,17 +290,6 @@
       "templateCommits": [
         "717bce9 feat: add sync-child-projects script with interactive prompt \u001b[90m(10/01/2026)\u001b[0m"
       ]
-    },
-    {
-      "date": "2026-01-10T17:45:54.663Z",
-      "templateCommit": "4aa96f1cec5c7d01316a8dc42cb2d3e0a9f82bac",
-      "projectCommit": "6ae221c0004997f96c6590a1a99bca72da7bd35b",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "4aa96f1 feat: enhance init-project with idempotency and template cleanup \u001b[90m(10/01/2026)\u001b[0m\n  - Copy .env from ../app-template-ai/ before loading dotenv\n  - Run init-template.ts to set up template tracking\n  - Delete template example features (Todos, Chat, AIChat, Home)\n  - Make all steps idempotent (safe to run multiple times)\n  - Add consistent logging with [Step] prefix format\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -323,7 +325,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "353bb14e3a6b9ac0579282b66d1d6c7f",
+    "CLAUDE.md": "a2045a5e7a6cd88346103e82927fd9ea",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -702,13 +704,13 @@
     "src/client/routes/FeatureRequests/FeatureRequests.tsx": "113e2a9a9c26725195a3d289f9cac29a",
     "src/client/routes/FeatureRequests/components/DesignReviewPanel.tsx": "e74e3e4f434d5a4b2f8f6eddd24d446b",
     "src/client/routes/FeatureRequests/components/FeatureRequestCard.tsx": "003ca1c6d5e3b94df7ec060d861d2c6f",
-    "src/client/routes/FeatureRequests/components/StatusBadge.tsx": "55eec6fd3fab62a27e8487f8523d9828",
+    "src/client/routes/FeatureRequests/components/StatusBadge.tsx": "217bc98e4199c4f97f63c7f1ecff2eb3",
     "src/client/routes/FeatureRequests/hooks.ts": "fdc1c97e9a94c9dbfdfe1ef7546c6a32",
     "src/client/routes/FeatureRequests/index.ts": "6e8de8ec1012a8343ba2cf566ec889f0",
     "src/client/routes/FeatureRequests/store.ts": "aeb4a1e5cb96ba00c2015c069dfd7fea",
     "src/client/routes/MyFeatureRequests/MyFeatureRequests.tsx": "77db1551a2c98e9376e3261e64ab4e79",
     "src/client/routes/MyFeatureRequests/components/MyRequestCard.tsx": "7ee2c85f114d6650f8d72dd2f6884736",
-    "src/client/routes/MyFeatureRequests/components/UserStatusBadge.tsx": "a7f6e4c3ea6d104b4e32a4a1d3283f31",
+    "src/client/routes/MyFeatureRequests/components/UserStatusBadge.tsx": "fe5961fd668e8d2d6b362c0f98336e97",
     "src/client/routes/MyFeatureRequests/hooks.ts": "c71777cd230182d32c0c153da65dde09",
     "src/client/routes/MyFeatureRequests/index.ts": "ed7deb02899a4302622f1b44097ab790",
     "src/server/database/collections/feature-requests/feature-requests.ts": "3a6ec640642831032f4722e07f2bfa04",
@@ -729,7 +731,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "25baf7eab699427a822d5037379969c1",
-    "docs/init-github-projects-workflow.md": "123ee314240d2b9d406eef8cea691bf0",
+    "docs/init-github-projects-workflow.md": "4bf131389f5a0baeb11d935b885a3596",
     "scripts/mark-issue-done.ts": "e0cc1fee2362e658636974146cc96e7b",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
@@ -758,6 +760,7 @@
     "src/server/project-management/config.ts": "34c83d2ec1c678fe35c9dab9eb9e4207",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
     "src/server/project-management/types.ts": "4059208ce2881e36022b05d9b0220157",
-    "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0"
+    "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
+    "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef"
   }
 }

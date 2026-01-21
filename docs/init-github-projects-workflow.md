@@ -343,6 +343,15 @@ For auto-completion to work when PRs are merged:
 
 Push your environment variables to Vercel so the deployed app can access them.
 
+**⚠️ CRITICAL:** GitHub status integration in production requires ALL 5 GitHub environment variables to be set in Vercel:
+- `GITHUB_TOKEN`
+- `GITHUB_OWNER`
+- `GITHUB_REPO`
+- `GITHUB_PROJECT_NUMBER`
+- `GITHUB_OWNER_TYPE`
+
+Missing even one variable will cause GitHub statuses to show as empty in the feature-request page.
+
 ### Option 1: Using Vercel CLI (Recommended)
 
 1. Install and link Vercel (if not already):
@@ -351,16 +360,30 @@ Push your environment variables to Vercel so the deployed app can access them.
    vercel link
    ```
 
-2. Push environment variables:
+2. Push environment variables from `.env.local`:
    ```bash
-   yarn vercel-cli env:push
+   yarn vercel-cli env:push --file .env.local --target production --overwrite
    ```
 
-   This will push all variables from `.env` to all Vercel environments (development, preview, production).
+   This will push all variables from `.env.local` to production.
 
-3. To push only to production with overwrite:
+3. **Verify all GitHub variables were pushed:**
    ```bash
-   yarn vercel-cli env:push --target production --overwrite
+   yarn vercel-cli env --target production | grep GITHUB_
+   ```
+
+   **Expected output** (all 5 variables):
+   ```
+   📝 GITHUB_TOKEN                   = [hidden]
+   📝 GITHUB_OWNER                   = [hidden]
+   📝 GITHUB_REPO                    = [hidden]
+   📝 GITHUB_PROJECT_NUMBER          = [hidden]
+   📝 GITHUB_OWNER_TYPE              = [hidden]
+   ```
+
+4. To push to all environments (development, preview, production):
+   ```bash
+   yarn vercel-cli env:push --file .env.local
    ```
 
 ### Option 2: Using Vercel Dashboard
@@ -574,6 +597,87 @@ Test the complete workflow end-to-end:
 - Verify `/api/telegram-webhook.ts` file exists in your `pages/api/` directory
 - Check Vercel deployment logs for errors
 - Ensure the file is included in your deployment (not in `.vercelignore`)
+
+### GitHub Status Integration Issues (Production)
+
+**GitHub statuses show as empty in production (feature-request page)**
+
+This is a **common production deployment issue** caused by missing GitHub environment variables in Vercel.
+
+**Symptoms:**
+- Feature request page shows no GitHub statuses in production
+- Local development works fine, production doesn't
+- GitHub workflows agents work locally but fail in production
+
+**Root Cause:**
+Vercel production is missing one or more of these required environment variables:
+- `GITHUB_OWNER`
+- `GITHUB_REPO`
+- `GITHUB_PROJECT_NUMBER`
+- `GITHUB_OWNER_TYPE`
+
+**Fix:**
+
+1. **Verify what's set in Vercel production:**
+   ```bash
+   yarn vercel-cli env --target production | grep GITHUB_
+   ```
+
+2. **Push missing variables to Vercel:**
+   ```bash
+   # Option A: Push all variables from .env.local
+   yarn vercel-cli env:push --target production --overwrite
+
+   # Option B: Push only GitHub variables
+   # Create a temporary file with just GitHub vars:
+   cat > .env.github << EOF
+   GITHUB_OWNER=your_username
+   GITHUB_REPO=your_repo
+   GITHUB_PROJECT_NUMBER=3
+   GITHUB_OWNER_TYPE=user
+   EOF
+
+   # Push to production
+   yarn vercel-cli env:push --file .env.github --target production
+
+   # Clean up
+   rm .env.github
+   ```
+
+3. **Verify variables were added:**
+   ```bash
+   yarn vercel-cli env --target production | grep GITHUB_
+   ```
+
+   You should see **all 5 GitHub variables**:
+   - `GITHUB_TOKEN`
+   - `GITHUB_OWNER`
+   - `GITHUB_REPO`
+   - `GITHUB_PROJECT_NUMBER`
+   - `GITHUB_OWNER_TYPE`
+
+4. **Trigger a redeploy** (environment variables only take effect after redeployment):
+   ```bash
+   # Option A: Empty commit
+   git commit --allow-empty -m "chore: trigger redeploy for env vars"
+   git push
+
+   # Option B: Use Vercel CLI
+   vercel --prod
+   ```
+
+5. **Wait for deployment to complete**, then test the feature-request page in production.
+
+**Why this happens:**
+- The app gracefully handles missing GitHub configuration by returning null statuses
+- This prevents errors but makes it hard to debug
+- The system requires ALL 5 GitHub variables to connect to GitHub Projects
+- Missing even one variable causes `getProjectConfig()` to throw an error
+
+**Prevention:**
+- Always run `yarn vercel-cli env:push` after cloning/forking the template
+- Verify all GitHub variables are set before deploying
+- Keep `.env.local` and Vercel environment variables in sync
 
 ### MongoDB Issues
 

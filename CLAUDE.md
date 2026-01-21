@@ -780,6 +780,30 @@ If you're setting up this workflow in a child project for the first time, follow
 4. Create a Telegram bot (each project needs its own bot due to webhook limitations)
 5. Configure GitHub repository secrets via `yarn setup-github-secrets`
 
+**CRITICAL - Production Deployment:**
+
+For GitHub statuses to work in production (Vercel), ensure ALL GitHub environment variables are set:
+
+```bash
+# Push GitHub env vars to Vercel production
+yarn vercel-cli env:push --file .env.local --target production --overwrite
+
+# Or push only specific variables:
+# Create a temporary file with:
+# GITHUB_OWNER=your_owner
+# GITHUB_REPO=your_repo
+# GITHUB_PROJECT_NUMBER=3
+# GITHUB_OWNER_TYPE=user
+# Then: yarn vercel-cli env:push --file .env.github --target production
+
+# Verify variables are set
+yarn vercel-cli env --target production | grep GITHUB_
+
+# Redeploy to pick up new env vars (push any commit)
+git commit --allow-empty -m "chore: trigger redeploy"
+git push
+```
+
 **CLI Commands:**
 
 | Command | Description |
