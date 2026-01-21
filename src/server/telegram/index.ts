@@ -178,14 +178,29 @@ export async function sendNotificationToOwner(
 
 /**
  * Get the base app URL
+ *
+ * Priority order:
+ * 1. VERCEL_PROJECT_PRODUCTION_URL - Stable production domain (e.g., app-template-ai.vercel.app)
+ * 2. VERCEL_URL - Deployment-specific URL (changes per deployment)
+ * 3. NEXT_PUBLIC_APP_URL - Manual override (optional)
+ * 4. localhost:3000 - Local development fallback
+ *
+ * Note: Vercel URLs don't include protocol, so we prepend https://
  */
 function getBaseUrl(): string {
+    // Stable production domain (recommended for production)
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    // Deployment-specific URL (preview deployments)
     if (process.env.VERCEL_URL) {
         return `https://${process.env.VERCEL_URL}`;
     }
+    // Manual override (optional)
     if (process.env.NEXT_PUBLIC_APP_URL) {
         return process.env.NEXT_PUBLIC_APP_URL;
     }
+    // Local development
     return 'http://localhost:3000';
 }
 

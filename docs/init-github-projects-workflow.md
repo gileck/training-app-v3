@@ -381,7 +381,33 @@ Missing even one variable will cause GitHub statuses to show as empty in the fea
    📝 GITHUB_OWNER_TYPE              = [hidden]
    ```
 
-4. To push to all environments (development, preview, production):
+4. **Production URL (Optional - Vercel provides this automatically):**
+
+   ✅ **Good news:** Vercel automatically sets `VERCEL_PROJECT_PRODUCTION_URL` with your stable production domain.
+
+   You only need to manually set `NEXT_PUBLIC_APP_URL` if:
+   - You're using a custom domain (not `*.vercel.app`)
+   - You want to override the automatic URL for testing
+
+   If needed:
+   ```bash
+   # Create temporary file with production URL
+   echo "NEXT_PUBLIC_APP_URL=https://your-custom-domain.com" > .env.prod-url
+
+   # Push to production
+   yarn vercel-cli env:push --file .env.prod-url --target production
+
+   # Clean up
+   rm .env.prod-url
+   ```
+
+   **How URL resolution works:**
+   1. `VERCEL_PROJECT_PRODUCTION_URL` - Stable production domain (automatic) ✅
+   2. `VERCEL_URL` - Deployment-specific URL (automatic)
+   3. `NEXT_PUBLIC_APP_URL` - Manual override (optional)
+   4. Falls back to `localhost:3000` for local dev
+
+5. To push to all environments (development, preview, production):
    ```bash
    yarn vercel-cli env:push --file .env.local
    ```
@@ -397,6 +423,7 @@ Missing even one variable will cause GitHub statuses to show as empty in the fea
    - `GITHUB_PROJECT_NUMBER`
    - `GITHUB_OWNER_TYPE`
    - `TELEGRAM_BOT_TOKEN`
+   - `NEXT_PUBLIC_APP_URL` (optional - only for custom domains)
    - `MONGO_URI` (your MongoDB connection string)
    - `JWT_SECRET` (generate a random string)
    - Any other app-specific variables
@@ -420,6 +447,118 @@ Or push a commit to trigger automatic deployment.
 ## Step 6: Verification & Testing
 
 Test each component to ensure everything is configured correctly.
+
+### 6.0: Automated Setup Verification (Recommended)
+
+Before testing individual components, run the automated verification script to check all configuration at once:
+
+```bash
+yarn verify-setup
+```
+
+**What it checks:**
+
+1. **Local Environment** (`.env.local`)
+   - All required GitHub variables (TOKEN, OWNER, REPO, PROJECT_NUMBER, OWNER_TYPE)
+   - Telegram variables (BOT_TOKEN, CHAT_ID)
+   - Database and auth variables (MONGO_URI, JWT_SECRET, ADMIN_USER_ID)
+   - `app.config.js` ownerTelegramChatId configuration
+
+2. **Vercel Environment** (Production)
+   - All required variables are set in Vercel production
+   - Vercel project is linked
+
+3. **GitHub Repository**
+   - GitHub CLI (gh) installed and authenticated
+   - Required secrets (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, PROJECT_TOKEN)
+   - Required variables (all GitHub and Telegram config)
+   - Workflow permissions (read-write access)
+
+4. **GitHub Project**
+   - Project configuration present (manual verification recommended)
+
+**Expected output (all passing):**
+```
+🔍 Verifying GitHub Projects Workflow Setup
+══════════════════════════════════════════════════════════════════════
+
+📋 Local Environment
+──────────────────────────────────────────────────────────────────────
+✓ .env.local file exists
+✓ GITHUB_TOKEN ✓
+✓ GITHUB_OWNER ✓
+✓ GITHUB_REPO ✓
+✓ GITHUB_PROJECT_NUMBER ✓
+✓ GITHUB_OWNER_TYPE ✓
+✓ TELEGRAM_BOT_TOKEN ✓
+✓ LOCAL_TELEGRAM_CHAT_ID ✓
+✓ MONGO_URI ✓
+✓ JWT_SECRET ✓
+✓ ADMIN_USER_ID ✓
+✓ app.config.js ownerTelegramChatId set
+
+  12 passed, 0 failed
+
+📋 Vercel Environment
+──────────────────────────────────────────────────────────────────────
+✓ Vercel project linked
+✓ GITHUB_TOKEN in Vercel ✓
+✓ GITHUB_OWNER in Vercel ✓
+✓ GITHUB_REPO in Vercel ✓
+✓ GITHUB_PROJECT_NUMBER in Vercel ✓
+✓ GITHUB_OWNER_TYPE in Vercel ✓
+✓ TELEGRAM_BOT_TOKEN in Vercel ✓
+✓ MONGO_URI in Vercel ✓
+✓ JWT_SECRET in Vercel ✓
+✓ ADMIN_USER_ID in Vercel ✓
+
+  10 passed, 0 failed
+
+📋 GitHub Repository
+──────────────────────────────────────────────────────────────────────
+✓ GitHub CLI (gh) installed
+✓ GitHub CLI authenticated
+✓ Secret: TELEGRAM_BOT_TOKEN ✓
+✓ Secret: TELEGRAM_CHAT_ID ✓
+✓ Secret: PROJECT_TOKEN ✓
+✓ Variable: TELEGRAM_NOTIFICATIONS_ENABLED ✓
+✓ Variable: GITHUB_OWNER ✓
+✓ Variable: GITHUB_REPO ✓
+✓ Variable: GITHUB_PROJECT_NUMBER ✓
+✓ Variable: GITHUB_OWNER_TYPE ✓
+✓ Workflow permissions: read-write ✓
+
+  11 passed, 0 failed
+
+📋 GitHub Project
+──────────────────────────────────────────────────────────────────────
+✓ GitHub Project configuration present
+    Project: gileck/projects/3
+    Manual verification recommended
+
+  1 passed, 0 failed
+
+══════════════════════════════════════════════════════════════════════
+
+📊 Overall: 34/34 checks passed
+
+✅ All checks passed! Your setup is ready.
+```
+
+**If checks fail:**
+- The script will show exactly what's missing and how to fix it
+- Each failed check includes remediation steps
+- Fix the issues and re-run `yarn verify-setup`
+
+**Skip specific checks:**
+```bash
+yarn verify-setup --skip-github    # Skip GitHub repo checks (no gh CLI required)
+yarn verify-setup --skip-vercel    # Skip Vercel checks (no vercel CLI required)
+```
+
+**Once all checks pass, proceed with manual testing below to verify end-to-end functionality.**
+
+---
 
 ### 6.1: Test GitHub API Access
 

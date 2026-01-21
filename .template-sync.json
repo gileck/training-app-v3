@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "33210dc5df61240c5d99944448052fe5f17fb1d0",
-  "lastProjectCommit": "cf816d404070ed662e2037f504aeeb060eb135c6",
-  "lastSyncDate": "2026-01-21T08:39:52.285Z",
+  "lastSyncCommit": "a47a324ccfb82588dbc05d082ff637b8317de3f3",
+  "lastProjectCommit": "c718c87cf74be8e959eee358238c8b5a6eb7f4b5",
+  "lastSyncDate": "2026-01-21T09:35:45.510Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,24 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-21T09:35:45.698Z",
+      "templateCommit": "a47a324ccfb82588dbc05d082ff637b8317de3f3",
+      "projectCommit": "c718c87cf74be8e959eee358238c8b5a6eb7f4b5",
+      "filesApplied": 7,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "a47a324 docs: document critical markdown extraction bug and fix \u001b[90m(21/01/2026)\u001b[0m\n  Added comprehensive documentation for the nested code block extraction\n  bug that caused GitHub issue descriptions to be truncated mid-sentence.\n  \n  Includes:\n  - Problem description and symptoms\n  - Root cause analysis (non-greedy regex)\n  - Example showing the bug\n  - Explanation of the fix (depth counting)\n  - Prevention guidance\n  - Testing verification\n  - Reference to GitHub issue #15\n  \n  This bug affected all agent-generated designs that included code\n  examples, causing content loss and incomplete technical documentation.\n  \n  The fix properly handles arbitrary nesting depth and distinguishes\n  opening fences (with language identifiers) from closing fences.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "a9ee651 fix: correctly extract markdown with nested code blocks in designs \u001b[90m(21/01/2026)\u001b[0m\n  CRITICAL BUG FIX: The extractMarkdown function was using a non-greedy\n  regex that stopped at the FIRST closing ``` it found, even if that was\n  inside a nested code block. This caused design content to be truncated\n  mid-sentence when the design included code examples.\n  \n  Example of bug:\n  ```markdown\n  # UI Placement\n  \n  Place the form between:\n  \n  ```jsx          <-- Regex stopped here!\n  <Component />\n  ```\n  \n  Rest lost...    <-- Everything after was cut off\n  ```\n  \n  Root cause:\n  - Regex: /```markdown\\s*([\\s\\S]*?)\\s*```/\n  - The ([\\s\\S]*?) is non-greedy and matches minimally\n  - Stops at first ``` (even inside nested code blocks)\n  \n  Solution:\n  - Parse fence markers properly by position (line start check)\n  - Count depth of nested code blocks (opening vs closing)\n  - Only close when depth returns to 0\n  - Handle edge case where closing fence is missing\n  \n  Testing:\n  - Created test with nested ```jsx...``` block\n  - Old code: extracted only 70 chars (cut after \"section:\")\n  - New code: extracted all 348 chars correctly\n  \n  This fixes GitHub issue #15 and any other instances where designs\n  with code examples were being truncated.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "78297ec docs: add critical deployment issues section to CLAUDE.md \u001b[90m(21/01/2026)\u001b[0m\n  Added comprehensive documentation for two critical issues discovered\n  during production deployment:\n  \n  1. **pages/ vs src/pages/ Directory Structure**\n     - Next.js prioritizes pages/ over src/pages/\n     - Accidentally creating pages/ causes all routes to 404\n     - Documented correct structure, symptoms, and how to fix\n     - Added prevention tips and verification commands\n  \n  2. **Vercel Automatic Environment Variables**\n     - Vercel automatically provides VERCEL_PROJECT_PRODUCTION_URL\n     - Stable production domain (never changes)\n     - NEXT_PUBLIC_APP_URL only needed for custom domains\n     - Documented all automatic system variables and usage patterns\n  \n  Also fixed ESLint error in test-telegram.ts by adding disable comment\n  for restrict-api-routes rule (testing endpoint doesn't use centralized\n  API architecture by design).\n  \n  These issues caused production outages and confusion - now documented\n  to prevent future incidents.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "319d976 fix: move test-telegram endpoint to correct src/pages directory \u001b[90m(21/01/2026)\u001b[0m\n  CRITICAL FIX: The test-telegram endpoint was incorrectly placed in\n  pages/api/ instead of src/pages/api/. This caused Next.js to ignore\n  the entire src/pages/ directory (including the home page), resulting\n  in 404 errors on all routes.\n  \n  In Next.js, when both pages/ and src/pages/ exist, Next.js uses pages/\n  and ignores src/pages/. Since pages/ only contained the API endpoint,\n  the home page and all other routes were not built.\n  \n  Changes:\n  - Moved pages/api/test-telegram.ts → src/pages/api/test-telegram.ts\n  - Removed empty pages/ directory\n  \n  This restores the home page and all other routes.\n  \n  Issue started in commit: 8a32e98\n  Symptoms: 404 on home page in production\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "1288e9c refactor: use Vercel's automatic VERCEL_PROJECT_PRODUCTION_URL \u001b[90m(21/01/2026)\u001b[0m\n  Updated getBaseUrl() to prioritize Vercel's automatic stable production\n  URL (VERCEL_PROJECT_PRODUCTION_URL) instead of manually setting\n  NEXT_PUBLIC_APP_URL.\n  \n  Changes:\n  - Updated getBaseUrl() priority order:\n    1. VERCEL_PROJECT_PRODUCTION_URL (automatic stable domain)\n    2. VERCEL_URL (deployment-specific)\n    3. NEXT_PUBLIC_APP_URL (optional manual override)\n    4. localhost:3000 (local dev)\n  \n  - Updated documentation to clarify NEXT_PUBLIC_APP_URL is optional\n  - Added explanation of Vercel's automatic URL variables to .env.example\n  - Marked NEXT_PUBLIC_APP_URL as optional in init guide\n  \n  Why this is better:\n  - Vercel automatically provides stable production URL\n  - No manual configuration needed for *.vercel.app domains\n  - NEXT_PUBLIC_APP_URL only needed for custom domains\n  - Reduces setup complexity\n  \n  Sources:\n  - https://vercel.com/docs/environment-variables/system-environment-variables\n  - https://github.com/vercel/next.js/discussions/16429\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "20fa10f docs: add NEXT_PUBLIC_APP_URL configuration requirement \u001b[90m(21/01/2026)\u001b[0m\n  Added documentation and configuration for NEXT_PUBLIC_APP_URL which is\n  required for stable Telegram webhook and approval button URLs.\n  \n  Changes:\n  - Updated .env.example with NEXT_PUBLIC_APP_URL and explanation\n  - Added Step 4 in init guide to set production URL in Vercel\n  - Added to Option 2 (manual Vercel dashboard setup)\n  - Pushed https://app-template-ai.vercel.app to Vercel production\n  \n  Why this matters:\n  - VERCEL_URL changes for each deployment (preview URLs)\n  - Telegram approval buttons need stable production URL\n  - Without this, approval links use deployment-specific URLs\n  \n  The production URL is now properly configured in Vercel.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "47a8a2d feat: add comprehensive setup verification script \u001b[90m(21/01/2026)\u001b[0m\n  Added automated verification script to check all required configuration\n  for GitHub Projects workflow, including local environment, Vercel,\n  GitHub repository secrets/variables, and app configuration.\n  \n  New command: yarn verify-setup\n  \n  Features:\n  - Checks local .env.local for all required variables\n  - Verifies Vercel production environment variables\n  - Validates GitHub repository secrets and variables\n  - Checks GitHub CLI authentication and workflow permissions\n  - Validates app.config.js configuration\n  - Provides detailed error messages and remediation steps\n  - Supports --skip-github and --skip-vercel flags\n  \n  Updated documentation:\n  - Added section 6.0 in init-github-projects-workflow.md\n  - Added verification step in CLAUDE.md Quick Setup\n  - Comprehensive example output showing all checks\n  \n  This addresses common setup issues and makes it easy to identify\n  missing configuration before attempting to use the workflow.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "8a32e98 feat: add test endpoint for debugging Telegram notifications \u001b[90m(21/01/2026)\u001b[0m\n  Added /api/test-telegram endpoint to help debug Telegram notification\n  issues in production.\n  \n  Features:\n  - Sends a test notification to owner with inline button\n  - Returns detailed config and error information\n  - Useful for verifying TELEGRAM_BOT_TOKEN and ownerTelegramChatId\n  \n  Usage:\n    GET https://your-app.vercel.app/api/test-telegram\n  \n  Returns configuration details and success/error status.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-21T08:39:52.478Z",
       "templateCommit": "33210dc5df61240c5d99944448052fe5f17fb1d0",
@@ -279,17 +297,6 @@
         "2b85fcf docs: add sync-child-projects section to CLAUDE.md \u001b[90m(10/01/2026)\u001b[0m",
         "e39edb2 fix: handle non-interactive shell in push-sync \u001b[90m(10/01/2026)\u001b[0m"
       ]
-    },
-    {
-      "date": "2026-01-10T17:52:23.872Z",
-      "templateCommit": "717bce9c65ce57ee110a266032ad4d0c8cff42b1",
-      "projectCommit": "5909c98fa730ba529645266aa97c7be2959caec7",
-      "filesApplied": 3,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "717bce9 feat: add sync-child-projects script with interactive prompt \u001b[90m(10/01/2026)\u001b[0m"
-      ]
     }
   ],
   "fileHashes": {
@@ -325,7 +332,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "a2045a5e7a6cd88346103e82927fd9ea",
+    "CLAUDE.md": "e8a673163d7713e37e5c2b8d626ba246",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -608,7 +615,7 @@
     "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
     "scripts/send-telegram.ts": "2a4e16b5f85e820590a73dad7e0c09d6",
     "scripts/telegram-setup.ts": "d6c1671518cd55b4d8600dbdf1f277a6",
-    "src/server/telegram/index.ts": "c2113d60259cf44fcf2d408f48fde7be",
+    "src/server/telegram/index.ts": "67671af4cc8eb245dbdfec3371394655",
     "scripts/ai-agents/claude-code-agent.ts": "ca81e7d35590900bd978e9ff2ad47ea4",
     "scripts/ai-agents/gemini-agent.ts": "fbeb7b0f554bca6517a3dd6cee6d89ae",
     "scripts/ai-agents/index.ts": "22aedc657d2b0a6784dba814de612913",
@@ -726,19 +733,19 @@
     "src/client/components/GlobalDialogs.tsx": "75334a01aae5e0cf09d87d192db4a1aa",
     "public/workbox-5c769f2e.js": "bc926149842978fd14e20c2f8eaff769",
     "src/client/components/ui/textarea.tsx": "52a7a3622e1eb49a6b75ae46df5eea37",
-    ".env.example": "a9f983efdb5e9636c664f2353f212890",
+    ".env.example": "cf4433b23108a0e48916bed7635fbd05",
     ".github/workflows/issue-notifications.yml": "8ad1487f4ceed8b9392b285f7fed08e6",
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "25baf7eab699427a822d5037379969c1",
-    "docs/init-github-projects-workflow.md": "4bf131389f5a0baeb11d935b885a3596",
+    "docs/init-github-projects-workflow.md": "c6258f2a17a32d2ade516b65eb9d0493",
     "scripts/mark-issue-done.ts": "e0cc1fee2362e658636974146cc96e7b",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
     "src/agents/implement.ts": "d5baa2623f10b69497ae7a0356e31f05",
     "src/agents/index.ts": "96ffbe50cf615fe1f857983ca342fc64",
     "src/agents/product-design.ts": "37a709c207fdfd5a112bf0e79c3a942b",
-    "src/agents/shared/claude.ts": "9f263cb07d6ab8e6223ee54ae1bbe827",
+    "src/agents/shared/claude.ts": "e660c3d4cf89949fa89bcf347519df78",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
     "src/agents/shared/index.ts": "79512afdaff807b8644c86264abca9da",
     "src/agents/shared/notifications.ts": "0caf4776865fff64b328450284b476cc",
@@ -761,6 +768,8 @@
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
     "src/server/project-management/types.ts": "4059208ce2881e36022b05d9b0220157",
     "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
-    "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef"
+    "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
+    "scripts/verify-github-projects-setup.ts": "b7e87dec1d05490c54a4e41d1acc50ea",
+    "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b"
   }
 }

@@ -249,24 +249,82 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentResult> {
 
 /**
  * Extract markdown content from agent output
+ *
+ * Handles nested code blocks by properly matching opening and closing fence markers.
  */
 export function extractMarkdown(text: string): string | null {
     if (!text) return null;
 
     try {
-        // Try to find ```markdown ... ``` pattern first
-        const markdownBlockMatch = text.match(/```markdown\s*([\s\S]*?)\s*```/);
-        if (markdownBlockMatch?.[1]) {
-            return markdownBlockMatch[1].trim();
+        // Try to find ```markdown ... ``` pattern with proper fence matching
+        const markdownStart = text.indexOf('```markdown');
+        if (markdownStart !== -1) {
+            // Start after the opening fence and newline
+            const contentStart = text.indexOf('\n', markdownStart) + 1;
+            if (contentStart === 0) return null;
+
+            // Find the matching closing fence by counting nested blocks
+            let depth = 1; // We're inside the first markdown block
+            let pos = contentStart;
+
+            while (pos < text.length && depth > 0) {
+                // Find next occurrence of ```
+                const nextFence = text.indexOf('```', pos);
+                if (nextFence === -1) break;
+
+                // Check if it's at the start of a line (valid fence)
+                const lineStart = text.lastIndexOf('\n', nextFence) + 1;
+                const beforeFence = text.slice(lineStart, nextFence).trim();
+
+                if (beforeFence === '') {
+                    // It's a valid fence at line start
+                    // Check if it's an opening or closing fence
+                    const afterFence = text.slice(nextFence + 3, nextFence + 20);
+                    if (/^[a-z]+/.test(afterFence)) {
+                        // Opening fence (has language identifier)
+                        depth++;
+                    } else {
+                        // Closing fence
+                        depth--;
+                        if (depth === 0) {
+                            // Found the matching closing fence
+                            return text.slice(contentStart, nextFence).trim();
+                        }
+                    }
+                }
+
+                pos = nextFence + 3;
+            }
+
+            // If we didn't find a closing fence, take everything after the opening
+            return text.slice(contentStart).trim();
         }
 
         // Try plain ``` blocks (might not have markdown specifier)
-        const codeBlockMatch = text.match(/```\s*([\s\S]*?)\s*```/);
-        if (codeBlockMatch?.[1]) {
-            const content = codeBlockMatch[1].trim();
-            // Check if it looks like a design document
-            if (content.includes('# ') && (content.includes('Overview') || content.includes('Design'))) {
-                return content;
+        const plainCodeStart = text.indexOf('```');
+        if (plainCodeStart !== -1) {
+            const contentStart = text.indexOf('\n', plainCodeStart) + 1;
+            if (contentStart === 0) return null;
+
+            // Find the next ``` at line start
+            let pos = contentStart;
+            while (pos < text.length) {
+                const nextFence = text.indexOf('```', pos);
+                if (nextFence === -1) break;
+
+                const lineStart = text.lastIndexOf('\n', nextFence) + 1;
+                const beforeFence = text.slice(lineStart, nextFence).trim();
+
+                if (beforeFence === '') {
+                    const content = text.slice(contentStart, nextFence).trim();
+                    // Check if it looks like a design document
+                    if (content.includes('# ') && (content.includes('Overview') || content.includes('Design'))) {
+                        return content;
+                    }
+                    break;
+                }
+
+                pos = nextFence + 3;
             }
         }
 
