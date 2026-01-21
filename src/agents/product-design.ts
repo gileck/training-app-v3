@@ -161,6 +161,7 @@ async function processItem(
             verbose: options.verbose,
             timeout: options.timeout,
             progressLabel,
+            workflow: 'product-design',
         });
 
         if (!result.success || !result.content) {
@@ -183,7 +184,8 @@ async function processItem(
                 'Product Design',
                 content.title,
                 issueType,
-                options
+                options,
+                'product-design'
             );
         }
 

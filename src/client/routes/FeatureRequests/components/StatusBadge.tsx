@@ -13,11 +13,11 @@ interface StatusBadgeProps {
 
 const statusConfig: Record<
     FeatureRequestStatus,
-    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }
+    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'; icon: React.ReactNode }
 > = {
     new: { label: 'New', variant: 'default', icon: <CircleDot className="h-3 w-3" /> },
-    in_progress: { label: 'In Progress', variant: 'secondary', icon: <Hammer className="h-3 w-3" /> },
-    done: { label: 'Done', variant: 'outline', icon: <CheckCircle className="h-3 w-3 text-green-500" /> },
+    in_progress: { label: 'In Progress', variant: 'warning', icon: <Hammer className="h-3 w-3" /> },
+    done: { label: 'Done', variant: 'success', icon: <CheckCircle className="h-3 w-3" /> },
     rejected: { label: 'Rejected', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
 };
 
@@ -40,12 +40,12 @@ interface PriorityBadgeProps {
 
 const priorityConfig: Record<
     'low' | 'medium' | 'high' | 'critical',
-    { label: string; className: string }
+    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' }
 > = {
-    low: { label: 'Low', className: 'bg-gray-100 text-gray-600' },
-    medium: { label: 'Medium', className: 'bg-blue-100 text-blue-600' },
-    high: { label: 'High', className: 'bg-orange-100 text-orange-600' },
-    critical: { label: 'Critical', className: 'bg-red-100 text-red-600' },
+    low: { label: 'Low', variant: 'secondary' },
+    medium: { label: 'Medium', variant: 'default' },
+    high: { label: 'High', variant: 'warning' },
+    critical: { label: 'Critical', variant: 'destructive' },
 };
 
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
@@ -54,8 +54,8 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
     const config = priorityConfig[priority];
 
     return (
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${config.className}`}>
+        <Badge variant={config.variant}>
             {config.label}
-        </span>
+        </Badge>
     );
 }

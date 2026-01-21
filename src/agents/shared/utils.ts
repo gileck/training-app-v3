@@ -13,6 +13,7 @@ import { REVIEW_STATUSES } from '@/server/project-management/config';
 import type { ProjectManagementAdapter } from '@/server/project-management/types';
 import type { CommonCLIOptions } from './types';
 import { notifyAgentNeedsClarification } from './notifications';
+import { addAgentPrefix, type AgentName } from './agent-identity';
 
 // ============================================================
 // TYPE DETECTION
@@ -116,7 +117,8 @@ export async function handleClarificationRequest(
     phase: string,
     title: string,
     issueType: 'bug' | 'feature',
-    options: CommonCLIOptions
+    options: CommonCLIOptions,
+    agentName: AgentName
 ): Promise<{ success: boolean; needsClarification: true }> {
 
     if (options.dryRun) {
@@ -137,7 +139,8 @@ export async function handleClarificationRequest(
         '_Please respond with your answer in a comment below, then click "Clarification Received" in Telegram._',
     ].join('\n');
 
-    await adapter.addIssueComment(issueNumber, comment);
+    const prefixedComment = addAgentPrefix(agentName, comment);
+    await adapter.addIssueComment(issueNumber, prefixedComment);
     console.log('  Comment added with clarification request');
 
     // Set review status

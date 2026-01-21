@@ -166,24 +166,180 @@ This allows each phase to have its own lifecycle (AI work → Human review → A
 
 ### Required Environment Variables
 
-Add these to your `.env` file:
+The system uses **two separate GitHub tokens** for clear separation of concerns:
 
 ```bash
-# GitHub token with 'repo' and 'project' scopes
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
+# Admin token (your personal token) - for GitHub Projects operations
+GITHUB_TOKEN=ghp_your_admin_token_here
+
+# Bot token (bot account token) - for PRs, issues, and comments
+GITHUB_BOT_TOKEN=ghp_your_bot_token_here
 
 # Telegram bot token for notifications (optional but recommended)
 TELEGRAM_BOT_TOKEN=xxxxxxxxxxxxx
 ```
 
-### Getting a GitHub Token
+**Why Two Tokens?**
 
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Click "Generate new token (classic)" or "Fine-grained token"
-3. Required scopes:
+| Token | Used For | Who It Appears As |
+|-------|----------|-------------------|
+| `GITHUB_TOKEN` (admin) | GitHub Projects queries, project status updates | Not visible to users |
+| `GITHUB_BOT_TOKEN` (bot) | Creating PRs, issues, comments | `dev-agent-bot` (or your bot account name) |
+
+**Benefits:**
+- ✅ No need to add bot account to GitHub Project (admin already has access)
+- ✅ Clear separation: visible actions = bot, data access = admin
+- ✅ You can approve PRs created by bot
+- ✅ Easy to identify bot vs human actions
+
+**Note:** If `GITHUB_BOT_TOKEN` is not provided, the system falls back to using `GITHUB_TOKEN` for everything (single-token mode).
+
+### Getting GitHub Tokens
+
+**Admin Token (GITHUB_TOKEN):**
+
+1. Use your personal GitHub account
+2. Go to Settings → Developer settings → Personal access tokens
+3. Generate new token with scopes:
    - `repo` - Full control of private repositories
    - `project` - Full control of projects
-4. Copy the token to your `.env` file
+4. Copy to `.env` as `GITHUB_TOKEN`
+
+**Bot Token (GITHUB_BOT_TOKEN):**
+
+See the "Bot Account Setup" section below for complete instructions on creating a bot account and generating its token.
+
+### Bot Account Setup (Recommended)
+
+**Why you need a bot account:**
+
+When agents use your personal GitHub token:
+- ❌ You **cannot approve PRs** created by agents (GitHub doesn't allow PR authors to approve their own PRs)
+- ❌ You **cannot differentiate** between your comments and agent comments
+- ❌ All agent actions appear as if **you** took them
+
+**Solution:** Create a separate bot GitHub account for agents.
+
+**Step-by-Step Setup:**
+
+**Step 1: Create Bot GitHub Account**
+
+Use Gmail's +alias feature to avoid needing a new email:
+
+1. If your email is `yourname@gmail.com`, use `yourname+bot@gmail.com`
+2. Go to https://github.com/signup
+3. Sign up with `yourname+bot@gmail.com`
+4. Choose a username like `yourname-bot` or `dev-agent-bot`
+5. Verify the email (Gmail delivers to your main inbox)
+
+**Step 2: Add Bot as Collaborator**
+
+1. Go to your repository → Settings → Collaborators
+2. Add the bot account as a collaborator
+3. Accept the invitation from the bot account
+
+**Step 3: Generate Bot Token**
+
+1. Log in to the bot account
+2. Go to Settings → Developer settings → Personal access tokens
+3. Generate new token with scopes: `repo`, `project`
+4. Copy the token
+
+**Step 4: Update Local Environment**
+
+Add the bot token to your `.env.local` (keep your admin token too):
+```bash
+# Admin token (your personal account) - for GitHub Projects
+GITHUB_TOKEN="ghp_your_admin_token_here"
+
+# Bot token (bot account) - for PRs, issues, comments
+GITHUB_BOT_TOKEN="ghp_bot_token_here"
+```
+
+**Step 5: Update Vercel Production**
+
+Push both tokens to Vercel:
+```bash
+# Create temporary file with both tokens
+cat > .env.github << 'EOF'
+GITHUB_TOKEN="ghp_your_admin_token_here"
+GITHUB_BOT_TOKEN="ghp_bot_token_here"
+EOF
+
+# Push to Vercel production
+yarn vercel-cli env:push --file .env.github --target production --overwrite
+
+# Verify both tokens are set
+yarn vercel-cli env --target production | grep GITHUB
+
+# Clean up temporary file
+rm .env.github
+
+# Redeploy to pick up new tokens
+git commit --allow-empty -m "chore: update to two-token architecture"
+git push
+```
+
+**Step 6: Update GitHub Actions**
+
+GitHub Actions needs the bot token since it posts comments and updates issues.
+
+Use the automated setup script (reads from `.env.local`):
+```bash
+# Requires: gh CLI installed and authenticated
+# Updates GITHUB_TOKEN secret with bot token automatically
+yarn setup-github-secrets
+```
+
+Or manually update repository secrets (Settings → Secrets and variables → Actions):
+- `GITHUB_TOKEN`: Set to **bot account token** (for posting comments, marking items done)
+
+**Note:** GitHub Actions only needs the bot token, not the admin token. The admin token stays local and in Vercel for project operations.
+
+**Step 7: Verify Setup**
+
+Test by creating a comment:
+```bash
+yarn github-pr comment --pr <pr-number> --message "Test from bot"
+```
+
+Check that the comment appears from the bot account, not your personal account.
+
+**Result:**
+- ✅ All PRs created by `bot-account` (not you)
+- ✅ You can approve/request changes on PRs
+- ✅ Clear separation between user and agent actions
+- ✅ Agent identity prefixes show which specific agent took each action
+
+### Agent Identity Prefixes
+
+Since all agents use the same bot account, each agent prefixes its comments with a unique emoji and name so both humans and other agents can identify who took the action.
+
+**Agent Prefixes:**
+| Agent | Emoji | Full Name |
+|-------|-------|-----------|
+| Product Design | 🎨 | Product Design Agent |
+| Tech Design | 🏗️ | Tech Design Agent |
+| Implementor | ⚙️ | Implementor Agent |
+| PR Review | 👀 | PR Review Agent |
+| Auto-Advance | ⏭️ | Auto-Advance Agent |
+
+**Example Comment:**
+```markdown
+🎨 **[Product Design Agent]**
+
+## Product Design
+
+The dark mode toggle should be placed in the Settings page...
+```
+
+**What Gets Prefixed:**
+- ✅ All issue comments (feedback, clarifications, PR links)
+- ✅ All PR comments (reviews, feedback resolution)
+- ❌ Issue body updates (design documents remain clean)
+- ❌ PR titles and descriptions (structured documents)
+
+This allows you to quickly scan which agent did what, and enables agents to read and understand each other's actions.
 
 ### Telegram Setup
 
@@ -1161,19 +1317,33 @@ The agents are designed to minimize API calls. If you hit limits:
 
 For projects based on this template:
 
-1. **Set environment variables** in `.env`:
+1. **Create bot GitHub account** (recommended - see "Bot Account Setup" section above)
+   - Allows you to approve PRs created by agents
+   - Clear separation between user and agent actions
+
+2. **Set environment variables** in `.env`:
    ```bash
-   GITHUB_TOKEN=your_token
+   # Admin token (your personal account) - for GitHub Projects
+   GITHUB_TOKEN=your_personal_token
+
+   # Bot token (bot account) - for PRs, issues, comments
+   GITHUB_BOT_TOKEN=your_bot_token
+
+   # Project configuration
    GITHUB_OWNER=your-username
    GITHUB_REPO=your-repo
    GITHUB_PROJECT_NUMBER=1
    GITHUB_OWNER_TYPE=user
-   TELEGRAM_BOT_TOKEN=your_bot_token  # optional
+
+   # Telegram (optional)
+   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
    ```
 
-2. **Create GitHub Project** with required statuses (see Setup section)
+3. **Create GitHub Project** with required statuses (see Setup section)
 
-3. **Run agents** as normal - everything uses environment variables automatically
+4. **Update Vercel and GitHub Actions** with both tokens (see "Bot Account Setup" section)
+
+5. **Run agents** as normal - everything uses environment variables automatically
 
 ## File Structure
 

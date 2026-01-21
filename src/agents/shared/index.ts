@@ -56,9 +56,10 @@ export type {
     BatchProcessingSummary,
 } from './types';
 
-// Claude SDK
+// Agent library abstraction
 export {
     runAgent,
+    getAgentLibrary,
     extractMarkdown,
     extractJSON,
     extractReview,
@@ -68,8 +69,11 @@ export {
     extractTechDesign,
     buildUpdatedIssueBody,
     DESIGN_MARKERS,
-    type RunAgentOptions,
-} from './claude';
+    type AgentRunOptions,
+    type AgentRunResult,
+    type AgentLibraryAdapter,
+    type WorkflowName,
+} from '../lib';
 
 // Notifications
 export {
@@ -114,3 +118,12 @@ export {
     type BugDiagnostics,
     type FeedbackResolution,
 } from './utils';
+
+// Agent Identity
+export {
+    addAgentPrefix,
+    getAgentPrefix,
+    hasAgentPrefix,
+    extractAgentName,
+    type AgentName,
+} from './agent-identity';

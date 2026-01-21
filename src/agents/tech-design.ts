@@ -185,6 +185,7 @@ async function processItem(
             verbose: options.verbose,
             timeout: options.timeout,
             progressLabel,
+            workflow: 'tech-design',
         });
 
         if (!result.success || !result.content) {
@@ -207,7 +208,8 @@ async function processItem(
                 'Technical Design',
                 content.title,
                 issueType,
-                options
+                options,
+                'tech-design'
             );
         }
 

@@ -61,6 +61,8 @@ import {
     handleClarificationRequest,
     extractFeedbackResolution,
     formatFeedbackResolution,
+    // Agent Identity
+    addAgentPrefix,
 } from './shared';
 
 // ============================================================
@@ -405,6 +407,7 @@ async function processItem(
             timeout: options.timeout,
             progressLabel,
             allowWrite: true, // Enable write mode
+            workflow: 'implementation',
         });
 
         if (!result.success) {
@@ -432,7 +435,8 @@ async function processItem(
                     'Implementation',
                     content.title,
                     issueType,
-                    options
+                    options,
+                    'implementor'
                 );
             }
         }
@@ -461,6 +465,7 @@ async function processItem(
                     timeout: options.timeout,
                     progressLabel: 'Fixing yarn checks issues',
                     allowWrite: true,
+                    workflow: 'implementation',
                 });
 
                 if (!fixResult.success) {
@@ -566,7 +571,8 @@ See issue #${issueNumber} for full context, product design, and technical design
             console.log(`  Created PR #${prNumber}: ${pr.url}`);
 
             // Add comment on issue linking to PR
-            await adapter.addIssueComment(issueNumber, `Implementation PR: #${prNumber}`);
+            const prLinkComment = addAgentPrefix('implementor', `Implementation PR: #${prNumber}`);
+            await adapter.addIssueComment(issueNumber, prLinkComment);
         } else {
             // Add comment on PR about addressed feedback
             if (prNumber && result.content) {
@@ -575,7 +581,8 @@ See issue #${issueNumber} for full context, product design, and technical design
                 const comment = feedbackResolution
                     ? formatFeedbackResolution(feedbackResolution)
                     : 'Addressed review feedback. Ready for re-review.';
-                await adapter.addPRComment(prNumber, comment);
+                const prefixedComment = addAgentPrefix('implementor', comment);
+                await adapter.addPRComment(prNumber, prefixedComment);
             }
         }
 

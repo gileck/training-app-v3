@@ -2,13 +2,14 @@
 /**
  * PR Review Agent
  *
- * Reviews Pull Requests for GitHub Project items using Claude Code slash commands.
+ * Reviews Pull Requests for GitHub Project items using Claude Code native /review command.
  *
  * Flow:
  *   - Fetches items in "PR Review" status with Review Status = "Waiting for Review"
  *   - Extracts PR number from issue comments
  *   - Checks out the feature branch locally
- *   - Runs /pr-review slash command via Claude agent
+ *   - Fetches all PR comments (conversation + inline review comments)
+ *   - Runs native /review slash command with PR comments as context
  *   - Posts structured review comment on PR
  *   - Updates Review Status accordingly
  *   - Checks out back to main branch
@@ -44,6 +45,8 @@ import {
     type CommonCLIOptions,
     // Utils
     getIssueType,
+    // Agent Identity
+    addAgentPrefix,
 } from './shared';
 
 // ============================================================
@@ -196,16 +199,83 @@ async function processItem(
         }
 
         try {
-            // Run the /pr-review slash command
+            // Fetch all PR comments
+            console.log('  Fetching PR comments...');
+            const prConversationComments = await adapter.getPRComments(prNumber);
+            const prReviewComments = await adapter.getPRReviewComments(prNumber);
+
+            const totalComments = prConversationComments.length + prReviewComments.length;
+            if (totalComments > 0) {
+                console.log(`  Found ${prConversationComments.length} conversation comments, ${prReviewComments.length} review comments`);
+            }
+
+            // Build context with PR comments
+            let contextPrompt = '';
+
+            if (prConversationComments.length > 0) {
+                contextPrompt += '## PR Conversation Comments\n\n';
+                contextPrompt += 'The following comments have been posted on the PR:\n\n';
+                for (const comment of prConversationComments) {
+                    contextPrompt += `**${comment.author}** (${new Date(comment.createdAt).toLocaleDateString()}):\n`;
+                    contextPrompt += `${comment.body}\n\n`;
+                }
+                contextPrompt += '---\n\n';
+            }
+
+            if (prReviewComments.length > 0) {
+                contextPrompt += '## PR Review Comments (Inline Code Comments)\n\n';
+                contextPrompt += 'The following inline comments have been posted on specific code:\n\n';
+                for (const comment of prReviewComments) {
+                    contextPrompt += `**${comment.author}** on \`${comment.path}:${comment.line}\`:\n`;
+                    contextPrompt += `${comment.body}\n\n`;
+                }
+                contextPrompt += '---\n\n';
+            }
+
+            if (contextPrompt) {
+                contextPrompt += '## Instructions\n\n';
+                contextPrompt += 'Please review this PR and consider the comments above. ';
+                contextPrompt += 'Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.\n\n';
+                contextPrompt += '**IMPORTANT**: Check compliance with project guidelines in `.cursor/rules/`:\n';
+                contextPrompt += '- TypeScript guidelines (`.cursor/rules/typescript-guidelines.mdc`)\n';
+                contextPrompt += '- React patterns (`.cursor/rules/react-component-organization.mdc`, `.cursor/rules/react-hook-organization.mdc`)\n';
+                contextPrompt += '- State management (`.cursor/rules/state-management-guidelines.mdc`)\n';
+                contextPrompt += '- UI/UX patterns (`.cursor/rules/ui-design-guidelines.mdc`, `.cursor/rules/shadcn-usage.mdc`)\n';
+                contextPrompt += '- File organization (`.cursor/rules/feature-based-structure.mdc`)\n';
+                contextPrompt += '- API patterns (`.cursor/rules/client-server-communications.mdc`)\n';
+                contextPrompt += '- Comprehensive checklist (`.cursor/rules/app-guidelines-checklist.mdc`)\n\n';
+            }
+
+            // Run the /review slash command with context
             console.log(`\n  Running PR review...`);
+            let prompt: string;
+            if (contextPrompt) {
+                prompt = `${contextPrompt}/review`;
+            } else {
+                // No PR comments, but still provide guidelines
+                prompt = `## Instructions
+
+Review this PR and check compliance with project guidelines in \`.cursor/rules/\`:
+- TypeScript guidelines (\`.cursor/rules/typescript-guidelines.mdc\`)
+- React patterns (\`.cursor/rules/react-component-organization.mdc\`, \`.cursor/rules/react-hook-organization.mdc\`)
+- State management (\`.cursor/rules/state-management-guidelines.mdc\`)
+- UI/UX patterns (\`.cursor/rules/ui-design-guidelines.mdc\`, \`.cursor/rules/shadcn-usage.mdc\`)
+- File organization (\`.cursor/rules/feature-based-structure.mdc\`)
+- API patterns (\`.cursor/rules/client-server-communications.mdc\`)
+- Comprehensive checklist (\`.cursor/rules/app-guidelines-checklist.mdc\`)
+
+/review`;
+            }
+
             const result = await runAgent({
-                prompt: '/pr-review',
+                prompt,
                 useSlashCommands: true,
                 allowedTools: ['Read', 'Glob', 'Grep', 'Bash'],
                 stream: options.stream,
                 verbose: options.verbose,
                 timeout: agentConfig.claude.timeoutSeconds,
                 progressLabel: 'Reviewing PR',
+                workflow: 'pr-review',
             });
 
             if (!result.success) {
@@ -235,7 +305,8 @@ async function processItem(
                 console.log(`\n  [DRY RUN] Would update review status to: ${decision === 'approved' ? 'Approved' : 'Request Changes'}`);
             } else {
                 // Post review comment on PR
-                await adapter.addPRComment(prNumber, reviewContent);
+                const prefixedReview = addAgentPrefix('pr-review', reviewContent);
+                await adapter.addPRComment(prNumber, prefixedReview);
                 console.log('  Posted review comment on PR');
 
                 // Update review status
@@ -282,7 +353,9 @@ async function run(options: PRReviewOptions): Promise<void> {
         console.log('🔍 DRY RUN MODE - No changes will be made\n');
     }
 
-    const adapter = await getProjectManagementAdapter();
+    console.log('Connecting to GitHub...');
+    const adapter = getProjectManagementAdapter();
+    await adapter.init();
 
     // Get default branch
     const defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');

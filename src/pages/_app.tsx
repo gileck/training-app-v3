@@ -1,6 +1,7 @@
 import "@/client/styles/globals.css";
 import "@/client/styles/project.css";  // Project-specific styles (ignored by template-sync)
 import type { AppProps } from "next/app";
+import Head from 'next/head';
 import { AppThemeProvider } from "@/client/components/ThemeProvider";
 import dynamic from 'next/dynamic';
 import { routes } from '@/client/routes';
@@ -27,21 +28,26 @@ markEvent(BOOT_PHASES.APP_MOUNT);
 
 export default function App({ }: AppProps) {
   return (
-    <QueryProvider>
-      <AppInitializer />
-      <BootGate>
-        <AppThemeProvider>
-          <RouterProvider routes={routes}>
-            {RouteComponent => (
-              <AuthWrapper>
-                <Layout><RouteComponent /></Layout>
-              </AuthWrapper>
-            )}
-          </RouterProvider>
-          <BatchSyncAlert />
-        </AppThemeProvider>
-      </BootGate>
-    </QueryProvider>
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+      </Head>
+      <QueryProvider>
+        <AppInitializer />
+        <BootGate>
+          <AppThemeProvider>
+            <RouterProvider routes={routes}>
+              {RouteComponent => (
+                <AuthWrapper>
+                  <Layout><RouteComponent /></Layout>
+                </AuthWrapper>
+              )}
+            </RouterProvider>
+            <BatchSyncAlert />
+          </AppThemeProvider>
+        </BootGate>
+      </QueryProvider>
+    </>
   );
 }
 

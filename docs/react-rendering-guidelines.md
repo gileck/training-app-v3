@@ -193,6 +193,82 @@ function MyComponent({ value }) {
 
 ---
 
+## Common Scenarios
+
+### Arrays
+
+```typescript
+// ❌ BAD
+export function useTodos() {
+    return useStore((state) => state.todos || []);  // New array each time!
+}
+
+// ✅ GOOD
+const EMPTY_TODOS: Todo[] = [];
+export function useTodos() {
+    return useStore((state) => state.todos || EMPTY_TODOS);
+}
+```
+
+### Objects
+
+```typescript
+// ❌ BAD
+export function useSettings() {
+    return useStore((state) => state.settings ?? {});  // New object each time!
+}
+
+// ✅ GOOD
+const DEFAULT_SETTINGS: Settings = {};
+export function useSettings() {
+    return useStore((state) => state.settings ?? DEFAULT_SETTINGS);
+}
+```
+
+### Conditional Returns
+
+```typescript
+// ❌ BAD
+export function useFilteredData(filter: string | null) {
+    return useStore((state) => {
+        if (!filter) return [];  // New array!
+        return state.items.filter(item => item.category === filter);
+    });
+}
+
+// ✅ GOOD
+const EMPTY_DATA: Item[] = [];
+export function useFilteredData(filter: string | null) {
+    return useStore((state) => {
+        if (!filter) return EMPTY_DATA;
+        return state.items.filter(item => item.category === filter);
+    });
+}
+```
+
+### Nested Fallbacks
+
+```typescript
+// ❌ BAD
+export function useUserData(userId: string | null) {
+    return useStore((state) => {
+        const user = state.users[userId];
+        return user?.data ?? {};  // New object if no data!
+    });
+}
+
+// ✅ GOOD
+const EMPTY_USER_DATA: UserData = {};
+export function useUserData(userId: string | null) {
+    return useStore((state) => {
+        const user = state.users[userId];
+        return user?.data ?? EMPTY_USER_DATA;
+    });
+}
+```
+
+---
+
 ## Checklist for New Selectors
 
 When creating Zustand selectors:
@@ -203,3 +279,16 @@ When creating Zustand selectors:
 - [ ] If yes, consider if that computation should be memoized
 - [ ] Test the selector with null/undefined inputs
 - [ ] Test the selector with empty state
+- [ ] Are all conditional branches returning stable references?
+
+---
+
+## Related Issues
+
+This same pattern applies to:
+- React Query selectors
+- useMemo dependencies
+- useEffect dependencies
+- Any hook that compares references
+
+**General Rule:** Never create new objects/arrays inline if they're used for reference comparison.

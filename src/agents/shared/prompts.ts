@@ -607,6 +607,19 @@ Implement the feature as specified in ${implementationSource}:
 
 ## Implementation Guidelines
 
+**CRITICAL**: Before implementing, read the project guidelines in \`.cursor/rules/\`:
+- \`.cursor/rules/typescript-guidelines.mdc\` - TypeScript coding standards
+- \`.cursor/rules/react-component-organization.mdc\` - Component structure and patterns
+- \`.cursor/rules/react-hook-organization.mdc\` - Custom hook patterns
+- \`.cursor/rules/state-management-guidelines.mdc\` - Zustand and React Query usage
+- \`.cursor/rules/feature-based-structure.mdc\` - File organization by feature
+- \`.cursor/rules/ui-design-guidelines.mdc\` - UI/UX patterns
+- \`.cursor/rules/shadcn-usage.mdc\` - shadcn/ui component usage
+- \`.cursor/rules/client-server-communications.mdc\` - API patterns
+- \`.cursor/rules/mongodb-usage.mdc\` - Database operations (if applicable)
+- \`.cursor/rules/app-guidelines-checklist.mdc\` - Comprehensive checklist
+
+Key principles:
 - Follow the existing code patterns in the codebase
 - Use TypeScript with proper types
 - Follow the project's ESLint rules
@@ -694,10 +707,14 @@ ${reviewComments || 'No PR review comments'}
 
 ## Guidelines
 
+**Follow project guidelines in \`.cursor/rules/\`** (same as initial implementation)
+
+Key principles:
 - Address ALL feedback points
 - Keep changes focused on the feedback
 - Don't add extra features or refactoring
 - Test your changes make sense in context
+- Follow TypeScript, React, and state management patterns from \`.cursor/rules/\`
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -987,6 +1004,9 @@ Implement the bug fix as specified in ${implementationSource}:
 
 ## Implementation Guidelines
 
+**Follow project guidelines in \`.cursor/rules/\`** (TypeScript, React, state management patterns)
+
+Key principles for bug fixes:
 - **Be minimal**: Bug fixes should change as little code as possible
 - Focus on the root cause, not symptoms
 - Add defensive programming where appropriate (null checks, error boundaries)

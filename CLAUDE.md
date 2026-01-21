@@ -253,55 +253,25 @@ return <ItemList items={items} />;
 
 ## React Rendering & Infinite Loops
 
-Common pitfalls that cause infinite re-renders and hard-to-debug issues.
+Common pitfalls that cause infinite re-renders.
 
-**Summary:** Zustand selectors returning new object/array references on every render cause infinite loops. These bugs pass TypeScript and ESLint but crash at runtime.
-
-**Key Points:**
-- **CRITICAL**: Never return `{}` or `[]` literals in Zustand selector fallbacks
-- Create module-level constants for empty fallback values
-- Symptoms: `Maximum update depth exceeded`, app freezes on mount
+**CRITICAL:** Never return `{}` or `[]` literals in Zustand selector fallbacks. Create module-level constants for empty values.
 
 **The Bug:**
-
 ```typescript
-// BAD: New {} created every render → infinite loop
-export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
-    return usePlanDataStore((state) => {
-        if (!planId) return {};  // NEW OBJECT EVERY RENDER!
-        return state.plans[planId]?.workoutSets?.[weekNumber] ?? {};
-    });
-}
+// BAD: New {} every render → infinite loop
+return usePlanDataStore((state) => {
+    if (!planId) return {};  // NEW OBJECT EVERY RENDER!
+});
 ```
 
 **The Fix:**
-
 ```typescript
-// GOOD: Stable reference prevents infinite loops
-const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
-
-export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
-    return usePlanDataStore((state) => {
-        if (!planId) return EMPTY_WORKOUT_SETS;  // Same reference
-        return state.plans[planId]?.workoutSets?.[weekNumber] ?? EMPTY_WORKOUT_SETS;
-    });
-}
-```
-
-**Best Practice: Define stable fallbacks at module level**
-
-```typescript
-// At the top of your store file
-const EMPTY_ITEMS: Item[] = [];
-const EMPTY_MAP: Record<string, unknown> = {};
-
-// Use in selectors
-export function useItems(id: string | null) {
-    return useMyStore((state) => {
-        if (!id) return EMPTY_ITEMS;
-        return state.data[id]?.items ?? EMPTY_ITEMS;
-    });
-}
+// GOOD: Stable reference
+const EMPTY_DATA = {};
+return usePlanDataStore((state) => {
+    if (!planId) return EMPTY_DATA;
+});
 ```
 
 **Docs:** [docs/react-rendering-guidelines.md](docs/react-rendering-guidelines.md)
@@ -478,49 +448,23 @@ Strict TypeScript guidelines.
 
 **CRITICAL: Always run `yarn checks` before completing work.**
 
-### For Claude Code (Planning Mode)
-
-When working in planning mode, **ALWAYS** include a final task in your plan to run `yarn checks`:
-
-```markdown
-## Implementation Plan
-
-1. [Task 1: Implementation step]
-2. [Task 2: Implementation step]
-3. [Task 3: Implementation step]
-4. **Run `yarn checks` and fix any TypeScript/ESLint errors** ⚠️ REQUIRED
-```
-
-**Why this matters:**
-- Ensures all TypeScript types are correct
-- Catches ESLint violations early
-- Prevents breaking changes from being synced to child projects
-- Validates the codebase is in a clean state
-
-### General Development
+**For Claude Code (Planning Mode):**
+Always include a final task to run `yarn checks` in your plan.
 
 **Before any of these actions:**
 - ✅ Committing code
 - ✅ Creating pull requests
-- ✅ Syncing to child projects (see `/sync-children`)
+- ✅ Syncing to child projects
 - ✅ Deploying to production
 
-**Always run:**
-```bash
-yarn checks
-```
-
-**Expected output:**
-```
-✔ No TypeScript errors
-✔ No ESLint warnings or errors
-```
+**Always run:** `yarn checks`
 
 **If errors occur:**
-1. Fix all TypeScript errors first (type safety is critical)
-2. Fix all ESLint errors second (code quality and consistency)
+1. Fix TypeScript errors first
+2. Fix ESLint errors second
 3. Re-run `yarn checks` until it passes
-4. Only then proceed with commit/PR/sync/deploy
+
+**Docs:** [docs/validation-planning-mode.md](docs/validation-planning-mode.md)
 
 ---
 
@@ -528,65 +472,23 @@ yarn checks
 
 Systematic verification of codebase compliance.
 
-**Summary:** Use this checklist to verify code follows all established guidelines. Run `yarn checks` to validate - the app is not compliant until it passes with 0 errors.
+**Summary:** Use this checklist to verify code follows all guidelines. Run `yarn checks` to validate - must pass with 0 errors.
 
-**Key Points:**
-
-**1. API Guidelines: (in api folder)**
-- [ ] File structure: `index.ts`, `types.ts`, `server.ts`, `client.ts` exist
-- [ ] API names defined ONLY in `index.ts`
-- [ ] Server re-exports from `index.ts`, client imports from `index.ts` (never `server.ts`)
-- [ ] Types defined in `types.ts`, never duplicated elsewhere
-- [ ] Client functions return `CacheResult<ResponseType>`
-
-**2. Routes Check:**
-- [ ] Proper loading states implemented
-- [ ] Error handling in place
-- [ ] Code organized and split into multiple components if needed
-
-**3. React Components:**
-- [ ] TypeScript interfaces for props
-- [ ] No server-side imports in client code
-- [ ] Don't redefine API types (import from `types.ts`)
-- [ ] Clean separation of presentation and logic
-
-**4. Server Code:**
-- [ ] No client-side imports
-- [ ] Proper error handling
-
-**5. TypeScript:**
-- [ ] No `any` types
-- [ ] No type duplications
-- [ ] No circular dependencies
-
-**6. MongoDB Usage:**
-- [ ] All operations encapsulated in `src/server/database/collections/`
-- [ ] No direct `mongodb` imports outside database layer
-- [ ] API layer imports from `@/server/database`, never uses `getDb()` directly
-- [ ] Each collection has: `types.ts` + `<collection>.ts`
-- [ ] Collection types use `ObjectId` for `_id` and foreign keys
-
-**7. State Management:**
-- [ ] Zustand stores use `createStore` factory (no direct zustand imports)
-- [ ] React Query for server state, Zustand for client state
-- [ ] Stores export via `index.ts` for public API
-
-**8. Offline/PWA Support:**
-- [ ] Mutations use optimistic-only pattern (`onMutate` updates UI, `onSuccess` empty)
-- [ ] Guard against empty data in `onSuccess` (offline returns `{}`)
-- [ ] No `invalidateQueries` in `onSettled` (causes race conditions)
-
-**9. UI & Styling:**
-- [ ] Only shadcn/ui components (no other UI libraries)
-- [ ] Semantic color tokens only (`bg-background`, not `bg-white`)
-- [ ] No hardcoded colors or raw Tailwind colors
-
-**10. Final Verification:**
-```bash
-yarn checks  # Must pass with 0 errors
-```
+**Key Areas:**
+1. API structure and naming
+2. Routes with proper loading states
+3. React components with TypeScript
+4. Server code isolation
+5. TypeScript strict mode
+6. MongoDB layer encapsulation
+7. State management patterns
+8. Offline/PWA optimistic updates
+9. UI styling with semantic tokens
+10. Final verification: `yarn checks`
 
 **Docs:** [app-guildelines/app-guidelines-checklist.md](app-guildelines/app-guidelines-checklist.md)
+
+**Rules:** [.cursor/rules/app-guidelines-checklist.mdc](.cursor/rules/app-guidelines-checklist.mdc)
 
 ---
 
@@ -749,111 +651,27 @@ Use `--cloud-proxy` when running in Claude Code cloud environment. This enables:
 
 Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 
-**Summary:** CLI agents that automate the design and development workflow:
-1. Sync approved feature requests to GitHub Issues
-2. Generate Product Design documents using Claude
-3. Generate Technical Design documents using Claude
-4. Implement features and create PRs using Claude
-
 **Key Features:**
-- **Squash-merge ready PRs**: PRs are formatted with title and body that require no editing before squash merge
-- **Auto-completion**: When PR is merged, GitHub Action automatically marks issue as Done in both GitHub Projects and MongoDB
-- **Simplified MongoDB schema**: MongoDB tracks only 4 high-level statuses (`new`, `in_progress`, `done`, `rejected`), detailed workflow tracking happens in GitHub Projects
-- **Two-tier status tracking**: Eliminates duplication between MongoDB and GitHub Projects
-  - **MongoDB (high-level)**: `new` → `in_progress` → `done` | `rejected`
-    - Purpose: User-facing feature request list, basic filtering
-    - `in_progress` spans all active workflow phases (design through implementation)
-  - **GitHub Projects (detailed)**: Backlog → Product Design → Tech Design → Implementation → PR Review → Done
-    - Purpose: Agent workflow, detailed progress tracking
-    - Source of truth for current workflow phase
-
-**Getting Started (Child Projects):**
-
-If you're setting up this workflow in a child project for the first time, follow the comprehensive getting started guide:
-
-📚 **[docs/init-github-projects-workflow.md](docs/init-github-projects-workflow.md)** - Complete setup guide with step-by-step instructions for:
-- GitHub Project V2 creation and configuration
-- Environment variables (.env)
-- Telegram bot setup (IMPORTANT: each project needs its own bot)
-- GitHub repository secrets and variables
-- Vercel environment variables
-- Verification and testing
-
-**Quick Setup (For Reference):**
-1. Create a GitHub Project with required statuses (see docs)
-2. Add `GITHUB_TOKEN` to `.env` with `repo` and `project` scopes
-3. Set environment variables: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_PROJECT_NUMBER`, `GITHUB_OWNER_TYPE`
-4. Create a Telegram bot (each project needs its own bot due to webhook limitations)
-5. Configure GitHub repository secrets via `yarn setup-github-secrets`
-6. **Verify setup:** `yarn verify-setup` (checks all configuration)
-
-**Setup Verification:**
-
-After completing setup, verify all configuration is correct:
-
-```bash
-yarn verify-setup
-```
-
-This checks:
-- Local environment variables (`.env.local`)
-- Vercel environment variables (production)
-- GitHub repository secrets and variables
-- app.config.js configuration
-- GitHub Project structure
-
-**CRITICAL - Production Deployment:**
-
-For GitHub statuses to work in production (Vercel), ensure ALL GitHub environment variables are set:
-
-```bash
-# Push GitHub env vars to Vercel production
-yarn vercel-cli env:push --file .env.local --target production --overwrite
-
-# Or push only specific variables:
-# Create a temporary file with:
-# GITHUB_OWNER=your_owner
-# GITHUB_REPO=your_repo
-# GITHUB_PROJECT_NUMBER=3
-# GITHUB_OWNER_TYPE=user
-# Then: yarn vercel-cli env:push --file .env.github --target production
-
-# Verify variables are set
-yarn vercel-cli env --target production | grep GITHUB_
-
-# Redeploy to pick up new env vars (push any commit)
-git commit --allow-empty -m "chore: trigger redeploy"
-git push
-```
+- Squash-merge ready PRs (no editing needed before merge)
+- Auto-completion when PR merges
+- Two-tier status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)
 
 **CLI Commands:**
+- `yarn agent:product-design` - Generate product designs
+- `yarn agent:tech-design` - Generate technical designs
+- `yarn agent:implement` - Implement features and create PRs
 
-| Command | Description |
-|---------|-------------|
-| `yarn agent:product-design` | Generate product design documents |
-| `yarn agent:tech-design` | Generate technical design documents |
-| `yarn agent:implement` | Implement features and create PRs |
+**Setup:**
+📚 **[docs/init-github-projects-workflow.md](docs/init-github-projects-workflow.md)** - Complete setup guide
 
-**Architecture:**
+**Verify setup:** `yarn verify-setup`
 
-The project management system uses an adapter pattern for flexibility:
-- `src/server/project-management/` - Abstraction layer with types, config, and adapters
-- `src/agents/` - CLI agents that use the project management adapter
+**Agent Library Abstraction:**
+- Default: Claude Code SDK
+- Per-workflow overrides via environment variables
+- Configure via `AGENT_DEFAULT_LIBRARY`, `AGENT_PRODUCT_DESIGN_LIBRARY`, etc.
 
-**Common Options:**
-- `--id <id>` - Process specific item
-- `--dry-run` - Preview without changes
-- `--stream` - Stream Claude output
-- `--limit <n>` - Limit items to process
-
-**Workflow:**
-```
-Feature Request → GitHub Issue → Product Design → Tech Design → PR → Merge → Auto-marked Done
-```
-
-Each phase has a review step where admin can approve or request changes. PRs are formatted for immediate squash merge without editing.
-
-**Docs:** [docs/github-projects-integration.md](docs/github-projects-integration.md)
+**Docs:** [docs/github-projects-integration.md](docs/github-projects-integration.md), [docs/agent-library-abstraction.md](docs/agent-library-abstraction.md)
 
 ---
 
@@ -925,203 +743,24 @@ Use `--cloud-proxy` when running in Claude Code cloud environment.
 
 ## Critical Deployment Issues & Best Practices
 
-Common pitfalls and solutions when deploying to production.
+Common pitfalls when deploying to production.
 
-### ⚠️ CRITICAL: `pages/` vs `src/pages/` Directory Structure
+**⚠️ CRITICAL Issues:**
 
-**Problem:** Next.js prioritizes `pages/` over `src/pages/`. If you accidentally create `pages/` directory when the project uses `src/pages/`, Next.js will ignore `src/pages/` entirely, causing **all routes to return 404**.
+1. **`pages/` vs `src/pages/` Directory**
+   - This project uses `src/pages/` (NOT `pages/`)
+   - ✅ ALWAYS place pages/API routes in `src/pages/`
+   - ❌ NEVER create `pages/` directory at root
 
-**Symptom:**
-- Home page returns 404 in production
-- Build output only shows routes from `pages/` directory
-- Example build output showing the problem:
-  ```
-  Route (pages)                                Size  First Load JS
-  ┌ ○ /404                                    190 B         102 kB
-  └ ƒ /api/test-endpoint                        0 B         102 kB
-  ```
-  Notice: NO home page (`/`) route!
+2. **Vercel Environment Variables**
+   - Use `VERCEL_PROJECT_PRODUCTION_URL` for stable URLs
+   - Vercel URLs don't include protocol - prepend `https://`
 
-**This project uses:** `src/pages/` (NOT `pages/`)
+3. **Markdown Extraction with Nested Code Blocks**
+   - `extractMarkdown()` properly handles nested code blocks
+   - Fixed in `src/agents/shared/claude.ts:253-317`
 
-**Rule:**
-- ✅ **ALWAYS** place new pages/API routes in `src/pages/`
-- ❌ **NEVER** create `pages/` directory at project root
-- ❌ **NEVER** add files to `pages/` if it exists (delete it instead)
-
-**Correct structure:**
-```
-src/
-  pages/
-    index.tsx          ✅ Home page
-    [...slug].tsx      ✅ Catch-all route
-    _app.tsx           ✅ App wrapper
-    _document.tsx      ✅ Document wrapper
-    api/
-      process/         ✅ API routes
-      telegram-webhook.ts  ✅ API endpoints
-```
-
-**Incorrect structure that breaks everything:**
-```
-pages/                 ❌ WRONG! Delete this directory
-  api/
-    new-endpoint.ts    ❌ This will break all routes in src/pages/
-
-src/
-  pages/               ⚠️  Will be ignored if pages/ exists
-    index.tsx          ⚠️  Won't be built
-    [...slug].tsx      ⚠️  Won't be built
-```
-
-**How to fix if you accidentally create `pages/`:**
-```bash
-# Move any new files to correct location
-mv pages/api/new-endpoint.ts src/pages/api/new-endpoint.ts
-
-# Remove the incorrect directory
-rmdir pages/api
-rmdir pages
-
-# Verify structure is correct
-ls -la src/pages/
-```
-
-**Prevention:** Before adding new pages/API routes, always check project structure:
-```bash
-# This project uses src/pages/ - add files here
-ls -la src/pages/
-
-# This directory should NOT exist
-ls -la pages/  # Should show "No such file or directory"
-```
-
----
-
-### ✅ Vercel Environment Variables - Automatic URLs
-
-**Good news:** Vercel automatically provides stable production URLs - no manual configuration needed!
-
-**Automatic System Variables:**
-
-| Variable | Description | Stability | Example | Protocol |
-|----------|-------------|-----------|---------|----------|
-| `VERCEL_PROJECT_PRODUCTION_URL` | **Stable production domain** | ✅ Never changes | `app-template-ai.vercel.app` | No `https://` |
-| `VERCEL_URL` | Current deployment URL | ❌ Changes per deployment | `app-template-xyz123.vercel.app` | No `https://` |
-| `VERCEL_BRANCH_URL` | Git branch URL | ⚠️  Stable per branch | `app-template-git-main.vercel.app` | No `https://` |
-| `VERCEL_ENV` | Environment | ✅ Never changes | `production`, `preview`, `development` | N/A |
-
-**Important:** Vercel URLs don't include the protocol - always prepend `https://`
-
-**Usage in code:**
-
-```typescript
-function getBaseUrl(): string {
-    // 1. Stable production domain (automatic) ✅ BEST
-    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-    }
-    // 2. Deployment-specific URL (automatic)
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    // 3. Manual override (optional)
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-        return process.env.NEXT_PUBLIC_APP_URL;
-    }
-    // 4. Local development
-    return 'http://localhost:3000';
-}
-```
-
-**When to manually set `NEXT_PUBLIC_APP_URL`:**
-- ✅ Using a custom domain (e.g., `myapp.com` instead of `*.vercel.app`)
-- ✅ Want to override for testing purposes
-- ❌ NOT needed for standard `*.vercel.app` domains (automatic)
-
-**Why `VERCEL_PROJECT_PRODUCTION_URL` is better than `VERCEL_URL`:**
-- `VERCEL_URL` changes with each deployment (`app-template-xyz123.vercel.app`)
-- `VERCEL_PROJECT_PRODUCTION_URL` is stable (`app-template-ai.vercel.app`)
-- Telegram approval buttons need stable URLs that don't break after new deployments
-
-**References:**
-- [Vercel System Environment Variables](https://vercel.com/docs/environment-variables/system-environment-variables)
-- [Next.js URL Discussion](https://github.com/vercel/next.js/discussions/16429)
-
----
-
-### ⚠️ CRITICAL: Markdown Extraction with Nested Code Blocks
-
-**Problem:** Agent-generated design documents that include code examples (with nested ``` code blocks) were being **truncated mid-sentence**, losing all content after the first code example.
-
-**Symptom:**
-- Design content cuts off after text like: "Place the form between the header and filters section:"
-- Everything after the first code block is missing
-- GitHub issue body is incomplete
-- Example: [Issue #15](https://github.com/gileck/app-template-ai/issues/15)
-
-**Root Cause:** `extractMarkdown()` function in `src/agents/shared/claude.ts` used a **non-greedy regex** that stopped at the FIRST ``` closing fence, even if it was inside a nested code block.
-
-**Example of the bug:**
-
-Agent returns:
-````markdown
-```markdown
-# UI Placement
-
-Place the form between the header and filters section:
-
-```jsx          <-- OLD REGEX STOPPED HERE!
-<Header />
-<NewFeatureRequestForm />
-<Filters />
-```
-
-This ensures proper placement.
-
-## Component Structure
-
-The form has these fields...
-```
-````
-
-**Buggy regex:** `/```markdown\s*([\s\S]*?)\s*```/`
-- The `([\s\S]*?)` is non-greedy (stops at first match)
-- Matched everything up to the first ``` (inside the JSX block)
-- Lost all content after the first nested code block
-
-**The Fix:**
-
-Proper fence marker parsing that:
-1. Finds opening ```` ```markdown ````
-2. Counts depth of nested code blocks
-3. Distinguishes opening fences (with language) from closing fences
-4. Only closes when depth returns to 0
-5. Handles edge case of missing closing fence
-
-**File:** `src/agents/shared/claude.ts:253-317`
-
-**Testing:**
-```javascript
-// Before fix: extracted 70 chars (cut after "section:")
-// After fix: extracted 348 chars (complete content)
-
-const input = `...design with nested code blocks...`;
-const extracted = extractMarkdown(input);
-// Now includes JSX example, all sections, and validation
-```
-
-**Prevention:**
-- The fix handles arbitrary nesting depth
-- Properly distinguishes opening/closing fences
-- Works with any code block language (jsx, typescript, bash, etc.)
-- Falls back gracefully if closing fence is missing
-
-**If you encounter this again:**
-1. Check if the design includes code examples
-2. Verify the full design was extracted by inspecting the GitHub issue body
-3. Look for truncation after colons followed by code blocks
-4. The fix is in `extractMarkdown()` - it should handle nested fences properly
+**Docs:** [docs/critical-deployment-issues.md](docs/critical-deployment-issues.md)
 
 ---
 

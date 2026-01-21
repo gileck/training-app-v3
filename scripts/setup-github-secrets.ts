@@ -7,7 +7,7 @@
  * Secrets:
  * - TELEGRAM_BOT_TOKEN: For Telegram notifications
  * - TELEGRAM_CHAT_ID: Chat ID to receive notifications (from LOCAL_TELEGRAM_CHAT_ID in env)
- * - PROJECT_TOKEN: For GitHub Projects V2 access (from GITHUB_TOKEN in env)
+ * - GITHUB_TOKEN: Bot account token for posting comments/marking items done (from GITHUB_BOT_TOKEN in env, fallback to GITHUB_TOKEN)
  *
  * Variables:
  * - TELEGRAM_NOTIFICATIONS_ENABLED: Set to 'true' to enable GitHub Actions notifications
@@ -17,7 +17,7 @@
  *
  * Prerequisites:
  *   - GitHub CLI (gh) installed and authenticated
- *   - .env.local (or .env) file with TELEGRAM_BOT_TOKEN, LOCAL_TELEGRAM_CHAT_ID, and GITHUB_TOKEN
+ *   - .env.local (or .env) file with TELEGRAM_BOT_TOKEN, LOCAL_TELEGRAM_CHAT_ID, and GITHUB_BOT_TOKEN (or GITHUB_TOKEN)
  */
 
 import { execSync } from 'child_process';
@@ -33,7 +33,8 @@ const ENV_FILE = existsSync(resolve(process.cwd(), '.env.local'))
 const REQUIRED_SECRETS = [
     { envKey: 'TELEGRAM_BOT_TOKEN', githubKey: 'TELEGRAM_BOT_TOKEN', description: 'Telegram Bot Token' },
     { envKey: 'LOCAL_TELEGRAM_CHAT_ID', githubKey: 'TELEGRAM_CHAT_ID', description: 'Telegram Chat ID' },
-    { envKey: 'GITHUB_TOKEN', githubKey: 'PROJECT_TOKEN', description: 'GitHub PAT for Projects V2 access' },
+    // GitHub Actions needs bot token for posting comments - try GITHUB_BOT_TOKEN first, fallback to GITHUB_TOKEN
+    { envKey: 'GITHUB_BOT_TOKEN', fallbackKey: 'GITHUB_TOKEN', githubKey: 'GITHUB_TOKEN', description: 'Bot account token for GitHub Actions' },
 ];
 
 // Variables (non-sensitive configuration)
@@ -148,8 +149,15 @@ async function main() {
     // Check for missing secrets
     const missing: string[] = [];
     for (const secret of REQUIRED_SECRETS) {
-        if (!env[secret.envKey]) {
-            missing.push(`${secret.envKey} (${secret.description})`);
+        // Check primary key, or fallback key if provided
+        const hasPrimary = env[secret.envKey];
+        const hasFallback = 'fallbackKey' in secret && env[secret.fallbackKey as string];
+
+        if (!hasPrimary && !hasFallback) {
+            const keys = 'fallbackKey' in secret
+                ? `${secret.envKey} or ${secret.fallbackKey}`
+                : secret.envKey;
+            missing.push(`${keys} (${secret.description})`);
         }
     }
 
@@ -170,10 +178,13 @@ async function main() {
     let secretsFailed = 0;
 
     for (const secret of REQUIRED_SECRETS) {
-        const value = env[secret.envKey];
-        process.stdout.write(`  ${secret.githubKey}... `);
+        // Use primary key if available, otherwise fallback
+        const value = env[secret.envKey] || ('fallbackKey' in secret ? env[secret.fallbackKey as string] : '');
+        const source = env[secret.envKey] ? secret.envKey : ('fallbackKey' in secret ? secret.fallbackKey : secret.envKey);
 
-        if (setGitHubSecret(secret.githubKey, value)) {
+        process.stdout.write(`  ${secret.githubKey} (from ${source})... `);
+
+        if (setGitHubSecret(secret.githubKey, value!)) {
             console.log('✓');
             secretsSuccess++;
         } else {

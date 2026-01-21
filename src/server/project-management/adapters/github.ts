@@ -56,7 +56,8 @@ async function withRetry<T>(
  * GitHub Projects V2 Adapter
  */
 export class GitHubProjectsAdapter implements ProjectManagementAdapter {
-    private octokit: Octokit | null = null;
+    private octokit: Octokit | null = null; // Admin token for project operations
+    private botOctokit: Octokit | null = null; // Bot token for PRs, issues, comments
     private config: ProjectConfig;
     private projectId: string | null = null;
     private statusFieldId: string | null = null;
@@ -76,8 +77,11 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     async init(): Promise<void> {
         if (this._initialized) return;
 
-        const token = this.getGitHubToken();
-        this.octokit = new Octokit({ auth: token });
+        const adminToken = this.getAdminToken();
+        const botToken = this.getBotToken();
+
+        this.octokit = new Octokit({ auth: adminToken });
+        this.botOctokit = new Octokit({ auth: botToken });
 
         await this.fetchProjectInfo();
         this._initialized = true;
@@ -87,11 +91,14 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         return this._initialized;
     }
 
-    private getGitHubToken(): string {
+    /**
+     * Get admin token for GitHub Projects operations
+     */
+    private getAdminToken(): string {
         let token = process.env.GITHUB_TOKEN;
 
         if (!token) {
-            throw new Error('GITHUB_TOKEN environment variable is required');
+            throw new Error('GITHUB_TOKEN environment variable is required (admin token for GitHub Projects)');
         }
 
         // Strip quotes that may be added in cloud environments
@@ -100,11 +107,41 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         return token;
     }
 
+    /**
+     * Get bot token for PRs, issues, and comments
+     * Falls back to admin token if bot token not provided
+     */
+    private getBotToken(): string {
+        let token = process.env.GITHUB_BOT_TOKEN || process.env.GITHUB_TOKEN;
+
+        if (!token) {
+            throw new Error('GITHUB_BOT_TOKEN or GITHUB_TOKEN environment variable is required');
+        }
+
+        // Strip quotes that may be added in cloud environments
+        token = token.replace(/^["']|["']$/g, '');
+
+        return token;
+    }
+
+    /**
+     * Get Octokit client for admin operations (GitHub Projects)
+     */
     private getOctokit(): Octokit {
         if (!this.octokit) {
             throw new Error('GitHub client not initialized. Call init() first.');
         }
         return this.octokit;
+    }
+
+    /**
+     * Get Octokit client for bot operations (PRs, issues, comments)
+     */
+    private getBotOctokit(): Octokit {
+        if (!this.botOctokit) {
+            throw new Error('GitHub bot client not initialized. Call init() first.');
+        }
+        return this.botOctokit;
     }
 
     private async fetchProjectInfo(): Promise<void> {
@@ -625,7 +662,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     // ============================================================
 
     async createIssue(title: string, body: string, labels?: string[]): Promise<CreateIssueResult> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for creating issues
         const { owner, repo } = this.config.github;
 
         const { data } = await oc.issues.create({
@@ -644,7 +681,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async updateIssueBody(issueNumber: number, body: string): Promise<void> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for updating issues
         const { owner, repo } = this.config.github;
 
         await oc.issues.update({
@@ -657,7 +694,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
 
     async addIssueComment(issueNumber: number, body: string): Promise<number> {
         return withRetry(async () => {
-            const oc = this.getOctokit();
+            const oc = this.getBotOctokit(); // Use bot token for creating comments
             const { owner, repo } = this.config.github;
 
             const { data } = await oc.issues.createComment({
@@ -672,7 +709,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async getIssueComments(issueNumber: number): Promise<ProjectItemComment[]> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for reading comments
         const { owner, repo } = this.config.github;
 
         const { data } = await oc.issues.listComments({
@@ -727,7 +764,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         title: string,
         body: string
     ): Promise<CreatePRResult> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for creating PRs
         const { owner, repo } = this.config.github;
 
         const { data } = await oc.pulls.create({
@@ -746,7 +783,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async getPRReviewComments(prNumber: number): Promise<PRReviewComment[]> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for reading PR comments
         const { owner, repo } = this.config.github;
 
         const { data } = await oc.pulls.listReviewComments({
@@ -767,7 +804,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     async getPRComments(prNumber: number): Promise<ProjectItemComment[]> {
-        const oc = this.getOctokit();
+        const oc = this.getBotOctokit(); // Use bot token for reading PR comments
         const { owner, repo } = this.config.github;
 
         // PRs are issues in GitHub, so we use the issues API
@@ -789,7 +826,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
 
     async addPRComment(prNumber: number, body: string): Promise<number> {
         return withRetry(async () => {
-            const oc = this.getOctokit();
+            const oc = this.getBotOctokit(); // Use bot token for creating PR comments
             const { owner, repo } = this.config.github;
 
             // PR comments are actually issue comments
