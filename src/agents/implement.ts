@@ -46,6 +46,7 @@ import {
     notifyAgentError,
     notifyBatchComplete,
     notifyAgentStarted,
+    notifyAdmin,
     // Prompts
     buildImplementationPrompt,
     buildPRRevisionPrompt,
@@ -262,6 +263,17 @@ async function processItem(
 
         if (issueType === 'bug') {
             console.log(`  🐛 Bug fix implementation (diagnostics loaded: ${diagnostics ? 'yes' : 'no'})`);
+
+            // Warn if diagnostics are missing for a bug
+            if (!diagnostics && !options.dryRun) {
+                await notifyAdmin(
+                    `⚠️ <b>Warning:</b> Bug diagnostics missing\n\n` +
+                    `📋 ${content.title}\n` +
+                    `🔗 Issue #${issueNumber}\n\n` +
+                    `The bug report does not have diagnostics (session logs, stack trace). ` +
+                    `The implementation may be incomplete without this context.`
+                );
+            }
         }
 
         const branchName = generateBranchName(issueNumber, content.title, issueType === 'bug');
@@ -346,8 +358,7 @@ async function processItem(
             prompt = buildPRRevisionPrompt(content, productDesign, techDesign, allComments, prReviewComments);
         } else {
             // Flow C: Continue after clarification
-            const adminComments = issueComments.filter(c => !c.author.includes('bot'));
-            const clarification = adminComments[adminComments.length - 1];
+            const clarification = issueComments[issueComments.length - 1];
 
             if (!clarification) {
                 return { success: false, error: 'No clarification comment found' };

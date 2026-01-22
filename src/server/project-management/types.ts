@@ -283,6 +283,15 @@ export interface ProjectManagementAdapter {
      */
     requestPRReviewers(prNumber: number, reviewers: string[]): Promise<void>;
 
+    /**
+     * Submit an official PR review (approve/request changes/comment)
+     */
+    submitPRReview(
+        prNumber: number,
+        event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+        body: string
+    ): Promise<void>;
+
     // --------------------------------------------------------
     // Branches
     // --------------------------------------------------------

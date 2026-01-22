@@ -236,22 +236,41 @@ async function processItem(
 
             const totalComments = prConversationComments.length + prReviewComments.length;
             if (totalComments > 0) {
-                console.log(`  Found ${prConversationComments.length} conversation comments, ${prReviewComments.length} review comments`);
+                const claudeCommentCount = prConversationComments.filter(c => c.author.toLowerCase() === 'claude').length;
+                console.log(`  Found ${prConversationComments.length} conversation comments (${claudeCommentCount} from Claude Code), ${prReviewComments.length} review comments`);
             }
 
             // Build context with PR comments
             let contextPrompt = '';
 
-            if (prConversationComments.length > 0) {
-                contextPrompt += '## PR Conversation Comments\n\n';
+            // Separate Claude Code comments from other comments
+            const claudeComments = prConversationComments.filter(c => c.author.toLowerCase() === 'claude');
+            const otherComments = prConversationComments.filter(c => c.author.toLowerCase() !== 'claude');
+
+            // Add Claude Code's feedback as optional guidance (if exists)
+            if (claudeComments.length > 0) {
+                contextPrompt += '## Claude Code Review (Optional Guidance)\n\n';
+                contextPrompt += 'Claude Code has provided the following feedback as additional guidance:\n\n';
+                for (const comment of claudeComments) {
+                    contextPrompt += `${comment.body}\n\n`;
+                }
+                contextPrompt += '**Note**: Claude Code feedback is advisory. You are the final authority on approval decisions. ';
+                contextPrompt += 'Consider Claude\'s input but you may override if his concerns don\'t align with project guidelines or priorities.\n\n';
+                contextPrompt += '---\n\n';
+            }
+
+            // Add other conversation comments
+            if (otherComments.length > 0) {
+                contextPrompt += '## Other PR Comments\n\n';
                 contextPrompt += 'The following comments have been posted on the PR:\n\n';
-                for (const comment of prConversationComments) {
+                for (const comment of otherComments) {
                     contextPrompt += `**${comment.author}** (${new Date(comment.createdAt).toLocaleDateString()}):\n`;
                     contextPrompt += `${comment.body}\n\n`;
                 }
                 contextPrompt += '---\n\n';
             }
 
+            // Add inline review comments
             if (prReviewComments.length > 0) {
                 contextPrompt += '## PR Review Comments (Inline Code Comments)\n\n';
                 contextPrompt += 'The following inline comments have been posted on specific code:\n\n';
@@ -263,8 +282,15 @@ async function processItem(
             }
 
             if (contextPrompt) {
+                contextPrompt += '## Your Role and Authority\n\n';
+                contextPrompt += '**You are the FINAL AUTHORITY on this PR review.** Your decision determines the status.\n\n';
+                contextPrompt += 'If Claude Code provided feedback above:\n';
+                contextPrompt += '- Treat it as helpful advisory input\n';
+                contextPrompt += '- You may override his suggestions if they conflict with project priorities\n';
+                contextPrompt += '- You may approve even if Claude requested changes (if you determine they\'re not necessary)\n';
+                contextPrompt += '- Use your judgment based on project guidelines\n\n';
                 contextPrompt += '## Instructions\n\n';
-                contextPrompt += 'Please review this PR and consider the comments above. ';
+                contextPrompt += 'Review this PR and make your final decision. ';
                 contextPrompt += 'Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.\n\n';
                 contextPrompt += '**IMPORTANT**: Check compliance with project guidelines in `.cursor/rules/`:\n';
                 contextPrompt += '- TypeScript guidelines (`.cursor/rules/typescript-guidelines.mdc`)\n';
@@ -339,12 +365,18 @@ Review this PR and check compliance with project guidelines in \`.cursor/rules/\
                 console.log(reviewText.split('\n').map(l => '  ' + l).join('\n'));
                 console.log('  ' + '='.repeat(60));
                 console.log(`\n  [DRY RUN] Summary: ${summary}`);
+                console.log(`\n  [DRY RUN] Would submit official GitHub review: ${decision === 'approved' ? 'APPROVE' : 'REQUEST_CHANGES'}`);
                 console.log(`\n  [DRY RUN] Would update review status to: ${decision === 'approved' ? 'Approved' : 'Request Changes'}`);
             } else {
                 // Post review comment on PR
                 const prefixedReview = addAgentPrefix('pr-review', reviewText);
                 await adapter.addPRComment(prNumber, prefixedReview);
                 console.log('  Posted review comment on PR');
+
+                // Submit official GitHub PR review
+                const reviewEvent = decision === 'approved' ? 'APPROVE' : 'REQUEST_CHANGES';
+                await adapter.submitPRReview(prNumber, reviewEvent, prefixedReview);
+                console.log(`  Submitted official GitHub review: ${reviewEvent}`);
 
                 // Update review status
                 const newReviewStatus = decision === 'approved'

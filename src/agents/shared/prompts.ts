@@ -707,6 +707,34 @@ ${issueComments || 'No issue comments'}
 ### PR Review Comments
 ${reviewComments || 'No PR review comments'}
 
+## Understanding Your Reviewers
+
+You have received feedback from two different reviewers with distinct roles:
+
+**1. PR Review Agent** (author: "Agent (PR Review)")
+- **Focus**: Project-specific guidelines compliance from \`.cursor/rules/\`
+- **Checks**: TypeScript patterns, React patterns, state management, file organization, API structure
+- **Priority**: HIGH - These are project standards that MUST be followed
+- **Expertise**: This project's architecture and coding conventions
+
+**2. Claude Code** (author: "claude")
+- **Focus**: General code quality, security vulnerabilities, best practices, edge cases
+- **Checks**: Bugs, security issues, performance problems, maintainability, potential errors
+- **Priority**: HIGH - These are critical quality and safety issues
+- **Expertise**: Broad software engineering knowledge and security
+
+### How to Handle Multiple Reviewers
+
+- **Both flag the same issue**: Definitely address it - it's important
+- **Only one flags an issue**: Address it according to that reviewer's area of expertise
+- **Potentially conflicting suggestions**:
+  - For project structure/patterns/file organization → Prefer PR Review Agent
+  - For security/performance/bug fixes → Prefer Claude Code
+  - When genuinely conflicting → Use your judgment or ask for clarification
+- **Redundant feedback**: Address the issue once - both reviewers will be satisfied
+
+**Important**: Treat all feedback seriously. Both reviewers have HIGH priority in their respective domains.
+
 ## Your Task
 
 1. Carefully read ALL feedback comments

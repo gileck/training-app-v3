@@ -35,11 +35,12 @@
 /**
  * Main status values (GitHub Project board columns)
  *
- * Simplified 5-column workflow:
+ * 6-column workflow:
  * - Backlog: New items, not yet started
  * - Product Design: AI generates product design, human reviews
  * - Technical Design: AI generates tech design, human reviews
- * - Implementation: AI implements and creates PR, human reviews/merges
+ * - Implementation: AI implements and creates PR, human reviews
+ * - PR Review: PR created, awaiting human review/merge
  * - Done: Completed and merged
  *
  * Review Status field tracks sub-states within each phase:

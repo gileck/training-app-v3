@@ -133,8 +133,7 @@ async function processItem(
             prompt = buildProductDesignRevisionPrompt(content, existingDesign, issueComments);
         } else {
             // Flow C: Continue after clarification
-            const adminComments = issueComments.filter(c => !c.author.includes('bot'));
-            const clarification = adminComments[adminComments.length - 1];
+            const clarification = issueComments[issueComments.length - 1];
 
             if (!clarification) {
                 return { success: false, error: 'No clarification comment found' };

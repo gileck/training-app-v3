@@ -12,7 +12,7 @@ The integration creates a complete pipeline using a 6-column workflow for **both
 4. **Admin receives routing message** → chooses where item should start:
    - 🎨 **Product Design** - Needs UX/UI design
    - 🔧 **Tech Design** - Needs architecture planning
-   - ⚡ **Implementation** - Simple item, go straight to coding
+   - ⚡ **Ready for development** - Simple item, go straight to coding
    - 📋 **Backlog** - Keep in backlog for now
 5. **Item moves to selected phase** → AI agent processes accordingly
 6. **AI agent generates design/implementation** → sets Review Status = "Waiting for Review"
@@ -66,7 +66,7 @@ The system uses a **two-tier status tracking** approach to eliminate duplication
 
 **Why this split?**
 - **MongoDB**: Tracks approval state and lifecycle (new → in progress → done) + stores rich diagnostics for bugs
-- **GitHub Projects**: Tracks detailed workflow steps (Product Design → Tech Design → Implementation → etc.)
+- **GitHub Projects**: Tracks detailed workflow steps (Product Design → Tech Design → Ready for development → etc.)
 - **No duplication**: When an item is "in_progress"/"investigating" in MongoDB, you check GitHub Projects for the detailed status
 - **UI displays GitHub status**: The app UI shows GitHub Project status for synced items, MongoDB status for `new`/`done`/`rejected`
 - **Separate collections**: Bug reports need session logs, screenshots, performance data - features don't
@@ -494,11 +494,11 @@ Where should this feature start?
 
 • Product Design - Needs UX/UI design
 • Tech Design - Needs architecture planning
-• Implementation - Simple feature, go straight to coding
+• Ready for development - Simple feature, go straight to coding
 • Backlog - Keep in backlog for now
 
 [🎨 Product Design] [🔧 Tech Design]
-[⚡ Implementation] [📋 Keep in Backlog]
+[⚡ Ready for development] [📋 Keep in Backlog]
 [🔗 View Issue]
 ```
 
@@ -512,8 +512,8 @@ Admin taps a routing button to select the starting phase. The item is moved to t
 | Complex bug needing redesign | Product Design |
 | Feature needing architecture | Tech Design |
 | Bug needing root cause analysis | Tech Design |
-| Simple feature | Implementation |
-| Simple bug fix | Implementation |
+| Simple feature | Ready for development |
+| Simple bug fix | Ready for development |
 | Not ready to start | Backlog |
 
 ### Step 4: AI Agent Processing
@@ -592,6 +592,34 @@ This requires:
 | `.github/workflows/pr-merged-mark-done.yml` | PR merged | Auto-marks issue as Done when PR merges |
 | `.github/workflows/deploy-notify.yml` | Deployments | Deployment notifications |
 | `.github/workflows/pr-checks.yml` | PR opened/updated | Run checks on PRs |
+| `.github/workflows/claude-code-review.yml` | PR opened/updated | Automated Claude Code PR review |
+| `.github/workflows/claude.yml` | @claude mentions | Claude Code integration on-demand |
+
+**Claude Code Workflows:**
+
+The repository includes two Claude Code GitHub Actions workflows for AI-assisted development:
+
+1. **`claude-code-review.yml`** - Automated PR Reviews
+   - Triggers on PR opened, updated, or reopened
+   - Uses Claude Code's code-review plugin
+   - Provides automated code review feedback
+   - Requires `CLAUDE_CODE_OAUTH_TOKEN` secret
+
+2. **`claude.yml`** - On-Demand Claude Code
+   - Triggers when `@claude` is mentioned in:
+     - Issue comments
+     - PR review comments
+     - Issue titles or bodies
+     - PR review bodies
+   - Runs Claude Code to perform requested actions
+   - Requires `CLAUDE_CODE_OAUTH_TOKEN` secret
+
+**Setup:**
+Add the `CLAUDE_CODE_OAUTH_TOKEN` secret to your repository:
+1. Go to https://code.claude.com/settings/tokens
+2. Generate a new OAuth token
+3. Add to GitHub: Settings → Secrets and variables → Actions → New repository secret
+4. Name: `CLAUDE_CODE_OAUTH_TOKEN`
 
 > **Note:** Project-level webhooks (`projects_v2_item` events) don't work for user-owned projects due to GitHub limitations. The auto-advance functionality is handled by `yarn github-workflows-agent --auto-advance` instead.
 
@@ -640,8 +668,8 @@ The `--auto-advance` flag (or `yarn github-workflows-agent --auto-advance`) auto
 | Current Status | On Approval → | Next Status |
 |----------------|---------------|-------------|
 | Product Design | → | Technical Design |
-| Technical Design | → | Implementation |
-| Implementation | (no auto-advance) | Manual PR merge required → Done |
+| Technical Design | → | Ready for development |
+| Ready for development | (no auto-advance) | Manual PR merge required → Done |
 
 **Example workflow:**
 1. AI agent generates Product Design, sets Review Status = "Waiting for Review"
@@ -699,7 +727,7 @@ The status updates immediately in GitHub Projects, and the card refreshes to sho
 - Backlog
 - Product Design
 - Technical Design
-- Implementation
+- Ready for development
 - Done
 
 **Note:** The "GitHub Status" menu option only appears for requests that have been synced to GitHub (i.e., have a `githubProjectItemId`).
@@ -820,7 +848,7 @@ Feature Request Submitted
 ```
 
 **Key Points:**
-- **MongoDB status** stays `'in_progress'` throughout the entire workflow (Product Design → Tech Design → Implementation → PR Review)
+- **MongoDB status** stays `'in_progress'` throughout the entire workflow (Product Design → Tech Design → Ready for development → PR Review)
 - **Detailed workflow tracking** happens in GitHub Projects (Product Design, Technical Design, etc.)
 - **GitHub Action auto-completion**: When PR is merged, the action automatically:
   - Extracts the issue number from the PR body (e.g., "Closes #123")
@@ -947,12 +975,12 @@ Backlog → Technical Design    (admin moves manually)
          ↓
          yarn github-workflows-agent --tech-design
          ↓
-Technical Design → Implementation (via auto-advance on approval)
+Technical Design → Ready for development (via auto-advance on approval)
          ↓
          yarn github-workflows-agent --implement
 
 # Skip Both Designs
-Backlog → Implementation      (admin moves manually)
+Backlog → Ready for development      (admin moves manually)
          ↓
          yarn github-workflows-agent --implement
 ```
@@ -1146,9 +1174,13 @@ yarn agent:auto-advance                      # Advance approved items
 
 ### Running Agents Manually vs Automation
 
-**Manual (recommended for getting started):**
+**⚠️ IMPORTANT: Agents are MANUAL-ONLY**
+
+All agents must be manually invoked via CLI commands. There is **no automated scheduling** - agents do not run automatically on timers, webhooks, or status changes.
+
+**To run agents:**
 ```bash
-# Run all agents with one command
+# Run all agents with one command (recommended)
 yarn github-workflows-agent --all
 
 # Or run specific phases
@@ -1157,11 +1189,28 @@ yarn github-workflows-agent --tech-design
 yarn github-workflows-agent --implement
 ```
 
-**Automated (via cron or CI):**
+**Why manual-only?**
+- Cost control: Prevents unexpected AI API usage
+- Explicit control: Admin decides when work happens
+- Debugging: Easier to troubleshoot when runs are intentional
+
+**Setting up automation (optional):**
+
+If you want automated agent runs, you can set up your own cron job or CI/CD pipeline:
+
 ```bash
-# Run all agents that have pending work
-yarn github-workflows-agent --all
+# Example cron job (runs every 30 minutes)
+*/30 * * * * cd /path/to/project && yarn github-workflows-agent --all >> /var/log/agents.log 2>&1
 ```
+
+Or use GitHub Actions with a schedule trigger:
+```yaml
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+```
+
+**Note:** Without automation, items will remain in their current phase until you manually run the appropriate agent.
 
 ## Handling Feedback Loops
 
@@ -1234,7 +1283,7 @@ Review and approve to proceed to Technical Design.
 📋 Add dark mode toggle
 🔗 Issue #123
 🔀 PR #456
-📊 Status: Implementation (Waiting for Review)
+📊 Status: PR Review (Waiting for Review)
 
 Review and merge to complete.
 
@@ -1248,7 +1297,7 @@ All Telegram approval buttons use a single webhook (`/api/telegram-webhook`) for
 **Initial Feature Request Approval:**
 - **✅ Approve & Create GitHub Issue** - Creates issue, sets to Product Design status
 
-**Design Review Actions (Product Design / Tech Design / Implementation):**
+**Design Review Actions (Product Design / Tech Design / Ready for development):**
 - **✅ Approve** - Approves and auto-advances to next phase (clears Review Status)
 - **📝 Request Changes** - Sets Review Status to "Request Changes"
 - **❌ Reject** - Sets Review Status to "Rejected"

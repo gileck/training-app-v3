@@ -350,8 +350,8 @@ Bug reports and error reports can be approved and synced to GitHub Issues for tr
 2. **MongoDB storage** → Report stored with status 'new', includes session logs, screenshot, stack trace
 3. **Telegram notification** → Admin receives notification with "Approve" button
 4. **Admin approves** → GitHub issue created with 'bug' label, added to GitHub Projects (Backlog)
-5. **Admin routes** → Via Telegram buttons: Tech Design, Implementation, or Backlog
-6. **AI agents process** → Tech Design analyzes root cause, Implementation creates fix and PR
+5. **Admin routes** → Via Telegram buttons: Tech Design, Ready for development, or Backlog
+6. **AI agents process** → Tech Design analyzes root cause, Implementation agent creates fix and PR
 7. **PR merged** → GitHub Action automatically marks issue as Done
 
 ### What Gets Synced to GitHub

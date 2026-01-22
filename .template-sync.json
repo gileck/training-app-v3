@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "908dbdff76e1ed4e053c184789b73c5a772005ca",
-  "lastProjectCommit": "fefd66e3eacde705f8df34954d4cd53d59e05d7f",
-  "lastSyncDate": "2026-01-22T11:07:54.230Z",
+  "lastSyncCommit": "2c8a02637e68c0968478667a3fe634e7fd42095e",
+  "lastProjectCommit": "6aafb4f83cdf3c35dcd1c484c3e8d4c9ed221595",
+  "lastSyncDate": "2026-01-22T13:04:15.353Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,20 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-22T13:04:15.550Z",
+      "templateCommit": "2c8a02637e68c0968478667a3fe634e7fd42095e",
+      "projectCommit": "6aafb4f83cdf3c35dcd1c484c3e8d4c9ed221595",
+      "filesApplied": 11,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "2c8a026 docs: fix GitHub agent workflow review issues \u001b[90m(22/01/2026)\u001b[0m\n  Fix multiple documentation and code inconsistencies identified in\n  comprehensive workflow review:\n  \n  P0 (Critical):\n  - Fix config.ts comment from \"5-column\" to \"6-column workflow\"\n  - Update docs: \"Implementation\" → \"Ready for development\" (12+ instances)\n    Docs referred to wrong status name; GitHub status is \"Ready for development\"\n  \n  P1 (Major):\n  - Add Telegram warnings when bug diagnostics missing (tech-design, implement)\n  - Document agents are manual-only (no automated scheduling exists)\n  \n  P2 (Medium):\n  - Remove bot author filtering from all agents (include all comments)\n    Improves context by including bot comments in agent prompts\n  \n  P3 (Minor):\n  - Document Claude Code workflow files (claude-code-review.yml, claude.yml)\n  \n  All changes verified with yarn checks (0 errors).\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "bb4af8d feat: PR Review Agent submits official GitHub PR reviews \u001b[90m(22/01/2026)\u001b[0m\n  Added ability to submit official GitHub PR reviews (APPROVE/REQUEST_CHANGES)\n  in addition to updating GitHub Projects status.\n  \n  Changes:\n  - Added submitPRReview method to ProjectManagementAdapter interface\n  - Implemented submitPRReview in GitHub adapter using oc.pulls.createReview\n  - Updated PR review agent to submit official review after posting comment\n  - Maps structured output decision to GitHub review events:\n    - 'approved' → 'APPROVE'\n    - 'request_changes' → 'REQUEST_CHANGES'\n  \n  Benefits:\n  - Visual approval/changes-requested indicator in GitHub PR UI\n  - Shows in PR's \"Reviews\" section with green checkmark or red X\n  - Works with GitHub branch protection rules (if configured)\n  - Maintains GitHub Projects status for workflow automation\n  \n  Workflow:\n  1. PR Review Agent reviews the code\n  2. Posts comment with detailed feedback\n  3. Submits official GitHub review (APPROVE/REQUEST_CHANGES)\n  4. Updates GitHub Projects review status (drives automation)\n  5. Sends Telegram notification\n  \n  Both GitHub's native review system and custom workflow status are updated.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "09988ee feat: PR Review Agent as final authority with Claude Code as optional guidance \u001b[90m(22/01/2026)\u001b[0m\n  The PR Review Agent is now the final authority on PR status decisions, with\n  Claude Code serving as optional advisory input.\n  \n  Changes:\n  - Separate Claude Code comments from other PR comments\n  - Present Claude's feedback as \"optional guidance\" section\n  - Explicitly state PR Review Agent is final authority\n  - PR Review Agent can override Claude's decision if needed\n  - Updated logging to show Claude Code comment count\n  \n  Workflow:\n  1. Claude Code reviews first (optional, triggered by @claude)\n  2. PR Review Agent reviews and reads Claude's feedback\n  3. PR Review Agent makes final decision on status\n  4. PR Review Agent can approve even if Claude requested changes\n  5. Status update drives implementor workflow\n  \n  This maintains project guideline enforcement while benefiting from\n  Claude Code's broader security/quality insights.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "45a8b63 feat: coordinate dual PR reviewers in implementor agent \u001b[90m(22/01/2026)\u001b[0m\n  Add reviewer coordination instructions to help the implementor agent\n  understand and prioritize feedback from two reviewers:\n  \n  1. PR Review Agent - Project guidelines and architecture compliance\n  2. Claude Code - General quality, security, and best practices\n  \n  The implementor now understands:\n  - Each reviewer's focus area and expertise\n  - How to prioritize potentially conflicting feedback\n  - That both reviewers have HIGH priority in their domains\n  - How to handle redundant feedback efficiently\n  \n  This enables the agent to intelligently address feedback from both\n  sources without confusion or conflicts.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-22T11:07:54.484Z",
       "templateCommit": "908dbdff76e1ed4e053c184789b73c5a772005ca",
@@ -308,17 +322,6 @@
       "templateCommits": [
         "cdc6196 fix: audit fixes and documentation improvements \u001b[90m(12/01/2026)\u001b[0m\n  Code fixes:\n  - Profile: use React Query useCurrentUser hook instead of direct API calls\n  - Home: add welcome page with navigation cards\n  - Todos: add isFetching indicator for background refresh\n  \n  Documentation updates:\n  - Clarify that toasts/UI side effects in onSuccess/onError are acceptable\n  - Add store location guidance (features/ vs routes/ folders)\n  - Update audit command to not flag toasts as violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-11T17:03:19.705Z",
-      "templateCommit": "53bd22b7932772b3761d05f8ce47d0f52f5d39b5",
-      "projectCommit": "647a3f029989d328f02e506c710ad6f4fa779475",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "53bd22b fix: move COMMITS_JSON to env variable to prevent shell syntax errors \u001b[90m(11/01/2026)\u001b[0m\n  JSON containing commit messages with special characters was breaking\n  shell parsing. Now all interpolated values are passed through env vars.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -370,7 +373,7 @@
     "docs/api-endpoint-format.md": "31ae0e11308710665ac9efd992f9ce88",
     "docs/architecture.md": "289d22287145918394dabcc4ea2104e2",
     "docs/caching-strategy.md": "90fd5b5327ee8bcfa110a768bd533aaf",
-    "docs/logging-and-error-tracking.md": "e648f5b6451a7ad8b6d62d9271b1424b",
+    "docs/logging-and-error-tracking.md": "df3271a9074e4afc0d7cf3245d233d1d",
     "docs/offline-pwa-support.md": "5ae59a7cf15c47cc61866cdc1c2143a4",
     "docs/react-query-mutations.md": "b55949512d2c26b9f97eff8645a45d90",
     "docs/shadcn-component-library.md": "d95ef7a2a0a64205f53f7022a518b18c",
@@ -759,22 +762,22 @@
     ".github/workflows/issue-notifications.yml": "8ad1487f4ceed8b9392b285f7fed08e6",
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
-    "docs/github-projects-integration.md": "088b211ed17b7c254624609894d507d7",
-    "docs/init-github-projects-workflow.md": "c6258f2a17a32d2ade516b65eb9d0493",
+    "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
+    "docs/init-github-projects-workflow.md": "2d6f59137c26d6d7d19b31f5fadbb47a",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
-    "src/agents/implement.ts": "175ad79aeef3a1f83518d24819095be4",
+    "src/agents/implement.ts": "5afc0453e575c69c94fa603ef9b83fa8",
     "src/agents/index.ts": "76efe16a56939c60fb7a978ea38f2d6f",
-    "src/agents/product-design.ts": "9a55399219456602febe382881aaf753",
+    "src/agents/product-design.ts": "a994e0a6b4bcdea80ee9aadac4516d05",
     "src/agents/shared/claude.ts": "dc4edb4e24866c880f9ca121c5bbb909",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
     "src/agents/shared/index.ts": "9521b828af2ca41b3cd514a405574d6b",
     "src/agents/shared/notifications.ts": "04c4a8ee6001552df80d28991cc2807b",
-    "src/agents/shared/prompts.ts": "0496fbca6284be73f897680197c04b73",
+    "src/agents/shared/prompts.ts": "ce2e9ce2f633b350d734fcbad145495c",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
     "src/agents/shared/utils.ts": "0d7bf04c2ac28351bb31e4385d13c8a1",
-    "src/agents/tech-design.ts": "1391aa15f273cb540211dbfc7d886a1f",
+    "src/agents/tech-design.ts": "d20ace9a1e27ed5ef471e6b9bb6744f9",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
     "src/apis/feature-requests/handlers/getGitHubStatuses.ts": "0eabde636f273832e64d2b82e7291ac9",
@@ -785,16 +788,16 @@
     "src/pages/api/telegram-webhook.ts": "3949d2119102c25b2e6eb235831beb6b",
     "src/server/github-status/index.ts": "40f7cdb3e59b8a8f1c7322981652b22c",
     "src/server/github-sync/index.ts": "cae1963a7d07cded01dd376a867ad0b2",
-    "src/server/project-management/adapters/github.ts": "8d2344bb62c310944bdbd45cfc8cf383",
-    "src/server/project-management/config.ts": "552f907d3e6a300bd03500a819e31e27",
+    "src/server/project-management/adapters/github.ts": "9494484edffb6193b6d0567ae58507c5",
+    "src/server/project-management/config.ts": "03c72bb57ff00a67269780cd48e49989",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
-    "src/server/project-management/types.ts": "6d5dc010d5354ed7412a09c0af61e47d",
+    "src/server/project-management/types.ts": "04db789469d39ddbd20ed19e9b2f9111",
     "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
     "scripts/verify-github-projects-setup.ts": "b7e87dec1d05490c54a4e41d1acc50ea",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
-    "src/agents/pr-review.ts": "968d169cd0bc9dc3c6077360821aefbc",
+    "src/agents/pr-review.ts": "9a5030b9eeebf9c06971eb64b8975829",
     ".claude/commands/compact-claude.md": "5c78990dfefd805b52dfba63267f2a36",
     "docs/agent-library-abstraction.md": "b6300f0810ff71f6344a960f4f3d27a5",
     "docs/critical-deployment-issues.md": "0ce6fa06967905da4e0fdffe5ff1a30c",

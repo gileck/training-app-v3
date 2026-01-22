@@ -948,6 +948,25 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         });
     }
 
+    async submitPRReview(
+        prNumber: number,
+        event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+        body: string
+    ): Promise<void> {
+        return withRetry(async () => {
+            const oc = this.getBotOctokit(); // Use bot token for submitting reviews
+            const { owner, repo } = this.config.github;
+
+            await oc.pulls.createReview({
+                owner,
+                repo,
+                pull_number: prNumber,
+                event,
+                body,
+            });
+        });
+    }
+
     // ============================================================
     // BRANCHES
     // ============================================================

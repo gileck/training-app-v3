@@ -634,7 +634,7 @@ Test the complete workflow end-to-end:
 
 4. **Check routing notification**:
    - You should receive a second notification asking where to route the item
-   - Options: Product Design, Tech Design, Implementation, Backlog
+   - Options: Product Design, Tech Design, Ready for development, Backlog
 
 5. **Tap a routing button** (e.g., "Product Design"):
    - The item should move to that status in GitHub Projects
