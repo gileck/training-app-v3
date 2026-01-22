@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "2c8a02637e68c0968478667a3fe634e7fd42095e",
-  "lastProjectCommit": "6aafb4f83cdf3c35dcd1c484c3e8d4c9ed221595",
-  "lastSyncDate": "2026-01-22T13:04:15.353Z",
+  "lastSyncCommit": "7d90be3b99e2bb1cd2db57a8d8f9aad49907b5dc",
+  "lastProjectCommit": "fd308f7bd8681ca048fdb4305740e3e2fb340e84",
+  "lastSyncDate": "2026-01-22T13:17:45.855Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-22T13:17:46.021Z",
+      "templateCommit": "7d90be3b99e2bb1cd2db57a8d8f9aad49907b5dc",
+      "projectCommit": "fd308f7bd8681ca048fdb4305740e3e2fb340e84",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "7d90be3 docs: update init guide with bot setup and manual-only agents \u001b[90m(22/01/2026)\u001b[0m\n  Add missing critical information to init-github-projects-workflow.md:\n  \n  Critical additions:\n  - Add Step 2.5: Bot Account Setup (recommended for PR approval)\n  - Update environment variables to include GITHUB_BOT_TOKEN\n  - Explain two-token architecture vs single-token fallback mode\n  \n  Important clarifications:\n  - Emphasize agents are MANUAL-ONLY by default (no automation)\n  - Add note that bug diagnostics warnings now included\n  - Reference main integration guide for detailed bot setup\n  \n  Fixes alignment issues between init guide and main integration docs.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-22T13:04:15.550Z",
       "templateCommit": "2c8a02637e68c0968478667a3fe634e7fd42095e",
@@ -310,17 +321,6 @@
       "templateCommits": [
         "3a78a1d docs: clarify that toasts in onSuccess are NOT violations \u001b[90m(15/01/2026)\u001b[0m\n  - Add inline comment in useDeleteReport explaining toast is UI feedback\n  - Add prominent notice in audit command about what is/isn't a violation\n  - Toasts, logging, analytics, navigation in onSuccess are ALLOWED\n  - Only setQueryData/invalidateQueries with server data are violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
         "1870f5d fix: add permissions for PR comment workflow \u001b[90m(14/01/2026)\u001b[0m\n  Add explicit pull-requests: write permission to allow the\n  PR checks workflow to post comments on PRs.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-12T08:51:19.080Z",
-      "templateCommit": "cdc61963505612f4d03030aa3765e81444c58c76",
-      "projectCommit": "005191511f10d6307e89507536f7d5873242ac88",
-      "filesApplied": 6,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "cdc6196 fix: audit fixes and documentation improvements \u001b[90m(12/01/2026)\u001b[0m\n  Code fixes:\n  - Profile: use React Query useCurrentUser hook instead of direct API calls\n  - Home: add welcome page with navigation cards\n  - Todos: add isFetching indicator for background refresh\n  \n  Documentation updates:\n  - Clarify that toasts/UI side effects in onSuccess/onError are acceptable\n  - Add store location guidance (features/ vs routes/ folders)\n  - Update audit command to not flag toasts as violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -763,7 +763,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
-    "docs/init-github-projects-workflow.md": "2d6f59137c26d6d7d19b31f5fadbb47a",
+    "docs/init-github-projects-workflow.md": "92a0289370836bbaa43283cea81ae31c",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",

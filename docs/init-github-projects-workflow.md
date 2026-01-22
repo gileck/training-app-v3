@@ -37,7 +37,7 @@ This workflow automates the complete feature request and bug report pipeline:
 - **Squash-merge ready PRs** - No editing needed before merge
 - **Two-tier status tracking** - MongoDB tracks high-level status, GitHub Projects tracks detailed workflow
 - **Type-aware agents** - Automatically detects bugs vs features and uses specialized prompts
-- **Bug diagnostics** - Session logs, stack traces, and error messages included in bug fix prompts
+- **Bug diagnostics** - Session logs, stack traces, and error messages included in bug fix prompts (agents warn if diagnostics are missing)
 
 ---
 
@@ -141,7 +141,8 @@ cp .env.example .env.local
 
 ```bash
 # GitHub Configuration (REQUIRED)
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxx        # Get from GitHub (see below)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxx        # Admin token for GitHub Projects (see below)
+GITHUB_BOT_TOKEN=ghp_yyyyyyyyyyyyyy   # Bot token for PRs/issues (recommended, see Step 2.5)
 GITHUB_OWNER=your-username             # Your GitHub username or org name
 GITHUB_REPO=your-repo-name             # Your repository name
 GITHUB_PROJECT_NUMBER=1                # From Step 1 (your project number)
@@ -187,6 +188,45 @@ Your GitHub token needs **two critical scopes**: `repo` and `project`.
 5. Copy the token and add to `.env.local`
 
 **Security tip:** Never commit your `.env.local` file. It's already in `.gitignore`.
+
+### Step 2.5: Bot Account Setup (Recommended)
+
+**Why you need a bot account:**
+
+When agents use your personal GitHub token:
+- ❌ You **cannot approve PRs** created by agents (GitHub doesn't allow PR authors to approve their own PRs)
+- ❌ You **cannot differentiate** between your comments and agent comments
+- ❌ All agent actions appear as if **you** took them
+
+**Solution:** Create a separate bot GitHub account for agents.
+
+**Quick Setup:**
+
+1. **Create Bot GitHub Account** (use Gmail +alias trick):
+   - If your email is `yourname@gmail.com`, use `yourname+bot@gmail.com`
+   - Sign up at https://github.com/signup
+   - Choose username like `yourname-bot` or `dev-agent-bot`
+
+2. **Add Bot as Collaborator**:
+   - Go to your repository → Settings → Collaborators
+   - Add the bot account as a collaborator
+   - Accept the invitation from the bot account
+
+3. **Generate Bot Token**:
+   - Log in to the bot account
+   - Generate a token (same scopes as above: `repo`, `project`)
+   - Add to `.env.local` as `GITHUB_BOT_TOKEN`
+
+**Result:**
+- ✅ All PRs created by bot account (not you)
+- ✅ You can approve/request changes on PRs
+- ✅ Clear separation between user and agent actions
+
+**If you skip this:**
+
+The system will use **single-token mode** (`GITHUB_TOKEN` for everything). You won't be able to approve agent-created PRs, but the workflow will otherwise function normally.
+
+For detailed instructions, see the [Bot Account Setup](./github-projects-integration.md#bot-account-setup-recommended) section in the main integration guide.
 
 ---
 
@@ -867,10 +907,21 @@ After completing setup:
    - Configure Claude model/timeout in `src/agents/shared/config.ts`
    - Add custom labels or routing options
 
-4. **Set up automation** (optional):
+4. **Understand agent execution** (IMPORTANT):
+
+   ⚠️ **Agents are MANUAL-ONLY by default** - they do not run automatically.
+
+   You must manually run:
+   ```bash
+   yarn github-workflows-agent --all
+   ```
+
+   **To set up automation** (optional):
    - Run agents via cron: `0 * * * * cd /path/to/repo && yarn github-workflows-agent --all`
    - Set up CI/CD to run agents on schedule
    - Configure auto-merge for approved PRs (use at your own risk)
+
+   See [Running Agents](./github-projects-integration.md#running-agents-manually-vs-automation) for details.
 
 ---
 
