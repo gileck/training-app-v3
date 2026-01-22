@@ -851,6 +851,59 @@ export default async function handler(
             return res.status(200).json({ ok: true });
         }
 
+        // Direct issue routing (for testing): "route:issueNumber:destination"
+        if (action === 'route' && parts.length === 3) {
+            const issueNumber = parseInt(parts[1], 10);
+            const destination = parts[2];
+
+            if (!issueNumber) {
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue number');
+                return res.status(200).json({ ok: true });
+            }
+
+            try {
+                const adapter = getProjectManagementAdapter();
+                await adapter.init();
+
+                // Find the project item
+                const projectItem = await findItemByIssueNumber(adapter, issueNumber);
+
+                if (!projectItem) {
+                    await answerCallbackQuery(
+                        botToken,
+                        callback_query.id,
+                        `Issue #${issueNumber} not found in project`
+                    );
+                    return res.status(200).json({ ok: true });
+                }
+
+                // Update status
+                await adapter.updateItemStatus(projectItem.itemId, destination);
+
+                // Update message
+                if (callback_query.message) {
+                    const newText = `${callback_query.message.text || ''}\n\n✅ <b>Routed to: ${destination}</b>`;
+                    await editMessageText(
+                        botToken,
+                        callback_query.message.chat.id,
+                        callback_query.message.message_id,
+                        newText
+                    );
+                }
+
+                await answerCallbackQuery(botToken, callback_query.id, `✅ Routed to ${destination}`);
+                return res.status(200).json({ ok: true });
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${errorMessage.slice(0, 150)}`
+                );
+                return res.status(200).json({ ok: true });
+            }
+        }
+
         // Unknown action
         await answerCallbackQuery(botToken, callback_query.id, 'Unknown action');
         return res.status(200).json({ ok: true });
