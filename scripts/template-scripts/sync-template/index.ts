@@ -21,6 +21,7 @@
  *   --quiet                  Minimal output (errors only)
  *   --verbose                Detailed output for debugging
  *   --use-https              Use HTTPS instead of SSH for cloning (SSH is default)
+ *   --merge-package-json     Only merge package.json from template (no full sync)
  *
  * Note: 'yarn checks' is automatically run before committing. If checks fail,
  *       changes are applied but NOT committed - you must fix issues and commit manually.
@@ -68,6 +69,7 @@ const options: SyncOptions = {
   initHashes: args.includes('--init-hashes'),
   projectDiffs: args.includes('--project-diffs'),
   json: args.includes('--json'),
+  mergePackageJson: args.includes('--merge-package-json'),
 };
 
 const tool = new TemplateSyncTool(options);

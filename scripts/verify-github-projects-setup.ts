@@ -71,10 +71,10 @@ const REQUIRED_GITHUB_SECRETS = [
 
 const REQUIRED_GITHUB_VARIABLES = [
     'TELEGRAM_NOTIFICATIONS_ENABLED',
-    'GITHUB_OWNER',
-    'GITHUB_REPO',
-    'GITHUB_PROJECT_NUMBER',
-    'GITHUB_OWNER_TYPE'
+    'PROJECT_OWNER',
+    'PROJECT_REPO',
+    'PROJECT_NUMBER',
+    'PROJECT_OWNER_TYPE'
 ];
 
 // ============================================================================

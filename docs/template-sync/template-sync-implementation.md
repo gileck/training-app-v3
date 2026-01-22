@@ -71,7 +71,6 @@ Creates `.template-sync.json`:
   "lastSyncCommit": "abc123...",
   "lastSyncDate": "2024-01-01T00:00:00.000Z",
   "ignoredFiles": [
-    "package.json",
     "README.md",
     ".env",
     "src/client/routes/Todos",
@@ -148,8 +147,10 @@ Files only changed in YOUR project (template didn't touch them):
 - These are NOT flagged as conflicts - they're preserved!
 
 ### Skipped
-- **Ignored files**: `package.json`, `.env`, `node_modules`, etc.
+- **Ignored files**: `.env`, `node_modules`, `README.md`, etc.
 - **Project-specific files**: Your custom features (configure in `.template-sync.json`)
+
+> **Note:** Never add `package.json` to ignoredFiles - it contains critical scripts.
 
 ## Example Workflow
 

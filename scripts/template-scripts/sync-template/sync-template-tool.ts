@@ -30,7 +30,7 @@ import { syncFiles } from './sync';
 import { printResults, generateSyncReport, getTemplateCommitsSinceLastSync, formatSyncCommitMessage, addSyncHistoryEntry } from './reporting';
 
 // Modes
-import { runInitHashes, runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, initializeIdenticalFileHashes, runJsonMode } from './modes';
+import { runInitHashes, runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, initializeIdenticalFileHashes, runJsonMode, runMergePackageJson } from './modes';
 
 /**
  * Main Template Sync Tool class
@@ -78,6 +78,13 @@ export class TemplateSyncTool {
     // Handle show-drift mode (show total drift with file list, no sync)
     if (this.context.options.showDrift) {
       await runShowDrift(this.context);
+      this.rl.close();
+      return;
+    }
+
+    // Handle merge-package-json mode (only merge package.json, no full sync)
+    if (this.context.options.mergePackageJson) {
+      await runMergePackageJson(this.context);
       this.rl.close();
       return;
     }

@@ -137,14 +137,16 @@ yarn sync-template
 | Subtree | Potential merge conflict anyway |
 | **Template Sync** | **Recognizes it as "project customization" - kept as-is, NOT a conflict!** |
 
-### Scenario: You want to ignore template's package.json
+### Scenario: You want to ignore template's example features (Todos, Chat)
 
 | Approach | How |
 |----------|-----|
-| Manual | Remember not to copy it |
-| Fork | Can't ignore it easily |
-| Subtree | Can't ignore it easily |
-| **Template Sync** | **Add to `ignoredFiles` in config** |
+| Manual | Remember not to copy them |
+| Fork | Can't ignore them easily - must delete manually |
+| Subtree | Can't ignore them easily - must delete manually |
+| **Template Sync** | **Add to `templateIgnoredFiles` in config** |
+
+> **Note:** Never ignore `package.json` - it contains critical scripts. See Best Practices section in main template-sync doc.
 
 ### Scenario: Team member needs to sync
 

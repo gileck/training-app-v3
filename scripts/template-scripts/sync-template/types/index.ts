@@ -114,6 +114,7 @@ export interface SyncOptions {
   initHashes: boolean;
   projectDiffs: boolean;
   json: boolean;  // Output JSON result (for programmatic use)
+  mergePackageJson: boolean;  // Only merge package.json (no full sync)
 }
 
 /**

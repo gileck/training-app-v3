@@ -55,7 +55,6 @@ Edit `.template-sync.json` to specify:
   "lastSyncDate": "2024-01-01T00:00:00.000Z",
   "ignoredFiles": [
     ".template-sync.json",
-    "package.json",
     "README.md",
     ".env",
     ".env.local",
@@ -134,9 +133,13 @@ Both arrays support glob patterns:
 
 | Config Field | Purpose | Examples |
 |--------------|---------|----------|
-| `ignoredFiles` | System/config files + registry files you'll customize | `.env`, `package.json`, `apis.ts`, `NavLinks.tsx` |
+| `ignoredFiles` | System/config files + registry files you'll customize | `.env`, `.env.local`, `apis.ts`, `NavLinks.tsx` |
 | `projectSpecificFiles` | Your custom code that doesn't exist in template | `src/client/features/myFeature` |
 | `templateIgnoredFiles` | Template example/demo code you don't want | `src/apis/todos`, `src/client/routes/Chat` |
+
+> **⚠️ CRITICAL: Never Ignore package.json**
+>
+> **Do NOT add `package.json` to `ignoredFiles`!** The template's `package.json` contains essential scripts for GitHub Projects workflow, template sync, agent commands, and more. Ignoring it will break these features. You can safely add custom scripts to your `package.json` - just keep it synced from the template.
 
 **Key difference:**
 - `ignoredFiles` and `projectSpecificFiles`: Files show in "Skipped" during sync
@@ -479,9 +482,9 @@ The results reflect your conflict resolution choices:
 
 ## Best Practices
 
-### 1. Keep Dependencies Separate
+### 1. Keep package.json Synced
 
-If you add project-specific dependencies, consider maintaining a separate list and merging `package.json` manually.
+**Always keep `package.json` synced from the template.** You can add project-specific dependencies and custom scripts - the sync system will preserve them while updating template scripts. Never add `package.json` to `ignoredFiles` or you'll miss critical updates to agent commands, workflow scripts, and tooling.
 
 ### 2. Be Careful with Skipped Files
 

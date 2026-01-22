@@ -43,10 +43,23 @@ This workflow automates the complete feature request and bug report pipeline:
 
 ## Prerequisites
 
+> **🚨 CRITICAL: package.json Must Be Synced From Template**
+>
+> This workflow requires the template's `package.json` with all the required scripts (`yarn telegram-setup`, `yarn verify-setup`, `yarn agent:*`, etc.).
+>
+> **If you're using template sync:**
+> - Do NOT add `package.json` to `ignoredFiles` or `projectSpecificFiles` in `.template-sync.json`
+> - Keep `package.json` synced from the template to get workflow updates
+>
+> **If you've customized package.json:**
+> - You can add custom scripts, but DO NOT remove template scripts
+> - Check that these scripts exist: `telegram-setup`, `verify-setup`, `agent:product-design`, `agent:tech-design`, `agent:implement`, `setup-github-secrets`, `vercel-cli`, `github-pr`
+
 Before starting, ensure you have:
 
 - [ ] A GitHub account
 - [ ] A repository (forked/cloned from this template)
+- [ ] **`package.json` synced from template** (see warning above)
 - [ ] Node.js and yarn installed
 - [ ] GitHub CLI (`gh`) installed and authenticated (`gh auth login`)
 - [ ] A Telegram account (for notifications)
@@ -232,6 +245,12 @@ For detailed instructions, see the [Bot Account Setup](./github-projects-integra
 
 ## Step 3: Telegram Bot Setup
 
+> **⚠️ IMPORTANT: Create a NEW Bot for This Project**
+>
+> **Do NOT reuse an existing bot from another project!** Each project needs its own dedicated Telegram bot because a bot can only have ONE webhook URL at a time. Sharing a bot across projects will break button callbacks (Approve, Route, etc.).
+>
+> Creating a new bot takes ~2 minutes and is completely free.
+
 ### Why Each Project Needs Its Own Bot
 
 **CRITICAL:** Each child project must create its own Telegram bot.
@@ -363,10 +382,15 @@ If you prefer to set these manually:
 | Variable Name | Value | Description |
 |---------------|-------|-------------|
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | `true` | Enables GitHub Actions notifications |
-| `GITHUB_OWNER` | `your-username` | Your GitHub username or org |
-| `GITHUB_REPO` | `your-repo-name` | Your repository name |
-| `GITHUB_PROJECT_NUMBER` | `1` | Your project number |
-| `GITHUB_OWNER_TYPE` | `user` | `user` or `org` |
+| `PROJECT_OWNER` | `your-username` | Your GitHub username or org |
+| `PROJECT_REPO` | `your-repo-name` | Your repository name |
+| `PROJECT_NUMBER` | `1` | Your project number |
+| `PROJECT_OWNER_TYPE` | `user` | `user` or `org` |
+
+> **📝 Note on Naming Convention:**
+> GitHub Actions variables use `PROJECT_*` prefix for consistency and clarity. This is intentional and different from your local `.env` file which uses `GITHUB_*` names. The values should match - just the names differ between contexts:
+> - **Local `.env`**: `GITHUB_OWNER=your-username`
+> - **GitHub Actions**: `PROJECT_OWNER=your-username`
 
 ### Enable Workflow Permissions
 
@@ -383,12 +407,9 @@ For auto-completion to work when PRs are merged:
 
 Push your environment variables to Vercel so the deployed app can access them.
 
-**⚠️ CRITICAL:** GitHub status integration in production requires ALL 5 GitHub environment variables to be set in Vercel:
-- `GITHUB_TOKEN`
-- `GITHUB_OWNER`
-- `GITHUB_REPO`
-- `GITHUB_PROJECT_NUMBER`
-- `GITHUB_OWNER_TYPE`
+**⚠️ CRITICAL:** GitHub status integration in production requires ALL 5 GitHub environment variables to be set in Vercel.
+
+**Note on naming:** Your local `.env` uses `GITHUB_*` prefix, but these variables in Vercel must match the names exactly as shown in your `.env` file.
 
 Missing even one variable will cause GitHub statuses to show as empty in the feature-request page.
 
@@ -562,10 +583,10 @@ yarn verify-setup
 ✓ Secret: TELEGRAM_CHAT_ID ✓
 ✓ Secret: PROJECT_TOKEN ✓
 ✓ Variable: TELEGRAM_NOTIFICATIONS_ENABLED ✓
-✓ Variable: GITHUB_OWNER ✓
-✓ Variable: GITHUB_REPO ✓
-✓ Variable: GITHUB_PROJECT_NUMBER ✓
-✓ Variable: GITHUB_OWNER_TYPE ✓
+✓ Variable: PROJECT_OWNER ✓
+✓ Variable: PROJECT_REPO ✓
+✓ Variable: PROJECT_NUMBER ✓
+✓ Variable: PROJECT_OWNER_TYPE ✓
 ✓ Workflow permissions: read-write ✓
 
   11 passed, 0 failed

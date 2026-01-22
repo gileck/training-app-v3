@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "7d90be3b99e2bb1cd2db57a8d8f9aad49907b5dc",
-  "lastProjectCommit": "fd308f7bd8681ca048fdb4305740e3e2fb340e84",
-  "lastSyncDate": "2026-01-22T13:17:45.855Z",
+  "lastSyncCommit": "a67fa1279f2aa4afbaa15513c052dd31f33a7915",
+  "lastProjectCommit": "79c4b67246e02b71f42d3d99f4f742a566b68a16",
+  "lastSyncDate": "2026-01-22T15:20:10.715Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,21 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-22T15:20:10.916Z",
+      "templateCommit": "a67fa1279f2aa4afbaa15513c052dd31f33a7915",
+      "projectCommit": "79c4b67246e02b71f42d3d99f4f742a566b68a16",
+      "filesApplied": 13,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "a67fa12 feat(sync-template): add --merge-package-json flag for package.json-only sync \u001b[90m(22/01/2026)\u001b[0m\n  Adds a new mode that performs only the package.json 3-way merge without\n  running a full template sync. Useful when you only want to pull dependency\n  updates from the template.",
+        "d9a9649 docs: remove package.json from all template-sync ignore examples \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Removed package.json from all example ignoredFiles lists\n  - Added warnings in 4 template-sync docs about NOT ignoring package.json\n  - Updated \"Best Practices\" section: changed from \"merge manually\" to \"keep synced\"\n  - Changed comparison example from \"ignore package.json\" to \"ignore example features\"\n  \n  Problem:\n  Template-sync documentation was showing package.json as an example of\n  what to ignore. This misled users into adding it to their ignoredFiles,\n  which broke the GitHub Projects workflow because required scripts\n  (yarn agent:*, yarn verify-setup, etc.) were missing.\n  \n  Root Cause:\n  - template-sync-quick-start.md: showed package.json in ignoredFiles example\n  - template-sync.md: showed package.json in ignoredFiles example AND table\n  - template-sync.md: recommended \"merging package.json manually\"\n  - template-sync-comparison.md: used \"ignore package.json\" as feature demo\n  - template-sync-implementation.md: showed package.json in ignoredFiles example\n  \n  Solution:\n  Remove ALL mentions of ignoring package.json and add explicit warnings.\n  The sync system can handle project-specific dependencies and scripts\n  without conflicts, so there's no reason to ignore it.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "ccb45ad docs: add critical warning about package.json sync requirement \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Add prominent warning box in Prerequisites section\n  - Emphasize that package.json must be synced from template\n  - List specific required scripts that child projects need\n  - Add package.json to Prerequisites checklist\n  \n  Problem:\n  Some child projects are not syncing package.json from the template\n  (adding it to ignoredFiles or projectSpecificFiles), which breaks\n  the entire init workflow because required scripts are missing.\n  \n  Solution:\n  Make it impossible to miss this requirement by adding a 🚨 CRITICAL\n  warning at the top of Prerequisites, before users start any setup steps.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "1e7a42d docs: emphasize creating new Telegram bot per project \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Add prominent warning box at top of Step 3 in init guide\n  - Add similar warning to telegram-notifications.md\n  \n  Rationale:\n  - A Telegram bot can only have ONE webhook URL at a time\n  - Each project has a different webhook URL (different domains)\n  - Sharing a bot across projects breaks button callbacks\n  - Need to make this crystal clear to prevent setup issues\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "da17681 refactor: use consistent PROJECT_* naming for GitHub Actions variables \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Workflow: Update pr-merged-mark-done.yml to use PROJECT_* variable names\n  - Docs: Update init guide with new variable names and naming convention note\n  - Script: Update verification script to check for PROJECT_* variables\n  \n  Rationale:\n  - Consistent naming: All GitHub Actions configs now use PROJECT_* prefix\n  - Clear separation: No confusion with GitHub's built-in GITHUB_TOKEN\n  - Explicit ownership: Makes it obvious these are project-defined configs\n  - Local .env still uses GITHUB_* names - this is intentional and documented\n  \n  Variable mapping:\n  - GITHUB_OWNER → PROJECT_OWNER\n  - GITHUB_REPO → PROJECT_REPO\n  - GITHUB_PROJECT_NUMBER → PROJECT_NUMBER\n  - GITHUB_OWNER_TYPE → PROJECT_OWNER_TYPE\n  - PROJECT_TOKEN (no change - already used this naming)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-22T13:17:46.021Z",
       "templateCommit": "7d90be3b99e2bb1cd2db57a8d8f9aad49907b5dc",
@@ -310,18 +325,6 @@
         "732a494 feat: add package.json auto-merge with interactive conflict resolution \u001b[90m(16/01/2026)\u001b[0m\n  Adds smart field-level merging for package.json during template sync:\n  - Auto-merges fields changed only in template or only in project\n  - Interactive prompt when same field changed in both (choose which value)\n  - Uses 3-way merge with baseline for accurate change detection\n  - Non-interactive mode keeps project values with warning\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "0278590 feat: add Vercel CLI tool for deployment management \u001b[90m(16/01/2026)\u001b[0m\n  - Add scripts/vercel-cli.ts with commands: list, info, logs, env, env:push, project\n  - Auto-detects project from .vercel/project.json\n  - Add env:push command to upload .env variables to Vercel\n  - Add .cursor/rules/vercel-cli-usage.mdc with usage guidelines\n  - Update CLAUDE.md with Vercel CLI documentation\n  - Add vercel-cli script to package.json\n  - Add reminder in init-project.js to run vercel link\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-15T19:33:59.933Z",
-      "templateCommit": "3a78a1dad995bf3625826d963afb0b66ae9ee662",
-      "projectCommit": "6a62d1d25ce6dcaf102ab3492e03a9c4fe370966",
-      "filesApplied": 3,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "3a78a1d docs: clarify that toasts in onSuccess are NOT violations \u001b[90m(15/01/2026)\u001b[0m\n  - Add inline comment in useDeleteReport explaining toast is UI feedback\n  - Add prominent notice in audit command about what is/isn't a violation\n  - Toasts, logging, analytics, navigation in onSuccess are ALLOWED\n  - Only setQueryData/invalidateQueries with server data are violations\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
-        "1870f5d fix: add permissions for PR comment workflow \u001b[90m(14/01/2026)\u001b[0m\n  Add explicit pull-requests: write permission to allow the\n  PR checks workflow to post comments on PRs.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -378,11 +381,11 @@
     "docs/react-query-mutations.md": "b55949512d2c26b9f97eff8645a45d90",
     "docs/shadcn-component-library.md": "d95ef7a2a0a64205f53f7022a518b18c",
     "docs/state-management.md": "2410c4ff3ced94cbc6c3689c18deb6ac",
-    "docs/template-sync/template-sync-comparison.md": "c24c9bccb0fddb06a74b7553cf26fb31",
-    "docs/template-sync/template-sync-implementation.md": "723ea0ab52f8444e7355813aeb956f95",
-    "docs/template-sync/template-sync-quick-start.md": "5ab956fa147e6190a204d6a99ca5dc99",
+    "docs/template-sync/template-sync-comparison.md": "c25f2c969f3a720d30cb7de6638945c5",
+    "docs/template-sync/template-sync-implementation.md": "3b267f8fdb10c94a26d5ef3f565862a7",
+    "docs/template-sync/template-sync-quick-start.md": "4815b00534fb0fc1dda5a810d30e8f09",
     "docs/template-sync/template-sync-visual-guide.md": "0b930d2e919a74cd10e3ace9410c3168",
-    "docs/template-sync/template-sync.md": "a6e01ba6c90b4aaf85669e801db3e5b5",
+    "docs/template-sync/template-sync.md": "36e0a45878be9f3c8a8b960779473fc9",
     "docs/theming.md": "681e533f18a3628d4aee2cfad84c6797",
     "eslint-plugin-api-guidelines/index.js": "e04e1aefd7323b75255b23c1cfb34f28",
     "eslint-plugin-api-guidelines/rules/api-names-from-index.js": "e13771ec7fcf0e9655a662617c401186",
@@ -637,7 +640,7 @@
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
     "scripts/github-pr.ts": "d0c40c2982e2562e3cb397754e117cea",
     "scripts/fix-typescript-eslint.sh": "c6410c7e6a3a7687c8ff6c801adddbee",
-    "docs/telegram-notifications.md": "1a5fe806129a933b32b46b9b0d18eee4",
+    "docs/telegram-notifications.md": "3aa86d8fc7d4391b99b44a66ce9b560b",
     "scripts/send-telegram.ts": "2a4e16b5f85e820590a73dad7e0c09d6",
     "scripts/telegram-setup.ts": "d6c1671518cd55b4d8600dbdf1f277a6",
     "src/server/telegram/index.ts": "981ca2e8cd296a50c7e8fa3515fc216e",
@@ -654,7 +657,7 @@
     "scripts/template-scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
     "scripts/template-scripts/sync-template/analysis/change-analysis.ts": "89e43e65797a678c5ad7dad37160f34c",
     "scripts/template-scripts/sync-template/analysis/diff-utils.ts": "f15edcf324a7ec38ae8bf1e9bb60a8fc",
-    "scripts/template-scripts/sync-template/analysis/index.ts": "4cc2f24ccbfa0c6b135c572f406d6bb9",
+    "scripts/template-scripts/sync-template/analysis/index.ts": "32b02b9390f39630d8ed12dc451a6ac4",
     "scripts/template-scripts/sync-template/files/comparison.ts": "70e163f14e01935cf816a6531af9e66f",
     "scripts/template-scripts/sync-template/files/hashing.ts": "4f1d81f36ed716812c2f8bf71a3bb9bf",
     "scripts/template-scripts/sync-template/files/ignore-patterns.ts": "d3f3549fa9dc5ab9ddb70f19ce617c23",
@@ -662,10 +665,10 @@
     "scripts/template-scripts/sync-template/files/scanning.ts": "9440759cec950e05ce81861992a4e3b1",
     "scripts/template-scripts/sync-template/git/index.ts": "80003edffc5c816dd735274928bd7d6f",
     "scripts/template-scripts/sync-template/git/operations.ts": "2c0a74271047cb78d9d4f4c88d0a53fa",
-    "scripts/template-scripts/sync-template/index.ts": "3ea806e1d9eea86012b364f28ea6a141",
+    "scripts/template-scripts/sync-template/index.ts": "14f93bdb619aaf2d94296dee0fdeb061",
     "scripts/template-scripts/sync-template/modes/changelog.ts": "458613ee5d58ec20964879c3e7b31d92",
     "scripts/template-scripts/sync-template/modes/diff-summary.ts": "d77bf47f2e513e51524e5a224bd72912",
-    "scripts/template-scripts/sync-template/modes/index.ts": "04e084bd40494ef323cd7c69cf6dd548",
+    "scripts/template-scripts/sync-template/modes/index.ts": "382b5b8b70568ed55ca2e3caf3290e84",
     "scripts/template-scripts/sync-template/modes/init-hashes.ts": "c02c33533de2248c9381c38f5379e1ae",
     "scripts/template-scripts/sync-template/modes/project-diffs.ts": "77941bf465e11e71c3f4edd69e22c5fd",
     "scripts/template-scripts/sync-template/modes/show-drift.ts": "7a7aac14fc7a9a0045578bfb12389b0b",
@@ -675,8 +678,8 @@
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
     "scripts/template-scripts/sync-template/sync/operations.ts": "1b9a9215c22f45f8cc1ea1e10a741a20",
-    "scripts/template-scripts/sync-template/sync-template-tool.ts": "61462b35f1c15ffd459fec44f50c04e3",
-    "scripts/template-scripts/sync-template/types/index.ts": "b4846f9f96243c2c48e015b81367c554",
+    "scripts/template-scripts/sync-template/sync-template-tool.ts": "bdd723c7ca0ad5f32cdae1c44a4f4166",
+    "scripts/template-scripts/sync-template/types/index.ts": "d8b68b2af13382b65f180ad337748b91",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
     "scripts/template-scripts/sync-template/ui/index.ts": "217ab4757c14c954b0d495ab650e92cd",
@@ -763,7 +766,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
-    "docs/init-github-projects-workflow.md": "92a0289370836bbaa43283cea81ae31c",
+    "docs/init-github-projects-workflow.md": "6b1bdfc8347875c992b5ec417b322d01",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
@@ -794,7 +797,7 @@
     "src/server/project-management/types.ts": "04db789469d39ddbd20ed19e9b2f9111",
     "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
-    "scripts/verify-github-projects-setup.ts": "b7e87dec1d05490c54a4e41d1acc50ea",
+    "scripts/verify-github-projects-setup.ts": "04cb1dd076d7c50e0e9ccf4681a159c5",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
     "src/agents/pr-review.ts": "9a5030b9eeebf9c06971eb64b8975829",
@@ -817,6 +820,7 @@
     "src/client/features/bug-report/apiErrorReporter.ts": "c7fb4282c1d7658f4de3bdb42897ffd2",
     "src/client/routes/FeatureRequests/FeatureRequestDetail.tsx": "2d71e9b46af64c1989957ca0c9fb5e18",
     "src/client/routes/FeatureRequests/components/CollapsibleSection.tsx": "ccdce82b40508aefbd964ebfdfaa3565",
-    "src/client/routes/FeatureRequests/components/GitHubIssueSection.tsx": "d51597f9e35e734a35192f644e588c2d"
+    "src/client/routes/FeatureRequests/components/GitHubIssueSection.tsx": "d51597f9e35e734a35192f644e588c2d",
+    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "e117bab9d59ecfafa5fbd68a698ae795"
   }
 }

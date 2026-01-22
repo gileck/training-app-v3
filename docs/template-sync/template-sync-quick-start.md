@@ -33,7 +33,6 @@ This creates `.template-sync.json`:
   "lastSyncCommit": "abc123...",
   "lastSyncDate": "2024-01-01T00:00:00.000Z",
   "ignoredFiles": [
-    "package.json",
     "README.md",
     ".env",
     "src/client/routes/Todos",
@@ -45,6 +44,12 @@ This creates `.template-sync.json`:
   "projectSpecificFiles": []
 }
 ```
+
+> **⚠️ WARNING: Do NOT Ignore package.json**
+>
+> **NEVER add `package.json` to ignoredFiles!** The template's `package.json` contains critical scripts that power the GitHub Projects workflow, template sync, and other features. If you ignore it, commands like `yarn agent:*`, `yarn verify-setup`, and `yarn telegram-setup` will be missing.
+>
+> **It's safe to add custom scripts** to your `package.json` - just keep it synced from the template to receive updates.
 
 **Note:** Example features (Todos, Chat) are automatically ignored since they're just demonstrations.
 

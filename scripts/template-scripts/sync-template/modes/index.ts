@@ -10,3 +10,4 @@ export { runDiffSummary } from './diff-summary';
 export { runValidation, runValidationWithDetails } from './validation';
 export type { ValidationResult } from './validation';
 export { runJsonMode } from './json-mode';
+export { runMergePackageJson } from './merge-package-json';

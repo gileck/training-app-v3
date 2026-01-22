@@ -2,7 +2,7 @@
  * Analysis module re-exports
  */
 
-export { analyzeChanges, fileExistedInTemplateAtLastSync } from './change-analysis';
+export { analyzeChanges, fileExistedInTemplateAtLastSync, getBaselinePackageJson } from './change-analysis';
 export {
   getFileDiffSummary,
   formatDiffStats,

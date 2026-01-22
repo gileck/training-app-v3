@@ -8,6 +8,10 @@ The app can send Telegram bot notifications to users. Each user configures their
 
 ## Setup
 
+> **⚠️ IMPORTANT: One Bot Per Project**
+>
+> If you have multiple projects based on this template, each needs its own Telegram bot. A bot can only have ONE webhook URL at a time, so sharing a bot across projects will break button callbacks.
+
 ### 1. Create a Telegram Bot
 
 1. Message [@BotFather](https://t.me/botfather) on Telegram
