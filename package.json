@@ -20,8 +20,10 @@
     "investigate-bugs": "tsx scripts/investigate-bugs.ts",
     "github-pr": "tsx scripts/github-pr.ts",
     "telegram-setup": "tsx scripts/telegram-setup.ts",
+    "telegram-webhook": "tsx scripts/telegram-webhook-setup.ts",
     "send-telegram": "tsx scripts/send-telegram.ts",
-    "setup-github-secrets": "tsx scripts/setup-github-secrets.ts"
+    "setup-github-secrets": "tsx scripts/setup-github-secrets.ts",
+    "vercel-cli": "tsx scripts/vercel-cli.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",

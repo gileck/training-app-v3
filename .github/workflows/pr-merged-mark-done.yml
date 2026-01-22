@@ -25,11 +25,11 @@ jobs:
 
       - name: Mark issue as Done
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
-          GITHUB_OWNER: ${{ vars.GITHUB_OWNER }}
-          GITHUB_REPO: ${{ vars.GITHUB_REPO }}
-          GITHUB_PROJECT_NUMBER: ${{ vars.GITHUB_PROJECT_NUMBER }}
-          GITHUB_OWNER_TYPE: ${{ vars.GITHUB_OWNER_TYPE }}
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          GITHUB_OWNER: ${{ vars.PROJECT_OWNER }}
+          GITHUB_REPO: ${{ vars.PROJECT_REPO }}
+          GITHUB_PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          GITHUB_OWNER_TYPE: ${{ vars.PROJECT_OWNER_TYPE }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
