@@ -55,8 +55,49 @@ export async function runMergePackageJson(context: SyncContext): Promise<void> {
                        mergeResult.templateOnlyFields.length > 0 ||
                        mergeResult.conflicts.length > 0;
 
+    // Show diff between project and template package.json
+    const projectPackageJsonPath = path.join(context.projectRoot, 'package.json');
+    const templatePackageJsonPath = path.join(context.projectRoot, TEMPLATE_DIR, 'package.json');
+    
+    try {
+      const diff = exec(
+        `git diff --no-index --color=always "${projectPackageJsonPath}" "${templatePackageJsonPath}"`,
+        context.projectRoot,
+        { silent: true }
+      );
+      if (diff.trim()) {
+        log(context.options, '\n📋 DIFF (project vs template):');
+        log(context.options, '─'.repeat(60));
+        log(context.options, diff);
+        log(context.options, '─'.repeat(60));
+      } else {
+        log(context.options, '\n📋 Files are identical.');
+      }
+    } catch {
+      // git diff --no-index returns exit code 1 when files differ, which throws
+      // Try to get the diff output anyway
+      try {
+        const diff = exec(
+          `git diff --no-index --color=always "${projectPackageJsonPath}" "${templatePackageJsonPath}" || true`,
+          context.projectRoot,
+          { silent: true }
+        );
+        if (diff.trim()) {
+          log(context.options, '\n📋 DIFF (project vs template):');
+          log(context.options, '─'.repeat(60));
+          log(context.options, diff);
+          log(context.options, '─'.repeat(60));
+        }
+      } catch {
+        // Ignore diff errors
+      }
+    }
+
     if (!hasChanges) {
-      log(context.options, '\n✅ No changes to merge. Your package.json is up to date with the template.');
+      log(context.options, '\n✅ No changes to merge from template.');
+      if (mergeResult.projectKeptFields.length > 0 || mergeResult.projectOnlyFields.length > 0) {
+        log(context.options, '   Your project-specific changes are preserved.');
+      }
       return;
     }
 

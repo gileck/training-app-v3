@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "a67fa1279f2aa4afbaa15513c052dd31f33a7915",
-  "lastProjectCommit": "79c4b67246e02b71f42d3d99f4f742a566b68a16",
-  "lastSyncDate": "2026-01-22T15:20:10.715Z",
+  "lastSyncCommit": "1e7fbb1782bac69e08f5d745a6c08b4adb2a7de2",
+  "lastProjectCommit": "2594c025a0dd22e92eff2c1ecc20aa81b84d9075",
+  "lastSyncDate": "2026-01-22T15:23:40.198Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-22T15:23:40.366Z",
+      "templateCommit": "1e7fbb1782bac69e08f5d745a6c08b4adb2a7de2",
+      "projectCommit": "2594c025a0dd22e92eff2c1ecc20aa81b84d9075",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "1e7fbb1 feat(sync-template): show git diff in --merge-package-json output \u001b[90m(22/01/2026)\u001b[0m\n  Shows the actual diff between project and template package.json files\n  so users can see all differences, not just what would be merged."
+      ]
+    },
     {
       "date": "2026-01-22T15:20:10.916Z",
       "templateCommit": "a67fa1279f2aa4afbaa15513c052dd31f33a7915",
@@ -312,18 +323,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "6cb99e8 feat: add duplicate detection and token usage tracking to investigate-bugs \u001b[90m(17/01/2026)\u001b[0m\n  After investigating a bug report, the script now queries reports from +/- 2 days\n  and asks Claude to identify duplicates based on description/error similarity.\n  Duplicates are marked in the database and automatically excluded from future runs.\n  \n  Also adds token usage tracking to display input/output tokens and cost per\n  investigation and in the final summary.\n  \n  Changes:\n  - Add duplicateOf field to ReportDocument for tracking duplicate relationships\n  - Add findReportsInTimeRange() and markReportAsDuplicate() database methods\n  - Update findUninvestigatedReports() to exclude duplicates\n  - Add detectDuplicates() function using Claude to identify similar reports\n  - Display token count and cost per investigation and in summary\n  - Rename --limit to --limit-reports for clarity\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-16T14:33:43.672Z",
-      "templateCommit": "732a494437aeba59586abb4cbf86653c12fe0ce6",
-      "projectCommit": "fe600e8b82e6654a6b00724e7c728d309730322d",
-      "filesApplied": 10,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "732a494 feat: add package.json auto-merge with interactive conflict resolution \u001b[90m(16/01/2026)\u001b[0m\n  Adds smart field-level merging for package.json during template sync:\n  - Auto-merges fields changed only in template or only in project\n  - Interactive prompt when same field changed in both (choose which value)\n  - Uses 3-way merge with baseline for accurate change detection\n  - Non-interactive mode keeps project values with warning\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "0278590 feat: add Vercel CLI tool for deployment management \u001b[90m(16/01/2026)\u001b[0m\n  - Add scripts/vercel-cli.ts with commands: list, info, logs, env, env:push, project\n  - Auto-detects project from .vercel/project.json\n  - Add env:push command to upload .env variables to Vercel\n  - Add .cursor/rules/vercel-cli-usage.mdc with usage guidelines\n  - Update CLAUDE.md with Vercel CLI documentation\n  - Add vercel-cli script to package.json\n  - Add reminder in init-project.js to run vercel link\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -821,6 +820,6 @@
     "src/client/routes/FeatureRequests/FeatureRequestDetail.tsx": "2d71e9b46af64c1989957ca0c9fb5e18",
     "src/client/routes/FeatureRequests/components/CollapsibleSection.tsx": "ccdce82b40508aefbd964ebfdfaa3565",
     "src/client/routes/FeatureRequests/components/GitHubIssueSection.tsx": "d51597f9e35e734a35192f644e588c2d",
-    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "e117bab9d59ecfafa5fbd68a698ae795"
+    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "82a2a29d6845a30a57102823e62f7ef3"
   }
 }
