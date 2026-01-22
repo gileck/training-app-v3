@@ -165,6 +165,12 @@ export interface ReportDocument {
     investigation?: Investigation;
     duplicateOf?: ObjectId;  // ID of the original report this is a duplicate of
 
+    // Deduplication tracking
+    occurrenceCount: number;        // How many times this error occurred
+    firstOccurrence: Date;          // When error first appeared
+    lastOccurrence: Date;           // Most recent occurrence
+    errorKey?: string;              // Dedup key: "api:apiName:errorMessage" or "runtime:errorMessage:stackFirst200"
+
     // GitHub integration fields (same as feature requests)
     githubIssueUrl?: string;
     githubIssueNumber?: number;
@@ -218,6 +224,12 @@ export interface ReportClient {
     performanceEntries?: PerformanceEntryData[];
     investigation?: InvestigationClient;
     duplicateOf?: string;  // ID of the original report this is a duplicate of
+
+    // Deduplication tracking
+    occurrenceCount: number;
+    firstOccurrence: string;
+    lastOccurrence: string;
+    errorKey?: string;
 
     // GitHub integration fields
     githubIssueUrl?: string;

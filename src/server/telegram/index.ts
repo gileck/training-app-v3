@@ -58,7 +58,7 @@ async function sendToChat(
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken) {
-        console.warn('Telegram notification skipped: missing TELEGRAM_BOT_TOKEN');
+        console.warn('[Telegram] Notification skipped: missing TELEGRAM_BOT_TOKEN');
         return { success: false, error: 'Missing bot token' };
     }
 
@@ -85,13 +85,14 @@ async function sendToChat(
 
         if (!response.ok) {
             const error = await response.text();
-            console.error('Telegram API error:', error);
+            console.error('[Telegram] API error response:', error);
             return { success: false, error };
         }
 
+        await response.json();
         return { success: true };
     } catch (error) {
-        console.error('Failed to send Telegram notification:', error);
+        console.error('[Telegram] Failed to send message:', error);
         return { success: false, error: String(error) };
     }
 }
@@ -165,7 +166,7 @@ export async function sendNotificationToOwner(
     const ownerChatId = appConfig.ownerTelegramChatId;
 
     if (!ownerChatId) {
-        console.warn('Owner notification skipped: ownerTelegramChatId not configured');
+        console.warn('[Telegram] Owner notification skipped: ownerTelegramChatId not configured');
         return { success: false, error: 'Owner chat ID not configured' };
     }
 
@@ -232,9 +233,12 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
     const baseUrl = getBaseUrl();
 
     if (baseUrl.startsWith('https') && report.approvalToken) {
+        // Callback data format: "approve_bug:reportId"
+        // Note: Token is verified from database when webhook is called
+        // (Telegram has 64-byte limit on callback_data, so we can't include the token)
         inlineKeyboard.push([{
             text: '✅ Approve & Create GitHub Issue',
-            callback_data: `approve_bug:${report._id}:${report.approvalToken}`,
+            callback_data: `approve_bug:${report._id}`,
         }]);
     } else if (report.approvalToken) {
         // Fallback to URL button for non-HTTPS

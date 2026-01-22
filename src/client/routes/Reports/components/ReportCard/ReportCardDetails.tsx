@@ -133,6 +133,52 @@ export function ReportCardDetails({ report }: ReportCardDetailsProps) {
                 </div>
             </div>
 
+            {/* Occurrence Info (for deduplicated errors) */}
+            {report.occurrenceCount > 1 && (
+                <div>
+                    <h4 className="mb-2 text-sm font-medium">Occurrence History</h4>
+                    <div className="rounded bg-muted p-3 text-xs space-y-1">
+                        <div>
+                            <span className="text-muted-foreground">Total Occurrences:</span>{' '}
+                            <span className="font-medium text-destructive">{report.occurrenceCount}</span>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">First Occurrence:</span>{' '}
+                            {formatDate(report.firstOccurrence)}
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">Last Occurrence:</span>{' '}
+                            {formatDate(report.lastOccurrence)}
+                        </div>
+                        {(() => {
+                            const first = new Date(report.firstOccurrence).getTime();
+                            const last = new Date(report.lastOccurrence).getTime();
+                            const durationMs = last - first;
+                            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                            const days = Math.floor(hours / 24);
+                            const remainingHours = hours % 24;
+
+                            if (days > 0) {
+                                return (
+                                    <div>
+                                        <span className="text-muted-foreground">Duration:</span>{' '}
+                                        {days}d {remainingHours}h
+                                    </div>
+                                );
+                            } else if (hours > 0) {
+                                return (
+                                    <div>
+                                        <span className="text-muted-foreground">Duration:</span>{' '}
+                                        {hours}h
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
+                </div>
+            )}
+
             {/* Session Logs */}
             {report.sessionLogs.length > 0 && (
                 <div>

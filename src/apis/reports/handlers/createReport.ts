@@ -5,17 +5,82 @@ import { ApiHandlerContext } from '@/apis/types';
 import { fileStorageAPI } from '@/server/blob';
 import { toStringId } from '@/server/utils';
 
+/**
+ * Generate error key for deduplication
+ */
+function generateErrorKey(request: CreateReportRequest): string {
+    if (request.apiName && request.errorMessage) {
+        // API error: use apiName + errorMessage
+        return `api:${request.apiName}:${request.errorMessage}`;
+    } else if (request.errorMessage) {
+        // Runtime error: use errorMessage + first 200 chars of stack trace
+        const stackPrefix = request.stackTrace?.slice(0, 200) || '';
+        return `runtime:${request.errorMessage}:${stackPrefix}`;
+    }
+    // No error key if no errorMessage (user-submitted bugs)
+    return '';
+}
+
 export const createReport = async (
     request: CreateReportRequest,
     context: ApiHandlerContext
 ): Promise<CreateReportResponse> => {
     try {
         const now = new Date();
-        
+
         // Build user info from context if available
         const userInfo = request.userInfo || (context.userId ? {
             userId: context.userId,
         } : undefined);
+
+        // Generate error key for deduplication (only for automatic error reports)
+        const errorKey = request.errorKey || generateErrorKey(request);
+
+        // Check for existing open report with same error key (deduplication)
+        if (errorKey && request.type === 'error') {
+            const existingReport = await reports.findOpenReportByErrorKey(errorKey);
+
+            if (existingReport) {
+                // Increment occurrence count and update lastOccurrence
+                await reports.incrementReportOccurrence(existingReport._id);
+
+                // Return the updated existing report
+                const reportClient = {
+                    _id: toStringId(existingReport._id),
+                    type: existingReport.type,
+                    status: existingReport.status,
+                    description: existingReport.description,
+                    screenshot: existingReport.screenshot,
+                    sessionLogs: existingReport.sessionLogs,
+                    userInfo: existingReport.userInfo,
+                    browserInfo: existingReport.browserInfo,
+                    route: existingReport.route,
+                    networkStatus: existingReport.networkStatus,
+                    stackTrace: existingReport.stackTrace,
+                    errorMessage: existingReport.errorMessage,
+                    category: existingReport.category,
+                    performanceEntries: existingReport.performanceEntries,
+                    investigation: existingReport.investigation ? {
+                        ...existingReport.investigation,
+                        investigatedAt: existingReport.investigation.investigatedAt.toISOString(),
+                    } : undefined,
+                    duplicateOf: existingReport.duplicateOf ? toStringId(existingReport.duplicateOf) : undefined,
+                    occurrenceCount: existingReport.occurrenceCount + 1, // Reflect the increment
+                    firstOccurrence: existingReport.firstOccurrence.toISOString(),
+                    lastOccurrence: now.toISOString(), // Use current time
+                    errorKey: existingReport.errorKey,
+                    githubIssueUrl: existingReport.githubIssueUrl,
+                    githubIssueNumber: existingReport.githubIssueNumber,
+                    githubProjectItemId: existingReport.githubProjectItemId,
+                    githubPrUrl: existingReport.githubPrUrl,
+                    githubPrNumber: existingReport.githubPrNumber,
+                    createdAt: existingReport.createdAt.toISOString(),
+                    updatedAt: now.toISOString(),
+                };
+
+                return { report: reportClient };
+            }
+        }
 
         // Upload screenshot to file storage if provided as base64
         let screenshotUrl: string | undefined;
@@ -31,6 +96,7 @@ export const createReport = async (
             }
         }
 
+        // Create new report with deduplication fields
         const reportData = {
             type: request.type,
             status: 'new' as const,
@@ -45,6 +111,10 @@ export const createReport = async (
             errorMessage: request.errorMessage,
             category: request.category,
             performanceEntries: request.performanceEntries,
+            errorKey: errorKey || undefined,
+            occurrenceCount: 1,
+            firstOccurrence: now,
+            lastOccurrence: now,
             createdAt: now,
             updatedAt: now,
         };
@@ -68,6 +138,11 @@ export const createReport = async (
             category: newReport.category,
             performanceEntries: newReport.performanceEntries,
             investigation: undefined, // New reports don't have investigation
+            duplicateOf: undefined,
+            occurrenceCount: newReport.occurrenceCount,
+            firstOccurrence: newReport.firstOccurrence.toISOString(),
+            lastOccurrence: newReport.lastOccurrence.toISOString(),
+            errorKey: newReport.errorKey,
             createdAt: newReport.createdAt.toISOString(),
             updatedAt: newReport.updatedAt.toISOString(),
         };

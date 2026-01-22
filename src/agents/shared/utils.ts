@@ -225,3 +225,26 @@ ${rows.join('\n')}
 
 Ready for re-review.`;
 }
+
+// ============================================================
+// PR SUMMARY EXTRACTION
+// ============================================================
+
+/**
+ * Extract PR summary from agent output
+ *
+ * Agents output PR summaries in this format:
+ * ```pr-summary
+ * ## Summary
+ * [bullet points]
+ *
+ * ## Changes
+ * - **file**: description
+ * ```
+ */
+export function extractPRSummary(content: string): string | null {
+    if (!content) return null;
+
+    const match = content.match(/```pr-summary\n([\s\S]*?)\n```/);
+    return match ? match[1].trim() : null;
+}

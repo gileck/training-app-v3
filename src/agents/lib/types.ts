@@ -60,6 +60,11 @@ export interface AgentRunOptions {
     workflow?: WorkflowName;
     /** Enable Claude Code slash commands (requires settingSources: ['project']) */
     useSlashCommands?: boolean;
+    /** Output format for structured responses (JSON schema) */
+    outputFormat?: {
+        type: 'json_schema';
+        schema: Record<string, unknown>;
+    };
 }
 
 /**
@@ -78,6 +83,8 @@ export interface AgentRunResult {
     usage: UsageStats | null;
     /** Execution time in seconds */
     durationSeconds: number;
+    /** Structured output when outputFormat is specified */
+    structuredOutput?: unknown;
 }
 
 /**

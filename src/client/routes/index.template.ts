@@ -10,7 +10,7 @@
 import { Settings } from './Settings';
 import { Profile } from './Profile';
 import { Reports } from './Reports';
-import { FeatureRequests } from './FeatureRequests';
+import { FeatureRequests, FeatureRequestDetail } from './FeatureRequests';
 import { MyFeatureRequests } from './MyFeatureRequests';
 import { NotFound } from './NotFound';
 import { Theme } from './Theme';
@@ -30,6 +30,7 @@ export const templateRoutes: Routes = {
   // Admin routes
   '/admin/reports': Reports,
   '/admin/feature-requests': FeatureRequests,
+  '/admin/feature-requests/:requestId': FeatureRequestDetail,
 
   // Fallback
   '/not-found': NotFound,

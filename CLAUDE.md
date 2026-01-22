@@ -359,6 +359,7 @@ Session logging with bug reporting and error tracking.
 - **Bug report dialog**: Accessible from menu, includes screenshot option
 - **Auto error tracking**: Global error handler + React ErrorBoundary
 - **Reports dashboard**: `/reports` to view all reports
+- **GitHub integration**: Approved bugs sync to GitHub Issues and flow through AI agent workflow
 - **Console helpers**: `enableLogs()`, `printLogs()`, `getSessionLogs()`
 
 ```typescript

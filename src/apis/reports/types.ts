@@ -26,6 +26,8 @@ export interface CreateReportRequest {
     errorMessage?: string;
     category?: BugCategory;
     performanceEntries?: PerformanceEntryData[];
+    errorKey?: string;   // Dedup key for automatic error reporting
+    apiName?: string;    // API name for API error reporting
 }
 
 export interface CreateReportResponse {

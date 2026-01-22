@@ -387,3 +387,44 @@ export const updateApprovalToken = async (
     return result.modifiedCount === 1;
 };
 
+/**
+ * Find an existing open report by error key (for deduplication)
+ * @param errorKey - The error key to search for
+ * @returns The report document or null if not found
+ */
+export const findOpenReportByErrorKey = async (
+    errorKey: string
+): Promise<ReportDocument | null> => {
+    const collection = await getReportsCollection();
+
+    return collection.findOne({
+        errorKey,
+        status: { $in: ['new', 'investigating'] as ReportStatus[] },
+    });
+};
+
+/**
+ * Increment occurrence count and update lastOccurrence timestamp
+ * @param reportId - The ID of the report to update
+ * @returns True if updated successfully
+ */
+export const incrementReportOccurrence = async (
+    reportId: ObjectId | string
+): Promise<boolean> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    const result = await collection.updateOne(
+        { _id: reportIdObj },
+        {
+            $inc: { occurrenceCount: 1 },
+            $set: {
+                lastOccurrence: new Date(),
+                updatedAt: new Date(),
+            },
+        }
+    );
+
+    return result.modifiedCount === 1;
+};
+

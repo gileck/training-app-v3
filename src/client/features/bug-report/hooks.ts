@@ -164,10 +164,14 @@ export function useSubmitErrorReport() {
                 email: user.email,
             } : undefined;
 
+            // Generate error key for deduplication
+            const errorKey = generateRuntimeErrorKey(errorMessage, stackTrace);
+
             const reportData: CreateReportRequest = {
                 type: 'error',
                 errorMessage,
                 stackTrace,
+                errorKey,
                 sessionLogs,
                 userInfo,
                 browserInfo,
@@ -176,7 +180,7 @@ export function useSubmitErrorReport() {
             };
 
             const result = await createReport(reportData);
-            
+
             if (result.data.error) {
                 throw new Error(result.data.error);
             }
@@ -188,17 +192,42 @@ export function useSubmitErrorReport() {
 
 /**
  * Check if we're running in production environment
- * Returns false for localhost/development environments
+ * Returns false for development, test, localhost, private IPs, and Vercel previews
  */
 function isProductionEnvironment(): boolean {
+    // Check NODE_ENV first (most reliable)
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        return false;
+    }
+
     if (typeof window === 'undefined') return false;
-    
+
     const hostname = window.location.hostname;
-    return hostname !== 'localhost' && 
-           hostname !== '127.0.0.1' && 
-           !hostname.startsWith('192.168.') &&
-           !hostname.startsWith('10.') &&
-           !hostname.endsWith('.local');
+
+    // Local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
+        return false;
+    }
+
+    // Private IP ranges
+    if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+        return false;
+    }
+
+    // Vercel preview deployments (not production)
+    if (hostname.includes('.vercel.app') && hostname.includes('-git-')) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Generate error key for runtime error deduplication
+ */
+function generateRuntimeErrorKey(errorMessage: string, stackTrace?: string): string {
+    const stackPrefix = stackTrace?.slice(0, 200) || '';
+    return `runtime:${errorMessage}:${stackPrefix}`;
 }
 
 /**
@@ -214,7 +243,7 @@ export async function submitErrorReport(errorMessage: string, stackTrace?: strin
 
     // Import dynamically to avoid circular dependencies
     const { useAuthStore } = await import('../auth');
-    
+
     const sessionLogs = getSessionLogs();
     const browserInfo = getBrowserInfo();
     const networkStatus = getNetworkStatus();
@@ -227,10 +256,14 @@ export async function submitErrorReport(errorMessage: string, stackTrace?: strin
         email: user.email,
     } : undefined;
 
+    // Generate error key for deduplication
+    const errorKey = generateRuntimeErrorKey(errorMessage, stackTrace);
+
     const reportData: CreateReportRequest = {
         type: 'error',
         errorMessage,
         stackTrace,
+        errorKey,
         sessionLogs,
         userInfo,
         browserInfo,

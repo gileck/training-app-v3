@@ -219,6 +219,43 @@ export interface UpdateGitHubReviewStatusResponse {
     error?: string;
 }
 
+// Clear GitHub Project review status
+export interface ClearGitHubReviewStatusRequest {
+    requestId: string;
+}
+
+export interface ClearGitHubReviewStatusResponse {
+    success?: boolean;
+    error?: string;
+}
+
+// Get GitHub Issue Details
+export interface GetGitHubIssueDetailsRequest {
+    requestId: string;
+}
+
+export interface LinkedPullRequest {
+    number: number;
+    url: string;
+    title: string;
+    state: 'OPEN' | 'CLOSED' | 'MERGED';
+    mergedAt?: string;
+}
+
+export interface GitHubIssueDetails {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    state: 'OPEN' | 'CLOSED';
+    linkedPullRequests: LinkedPullRequest[];
+}
+
+export interface GetGitHubIssueDetailsResponse {
+    issueDetails?: GitHubIssueDetails;
+    error?: string;
+}
+
 // Re-export types for convenience
 export type {
     FeatureRequestClient,

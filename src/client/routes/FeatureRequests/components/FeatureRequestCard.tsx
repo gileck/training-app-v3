@@ -12,11 +12,12 @@ import {
     DropdownMenuSubTrigger,
 } from '@/client/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
-import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, Eye, ExternalLink, GitPullRequest, CheckCircle, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, Eye, ExternalLink, GitPullRequest, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
 import { StatusBadge, PriorityBadge } from './StatusBadge';
 import { DesignReviewPanel } from './DesignReviewPanel';
 import type { FeatureRequestClient, FeatureRequestPriority, DesignPhaseType } from '@/apis/feature-requests/types';
-import { useUpdatePriority, useDeleteFeatureRequest, useApproveFeatureRequest, useGitHubStatus, useGitHubStatuses, useUpdateGitHubStatus, useUpdateGitHubReviewStatus } from '../hooks';
+import { useUpdatePriority, useDeleteFeatureRequest, useApproveFeatureRequest, useGitHubStatus, useGitHubStatuses, useUpdateGitHubStatus, useUpdateGitHubReviewStatus, useClearGitHubReviewStatus } from '../hooks';
+import { useRouter } from '@/client/router';
 
 interface FeatureRequestCardProps {
     request: FeatureRequestClient;
@@ -33,6 +34,7 @@ const priorityBorderColors: Record<FeatureRequestPriority, string> = {
 };
 
 export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
+    const { navigate } = useRouter();
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [isExpanded, setIsExpanded] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -57,6 +59,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
     const { data: availableStatuses } = useGitHubStatuses();
     const updateGitHubStatusMutation = useUpdateGitHubStatus();
     const updateGitHubReviewStatusMutation = useUpdateGitHubReviewStatus();
+    const clearGitHubReviewStatusMutation = useClearGitHubReviewStatus();
 
     const handlePriorityChange = (priority: FeatureRequestPriority) => {
         updatePriorityMutation.mutate({ requestId: request._id, priority });
@@ -68,6 +71,10 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
 
     const handleGitHubReviewStatusChange = (reviewStatus: string) => {
         updateGitHubReviewStatusMutation.mutate({ requestId: request._id, reviewStatus });
+    };
+
+    const handleClearGitHubReviewStatus = () => {
+        clearGitHubReviewStatusMutation.mutate({ requestId: request._id });
     };
 
     const handleDelete = () => {
@@ -95,12 +102,29 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
 
     const canReviewDesign = currentDesignPhase && currentDesignPhase.content && currentPhaseType;
 
+    const handleCardClick = () => {
+        navigate(`/admin/feature-requests/${request._id}`);
+    };
+
     return (
         <Card className={`border-l-4 ${priorityBorderColor} transition-shadow hover:shadow-md`}>
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-2">
-                        <CardTitle className="text-base font-semibold leading-tight">{request.title}</CardTitle>
+                    <div
+                        className="flex-1 space-y-2 cursor-pointer"
+                        onClick={handleCardClick}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleCardClick();
+                            }
+                        }}
+                    >
+                        <CardTitle className="text-base font-semibold leading-tight hover:text-primary transition-colors">
+                            {request.title}
+                        </CardTitle>
                         <div className="flex flex-wrap items-center gap-3">
                             {/* Show GitHub status as primary when linked, fallback to DB status */}
                             {request.githubProjectItemId ? (
@@ -130,7 +154,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                             <PriorityBadge priority={request.priority} />
                         </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         {canApprove && (
                             <Button
                                 variant="default"
@@ -220,6 +244,14 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                                     {reviewStatus}
                                                 </DropdownMenuItem>
                                             ))}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={handleClearGitHubReviewStatus}
+                                                disabled={!githubStatus?.reviewStatus || clearGitHubReviewStatusMutation.isPending}
+                                            >
+                                                <RotateCcw className="mr-2 h-4 w-4" />
+                                                Clear (Ready for Agent)
+                                            </DropdownMenuItem>
                                         </DropdownMenuSubContent>
                                     </DropdownMenuSub>
                                 )}

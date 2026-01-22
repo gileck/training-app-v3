@@ -89,6 +89,11 @@ export function ReportCardHeader({ report }: ReportCardHeaderProps) {
                         {report.performanceEntries.length}
                     </span>
                 )}
+                {report.occurrenceCount > 1 && (
+                    <span className="inline-flex items-center rounded-full bg-destructive/20 px-2.5 py-0.5 text-destructive font-medium">
+                        {report.occurrenceCount}x occurrences
+                    </span>
+                )}
             </div>
         </>
     );

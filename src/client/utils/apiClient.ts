@@ -8,6 +8,7 @@ import {
   shouldFlushNow,
 } from '@/client/utils/offlinePostQueue';
 import { logger } from '@/client/features/session-logs';
+import { submitApiErrorReport } from '@/client/features/bug-report/apiErrorReporter';
 
 // Legacy callback support for initialization
 let getSettingsRef: (() => Settings) | null = null;
@@ -97,7 +98,10 @@ export const apiClient = {
       const result = await response.json();
 
       if (result?.data && typeof result.data === 'object' && 'error' in result.data && result.data.error != null) {
-        throw new Error(`Failed to call ${name}: ${result.data.error}`);
+        const errorMessage = String(result.data.error);
+        // Auto-report API error in production
+        void submitApiErrorReport(name, errorMessage, params);
+        throw new Error(`Failed to call ${name}: ${errorMessage}`);
       }
 
       return result.data;
@@ -233,11 +237,14 @@ export const apiClient = {
       const result = await response.json();
 
       if (result?.data && typeof result.data === 'object' && 'error' in result.data && result.data.error != null) {
-        const error = `Failed to call ${name}: ${result.data.error}`;
-        logger.apiResponse(name, result.data, { 
-          duration: Date.now() - startTime, 
-          error 
+        const errorMessage = String(result.data.error);
+        const error = `Failed to call ${name}: ${errorMessage}`;
+        logger.apiResponse(name, result.data, {
+          duration: Date.now() - startTime,
+          error
         });
+        // Auto-report API error in production
+        void submitApiErrorReport(name, errorMessage, params);
         throw new Error(error);
       }
 

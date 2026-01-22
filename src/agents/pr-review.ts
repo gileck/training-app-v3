@@ -34,8 +34,6 @@ import {
     type ProjectItem,
     // Claude
     runAgent,
-    extractReview,
-    parseReviewDecision,
     // Notifications
     notifyPRReviewComplete,
     notifyAgentError,
@@ -61,6 +59,38 @@ interface ProcessableItem {
 interface PRReviewOptions extends CommonCLIOptions {
     skipCheckout?: boolean;
 }
+
+interface PRReviewOutput {
+    decision: 'approved' | 'request_changes';
+    summary: string;
+    reviewText: string;
+}
+
+// ============================================================
+// OUTPUT FORMAT
+// ============================================================
+
+const PR_REVIEW_OUTPUT_FORMAT = {
+    type: 'json_schema' as const,
+    schema: {
+        type: 'object',
+        properties: {
+            decision: {
+                type: 'string',
+                enum: ['approved', 'request_changes'],
+            },
+            summary: {
+                type: 'string',
+                description: '1-2 sentence summary of the review',
+            },
+            reviewText: {
+                type: 'string',
+                description: 'Full review content to post as PR comment',
+            },
+        },
+        required: ['decision', 'summary', 'reviewText'],
+    },
+};
 
 // ============================================================
 // GIT UTILITIES
@@ -248,9 +278,18 @@ async function processItem(
 
             // Run the /review slash command with context
             console.log(`\n  Running PR review...`);
+
+            // JSON output instructions to append after /review
+            const outputInstructions = `
+
+After completing the review, provide your response as structured JSON with these fields:
+- decision: either "approved" or "request_changes"
+- summary: 1-2 sentence summary of the review
+- reviewText: the full review content to post as PR comment`;
+
             let prompt: string;
             if (contextPrompt) {
-                prompt = `${contextPrompt}/review`;
+                prompt = `${contextPrompt}/review${outputInstructions}`;
             } else {
                 // No PR comments, but still provide guidelines
                 prompt = `## Instructions
@@ -264,7 +303,7 @@ Review this PR and check compliance with project guidelines in \`.cursor/rules/\
 - API patterns (\`.cursor/rules/client-server-communications.mdc\`)
 - Comprehensive checklist (\`.cursor/rules/app-guidelines-checklist.mdc\`)
 
-/review`;
+/review${outputInstructions}`;
             }
 
             const result = await runAgent({
@@ -276,23 +315,20 @@ Review this PR and check compliance with project guidelines in \`.cursor/rules/\
                 timeout: agentConfig.claude.timeoutSeconds,
                 progressLabel: 'Reviewing PR',
                 workflow: 'pr-review',
+                outputFormat: PR_REVIEW_OUTPUT_FORMAT,
             });
 
             if (!result.success) {
                 return { success: false, error: result.error || 'Review failed' };
             }
 
-            // Extract review content
-            const reviewContent = extractReview(result.content || '');
-            if (!reviewContent) {
-                return { success: false, error: 'Could not extract review content from agent output' };
+            // Extract structured output
+            const output = result.structuredOutput as PRReviewOutput | undefined;
+            if (!output) {
+                return { success: false, error: 'No structured output from review' };
             }
 
-            // Parse decision
-            const decision = parseReviewDecision(reviewContent);
-            if (!decision) {
-                return { success: false, error: 'Could not parse review decision (expected APPROVED or REQUEST_CHANGES)' };
-            }
+            const { decision, summary, reviewText } = output;
 
             console.log(`  Review decision: ${decision === 'approved' ? 'APPROVED ✓' : 'REQUEST CHANGES'}`);
 
@@ -300,12 +336,13 @@ Review this PR and check compliance with project guidelines in \`.cursor/rules/\
             if (options.dryRun) {
                 console.log('\n  [DRY RUN] Would post review comment:');
                 console.log('  ' + '='.repeat(60));
-                console.log(reviewContent.split('\n').map(l => '  ' + l).join('\n'));
+                console.log(reviewText.split('\n').map(l => '  ' + l).join('\n'));
                 console.log('  ' + '='.repeat(60));
+                console.log(`\n  [DRY RUN] Summary: ${summary}`);
                 console.log(`\n  [DRY RUN] Would update review status to: ${decision === 'approved' ? 'Approved' : 'Request Changes'}`);
             } else {
                 // Post review comment on PR
-                const prefixedReview = addAgentPrefix('pr-review', reviewContent);
+                const prefixedReview = addAgentPrefix('pr-review', reviewText);
                 await adapter.addPRComment(prNumber, prefixedReview);
                 console.log('  Posted review comment on PR');
 
@@ -318,7 +355,7 @@ Review this PR and check compliance with project guidelines in \`.cursor/rules/\
                 console.log(`  Updated review status to: ${newReviewStatus}`);
 
                 // Send notification
-                await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, issueType);
+                await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
             }
 
             return { success: true, decision };

@@ -103,3 +103,21 @@ export async function updateGitHubReviewStatus(
         return false;
     }
 }
+
+/**
+ * Clear the GitHub Project review status for a project item
+ * This sets the field to empty/null, making it ready for agent processing
+ */
+export async function clearGitHubReviewStatus(
+    projectItemId: string
+): Promise<boolean> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+        await adapter.clearItemReviewStatus(projectItemId);
+        return true;
+    } catch (error) {
+        console.error('Failed to clear GitHub review status:', error);
+        return false;
+    }
+}

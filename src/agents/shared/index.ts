@@ -115,6 +115,7 @@ export {
     handleClarificationRequest,
     extractFeedbackResolution,
     formatFeedbackResolution,
+    extractPRSummary,
     type BugDiagnostics,
     type FeedbackResolution,
 } from './utils';

@@ -639,10 +639,19 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, provide a brief summary of:
-1. Files created
-2. Files modified
-3. Any issues encountered
+After implementing, you MUST provide a PR summary in this exact format:
+
+\`\`\`pr-summary
+## Summary
+[2-4 bullet points describing what was implemented and key decisions made]
+
+## Changes
+- **[filename]**: [brief description of change]
+- **[filename]**: [brief description of change]
+[List the most important files changed - max 5-7 files]
+\`\`\`
+
+This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the feature now.`;
 }
@@ -796,10 +805,19 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, provide a brief summary of:
-1. Files created
-2. Files modified
-3. Any issues encountered
+After implementing, you MUST provide a PR summary in this exact format:
+
+\`\`\`pr-summary
+## Summary
+[2-4 bullet points describing what was implemented and key decisions made]
+
+## Changes
+- **[filename]**: [brief description of change]
+- **[filename]**: [brief description of change]
+[List the most important files changed - max 5-7 files]
+\`\`\`
+
+This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the feature now.`;
 }
@@ -1026,11 +1044,19 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, provide a brief summary of:
-1. Root cause that was fixed
-2. Files modified and changes made
-3. How to verify the fix works
-4. Any edge cases addressed
+After implementing, you MUST provide a PR summary in this exact format:
+
+\`\`\`pr-summary
+## Summary
+[2-4 bullet points describing: the root cause, how it was fixed, and how to verify]
+
+## Changes
+- **[filename]**: [brief description of change]
+- **[filename]**: [brief description of change]
+[List the most important files changed - max 5-7 files]
+\`\`\`
+
+This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the bug fix now.`;
 }

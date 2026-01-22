@@ -271,6 +271,7 @@ export async function notifyPRReviewComplete(
     issueNumber: number,
     prNumber: number,
     decision: 'approved' | 'request_changes',
+    summary: string,
     itemType: 'bug' | 'feature' = 'feature'
 ): Promise<SendResult> {
     const prUrl = getPrUrl(prNumber);
@@ -287,9 +288,7 @@ ${typeEmoji} ${typeLabel}
 🔗 Issue #${issueNumber} → PR #${prNumber}
 📊 Status: ${decision === 'approved' ? 'Approved - Ready to Merge' : 'Changes Requested - Implementation'}
 
-${decision === 'approved'
-    ? 'Review completed successfully. Ready to merge.'
-    : 'Review feedback posted. Implementor will address the changes.'}`;
+<b>Summary:</b> ${escapeHtml(summary)}`;
 
     const buttons: InlineKeyboardMarkup = {
         inline_keyboard: [

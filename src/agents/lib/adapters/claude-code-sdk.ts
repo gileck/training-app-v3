@@ -51,6 +51,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
             timeout = agentConfig.claude.timeoutSeconds,
             progressLabel = 'Processing',
             useSlashCommands = false,
+            outputFormat,
         } = options;
 
         // Determine allowed tools
@@ -65,6 +66,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
         let toolCallCount = 0;
         const filesExamined: string[] = [];
         let usage: AgentRunResult['usage'] = null;
+        let structuredOutput: unknown = undefined;
 
         let spinnerInterval: NodeJS.Timeout | null = null;
         let spinnerFrame = 0;
@@ -99,6 +101,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     allowDangerouslySkipPermissions: true,
                     abortController,
                     ...(useSlashCommands ? { settingSources: ['project'] as const } : {}),
+                    ...(outputFormat ? { outputFormat } : {}),
                 },
             })) {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -186,6 +189,10 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                             totalCostUSD: resultMsg.total_cost_usd ?? 0,
                         };
                     }
+                    // Extract structured output
+                    if ('structured_output' in resultMsg) {
+                        structuredOutput = resultMsg.structured_output;
+                    }
                 }
             }
 
@@ -209,6 +216,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 filesExamined,
                 usage,
                 durationSeconds,
+                structuredOutput,
             };
         } catch (error) {
             // Cleanup
@@ -227,6 +235,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     filesExamined,
                     usage,
                     durationSeconds,
+                    structuredOutput,
                 };
             }
 
@@ -238,6 +247,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 filesExamined,
                 usage,
                 durationSeconds,
+                structuredOutput,
             };
         }
     }

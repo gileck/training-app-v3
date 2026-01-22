@@ -728,6 +728,99 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }));
     }
 
+    async getIssueDetails(issueNumber: number): Promise<import('../types').GitHubIssueDetails | null> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        const query = `query($owner: String!, $repo: String!, $issueNumber: Int!) {
+            repository(owner: $owner, name: $repo) {
+                issue(number: $issueNumber) {
+                    number
+                    title
+                    body
+                    url
+                    state
+                    timelineItems(itemTypes: [CONNECTED_EVENT], last: 10) {
+                        nodes {
+                            ... on ConnectedEvent {
+                                subject {
+                                    ... on PullRequest {
+                                        number
+                                        url
+                                        title
+                                        state
+                                        mergedAt
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }`;
+
+        try {
+            const result = await oc.graphql<{
+                repository: {
+                    issue: {
+                        number: number;
+                        title: string;
+                        body: string;
+                        url: string;
+                        state: 'OPEN' | 'CLOSED';
+                        timelineItems: {
+                            nodes: Array<{
+                                subject?: {
+                                    number?: number;
+                                    url?: string;
+                                    title?: string;
+                                    state?: string;
+                                    mergedAt?: string;
+                                };
+                            }>;
+                        };
+                    } | null;
+                };
+            }>(query, {
+                owner,
+                repo,
+                issueNumber,
+            });
+
+            if (!result.repository.issue) {
+                return null;
+            }
+
+            const issue = result.repository.issue;
+            const linkedPullRequests: import('../types').LinkedPullRequest[] = [];
+
+            // Extract linked PRs from timeline items
+            for (const item of issue.timelineItems.nodes) {
+                if (item.subject && item.subject.number && item.subject.url && item.subject.title) {
+                    linkedPullRequests.push({
+                        number: item.subject.number,
+                        url: item.subject.url,
+                        title: item.subject.title,
+                        state: item.subject.state as 'OPEN' | 'CLOSED' | 'MERGED',
+                        mergedAt: item.subject.mergedAt,
+                    });
+                }
+            }
+
+            return {
+                number: issue.number,
+                title: issue.title,
+                body: issue.body || '',
+                url: issue.url,
+                state: issue.state,
+                linkedPullRequests,
+            };
+        } catch (error: unknown) {
+            console.error('Error fetching issue details:', error);
+            return null;
+        }
+    }
+
     async addIssueToProject(issueNodeId: string): Promise<string> {
         const oc = this.getOctokit();
 
@@ -838,6 +931,20 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
             });
 
             return data.id;
+        });
+    }
+
+    async requestPRReviewers(prNumber: number, reviewers: string[]): Promise<void> {
+        return withRetry(async () => {
+            const oc = this.getBotOctokit(); // Use bot token for requesting reviewers
+            const { owner, repo } = this.config.github;
+
+            await oc.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number: prNumber,
+                reviewers,
+            });
         });
     }
 

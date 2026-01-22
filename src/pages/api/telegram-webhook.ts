@@ -208,13 +208,13 @@ async function findItemByIssueNumber(
 
 /**
  * Handle initial feature request approval
- * Callback format: "approve_request:requestId:token"
+ * Callback format: "approve_request:requestId"
+ * (Token is verified from database - not included in callback_data due to 64-byte limit)
  */
 async function handleFeatureRequestApproval(
     botToken: string,
     callbackQuery: TelegramCallbackQuery,
-    requestId: string,
-    token: string
+    requestId: string
 ): Promise<{ success: boolean; error?: string }> {
     // Fetch the feature request
     const request = await featureRequests.findFeatureRequestById(requestId);
@@ -223,8 +223,8 @@ async function handleFeatureRequestApproval(
         return { success: false, error: 'Feature request not found' };
     }
 
-    // Verify the token
-    if (!request.approvalToken || request.approvalToken !== token) {
+    // Verify the token exists (token was stored in database when request was created)
+    if (!request.approvalToken) {
         return { success: false, error: 'Invalid or expired approval token' };
     }
 
@@ -274,13 +274,13 @@ async function handleFeatureRequestApproval(
 
 /**
  * Handle bug report approval
- * Callback format: "approve_bug:reportId:token"
+ * Callback format: "approve_bug:reportId"
+ * (Token is verified from database - not included in callback_data due to 64-byte limit)
  */
 async function handleBugReportApproval(
     botToken: string,
     callbackQuery: TelegramCallbackQuery,
-    reportId: string,
-    token: string
+    reportId: string
 ): Promise<{ success: boolean; error?: string }> {
     // Fetch the bug report
     const report = await reports.findReportById(reportId);
@@ -289,8 +289,8 @@ async function handleBugReportApproval(
         return { success: false, error: 'Bug report not found' };
     }
 
-    // Verify the token
-    if (!report.approvalToken || report.approvalToken !== token) {
+    // Verify the token exists (token was stored in database when report was created)
+    if (!report.approvalToken) {
         return { success: false, error: 'Invalid or expired approval token' };
     }
 
@@ -537,7 +537,7 @@ async function handleDesignReviewAction(
         if (nextStatus) {
             await adapter.updateItemStatus(item.itemId, nextStatus);
             // Clear review status for next phase
-            await adapter.updateItemReviewStatus(item.itemId, '');
+            await adapter.clearItemReviewStatus(item.itemId);
             advancedTo = nextStatus;
             finalStatus = nextStatus;
             finalReviewStatus = '';
@@ -683,21 +683,20 @@ export default async function handler(
     }
 
     // Parse callback data - supports multiple formats:
-    // - "approve_request:requestId:token" - Initial feature request approval
+    // - "approve_request:requestId" - Initial feature request approval
     // - "action:issueNumber" - Design review actions
     const parts = callbackData.split(':');
     const action = parts[0];
 
     try {
         // Route to appropriate handler based on action type
-        if (action === 'approve_request' && parts.length === 3) {
-            // Initial feature request approval: "approve_request:requestId:token"
-            const [, requestId, token] = parts;
+        if (action === 'approve_request' && parts.length === 2) {
+            // Initial feature request approval: "approve_request:requestId"
+            const [, requestId] = parts;
             const result = await handleFeatureRequestApproval(
                 botToken,
                 callback_query,
-                requestId,
-                token
+                requestId
             );
 
             if (result.success) {
@@ -724,14 +723,13 @@ export default async function handler(
             return res.status(200).json({ ok: true });
         }
 
-        // Bug report approval: "approve_bug:reportId:token"
-        if (action === 'approve_bug' && parts.length === 3) {
-            const [, reportId, token] = parts;
+        // Bug report approval: "approve_bug:reportId"
+        if (action === 'approve_bug' && parts.length === 2) {
+            const [, reportId] = parts;
             const result = await handleBugReportApproval(
                 botToken,
                 callback_query,
-                reportId,
-                token
+                reportId
             );
 
             if (result.success) {

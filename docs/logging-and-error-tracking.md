@@ -340,6 +340,50 @@ END OF REPORT
 
 ---
 
+## GitHub Integration (Bug Workflow)
+
+Bug reports and error reports can be approved and synced to GitHub Issues for tracking in the development workflow.
+
+### Workflow Overview
+
+1. **User submits bug** (via Bug Report dialog) OR **Runtime error captured** (automatic)
+2. **MongoDB storage** → Report stored with status 'new', includes session logs, screenshot, stack trace
+3. **Telegram notification** → Admin receives notification with "Approve" button
+4. **Admin approves** → GitHub issue created with 'bug' label, added to GitHub Projects (Backlog)
+5. **Admin routes** → Via Telegram buttons: Tech Design, Implementation, or Backlog
+6. **AI agents process** → Tech Design analyzes root cause, Implementation creates fix and PR
+7. **PR merged** → GitHub Action automatically marks issue as Done
+
+### What Gets Synced to GitHub
+
+When a bug report is approved:
+- **GitHub Issue**: Created with bug label
+- **Session Logs**: Included in issue description for debugging context
+- **Stack Trace**: For error reports
+- **Screenshot**: Attached to issue (if provided)
+- **User Info**: Reporter details and browser environment
+
+### Agent Processing
+
+The Tech Design and Implementation agents have bug-aware prompts that:
+- Load diagnostics from MongoDB (session logs, stack trace, browser info)
+- Generate root cause analysis for bugs
+- Create fix branches (`fix/issue-#-title`)
+- Include bug context in PR descriptions
+
+### Complete Documentation
+
+For the full bug workflow including:
+- Setup and configuration
+- Telegram approval flow
+- Admin routing options
+- Agent prompts and behavior
+- PR creation and merge automation
+
+See **[GitHub Projects Integration](./github-projects-integration.md)** → "Bug Reports" section.
+
+---
+
 ## File Structure
 
 ```
