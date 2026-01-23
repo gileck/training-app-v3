@@ -4,6 +4,8 @@ import { reports } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { fileStorageAPI } from '@/server/blob';
 import { toStringId } from '@/server/utils';
+import { sendNotificationToOwner } from '@/server/telegram';
+import crypto from 'crypto';
 
 /**
  * Generate error key for deduplication
@@ -19,6 +21,27 @@ function generateErrorKey(request: CreateReportRequest): string {
     }
     // No error key if no errorMessage (user-submitted bugs)
     return '';
+}
+
+/**
+ * Generate a secure approval token
+ */
+function generateApprovalToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Get the base URL for the app
+ */
+function getBaseUrl(): string {
+    // Use VERCEL_URL in production, fallback to localhost
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL;
+    }
+    return 'http://localhost:3000';
 }
 
 export const createReport = async (
@@ -96,6 +119,9 @@ export const createReport = async (
             }
         }
 
+        // Generate approval token for user-submitted bug reports
+        const approvalToken = request.type === 'bug' ? generateApprovalToken() : undefined;
+
         // Create new report with deduplication fields
         const reportData = {
             type: request.type,
@@ -112,6 +138,7 @@ export const createReport = async (
             category: request.category,
             performanceEntries: request.performanceEntries,
             errorKey: errorKey || undefined,
+            approvalToken, // Add approval token for bug reports
             occurrenceCount: 1,
             firstOccurrence: now,
             lastOccurrence: now,
@@ -120,6 +147,47 @@ export const createReport = async (
         };
 
         const newReport = await reports.createReport(reportData);
+
+        // Send Telegram notification for user-submitted bug reports (not automatic errors)
+        if (request.type === 'bug' && request.description) {
+            try {
+                const baseUrl = getBaseUrl();
+                const isHttps = baseUrl.startsWith('https://');
+
+                const categoryLabel = request.category === 'performance' ? '⚡ Performance Issue' : '🐛 Bug Report';
+                const routeInfo = request.route ? `\n📍 Route: ${request.route}` : '';
+                const userIdentifier = userInfo?.username || userInfo?.email || 'Unknown user';
+
+                const message = [
+                    `🐛 New Bug Report!`,
+                    ``,
+                    `📋 ${categoryLabel}`,
+                    ``,
+                    `${request.description.slice(0, 300)}${request.description.length > 300 ? '...' : ''}`,
+                    routeInfo,
+                    `👤 Reported by: ${userIdentifier}`,
+                ].filter(Boolean).join('\n');
+
+                // Use callback button for webhook (works in production)
+                // Fall back to URL link for localhost (webhook not available)
+                if (isHttps) {
+                    const callbackData = `approve_bug:${newReport._id}`;
+                    await sendNotificationToOwner(message, {
+                        inlineKeyboard: [[
+                            { text: '✅ Approve & Create GitHub Issue', callback_data: callbackData }
+                        ]]
+                    });
+                } else {
+                    // Localhost fallback - use URL button
+                    const approveUrl = `${baseUrl}/api/reports/approve/${newReport._id}?token=${approvalToken}`;
+                    const localMessage = `${message}\n\n🔗 Approve: ${approveUrl}`;
+                    await sendNotificationToOwner(localMessage);
+                }
+            } catch (notifyError) {
+                // Don't fail the request if notification fails
+                console.error('[Telegram] Failed to send bug report notification:', notifyError);
+            }
+        }
 
         // Convert to client format
         const reportClient = {

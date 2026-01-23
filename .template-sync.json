@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "82198e26cfa6204f0cf60ac31a753a0eb9e5193d",
-  "lastProjectCommit": "9437b7eaa719a9bdd62cebb5cf8939322a2f8381",
-  "lastSyncDate": "2026-01-23T12:57:48.973Z",
+  "lastSyncCommit": "088e121a3962f436e11ffde6e439f1c048748787",
+  "lastProjectCommit": "1db96ef1a834575c9d255f1ea22ec5ed2311fb32",
+  "lastSyncDate": "2026-01-23T13:37:12.816Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,20 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T13:37:13.007Z",
+      "templateCommit": "088e121a3962f436e11ffde6e439f1c048748787",
+      "projectCommit": "1db96ef1a834575c9d255f1ea22ec5ed2311fb32",
+      "filesApplied": 5,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "088e121 fix: improve package.json merge to handle ignored files and deep merge \u001b[90m(23/01/2026)\u001b[0m\n  - Detect when package.json is in ignoredFiles and use 2-way merge\n  - Add deep merging for object fields (scripts, dependencies, etc.)\n  - Merge nested keys individually instead of treating entire object as single value\n  - Fixes issue where verify scripts weren't being merged into child projects\n  - When package.json is ignored, baseline may be newer than project's actual state",
+        "006c84b feat: add GITHUB_BOT_TOKEN verification and documentation \u001b[90m(23/01/2026)\u001b[0m\n  - Add GITHUB_BOT_TOKEN as optional environment variable in verification script\n  - Check for bot token in both local and Vercel environments\n  - Display as 'recommended' instead of required (system falls back to GITHUB_TOKEN)\n  - Update init guide to show bot token in expected output\n  - Update troubleshooting section to mention bot token\n  - Helps ensure bot account tokens are synced to production",
+        "f00e2a7 fix: use correct GitHub API endpoint for workflow permissions check \u001b[90m(23/01/2026)\u001b[0m\n  Changed from /actions/permissions to /actions/permissions/workflow\n  to properly verify default_workflow_permissions field",
+        "2c5f848 fix: add Telegram notifications for bug reports \u001b[90m(23/01/2026)\u001b[0m\n  - Add approval token generation for bug reports\n  - Send Telegram notification with inline keyboard button\n  - Match callback data format (approve_bug) with webhook handler\n  - Include bug category, route, and user info in notification\n  - Support both HTTPS (callback button) and localhost (URL link) modes"
+      ]
+    },
     {
       "date": "2026-01-23T12:57:49.167Z",
       "templateCommit": "82198e26cfa6204f0cf60ac31a753a0eb9e5193d",
@@ -345,17 +359,6 @@
         "4b8502a refactor: separate template and project code for easier sync \u001b[90m(18/01/2026)\u001b[0m\n  Split 5 aggregation files into template + project parts to prevent\n  merge conflicts during template sync:\n  - features/index.ts -> index.template.ts + index.ts\n  - NavLinks.tsx -> NavLinks.template.tsx + NavLinks.tsx\n  - collections/index.ts -> index.template.ts + index.ts\n  - routes/index.ts -> index.template.ts + index.ts\n  - apis.ts -> apis.template.ts + apis.ts\n  \n  Template code lives in *.template.ts files (synced from template).\n  Project code imports from template and adds customizations.\n  Added project files to .template-sync.json ignoredFiles.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "f574b79 fix: use ID utilities instead of direct ObjectId construction \u001b[90m(18/01/2026)\u001b[0m\n  Replaced `new ObjectId(variable)` with `toDocumentId()` and `toQueryId()`\n  utilities to properly handle both ObjectId and UUID formats:\n  \n  - Feature request handlers: use toDocumentId() for authorId and requestedBy\n  - Report batch handlers: use toQueryId() for query operations\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-17T16:53:57.596Z",
-      "templateCommit": "70da8a3f74b150118bed6c3cc864d8e423736800",
-      "projectCommit": "9950b1cd9c3f751aee05f687805e3e0e09693d9c",
-      "filesApplied": 3,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "70da8a3 feat: add local template path support for faster sync \u001b[90m(17/01/2026)\u001b[0m\n  When templateLocalPath is configured in .template-sync.json, uses local\n  git clone instead of network clone for much faster sync operations.\n  Falls back to remote clone if local path is invalid.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -466,7 +469,7 @@
     "src/apis/processApiCall.ts": "9f0bfbbc2ab4ebd105962385ae89364b",
     "src/apis/registry.ts": "6d37ea6c95c345a9c8e343ed9915774c",
     "src/apis/reports/client.ts": "e8e2aa9a2225b8959fc1a0879516f4ea",
-    "src/apis/reports/handlers/createReport.ts": "b9db78675f5d0aee522a86da8d7667a4",
+    "src/apis/reports/handlers/createReport.ts": "8d725f93d8fd97a54496e3937a32e009",
     "src/apis/reports/handlers/deleteReport.ts": "d0c062c28e76e6e11ce0c9461a24773a",
     "src/apis/reports/handlers/getReport.ts": "c601b7df991353a30a167afef69cb25f",
     "src/apis/reports/handlers/getReports.ts": "3ce5c5700ee525ab9fbc672c343ba385",
@@ -732,7 +735,7 @@
     "scripts/hooks/setup-hooks.sh": "1aad6f6fa24300605d422d64b7ecdbde",
     "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220",
     ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
-    "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
+    "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "80f27003cbe8f0be3badf63d12d31665",
     "scripts/vercel-cli.ts": "34e2cada33075e09841401aaa14da424",
     "src/apis/reports/handlers/batchDeleteReports.ts": "352186152611c0591f485daca5b0302d",
     "src/apis/reports/handlers/batchUpdateStatus.ts": "f2cf3457d5d85afc9a57d13358f89b0f",
@@ -797,7 +800,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "dfed8947299f286b1a6f6f47cefb9f95",
-    "docs/init-github-projects-workflow.md": "b1294dd24cf40bb5293eb5a26370d428",
+    "docs/init-github-projects-workflow.md": "74f7f3653d83f192d7e92363f0fe0b24",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "d2ca501939041f1f5c2ba4e5f579ff0f",
@@ -828,7 +831,7 @@
     "src/server/project-management/types.ts": "d4e944b637cc757f563721de189fbaf0",
     "src/agents/shared/loadEnv.ts": "9331f0533590ed63f4238b437e4067a2",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
-    "scripts/verify-github-projects-setup.ts": "04cb1dd076d7c50e0e9ccf4681a159c5",
+    "scripts/verify-github-projects-setup.ts": "8315c4fb419533014d431b829aca2810",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
     "src/agents/pr-review.ts": "72bc870adfaf2489cf7491c7b2ff8b17",
@@ -852,7 +855,7 @@
     "src/client/routes/FeatureRequests/FeatureRequestDetail.tsx": "2d71e9b46af64c1989957ca0c9fb5e18",
     "src/client/routes/FeatureRequests/components/CollapsibleSection.tsx": "ccdce82b40508aefbd964ebfdfaa3565",
     "src/client/routes/FeatureRequests/components/GitHubIssueSection.tsx": "d51597f9e35e734a35192f644e588c2d",
-    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "fd140cf25863c07bda5853f1501722a8",
+    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "5c4de7bdf0353b22b1fee237c24b3304",
     "docs/template-sync/migrate-to-split-index-files.md": "94698432f53479254d119cc0eb282470",
     "scripts/verify-credentials.ts": "944b5e70bfb76c415fd385807ba1cb7f",
     "scripts/verify-production.ts": "bed1ee0ae683bd67a04f301583b580a3",

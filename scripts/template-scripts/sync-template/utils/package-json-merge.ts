@@ -101,6 +101,26 @@ function deepMerge(base: Record<string, unknown>, override: Record<string, unkno
 }
 
 /**
+ * Fields that should use deep merging (merge nested keys individually)
+ */
+const DEEP_MERGE_FIELDS = new Set([
+  'scripts',
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+  'engines',
+  'config',
+]);
+
+/**
+ * Check if a field should use deep merging
+ */
+function shouldDeepMergeField(field: string): boolean {
+  return DEEP_MERGE_FIELDS.has(field);
+}
+
+/**
  * Get all top-level keys from multiple objects
  */
 function getAllKeys(...objects: Record<string, unknown>[]): string[] {
@@ -165,16 +185,48 @@ export function mergePackageJson(
 
       if (inTemplate && inProject) {
         if (!deepEqual(templateVal, projectVal)) {
-          // Both have the field with different values - conflict
-          result.conflicts.push({
-            field: key,
-            baseValue: undefined,
-            templateValue: templateVal,
-            projectValue: projectVal,
-          });
+          // Both have the field with different values
+          if (
+            shouldDeepMergeField(key) &&
+            typeof templateVal === 'object' &&
+            typeof projectVal === 'object' &&
+            templateVal !== null &&
+            projectVal !== null &&
+            !Array.isArray(templateVal) &&
+            !Array.isArray(projectVal)
+          ) {
+            // Special handling for mergeable fields - deep merge
+            const templateObj = templateVal as Record<string, unknown>;
+            const projectObj = projectVal as Record<string, unknown>;
+
+            // Start with project values and add template keys that project doesn't have
+            const mergedField: Record<string, unknown> = { ...projectObj };
+
+            for (const nestedKey of Object.keys(templateObj)) {
+              if (!(nestedKey in projectObj)) {
+                // New key in template - add it
+                mergedField[nestedKey] = templateObj[nestedKey];
+              }
+              // If key exists in both, keep project value
+            }
+
+            merged[key] = mergedField;
+            result.autoMergedFields.push(`${key} (deep merged)`);
+          } else {
+            // Non-mergeable field or different types - report conflict
+            result.conflicts.push({
+              field: key,
+              baseValue: undefined,
+              templateValue: templateVal,
+              projectValue: projectVal,
+            });
+            // Keep project value in merged
+            merged[key] = projectVal;
+          }
+        } else {
+          // Same value - keep project value
+          merged[key] = projectVal;
         }
-        // Keep project value in merged
-        merged[key] = projectVal;
       } else if (inTemplate && !inProject) {
         // Only in template - add it
         merged[key] = templateVal;
@@ -249,6 +301,48 @@ export function mergePackageJson(
         // Same change - no conflict
         merged[key] = projectVal;
         result.autoMergedFields.push(key);
+      } else if (
+        shouldDeepMergeField(key) &&
+        typeof baseVal === 'object' &&
+        typeof templateVal === 'object' &&
+        typeof projectVal === 'object' &&
+        baseVal !== null &&
+        templateVal !== null &&
+        projectVal !== null &&
+        !Array.isArray(baseVal) &&
+        !Array.isArray(templateVal) &&
+        !Array.isArray(projectVal)
+      ) {
+        // Special handling for mergeable fields (scripts, dependencies, etc.)
+        // Merge nested keys individually
+        const baseObj = baseVal as Record<string, unknown>;
+        const templateObj = templateVal as Record<string, unknown>;
+        const projectObj = projectVal as Record<string, unknown>;
+
+        // Start with project values
+        const mergedField: Record<string, unknown> = { ...projectObj };
+
+        // Add/update keys from template that weren't modified in project
+        for (const nestedKey of Object.keys(templateObj)) {
+          const baseNestedVal = baseObj[nestedKey];
+          const templateNestedVal = templateObj[nestedKey];
+          const projectNestedVal = projectObj[nestedKey];
+
+          const projectChangedNested = !deepEqual(baseNestedVal, projectNestedVal);
+          const templateChangedNested = !deepEqual(baseNestedVal, templateNestedVal);
+
+          if (templateChangedNested && !projectChangedNested) {
+            // Template changed this nested key, project didn't - use template value
+            mergedField[nestedKey] = templateNestedVal;
+          } else if (!(nestedKey in projectObj) && nestedKey in templateObj) {
+            // New key in template, not in project - add it
+            mergedField[nestedKey] = templateNestedVal;
+          }
+          // If both changed or only project changed, keep project value (already in mergedField)
+        }
+
+        merged[key] = mergedField;
+        result.autoMergedFields.push(`${key} (deep merged)`);
       } else {
         // Different changes - CONFLICT
         // Keep project value but report the conflict

@@ -63,6 +63,12 @@ const REQUIRED_ENV_VARS = {
     ]
 };
 
+const OPTIONAL_ENV_VARS = {
+    github: [
+        'GITHUB_BOT_TOKEN'  // Bot account token (recommended for PR approvals)
+    ]
+};
+
 const REQUIRED_GITHUB_SECRETS = [
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
@@ -119,6 +125,19 @@ async function checkLocalEnv(): Promise<CategoryResults> {
     Object.entries(REQUIRED_ENV_VARS).forEach(([category, vars]) => {
         vars.forEach(varName => {
             checks.push(checkEnvVar(varName, 'local'));
+        });
+    });
+
+    // Check optional environment variables (warnings only, not failures)
+    Object.entries(OPTIONAL_ENV_VARS).forEach(([category, vars]) => {
+        vars.forEach(varName => {
+            const value = process.env[varName];
+            const isSet = !!value && value.length > 0;
+            checks.push({
+                passed: true,  // Always pass (optional)
+                message: `${varName} ${isSet ? '✓ (recommended)' : 'ℹ (optional)'}`,
+                details: isSet ? undefined : ['Recommended for bot account setup - see docs/init-github-projects-workflow.md']
+            });
         });
     });
 
@@ -193,6 +212,18 @@ async function checkVercelEnv(): Promise<CategoryResults> {
                     passed: isSet,
                     message: `${varName} in Vercel ${isSet ? '✓' : '✗'}`,
                     details: isSet ? undefined : ['Run: yarn vercel-cli env:push --file .env.local --target production']
+                });
+            });
+        });
+
+        // Check optional Vercel environment variables (warnings only)
+        Object.entries(OPTIONAL_ENV_VARS).forEach(([_, vars]) => {
+            vars.forEach(varName => {
+                const isSet = vercelEnvOutput.includes(varName);
+                checks.push({
+                    passed: true,  // Always pass (optional)
+                    message: `${varName} in Vercel ${isSet ? '✓ (recommended)' : 'ℹ (optional)'}`,
+                    details: isSet ? undefined : ['Recommended: yarn vercel-cli env:push --file .env.local --target production']
                 });
             });
         });
@@ -291,7 +322,7 @@ async function checkGitHubRepo(): Promise<CategoryResults> {
     }
 
     // Check workflow permissions
-    const workflowPermissions = runCommand('gh api repos/:owner/:repo/actions/permissions 2>/dev/null');
+    const workflowPermissions = runCommand('gh api repos/:owner/:repo/actions/permissions/workflow 2>/dev/null');
     if (workflowPermissions) {
         const hasWritePermission = workflowPermissions.includes('"default_workflow_permissions":"write"');
         checks.push({

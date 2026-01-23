@@ -653,14 +653,17 @@ yarn vercel-cli project
    yarn vercel-cli env --target production | grep GITHUB_
    ```
 
-   **Expected output** (all 5 variables):
+   **Expected output** (minimum 5 required variables):
    ```
    📝 GITHUB_TOKEN                   = [hidden]
+   📝 GITHUB_BOT_TOKEN               = [hidden]  (optional but recommended)
    📝 GITHUB_OWNER                   = [hidden]
    📝 GITHUB_REPO                    = [hidden]
    📝 GITHUB_PROJECT_NUMBER          = [hidden]
    📝 GITHUB_OWNER_TYPE              = [hidden]
    ```
+
+   **Note:** `GITHUB_BOT_TOKEN` is optional but recommended if you're using a bot account (see Step 2.5). If you don't have a bot account, you'll only see 5 variables.
 
 4. **Production URL (Optional - Vercel provides this automatically):**
 
@@ -1229,12 +1232,13 @@ Vercel production is missing one or more of these required environment variables
    yarn vercel-cli env --target production | grep GITHUB_
    ```
 
-   You should see **all 5 GitHub variables**:
-   - `GITHUB_TOKEN`
-   - `GITHUB_OWNER`
-   - `GITHUB_REPO`
-   - `GITHUB_PROJECT_NUMBER`
-   - `GITHUB_OWNER_TYPE`
+   You should see **at least 5 required GitHub variables**:
+   - `GITHUB_TOKEN` (required)
+   - `GITHUB_BOT_TOKEN` (optional but recommended - for bot account)
+   - `GITHUB_OWNER` (required)
+   - `GITHUB_REPO` (required)
+   - `GITHUB_PROJECT_NUMBER` (required)
+   - `GITHUB_OWNER_TYPE` (required)
 
 4. **Trigger a redeploy** (environment variables only take effect after redeployment):
    ```bash
