@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "de60f0ac33f3818cc29537af19fb012556d6cee5",
-  "lastProjectCommit": "0233c099bb286f180e972b4fa0aa7a658701bc39",
-  "lastSyncDate": "2026-01-23T10:00:57.870Z",
+  "lastSyncCommit": "82198e26cfa6204f0cf60ac31a753a0eb9e5193d",
+  "lastProjectCommit": "9437b7eaa719a9bdd62cebb5cf8939322a2f8381",
+  "lastSyncDate": "2026-01-23T12:57:48.973Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,25 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T12:57:49.167Z",
+      "templateCommit": "82198e26cfa6204f0cf60ac31a753a0eb9e5193d",
+      "projectCommit": "9437b7eaa719a9bdd62cebb5cf8939322a2f8381",
+      "filesApplied": 15,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "82198e2 fix: increase dialog z-index to render above bottom navbar (#38) \u001b[90m(23/01/2026)\u001b[0m",
+        "2e89ff7 fix: handle undefined date fields in report handlers for legacy documents (#37) \u001b[90m(23/01/2026)\u001b[0m",
+        "2c17c61 feat: show detailed error info on bug reports page (#36) \u001b[90m(23/01/2026)\u001b[0m\n  - Display full error message in a highlighted box\n  - Show stack trace when available\n  - Add \"Copy Error Details\" button that copies error message and stack trace to clipboard\n  \n  https://claude.ai/code/session_01QY1sm6YDga1DctnabuSyVD\n  \n  Co-authored-by: Claude <noreply@anthropic.com>",
+        "111c27e fix: prevent infinite loading state on bug reports page (#35) \u001b[90m(23/01/2026)\u001b[0m\n  When the API returns an error, the loading state was showing forever\n  instead of displaying the error message. This happened because:\n  1. isLoading becomes false after fetch completes\n  2. error is set\n  3. data (reports) remains undefined\n  4. showLoading = (false || true) = true\n  \n  The fix adds a check for error before showing loading state, so errors\n  are properly displayed.\n  \n  https://claude.ai/code/session_01QY1sm6YDga1DctnabuSyVD\n  \n  Co-authored-by: Claude <noreply@anthropic.com>",
+        "9556a22 feat: add commit review test with streaming output \u001b[90m(23/01/2026)\u001b[0m\n  Adds a new \"review\" test case to test-cursor-adapter that:\n  - Gets the latest git commit info\n  - Asks Cursor to review it with streaming JSON output\n  - Shows event types (system, user, tool_call, assistant) in verbose mode\n  - Displays the streaming response in real-time\n  \n  Usage: yarn test-cursor-adapter --test review --verbose",
+        "3e83930 fix: close stdin immediately when spawning Cursor CLI \u001b[90m(23/01/2026)\u001b[0m\n  The Cursor CLI was hanging because it was waiting for stdin input.\n  Closing stdin immediately after spawning fixes this issue.\n  \n  All Cursor adapter tests now pass:\n  - Adapter initialization\n  - Read-only queries\n  - Streaming output\n  - Error/timeout handling\n  - Write operations",
+        "f3222e9 feat: configure Cursor adapter to use opus-4.5 model \u001b[90m(23/01/2026)\u001b[0m\n  - Add --model flag to CLI arguments\n  - Set default model to opus-4.5 (Claude 4.5 Opus)\n  - Update CLI documentation comments",
+        "d47f038 fix: improve Cursor CLI adapter initialization and test script \u001b[90m(23/01/2026)\u001b[0m\n  - Fix CLI flags: use -p (print mode) and --output-format stream-json\n  - Add authentication status check during init()\n  - Update test script to directly import cursor adapter\n  - Provide clear error messages for missing auth\n  \n  The adapter now fails fast with helpful error messages if:\n  - cursor-agent CLI is not installed\n  - User is not logged in (cursor-agent login)",
+        "f210cae feat: implement Cursor CLI adapter and simplify agent config \u001b[90m(23/01/2026)\u001b[0m\n  - Delete unused legacy code (src/agents/shared/claude.ts)\n  - Create agents.config.ts as single source of truth for library selection\n  - Remove environment variable support from config loader\n  - Implement full Cursor CLI adapter with streaming support\n  - Add test script for Cursor adapter verification (yarn test-cursor-adapter)\n  - Update documentation to reflect config-only approach\n  \n  The agent library abstraction now uses only src/agents/agents.config.ts\n  for configuration. Per-workflow library overrides can be set there."
+      ]
+    },
     {
       "date": "2026-01-23T10:00:58.118Z",
       "templateCommit": "de60f0ac33f3818cc29537af19fb012556d6cee5",
@@ -337,17 +356,6 @@
       "templateCommits": [
         "70da8a3 feat: add local template path support for faster sync \u001b[90m(17/01/2026)\u001b[0m\n  When templateLocalPath is configured in .template-sync.json, uses local\n  git clone instead of network clone for much faster sync operations.\n  Falls back to remote clone if local path is invalid.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-17T16:43:05.337Z",
-      "templateCommit": "8697f9b5ebf51dcf18bc34891f8ca3984dc93a22",
-      "projectCommit": "4fced9229a04af9df8a667172848c2e202af2c06",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "8697f9b feat: separate admin pages from app pages in sidebar menu \u001b[90m(17/01/2026)\u001b[0m\n  Add visual separation in drawer menu with dedicated \"Admin\" section\n  for admin-only pages, shown only to admin users.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -371,7 +379,7 @@
     ".cursor/rules/eslint-custom-guidelines.mdc": "70344426e3d13d3d193389332b4ad2f3",
     ".cursor/rules/feature-based-structure.mdc": "2aeebaa386cdb5c288c1e2aacb68b25e",
     ".cursor/rules/feature-planning.mdc": "1a2b222a136e3e45373dd9487b4e9d1d",
-    ".cursor/rules/mongodb-usage.mdc": "32d18c74f788276c50b2b4f79869d4d3",
+    ".cursor/rules/mongodb-usage.mdc": "9e842538ba58a7639a13b1b5bb23cea8",
     ".cursor/rules/pages-and-routing-guidelines.mdc": "22d2636de94e25a364b4637578aa3b66",
     ".cursor/rules/react-component-organization.mdc": "d9a9759ee4155a6e9a0d65134de35914",
     ".cursor/rules/react-hook-organization.mdc": "9ed10ecb0ae9224464f0147bda8d9c1f",
@@ -383,7 +391,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "b04f8eb4ed558f30093694f8031931ac",
+    "CLAUDE.md": "54908eddec71fac8b451c9d49d658890",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -460,9 +468,9 @@
     "src/apis/reports/client.ts": "e8e2aa9a2225b8959fc1a0879516f4ea",
     "src/apis/reports/handlers/createReport.ts": "b9db78675f5d0aee522a86da8d7667a4",
     "src/apis/reports/handlers/deleteReport.ts": "d0c062c28e76e6e11ce0c9461a24773a",
-    "src/apis/reports/handlers/getReport.ts": "aa32706f1e406493bf0f46979b5b5ec5",
-    "src/apis/reports/handlers/getReports.ts": "431ab9470426c540c6debea1a7ff701d",
-    "src/apis/reports/handlers/updateReportStatus.ts": "30282028e17109ebe09033d44a65c212",
+    "src/apis/reports/handlers/getReport.ts": "c601b7df991353a30a167afef69cb25f",
+    "src/apis/reports/handlers/getReports.ts": "3ce5c5700ee525ab9fbc672c343ba385",
+    "src/apis/reports/handlers/updateReportStatus.ts": "84e7b33d2792a05d550414bc5c99b1eb",
     "src/apis/reports/index.ts": "6d13a981a81f0fc2ef3a96bce859cc69",
     "src/apis/reports/server.ts": "c258b04a26ac1065f8fa42711960a2fa",
     "src/apis/reports/types.ts": "5d75727cff5e89bcf60d77a5df853779",
@@ -479,13 +487,13 @@
     "src/client/components/layout/TopNavBar.tsx": "575c96ec012304f9c8a0a3623caa06f3",
     "src/client/components/layout/index.ts": "fe7ba2b0edb7a7e006467a2a59fa60f4",
     "src/client/components/layout/types.ts": "1ce1fbe3a781f7e650a3389b5060708a",
-    "src/client/components/ui/alert-dialog.tsx": "640ec9cb0e301f4489fe8f2dc9feb8b7",
+    "src/client/components/ui/alert-dialog.tsx": "af7265ca5ecc61928d6be1fc8544d8ae",
     "src/client/components/ui/alert.tsx": "99e5f660f5c7435099a44662fd4219fc",
     "src/client/components/ui/avatar.tsx": "7e4314329eef527e0b64d89c59ffff77",
     "src/client/components/ui/badge.tsx": "8396a5c97b0fef69f81cffd3fb943a82",
     "src/client/components/ui/button.tsx": "98d918a5a892ce5585e38a3d8fd30324",
     "src/client/components/ui/card.tsx": "31a813a2a0f08cac71bed308f80bed5c",
-    "src/client/components/ui/dialog.tsx": "87000268d383c269c71164f345657332",
+    "src/client/components/ui/dialog.tsx": "10ac722a721502c68697264bc9ff63f1",
     "src/client/components/ui/dropdown-menu.tsx": "98c088c815c998ea7871d354cd8d97d8",
     "src/client/components/ui/input.tsx": "45b51a3b7057489a787c8152de8e4724",
     "src/client/components/ui/label.tsx": "65ca9e6d33e51e6d598783f35e23a683",
@@ -558,7 +566,7 @@
     "src/client/routes/Profile/Profile.tsx": "155a4cf7e894a29d39ab5409996bacf3",
     "src/client/routes/Profile/index.ts": "d5234f345cafc7f40e9f3280c46bff5b",
     "src/client/routes/Reports/ConfirmDialog.tsx": "56a1f3d5434bb4581b58126398b00559",
-    "src/client/routes/Reports/Reports.tsx": "133db9031a795fc0c0ccaac54fad747d",
+    "src/client/routes/Reports/Reports.tsx": "b6cefb3a692157a273182588eb25f189",
     "src/client/routes/Reports/hooks.ts": "8d632fed36d15e56cbcda2484cb012d8",
     "src/client/routes/Reports/index.ts": "d50cbe298a66723e0b120912e51e22cc",
     "src/client/routes/Reports/store.ts": "5adc2a180bf9cd3273894fcfc44c7f83",
@@ -657,7 +665,7 @@
     "src/client/routes/Settings/components/index.ts": "be67bdcba1ac18cc547f091c69ede19a",
     "src/client/routes/Settings/utils.ts": "b5c95482249be171f90872b27ec11a01",
     "scripts/investigate-bugs.ts": "265bbec9fd0112e2d597b86cb52827fe",
-    "src/apis/reports/handlers/updateInvestigation.ts": "7f52209e44bdd7faae3338ec1db6d4b0",
+    "src/apis/reports/handlers/updateInvestigation.ts": "fbc15a78a0d2f2bff767aac9651284d9",
     ".githooks/pre-commit": "6698b5a7fa7bbdd9cdb7bb4ec0ae44d1",
     "docs/eslint-typescript-wixpress-issue.md": "00aff4c75f75751f2e3d5737183b14d6",
     "scripts/fix-yarn-lock.sh": "6a4bf6c874b9dea1dc8caadd9bbe5c36",
@@ -825,13 +833,13 @@
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
     "src/agents/pr-review.ts": "72bc870adfaf2489cf7491c7b2ff8b17",
     ".claude/commands/compact-claude.md": "5c78990dfefd805b52dfba63267f2a36",
-    "docs/agent-library-abstraction.md": "b6300f0810ff71f6344a960f4f3d27a5",
+    "docs/agent-library-abstraction.md": "6009a318f141484d484a76fd79ab2b45",
     "docs/critical-deployment-issues.md": "0ce6fa06967905da4e0fdffe5ff1a30c",
     "docs/validation-planning-mode.md": "11dc882394ca394ee78d7b0ee6c8709e",
     "src/agents/lib/adapters/claude-code-sdk.ts": "21f130aa568602effe772f894deff2b1",
-    "src/agents/lib/adapters/cursor.ts": "3fe1b87373c8cb4706204c0ba045fcc7",
+    "src/agents/lib/adapters/cursor.ts": "31aa81a426966fe5f45f216d36bffcb9",
     "src/agents/lib/adapters/gemini.ts": "6ea34c8fa65166770b5e8bdfc282820e",
-    "src/agents/lib/config.ts": "1ef79fa82d4fed3bb3871e7c8b25f965",
+    "src/agents/lib/config.ts": "5b5db5cbe48bdff2be78b9dafd3125d6",
     "src/agents/lib/index.ts": "fb7a20d49046b47c7baa0f586a315996",
     "src/agents/lib/parsing.ts": "f221e7d75627822dd1c67f9edc4bb57e",
     "src/agents/lib/types.ts": "8132e953fd0b9b88821362ad8f9be451",
@@ -857,6 +865,9 @@
     "src/agents/lib/logging/logger.ts": "47e2a3b92de36a7baaeaa96c216bfecb",
     "src/agents/lib/logging/types.ts": "f7fd5a93292d20eebf4aea6dafdb01a4",
     "src/agents/lib/logging/writer.ts": "e2bdd34f311af77e89b5cf44397dc834",
-    "src/client/styles/todos.css": "52a26947fe2079066cd7e05751a09a2b"
+    "src/client/styles/todos.css": "52a26947fe2079066cd7e05751a09a2b",
+    "docs/mongodb-usage.md": "5374ed56990a1fc3ac62f0962ae657e6",
+    "scripts/test-cursor-adapter.ts": "debbc2dcc69ae6fa3f30aefc5e36845b",
+    "src/agents/agents.config.ts": "90a54707c578933da596fbad26665c6a"
   }
 }

@@ -1,65 +1,25 @@
 /**
  * Agent Library Configuration
  *
- * Manages agent library selection via environment variables.
- * Supports global defaults and per-workflow overrides.
+ * Loads configuration from src/agents/agents.config.ts
+ * which is the single source of truth for agent library selection.
  */
 
 import type { AgentLibraryConfig, WorkflowName } from './types';
-
-// ============================================================
-// ENVIRONMENT VARIABLE KEYS
-// ============================================================
-
-const ENV_KEYS = {
-    defaultLibrary: 'AGENT_DEFAULT_LIBRARY',
-    productDesign: 'AGENT_PRODUCT_DESIGN_LIBRARY',
-    techDesign: 'AGENT_TECH_DESIGN_LIBRARY',
-    implementation: 'AGENT_IMPLEMENTATION_LIBRARY',
-    prReview: 'AGENT_PR_REVIEW_LIBRARY',
-} as const;
-
-// ============================================================
-// DEFAULT CONFIGURATION
-// ============================================================
-
-/**
- * Default library configuration
- */
-const DEFAULT_CONFIG: AgentLibraryConfig = {
-    defaultLibrary: 'claude-code-sdk',
-    workflowOverrides: {},
-};
+import { agentsConfig } from '../agents.config';
 
 // ============================================================
 // CONFIGURATION LOADER
 // ============================================================
 
 /**
- * Load agent library configuration from environment variables
+ * Load agent library configuration from the config file
  */
 export function loadAgentLibraryConfig(): AgentLibraryConfig {
-    const config: AgentLibraryConfig = {
-        defaultLibrary: process.env[ENV_KEYS.defaultLibrary] || DEFAULT_CONFIG.defaultLibrary,
-        workflowOverrides: {},
+    return {
+        defaultLibrary: agentsConfig.defaultLibrary,
+        workflowOverrides: { ...agentsConfig.workflowOverrides },
     };
-
-    // Load workflow-specific overrides
-    const workflowEnvMap: Record<WorkflowName, string> = {
-        'product-design': ENV_KEYS.productDesign,
-        'tech-design': ENV_KEYS.techDesign,
-        'implementation': ENV_KEYS.implementation,
-        'pr-review': ENV_KEYS.prReview,
-    };
-
-    for (const [workflow, envKey] of Object.entries(workflowEnvMap)) {
-        const value = process.env[envKey];
-        if (value) {
-            config.workflowOverrides[workflow as WorkflowName] = value;
-        }
-    }
-
-    return config;
 }
 
 /**

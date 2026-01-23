@@ -32,38 +32,46 @@ export const getReports = async (
         const reportDocs = await reports.findReports(filters, sortBy, sortOrder);
 
         // Convert to client format
-        const reportsClient = reportDocs.map((doc) => ({
-            _id: toStringId(doc._id),
-            type: doc.type,
-            status: doc.status,
-            description: doc.description,
-            screenshot: doc.screenshot,
-            sessionLogs: doc.sessionLogs,
-            userInfo: doc.userInfo,
-            browserInfo: doc.browserInfo,
-            route: doc.route,
-            networkStatus: doc.networkStatus,
-            stackTrace: doc.stackTrace,
-            errorMessage: doc.errorMessage,
-            category: doc.category,
-            performanceEntries: doc.performanceEntries,
-            investigation: doc.investigation ? {
-                ...doc.investigation,
-                investigatedAt: doc.investigation.investigatedAt.toISOString(),
-            } : undefined,
-            duplicateOf: doc.duplicateOf ? toStringId(doc.duplicateOf) : undefined,
-            occurrenceCount: doc.occurrenceCount,
-            firstOccurrence: doc.firstOccurrence.toISOString(),
-            lastOccurrence: doc.lastOccurrence.toISOString(),
-            errorKey: doc.errorKey,
-            githubIssueUrl: doc.githubIssueUrl,
-            githubIssueNumber: doc.githubIssueNumber,
-            githubProjectItemId: doc.githubProjectItemId,
-            githubPrUrl: doc.githubPrUrl,
-            githubPrNumber: doc.githubPrNumber,
-            createdAt: doc.createdAt.toISOString(),
-            updatedAt: doc.updatedAt.toISOString(),
-        }));
+        // Handle legacy reports that may not have all date fields
+        const reportsClient = reportDocs.map((doc) => {
+            const createdAt = doc.createdAt?.toISOString() ?? new Date().toISOString();
+            const updatedAt = doc.updatedAt?.toISOString() ?? createdAt;
+            const firstOccurrence = doc.firstOccurrence?.toISOString() ?? createdAt;
+            const lastOccurrence = doc.lastOccurrence?.toISOString() ?? firstOccurrence;
+
+            return {
+                _id: toStringId(doc._id),
+                type: doc.type,
+                status: doc.status,
+                description: doc.description,
+                screenshot: doc.screenshot,
+                sessionLogs: doc.sessionLogs,
+                userInfo: doc.userInfo,
+                browserInfo: doc.browserInfo,
+                route: doc.route,
+                networkStatus: doc.networkStatus,
+                stackTrace: doc.stackTrace,
+                errorMessage: doc.errorMessage,
+                category: doc.category,
+                performanceEntries: doc.performanceEntries,
+                investigation: doc.investigation ? {
+                    ...doc.investigation,
+                    investigatedAt: doc.investigation.investigatedAt?.toISOString() ?? createdAt,
+                } : undefined,
+                duplicateOf: doc.duplicateOf ? toStringId(doc.duplicateOf) : undefined,
+                occurrenceCount: doc.occurrenceCount ?? 1,
+                firstOccurrence,
+                lastOccurrence,
+                errorKey: doc.errorKey,
+                githubIssueUrl: doc.githubIssueUrl,
+                githubIssueNumber: doc.githubIssueNumber,
+                githubProjectItemId: doc.githubProjectItemId,
+                githubPrUrl: doc.githubPrUrl,
+                githubPrNumber: doc.githubPrNumber,
+                createdAt,
+                updatedAt,
+            };
+        });
 
         return { reports: reportsClient };
     } catch (error: unknown) {

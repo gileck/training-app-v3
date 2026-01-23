@@ -21,15 +21,16 @@ The agent library abstraction provides a unified interface for running AI agents
 
 ```
 src/agents/
+├── agents.config.ts              # Single source of truth for configuration
 ├── lib/                          # Agent library abstraction
 │   ├── types.ts                  # AgentLibraryAdapter interface
-│   ├── config.ts                 # Configuration loader (env vars)
+│   ├── config.ts                 # Configuration loader
 │   ├── parsing.ts                # Library-agnostic output parsing
 │   ├── index.ts                  # Factory: getAgentLibrary()
 │   └── adapters/
 │       ├── claude-code-sdk.ts    # Claude Code SDK implementation
 │       ├── gemini.ts             # Google Gemini stub
-│       └── cursor.ts             # Cursor AI stub
+│       └── cursor.ts             # Cursor AI implementation
 ├── shared/                       # Workflow logic (unchanged)
 │   ├── prompts.ts                # Library-agnostic
 │   ├── notifications.ts          # Library-agnostic
@@ -57,13 +58,22 @@ interface AgentLibraryAdapter {
 
 #### 2. Configuration System
 
-Manages library selection via environment variables:
+All configuration is managed in `src/agents/agents.config.ts`:
 
-- `AGENT_DEFAULT_LIBRARY` - Default library for all workflows
-- `AGENT_PRODUCT_DESIGN_LIBRARY` - Override for product design workflow
-- `AGENT_TECH_DESIGN_LIBRARY` - Override for tech design workflow
-- `AGENT_IMPLEMENTATION_LIBRARY` - Override for implementation workflow
-- `AGENT_PR_REVIEW_LIBRARY` - Override for PR review workflow
+```typescript
+export const agentsConfig: AgentsConfig = {
+    // Default library for all workflows
+    defaultLibrary: 'claude-code-sdk',
+
+    // Per-workflow overrides
+    workflowOverrides: {
+        // 'product-design': 'claude-code-sdk',
+        // 'tech-design': 'claude-code-sdk',
+        // 'implementation': 'cursor',
+        // 'pr-review': 'claude-code-sdk',
+    },
+};
+```
 
 #### 3. Parsing Layer
 
@@ -88,26 +98,38 @@ const result = await library.run({ prompt: '...', stream: true });
 
 ## Configuration
 
-### Environment Variables
+### Config File (`src/agents/agents.config.ts`)
 
-Add to `.env.local`:
+This is the **single source of truth** for agent library selection:
 
-```bash
-# Default library (required)
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
+```typescript
+import type { WorkflowName } from './lib/types';
 
-# Per-workflow overrides (optional)
-AGENT_PRODUCT_DESIGN_LIBRARY=gemini        # Use Gemini for product design
-AGENT_TECH_DESIGN_LIBRARY=claude-code-sdk  # Use Claude for tech design
-AGENT_IMPLEMENTATION_LIBRARY=cursor        # Use Cursor for implementation
-AGENT_PR_REVIEW_LIBRARY=claude-code-sdk    # Use Claude for PR review
+export interface AgentsConfig {
+    /** Default library to use for all workflows */
+    defaultLibrary: string;
+    /** Per-workflow library overrides */
+    workflowOverrides: Partial<Record<WorkflowName, string>>;
+}
+
+export const agentsConfig: AgentsConfig = {
+    // Default library for all workflows
+    defaultLibrary: 'claude-code-sdk',
+
+    // Per-workflow overrides
+    workflowOverrides: {
+        // 'product-design': 'claude-code-sdk',
+        // 'tech-design': 'claude-code-sdk',
+        // 'implementation': 'cursor',
+        // 'pr-review': 'claude-code-sdk',
+    },
+};
 ```
 
 ### Library Selection Logic
 
-1. Check for workflow-specific override (e.g., `AGENT_PRODUCT_DESIGN_LIBRARY`)
-2. Fall back to default library (`AGENT_DEFAULT_LIBRARY`)
-3. Default to `claude-code-sdk` if no configuration
+1. Check for workflow-specific override in `workflowOverrides`
+2. Fall back to `defaultLibrary`
 
 ---
 
@@ -167,8 +189,10 @@ const result = await library.run({
 - Slash Commands: ✅ Yes (e.g., `/pr-review`)
 
 **Configuration:**
-```bash
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
+```typescript
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'claude-code-sdk',
+};
 ```
 
 **Features:**
@@ -193,11 +217,6 @@ AGENT_DEFAULT_LIBRARY=claude-code-sdk
 - Custom Tools: ❓ To be determined
 - Timeout: ✅ Yes
 
-**Configuration:**
-```bash
-AGENT_PRODUCT_DESIGN_LIBRARY=gemini
-```
-
 **Implementation Notes:**
 - Will use Google Gemini API
 - Needs API key configuration
@@ -207,25 +226,55 @@ AGENT_PRODUCT_DESIGN_LIBRARY=gemini
 
 **Name:** `cursor`
 
-**Status:** 🚧 Stub (not yet implemented)
+**Status:** ✅ Fully implemented
 
-**Planned Capabilities:**
+**Capabilities:**
 - Streaming: ✅ Yes
 - File Read: ✅ Yes
 - File Write: ✅ Yes
-- Web Fetch: ❓ To be determined
-- Custom Tools: ❓ To be determined
+- Web Fetch: ❌ No
+- Custom Tools: ❌ No (uses Cursor's built-in tools)
 - Timeout: ✅ Yes
 
 **Configuration:**
-```bash
-AGENT_IMPLEMENTATION_LIBRARY=cursor
+```typescript
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'cursor',
+    // Or per-workflow:
+    workflowOverrides: {
+        'implementation': 'cursor',
+    },
+};
 ```
 
-**Implementation Notes:**
-- Will integrate with Cursor's agent API
-- Needs authentication setup
-- Should leverage Cursor's file manipulation strengths
+**Prerequisites:**
+1. Install Cursor CLI:
+   ```bash
+   curl https://cursor.com/install -fsS | bash
+   ```
+2. Login to Cursor:
+   ```bash
+   cursor-agent login
+   ```
+3. Ensure you have an active Cursor subscription
+
+**CLI Flags Used:**
+| Option | CLI Flag |
+|--------|----------|
+| `prompt` | Command argument |
+| `allowWrite` | `--force` |
+| `stream` | `--stream-partial-output` |
+| `timeout` | Process timeout |
+| `outputFormat` | `--output-format json` |
+
+**Features:**
+- Full integration with `cursor-agent` CLI
+- JSON output parsing for structured results
+- Streaming support with real-time event parsing
+- Progress indicators with spinner
+- Timeout handling via process termination
+- Files examined tracking from tool_use events
+- Usage statistics extraction (when available)
 
 ---
 
@@ -286,28 +335,33 @@ class MyProviderAdapter implements AgentLibraryAdapter {
 export default new MyProviderAdapter();
 ```
 
-### 2. Configure Environment
+### 2. Register Adapter
 
-Add to `.env.local`:
-
-```bash
-AGENT_DEFAULT_LIBRARY=my-provider
-```
-
-Or configure per-workflow:
-
-```bash
-AGENT_IMPLEMENTATION_LIBRARY=my-provider
-```
-
-### 3. Dynamic Loading
-
-The factory will automatically load your adapter via dynamic import:
+Import the adapter in `src/agents/lib/index.ts`:
 
 ```typescript
-// In lib/index.ts
-const module = await import(`./adapters/${libraryName}`);
-const adapter = module.default;
+import myProviderAdapter from './adapters/my-provider';
+
+const adapterInstances = new Map<string, AgentLibraryAdapter>([
+    [claudeCodeSDKAdapter.name, claudeCodeSDKAdapter],
+    [geminiAdapter.name, geminiAdapter],
+    [cursorAdapter.name, cursorAdapter],
+    [myProviderAdapter.name, myProviderAdapter], // Add here
+]);
+```
+
+### 3. Configure
+
+Update `src/agents/agents.config.ts`:
+
+```typescript
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'my-provider',
+    // Or per-workflow:
+    workflowOverrides: {
+        'implementation': 'my-provider',
+    },
+};
 ```
 
 ### 4. Test Integration
@@ -315,14 +369,25 @@ const adapter = module.default;
 Run workflows with your new adapter:
 
 ```bash
-# Set environment
-export AGENT_DEFAULT_LIBRARY=my-provider
-
 # Test with dry run
 yarn agent:product-design --dry-run --limit 1
 
 # Test with actual execution
 yarn agent:product-design --limit 1
+```
+
+### Testing the Cursor Adapter
+
+```bash
+# Use the test script
+yarn test-cursor-adapter
+
+# Run specific tests
+yarn test-cursor-adapter --test read
+yarn test-cursor-adapter --test stream
+
+# Verbose output
+yarn test-cursor-adapter --verbose
 ```
 
 ---
@@ -434,14 +499,16 @@ No changes required to prompt generation or output parsing logic.
 
 ### 1. Flexibility
 
-Switch AI providers without changing workflow code:
+Switch AI providers by modifying one config file:
 
-```bash
-# Try Gemini for product design
-AGENT_PRODUCT_DESIGN_LIBRARY=gemini yarn agent:product-design
-
-# Use Cursor for implementation
-AGENT_IMPLEMENTATION_LIBRARY=cursor yarn agent:implement
+```typescript
+// src/agents/agents.config.ts
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'cursor', // Switch default
+    workflowOverrides: {
+        'product-design': 'claude-code-sdk', // Override for specific workflow
+    },
+};
 ```
 
 ### 2. Optimization
@@ -461,17 +528,7 @@ Choose cost-effective models per workflow:
 - Use premium models only where needed
 - Mix and match based on budget
 
-### 4. Resilience
-
-Fall back to alternative providers if one is unavailable:
-
-```bash
-# Primary fails? Switch to backup
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
-AGENT_FALLBACK_LIBRARY=gemini
-```
-
-### 5. Future-Proof
+### 4. Future-Proof
 
 Easy to adopt new AI providers as they emerge:
 
@@ -485,7 +542,7 @@ Easy to adopt new AI providers as they emerge:
 
 ### Error: "Unknown agent library: xyz"
 
-**Cause:** Library not found or not implemented
+**Cause:** Library not found or not registered
 
 **Solution:** Check spelling and ensure library exists:
 ```bash
@@ -493,43 +550,44 @@ Easy to adopt new AI providers as they emerge:
 ls src/agents/lib/adapters/
 # claude-code-sdk.ts  cursor.ts  gemini.ts
 
-# Use correct name
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
+# Use correct name in config
 ```
 
 ### Error: "Gemini adapter not yet implemented"
 
 **Cause:** Trying to use a stub adapter
 
-**Solution:** Use `claude-code-sdk` until the adapter is implemented:
-```bash
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
-```
+**Solution:** Use `claude-code-sdk` or `cursor` until the adapter is implemented.
 
-### Library Not Switching
+### Error: "Cursor CLI not available"
 
-**Cause:** Configuration not loaded or cached
+**Cause:** Cursor CLI (`cursor-agent`) is not installed or not logged in
 
-**Solution:** Restart your terminal or clear cache:
-```bash
-# Restart shell to reload env vars
-exec $SHELL
+**Solution:**
+1. Install Cursor CLI:
+   ```bash
+   curl https://cursor.com/install -fsS | bash
+   ```
+2. Login:
+   ```bash
+   cursor-agent login
+   ```
+3. Verify installation:
+   ```bash
+   cursor-agent --version
+   ```
 
-# Or explicitly export
-export AGENT_DEFAULT_LIBRARY=new-library
-```
+### Cursor Adapter Timeout
 
-### Missing Environment Variables
+**Cause:** Long-running operations exceeding timeout
 
-**Cause:** `.env.local` not loaded
-
-**Solution:** Ensure `.env.local` is in project root and properly formatted:
-```bash
-# .env.local
-AGENT_DEFAULT_LIBRARY=claude-code-sdk
-
-# Verify it's loaded
-node -e "require('dotenv').config({ path: '.env.local' }); console.log(process.env.AGENT_DEFAULT_LIBRARY)"
+**Solution:** Increase timeout in options:
+```typescript
+await runAgent({
+    prompt: '...',
+    timeout: 600, // 10 minutes
+    workflow: 'implementation',
+});
 ```
 
 ---
@@ -550,16 +608,6 @@ const lib2 = await getAgentLibrary('product-design');
 console.log(lib1 === lib2); // true
 ```
 
-### Dynamic Loading
-
-Adapters are loaded on-demand to minimize memory:
-
-```typescript
-// Only loads claude-code-sdk adapter
-const library = await getAgentLibrary('product-design');
-// gemini.ts and cursor.ts are NOT loaded
-```
-
 ### Cleanup
 
 Dispose all adapters when done:
@@ -576,17 +624,22 @@ await disposeAllAdapters();
 ## Related Files
 
 ### Core Files
+- `src/agents/agents.config.ts` - Single source of truth for configuration
 - `src/agents/lib/types.ts` - Interface definitions
 - `src/agents/lib/config.ts` - Configuration loader
 - `src/agents/lib/parsing.ts` - Output parsing
 - `src/agents/lib/index.ts` - Factory function
 - `src/agents/lib/adapters/claude-code-sdk.ts` - Claude implementation
+- `src/agents/lib/adapters/cursor.ts` - Cursor CLI implementation
 
 ### Workflow Files
 - `src/agents/product-design.ts` - Product design workflow
 - `src/agents/tech-design.ts` - Technical design workflow
 - `src/agents/implement.ts` - Implementation workflow
 - `src/agents/pr-review.ts` - PR review workflow
+
+### Test Scripts
+- `scripts/test-cursor-adapter.ts` - Test script for Cursor adapter
 
 ### Documentation
 - `CLAUDE.md` - Project guidelines (includes agent library section)
@@ -599,24 +652,22 @@ await disposeAllAdapters();
 
 ### Planned Features
 
-1. **Adapter Registry** - Register adapters programmatically
-2. **Fallback Support** - Auto-retry with backup library on failure
-3. **Performance Metrics** - Track success rates and latency per adapter
-4. **Cost Tracking** - Aggregate costs across workflows
-5. **A/B Testing** - Compare output quality across providers
-6. **Streaming Improvements** - Unified streaming interface
-7. **Tool Compatibility** - Adapter-specific tool mappings
+1. **Fallback Support** - Auto-retry with backup library on failure
+2. **Performance Metrics** - Track success rates and latency per adapter
+3. **Cost Tracking** - Aggregate costs across workflows
+4. **A/B Testing** - Compare output quality across providers
+5. **Streaming Improvements** - Unified streaming interface
+6. **Tool Compatibility** - Adapter-specific tool mappings
 
 ### Contributing
 
 To contribute a new adapter:
 
 1. Implement `AgentLibraryAdapter` interface
-2. Add tests for your adapter
-3. Update this documentation
-4. Submit a pull request
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+2. Register adapter in `src/agents/lib/index.ts`
+3. Add tests for your adapter
+4. Update this documentation
+5. Submit a pull request
 
 ---
 
@@ -629,9 +680,15 @@ The agent library abstraction provides:
 - ✅ Library-agnostic output parsing
 - ✅ Easy addition of new providers
 - ✅ Backward-compatible with existing code
+- ✅ Single config file for all settings (`src/agents/agents.config.ts`)
+
+**Available Adapters:**
+- `claude-code-sdk` - Claude Code SDK (default, fully implemented)
+- `cursor` - Cursor CLI (fully implemented)
+- `gemini` - Google Gemini (stub, not yet implemented)
 
 **Default Setup:** Works out of the box with Claude Code SDK
 
-**Custom Setup:** Configure per-workflow libraries via environment variables
+**Custom Setup:** Configure per-workflow libraries in `src/agents/agents.config.ts`
 
 **Extensibility:** Add new adapters by implementing `AgentLibraryAdapter`

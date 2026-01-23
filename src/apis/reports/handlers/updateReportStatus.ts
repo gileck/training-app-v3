@@ -27,6 +27,12 @@ export const updateReportStatus = async (
         }
 
         // Convert to client format
+        // Handle legacy reports that may not have all date fields
+        const createdAt = reportDoc.createdAt?.toISOString() ?? new Date().toISOString();
+        const updatedAt = reportDoc.updatedAt?.toISOString() ?? createdAt;
+        const firstOccurrence = reportDoc.firstOccurrence?.toISOString() ?? createdAt;
+        const lastOccurrence = reportDoc.lastOccurrence?.toISOString() ?? firstOccurrence;
+
         const reportClient = {
             _id: toStringId(reportDoc._id),
             type: reportDoc.type,
@@ -44,20 +50,20 @@ export const updateReportStatus = async (
             performanceEntries: reportDoc.performanceEntries,
             investigation: reportDoc.investigation ? {
                 ...reportDoc.investigation,
-                investigatedAt: reportDoc.investigation.investigatedAt.toISOString(),
+                investigatedAt: reportDoc.investigation.investigatedAt?.toISOString() ?? createdAt,
             } : undefined,
             duplicateOf: reportDoc.duplicateOf ? toStringId(reportDoc.duplicateOf) : undefined,
-            occurrenceCount: reportDoc.occurrenceCount,
-            firstOccurrence: reportDoc.firstOccurrence.toISOString(),
-            lastOccurrence: reportDoc.lastOccurrence.toISOString(),
+            occurrenceCount: reportDoc.occurrenceCount ?? 1,
+            firstOccurrence,
+            lastOccurrence,
             errorKey: reportDoc.errorKey,
             githubIssueUrl: reportDoc.githubIssueUrl,
             githubIssueNumber: reportDoc.githubIssueNumber,
             githubProjectItemId: reportDoc.githubProjectItemId,
             githubPrUrl: reportDoc.githubPrUrl,
             githubPrNumber: reportDoc.githubPrNumber,
-            createdAt: reportDoc.createdAt.toISOString(),
-            updatedAt: reportDoc.updatedAt.toISOString(),
+            createdAt,
+            updatedAt,
         };
 
         return { report: reportClient };

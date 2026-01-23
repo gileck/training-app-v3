@@ -493,6 +493,51 @@ Systematic verification of codebase compliance.
 
 ---
 
+## MongoDB Usage
+
+Database layer patterns and schema evolution guidelines.
+
+**Summary:** All MongoDB operations are encapsulated in `src/server/database`. Use server utilities for ID handling. **CRITICAL: Always handle backward compatibility when changing schemas.**
+
+**Key Points:**
+- All database operations in `src/server/database/collections/`
+- Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/utils`
+- Never import `mongodb` directly in API handlers
+
+**CRITICAL - Schema Backward Compatibility:**
+
+When adding new fields to document schemas, **existing documents in the database won't have those fields**. This causes runtime errors:
+
+```typescript
+// BUG: Existing documents don't have `firstOccurrence`
+const response = {
+  firstOccurrence: doc.firstOccurrence.toISOString(),  // TypeError!
+};
+```
+
+**Required Pattern - Always use optional chaining and fallbacks:**
+
+```typescript
+// CORRECT - Handle potentially missing fields
+const createdAt = doc.createdAt?.toISOString() ?? new Date().toISOString();
+const firstOccurrence = doc.firstOccurrence?.toISOString() ?? createdAt;
+const count = doc.count ?? 1;
+
+// WRONG - Assumes field exists
+const createdAt = doc.createdAt.toISOString();  // Crashes on legacy docs
+```
+
+**When Adding New Fields:**
+1. Add fields as optional in TypeScript (`?`) or provide defaults
+2. Use optional chaining (`?.`) when accessing
+3. Provide sensible fallbacks with nullish coalescing (`??`)
+4. Consider writing a migration script for critical fields
+
+**Docs:** [docs/mongodb-usage.md](docs/mongodb-usage.md)
+**Rules:** [.cursor/rules/mongodb-usage.mdc](.cursor/rules/mongodb-usage.mdc)
+
+---
+
 ## Template Sync
 
 Merge updates from the template repository into projects created from it.
@@ -669,8 +714,8 @@ Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 
 **Agent Library Abstraction:**
 - Default: Claude Code SDK
-- Per-workflow overrides via environment variables
-- Configure via `AGENT_DEFAULT_LIBRARY`, `AGENT_PRODUCT_DESIGN_LIBRARY`, etc.
+- Per-workflow overrides configurable in `src/agents/agents.config.ts`
+- Available libraries: `claude-code-sdk`, `cursor`, `gemini` (stub)
 
 **Docs:** [docs/github-projects-integration.md](docs/github-projects-integration.md), [docs/agent-library-abstraction.md](docs/agent-library-abstraction.md)
 

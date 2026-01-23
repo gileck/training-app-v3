@@ -6,7 +6,8 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/client/components/ui/card';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Button } from '@/client/components/ui/button';
+import { Loader2, AlertCircle, CheckCircle, Copy } from 'lucide-react';
 import { useReports, useDeleteAllReports } from './hooks';
 import { useReportsStore } from './store';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
@@ -49,7 +50,8 @@ export function Reports() {
     // Determine if we should show loading state:
     // - isLoading is true when fetching without cached data
     // - reports is undefined when no data exists yet (before first fetch completes)
-    const showLoading = isLoading || reports === undefined;
+    // - Don't show loading if there's an error (show error state instead)
+    const showLoading = !error && (isLoading || reports === undefined);
 
     const deleteAllMutation = useDeleteAllReports();
 
@@ -107,11 +109,45 @@ export function Reports() {
                 </div>
             ) : error ? (
                 <Card>
-                    <CardContent className="py-12 text-center">
-                        <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
-                        <p className="mt-4 text-muted-foreground">
-                            Failed to load reports. Please try again.
-                        </p>
+                    <CardContent className="py-8">
+                        <div className="flex flex-col items-center text-center">
+                            <AlertCircle className="h-12 w-12 text-destructive" />
+                            <p className="mt-4 font-medium text-destructive">
+                                Failed to load reports
+                            </p>
+                        </div>
+                        <div className="mt-6 space-y-4">
+                            <div className="rounded-md bg-destructive/10 p-4">
+                                <p className="text-sm font-medium text-destructive">Error Message:</p>
+                                <p className="mt-1 text-sm text-foreground">
+                                    {error instanceof Error ? error.message : String(error)}
+                                </p>
+                            </div>
+                            {error instanceof Error && error.stack && (
+                                <div className="rounded-md bg-muted p-4">
+                                    <p className="text-sm font-medium text-muted-foreground">Stack Trace:</p>
+                                    <pre className="mt-1 overflow-x-auto text-xs text-muted-foreground whitespace-pre-wrap break-all">
+                                        {error.stack}
+                                    </pre>
+                                </div>
+                            )}
+                            <div className="flex justify-center">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const errorText = error instanceof Error
+                                            ? `Error: ${error.message}\n\nStack Trace:\n${error.stack || 'N/A'}`
+                                            : String(error);
+                                        navigator.clipboard.writeText(errorText);
+                                        toast.success('Error details copied to clipboard');
+                                    }}
+                                >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Copy Error Details
+                                </Button>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             ) : reports?.length === 0 ? (

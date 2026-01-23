@@ -1,138 +1,54 @@
 ---
 description: when accessing the databse or a collection in the db
-globs: 
+globs:
 alwaysApply: false
 ---
 # MongoDB Usage Guidelines
 
-## Core Principles
+**Full documentation:** [docs/mongodb-usage.md](docs/mongodb-usage.md)
 
-1. **Encapsulation**: All MongoDB operations MUST be encapsulated within the `src/server/database` folder.
-2. **No Direct MongoDB Imports**: Direct imports of `mongodb` libraries outside the database layer are STRICTLY PROHIBITED.
-3. **Clean API Layer**: The API layer (`src/apis`) must ONLY interact with the database through functions exported from the database layer.
-4. **Type Safety**: All database operations should use TypeScript interfaces for type safety.
-5. **Use ID Utilities**: Always use `@/server/utils` for ID conversion - never direct ObjectId methods.
+## Quick Reference
 
-## Required Structure
+### Core Principles
+1. All MongoDB operations in `src/server/database/collections/`
+2. Never import `mongodb` directly in API handlers
+3. Use `@/server/utils` for ID conversion
 
-Database operations must follow this structure:
-```
-/src
-  /server
-    /utils
-      /id.ts                - ID conversion utilities (toStringId, toQueryId, toDocumentId)
-      /index.ts             - Exports all utilities
-    /database
-      /index.ts             - Exports shared utilities and collection modules
-      /collections
-        /<collection-name>  - One folder per MongoDB collection
-          /types.ts         - TypeScript interfaces for the collection
-          /<collection-name>.ts - Database operations for the collection
-```
-
-## ID Handling (ObjectId vs UUID)
-
-This app supports both MongoDB ObjectId (legacy) and UUID strings (client-generated) for `_id` fields.
-
-### Required: Use Server Utilities
-
+### ID Utilities
 ```typescript
 import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
+
+// API responses
+{ _id: toStringId(doc._id) }
+
+// MongoDB queries
+{ _id: toQueryId(clientId) }
+
+// Document insertion
+{ _id: toDocumentId(clientId) }
 ```
 
-| Utility | Use Case | Example |
-|---------|----------|---------|
-| `toStringId(id)` | API responses | `{ _id: toStringId(doc._id) }` |
-| `toQueryId(id)` | MongoDB queries | `{ _id: toQueryId(clientId) }` |
-| `toDocumentId(id)` | Document insertion | `{ _id: toDocumentId(clientId) }` |
+## ⚠️ CRITICAL: Schema Backward Compatibility
 
-### ❌ NEVER use direct ObjectId methods:
+**When adding new fields to schemas, existing documents won't have them. Always use optional chaining and fallbacks:**
 
 ```typescript
-// ❌ WRONG - Breaks on UUID strings
-doc._id.toHexString()          // TypeError if UUID string
-new ObjectId(clientId)          // BSONError if UUID string
-{ _id: new ObjectId(id) }       // BSONError in queries
+// ✅ CORRECT - Handle potentially missing fields
+const createdAt = doc.createdAt?.toISOString() ?? new Date().toISOString();
+const firstOccurrence = doc.firstOccurrence?.toISOString() ?? createdAt;
+const count = doc.count ?? 1;
 
-// ✅ CORRECT - Works for both formats
-toStringId(doc._id)
-toDocumentId(clientId)
-{ _id: toQueryId(id) }
+// ❌ WRONG - Assumes field always exists (crashes on legacy docs)
+const createdAt = doc.createdAt.toISOString();
 ```
 
-## Correct Usage Examples
+**When Adding New Fields:**
+1. Add as optional in TypeScript (`?`) or provide defaults
+2. Use optional chaining (`?.`) when accessing
+3. Provide fallbacks with nullish coalescing (`??`)
+4. Consider migration scripts for critical fields
 
-### 1. Defining collection types:
-```typescript
-// src/server/database/collections/exercises/types.ts
-import { ObjectId } from 'mongodb';
-
-export interface Exercise {
-  _id: ObjectId;  // Can be ObjectId or string in practice (for UUIDs)
-  userId: ObjectId;
-  // Other properties...
-}
-
-export type ExerciseCreate = Omit<Exercise, '_id'>;
-export type ExerciseUpdate = Partial<Omit<Exercise, '_id' | 'userId'>>;
-```
-
-### 2. Implementing collection operations:
-```typescript
-// src/server/database/collections/exercises/exercises.ts
-import { Collection, ObjectId } from 'mongodb';
-import { getDb } from '@/server/database';
-import { toQueryId } from '@/server/utils';
-import { Exercise } from './types';
-
-// Private function to get collection reference
-const getExercisesCollection = async (): Promise<Collection<Exercise>> => {
-  const db = await getDb();
-  return db.collection<Exercise>('exercises');
-};
-
-// Public functions for database operations
-export const findExerciseById = async (
-  exerciseId: string, 
-  userId: ObjectId | string
-): Promise<Exercise | null> => {
-  const collection = await getExercisesCollection();
-  // Use toQueryId to handle both ObjectId and UUID formats
-  return collection.findOne({ 
-    _id: toQueryId(exerciseId) as any,
-    userId: typeof userId === 'string' ? new ObjectId(userId) : userId
-  });
-};
-```
-
-### 3. Using in API layer:
-```typescript
-// src/apis/exercises/handlers/getExercise.ts
-import { exercises } from '@/server/database';
-import { toStringId } from '@/server/utils';
-import { GetExerciseRequest, GetExerciseResponse } from '../types';
-
-export const getExercise = async (
-  params: GetExerciseRequest,
-  context: { userId: string }
-): Promise<GetExerciseResponse> => {
-  try {
-    const exercise = await exercises.findExerciseById(params.exerciseId, context.userId);
-    if (!exercise) return { error: "Exercise not found" };
-    
-    // Use toStringId for response - works for both ObjectId and UUID
-    return { 
-      exercise: {
-        ...exercise,
-        _id: toStringId(exercise._id),
-        userId: toStringId(exercise.userId),
-      }
-    };
-  } catch (error) {
-    return { error: "Failed to fetch exercise" };
-  }
-};
-```
+See [docs/mongodb-usage.md](docs/mongodb-usage.md) for full details.
 
 ## What NOT To Do
 
