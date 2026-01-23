@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "088e121a3962f436e11ffde6e439f1c048748787",
-  "lastProjectCommit": "1db96ef1a834575c9d255f1ea22ec5ed2311fb32",
-  "lastSyncDate": "2026-01-23T13:37:12.816Z",
+  "lastSyncCommit": "0c4818a56710a4dfde4db9732da53d8f7f2c6e98",
+  "lastProjectCommit": "2d9044845fc56cd3b2b8995a09b6f65cd2b06ecb",
+  "lastSyncDate": "2026-01-23T14:11:56.508Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T14:11:56.698Z",
+      "templateCommit": "0c4818a56710a4dfde4db9732da53d8f7f2c6e98",
+      "projectCommit": "2d9044845fc56cd3b2b8995a09b6f65cd2b06ecb",
+      "filesApplied": 4,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "0c4818a feat: add init-agents-copy script for separate agent workspace \u001b[90m(23/01/2026)\u001b[0m\n  - Create script to initialize a dedicated copy for running agents\n  - Prompts for location (default: ~/Projects/agents-copy/[REPO_NAME])\n  - Clones repo, installs deps, copies .env.local\n  - Prevents conflicts between dev work and agent operations\n  - Add documentation to GitHub Projects integration guide\n  - Add command to CLAUDE.md CLI commands section"
+      ]
+    },
     {
       "date": "2026-01-23T13:37:13.007Z",
       "templateCommit": "088e121a3962f436e11ffde6e439f1c048748787",
@@ -346,18 +357,6 @@
       "templateCommits": [
         "5ae81e7 fix: suppress console output in JSON mode for syncFiles \u001b[90m(18/01/2026)\u001b[0m\n  Prevents \"Applying safe changes\" log from appearing before JSON output.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-18T09:20:40.256Z",
-      "templateCommit": "4b8502acfb3b68288f2903faf8506363e863527e",
-      "projectCommit": "df6ecb92ad7a7dbe84d47744fbbe3df34dcc39df",
-      "filesApplied": 10,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "4b8502a refactor: separate template and project code for easier sync \u001b[90m(18/01/2026)\u001b[0m\n  Split 5 aggregation files into template + project parts to prevent\n  merge conflicts during template sync:\n  - features/index.ts -> index.template.ts + index.ts\n  - NavLinks.tsx -> NavLinks.template.tsx + NavLinks.tsx\n  - collections/index.ts -> index.template.ts + index.ts\n  - routes/index.ts -> index.template.ts + index.ts\n  - apis.ts -> apis.template.ts + apis.ts\n  \n  Template code lives in *.template.ts files (synced from template).\n  Project code imports from template and adds customizations.\n  Added project files to .template-sync.json ignoredFiles.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "f574b79 fix: use ID utilities instead of direct ObjectId construction \u001b[90m(18/01/2026)\u001b[0m\n  Replaced `new ObjectId(variable)` with `toDocumentId()` and `toQueryId()`\n  utilities to properly handle both ObjectId and UUID formats:\n  \n  - Feature request handlers: use toDocumentId() for authorId and requestedBy\n  - Report batch handlers: use toQueryId() for query operations\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -393,7 +392,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "54908eddec71fac8b451c9d49d658890",
+    "CLAUDE.md": "d2ca786222838549a3f13652aeb78131",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -798,7 +797,7 @@
     ".github/workflows/issue-notifications.yml": "8ad1487f4ceed8b9392b285f7fed08e6",
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
-    "docs/github-projects-integration.md": "dfed8947299f286b1a6f6f47cefb9f95",
+    "docs/github-projects-integration.md": "d2db9f8c0d820f3d29df765674479ef4",
     "docs/init-github-projects-workflow.md": "74f7f3653d83f192d7e92363f0fe0b24",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
@@ -870,6 +869,10 @@
     "src/client/styles/todos.css": "52a26947fe2079066cd7e05751a09a2b",
     "docs/mongodb-usage.md": "5374ed56990a1fc3ac62f0962ae657e6",
     "scripts/test-cursor-adapter.ts": "debbc2dcc69ae6fa3f30aefc5e36845b",
-    "src/agents/agents.config.ts": "90a54707c578933da596fbad26665c6a"
+    "src/agents/agents.config.ts": "90a54707c578933da596fbad26665c6a",
+    "eslint-plugin-api-guidelines/package.json": "bed6bbc919cc3b93ca192912e13933bf",
+    "eslint-plugin-state-management/package.json": "c5be1d4ae56862c71126fef13d713cce",
+    "scripts/init-agents-copy-project.ts": "719483b8026b1459506bbd653b6b70c4",
+    "package.json": "7d7e7b7ca47a51ada9286d342a25a271"
   }
 }

@@ -703,6 +703,7 @@ Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 - Two-tier status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)
 
 **CLI Commands:**
+- `yarn init-agents-copy` - Create a separate copy for running agents (recommended)
 - `yarn agent:product-design` - Generate product designs
 - `yarn agent:tech-design` - Generate technical designs
 - `yarn agent:implement` - Implement features and create PRs

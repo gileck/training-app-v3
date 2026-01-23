@@ -1184,6 +1184,58 @@ yarn agent:auto-advance                      # Advance approved items
 | `--stream` | Stream Claude's output in real-time |
 | `--verbose` | Show additional debug output |
 
+### Agents Copy Project (Recommended Setup)
+
+**Why use a separate copy for agents?**
+
+Running agents in your development repository can cause conflicts:
+- Agents create branches, commits, and PRs while you're developing
+- Your uncommitted work can interfere with agent operations
+- Hard to tell which changes are yours vs agent's
+
+**Solution:** Create a dedicated copy for running agents.
+
+**Quick Setup:**
+
+```bash
+yarn init-agents-copy
+```
+
+This will:
+1. Prompt for a location (default: `~/Projects/agents-copy/[REPO_NAME]`)
+2. Clone your repository to the new location
+3. Install dependencies (`yarn install`)
+4. Copy your `.env.local` from the current project
+5. Tell you when it's ready
+
+**Example:**
+```bash
+# In your development repo
+cd ~/Projects/my-app
+yarn init-agents-copy
+
+# Script creates: ~/Projects/agents-copy/my-app
+# Now run agents in the copy:
+cd ~/Projects/agents-copy/my-app
+yarn github-workflows-agent --all
+```
+
+**Workflow:**
+- **Development repo** (`~/Projects/my-app`): Your main workspace for coding
+- **Agents copy** (`~/Projects/agents-copy/my-app`): Dedicated for agent operations
+
+**Keeping the copy updated:**
+```bash
+# When you push changes to main, update the agents copy:
+cd ~/Projects/agents-copy/my-app
+git pull
+yarn install  # If package.json changed
+```
+
+**Not required but recommended** - You can still run agents in your dev repo if you prefer, just ensure your working directory is clean before running agents.
+
+---
+
 ### Running Agents Manually vs Automation
 
 **⚠️ IMPORTANT: Agents are MANUAL-ONLY**
