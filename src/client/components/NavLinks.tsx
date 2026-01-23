@@ -1,7 +1,19 @@
-import { NavItem } from './layout/types';
-import { Dumbbell, Calendar, Settings, ClipboardList, TrendingUp, Palette } from 'lucide-react';
+/**
+ * Project Navigation Items
+ *
+ * This file defines the app's navigation menus.
+ * Admin items and utilities are imported from NavLinks.template.tsx (synced from template).
+ *
+ * Customize navItems and menuItems for your project's needs.
+ */
 
-// Main bottom navigation (Training App)
+import { NavItem } from './layout/types';
+import { Dumbbell, Calendar, Settings, TrendingUp, Palette } from 'lucide-react';
+
+// Re-export template items and utilities
+export { adminMenuItems, filterAdminNavItems } from './NavLinks.template';
+
+/** Bottom navigation bar items (Training App) */
 export const navItems: NavItem[] = [
   { path: '/', label: 'Workout', icon: <Dumbbell size={18} /> },
   { path: '/training-plans', label: 'Plans', icon: <Calendar size={18} /> },
@@ -9,7 +21,7 @@ export const navItems: NavItem[] = [
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
-/** Regular app menu items (non-admin) */
+/** Hamburger menu items (Training App) */
 export const menuItems: NavItem[] = [
   { path: '/', label: 'Workout', icon: <Dumbbell size={18} /> },
   { path: '/training-plans', label: 'Training Plans', icon: <Calendar size={18} /> },
@@ -17,13 +29,3 @@ export const menuItems: NavItem[] = [
   { path: '/theme', label: 'Theme', icon: <Palette size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
-
-/** Admin-only menu items (shown in separate section) */
-export const adminMenuItems: NavItem[] = [
-  { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
-];
-
-export function filterAdminNavItems(items: NavItem[], isAdmin: boolean): NavItem[] {
-  if (isAdmin) return items;
-  return items.filter((item) => !item.path.startsWith('/admin'));
-}

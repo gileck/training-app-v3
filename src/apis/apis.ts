@@ -1,8 +1,15 @@
+/**
+ * API Handlers
+ *
+ * This file merges template API handlers with project-specific handlers.
+ * Template handlers are in apis.template.ts (synced from template).
+ *
+ * Add your project-specific API handlers below.
+ */
+
 import { mergeApiHandlers } from "./registry";
+import { templateApiHandlers } from "./apis.template";
 import { chatApiHandlers } from "./chat/server";
-import { clearCacheApiHandlers } from "./settings/clearCache/server";
-import { authApiHandlers } from "./auth/server";
-import { reportsApiHandlers } from "./reports/server";
 import { trainingPlansApiHandlers } from "./training-plans/server";
 import { exerciseDefinitionsApiHandlers } from "./exercise-definitions/server";
 import { planExercisesApiHandlers } from "./plan-exercises/server";
@@ -13,10 +20,8 @@ import { planDataApiHandlers } from "./plan-data/server";
 import { workoutWarmupApiHandlers } from "./workout-warmup/server";
 
 export const apiHandlers = mergeApiHandlers(
+  templateApiHandlers,  // Template APIs (auth, reports, feature-requests, clearCache)
   chatApiHandlers,
-  clearCacheApiHandlers,
-  authApiHandlers,
-  reportsApiHandlers,
   trainingPlansApiHandlers,
   exerciseDefinitionsApiHandlers,
   planExercisesApiHandlers,
@@ -25,6 +30,6 @@ export const apiHandlers = mergeApiHandlers(
   planWorkoutsApiHandlers,
   planDataApiHandlers,
   workoutWarmupApiHandlers
+  // Add more project-specific API handlers here:
+  // myApiHandlers,
 );
-
-
