@@ -336,18 +336,31 @@ Since all agents use the same bot account, each agent prefixes its comments with
 | PR Review | 👀 | PR Review Agent |
 | Auto-Advance | ⏭️ | Auto-Advance Agent |
 
-**Example Comment:**
+**Example Comments:**
+
+*New Design:*
 ```markdown
 🎨 **[Product Design Agent]**
 
-## Product Design
+Here's the design overview:
+1. Add dark mode toggle to Settings page
+2. Use system preference as default
+3. Show visual preview when toggling
+```
 
-The dark mode toggle should be placed in the Settings page...
+*Addressing Feedback:*
+```markdown
+🏗️ **[Tech Design Agent]**
+
+Here's what I changed:
+1. Changed from hardcoded colors to semantic tokens
+2. Added persistence using localStorage
+3. Updated all components to support theme switching
 ```
 
 **What Gets Prefixed:**
-- ✅ All issue comments (feedback, clarifications, PR links)
-- ✅ All PR comments (reviews, feedback resolution)
+- ✅ All issue comments (design summaries, feedback responses, clarifications, PR links)
+- ✅ All PR comments (implementation summaries, reviews, feedback resolution)
 - ❌ Issue body updates (design documents remain clean)
 - ❌ PR titles and descriptions (structured documents)
 
@@ -534,18 +547,27 @@ Once routed, the appropriate AI agent picks up the item:
 
 **Product Design Agent:**
 - Generates UX/UI design document
+- Posts high-level summary comment on GitHub issue (e.g., "Here's the design overview: 1. ... 2. ... 3. ...")
+- Sends Telegram notification with summary
 - **Note:** Bugs are skipped by default (most bugs don't need product design)
 - If a bug needs product design, admin manually routes it there
 
 **Tech Design Agent:**
 - **For features:** Generates technical architecture
 - **For bugs:** Loads diagnostics (session logs, stack traces) and generates root cause analysis + fix approach
+- Posts high-level implementation plan comment on GitHub issue (e.g., "Here's the implementation plan: 1. ... 2. ... 3. ...")
+- Sends Telegram notification with summary
 - Bug prompts include full diagnostic data (NOT shown in GitHub issue)
 
 **Implementation Agent:**
 - **For features:** Creates `feature/issue-#-title` branch, PR title: `feat: ...`
 - **For bugs:** Creates `fix/issue-#-title` branch, PR title: `fix: ...`
+- Posts high-level summary comment on PR (e.g., "Here's what I did: 1. ... 2. ... 3. ...")
+- Sends Telegram notification with summary
 - Bug implementation prompts include session logs and diagnostics
+
+**Feedback Mode:**
+When addressing review feedback, agents post "Here's what I changed: 1. ... 2. ... 3. ..." instead of "Here's what I did/designed"
 
 ### Alternative: App UI Approval
 

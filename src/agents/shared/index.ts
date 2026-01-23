@@ -56,6 +56,18 @@ export type {
     BatchProcessingSummary,
 } from './types';
 
+// Output schemas for structured outputs
+export type {
+    ProductDesignOutput,
+    TechDesignOutput,
+    ImplementationOutput,
+} from './output-schemas';
+export {
+    PRODUCT_DESIGN_OUTPUT_FORMAT,
+    TECH_DESIGN_OUTPUT_FORMAT,
+    IMPLEMENTATION_OUTPUT_FORMAT,
+} from './output-schemas';
+
 // Agent library abstraction
 export {
     runAgent,

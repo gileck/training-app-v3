@@ -102,7 +102,15 @@ function buildViewProjectButton(projectUrl: string): InlineKeyboardMarkup {
 }
 
 /**
+ * Sleep for a specified number of milliseconds
+ */
+async function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Send a Telegram message to the admin/owner
+ * Retries up to 3 times with 3 second delays on failure
  */
 async function sendToAdmin(
     message: string,
@@ -124,36 +132,51 @@ async function sendToAdmin(
         return { success: false, error: 'Owner chat ID not configured' };
     }
 
-    try {
-        const body: Record<string, unknown> = {
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true,
-        };
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 3000; // 3 seconds
 
-        if (replyMarkup) {
-            body.reply_markup = replyMarkup;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const body: Record<string, unknown> = {
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML',
+                disable_web_page_preview: true,
+            };
+
+            if (replyMarkup) {
+                body.reply_markup = replyMarkup;
+            }
+
+            const response = await fetch(`${TELEGRAM_API_URL}${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Telegram API error: ${error}`);
+            }
+
+            console.log('  Telegram notification sent');
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`  Telegram notification attempt ${attempt}/${MAX_RETRIES} failed:`, errorMessage);
+
+            if (attempt < MAX_RETRIES) {
+                console.log(`  Retrying in ${RETRY_DELAY_MS / 1000} seconds...`);
+                await sleep(RETRY_DELAY_MS);
+            } else {
+                console.error('  All retry attempts exhausted. Telegram notification not sent.');
+                return { success: false, error: errorMessage };
+            }
         }
-
-        const response = await fetch(`${TELEGRAM_API_URL}${botToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const error = await response.text();
-            console.error('  Telegram API error:', error);
-            return { success: false, error };
-        }
-
-        console.log('  Telegram notification sent');
-        return { success: true };
-    } catch (error) {
-        console.error('  Failed to send Telegram notification:', error);
-        return { success: false, error: String(error) };
     }
+
+    // This should never be reached, but TypeScript requires it
+    return { success: false, error: 'Max retries reached' };
 }
 
 // ============================================================
@@ -188,13 +211,16 @@ export async function notifyProductDesignReady(
     title: string,
     issueNumber: number,
     isRevision: boolean = false,
-    itemType: 'bug' | 'feature' = 'feature'
+    itemType: 'bug' | 'feature' = 'feature',
+    summary?: string
 ): Promise<SendResult> {
     const issueUrl = getIssueUrl(issueNumber);
 
     const status = isRevision ? '🔄 Revised' : '✅ Ready for Review';
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';
+
+    const summarySection = summary ? `\n\n<b>${isRevision ? 'Changes:' : 'Overview:'}</b>\n${escapeHtml(summary)}` : '';
 
     const message = `<b>Agent (Product Design):</b> ${status}
 ${typeEmoji} ${typeLabel}
@@ -203,7 +229,7 @@ ${typeEmoji} ${typeLabel}
 🔗 Issue #${issueNumber}
 📊 Status: Product Design (Waiting for Review)
 
-${isRevision ? 'Design updated based on feedback. ' : ''}Review and approve to proceed to Technical Design.`;
+${isRevision ? 'Design updated based on feedback. ' : ''}Review and approve to proceed to Technical Design.${summarySection}`;
 
     return sendToAdmin(message, buildIssueReviewButtons(issueNumber, issueUrl));
 }
@@ -215,13 +241,16 @@ export async function notifyTechDesignReady(
     title: string,
     issueNumber: number,
     isRevision: boolean = false,
-    itemType: 'bug' | 'feature' = 'feature'
+    itemType: 'bug' | 'feature' = 'feature',
+    summary?: string
 ): Promise<SendResult> {
     const issueUrl = getIssueUrl(issueNumber);
 
     const status = isRevision ? '🔄 Revised' : '✅ Ready for Review';
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';
+
+    const summarySection = summary ? `\n\n<b>${isRevision ? 'Changes:' : 'Plan:'}</b>\n${escapeHtml(summary)}` : '';
 
     const message = `<b>Agent (Tech Design):</b> ${status}
 ${typeEmoji} ${typeLabel}
@@ -230,7 +259,7 @@ ${typeEmoji} ${typeLabel}
 🔗 Issue #${issueNumber}
 📊 Status: Technical Design (Waiting for Review)
 
-${isRevision ? 'Design updated based on feedback. ' : ''}Review and approve to proceed to Implementation.`;
+${isRevision ? 'Design updated based on feedback. ' : ''}Review and approve to proceed to Implementation.${summarySection}`;
 
     return sendToAdmin(message, buildIssueReviewButtons(issueNumber, issueUrl));
 }
@@ -243,13 +272,16 @@ export async function notifyPRReady(
     issueNumber: number,
     prNumber: number,
     isRevision: boolean = false,
-    itemType: 'bug' | 'feature' = 'feature'
+    itemType: 'bug' | 'feature' = 'feature',
+    summary?: string
 ): Promise<SendResult> {
     const prUrl = getPrUrl(prNumber);
 
     const status = isRevision ? '🔄 PR Updated' : '✅ PR Ready';
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';
+
+    const summarySection = summary ? `\n\n<b>${isRevision ? 'Changes:' : 'Summary:'}</b>\n${escapeHtml(summary)}` : '';
 
     const message = `<b>Agent (Implementation):</b> ${status}
 ${typeEmoji} ${typeLabel}
@@ -258,7 +290,7 @@ ${typeEmoji} ${typeLabel}
 🔗 Issue #${issueNumber} → PR #${prNumber}
 📊 Status: PR Review (Waiting for Review)
 
-${isRevision ? 'Changes made based on feedback. ' : ''}Review and merge to complete.`;
+${isRevision ? 'Changes made based on feedback. ' : ''}Review and merge to complete.${summarySection}`;
 
     return sendToAdmin(message, buildPRReviewButtons(issueNumber, prUrl));
 }

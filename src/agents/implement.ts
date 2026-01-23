@@ -56,6 +56,7 @@ import {
     // Types
     type CommonCLIOptions,
     type GitHubComment,
+    type ImplementationOutput,
     // Utils
     getIssueType,
     getBugDiagnostics,
@@ -64,6 +65,8 @@ import {
     extractFeedbackResolution,
     formatFeedbackResolution,
     extractPRSummary,
+    // Output schemas
+    IMPLEMENTATION_OUTPUT_FORMAT,
     // Agent Identity
     addAgentPrefix,
 } from './shared';
@@ -442,6 +445,7 @@ async function processItem(
             progressLabel,
             allowWrite: true, // Enable write mode
             workflow: 'implementation',
+            outputFormat: IMPLEMENTATION_OUTPUT_FORMAT,
         });
 
         if (!result.success) {
@@ -477,17 +481,52 @@ async function processItem(
 
         console.log(`  Agent completed in ${result.durationSeconds}s`);
 
-        // Extract PR summary from agent output (for use in PR description)
-        const prSummary = result.content ? extractPRSummary(result.content) : null;
-        if (prSummary) {
-            console.log('  PR summary extracted');
+        // Extract structured output (with fallback to text extraction)
+        let prSummary: string | null = null;
+        let comment: string | undefined;
+
+        const structuredOutput = result.structuredOutput as ImplementationOutput | undefined;
+        if (structuredOutput) {
+            prSummary = structuredOutput.prSummary;
+            comment = structuredOutput.comment;
+            console.log('  PR summary extracted (structured output)');
+        } else {
+            // Fallback: extract from text output
+            prSummary = result.content ? extractPRSummary(result.content) : null;
+            if (prSummary) {
+                console.log('  PR summary extracted (fallback extraction)');
+            }
         }
 
         // Check if there are changes to commit
-        if (!hasUncommittedChanges()) {
-            console.log('  No changes to commit');
-            git(`checkout ${defaultBranch}`);
-            return { success: false, error: 'Agent did not make any changes' };
+        const hasChanges = hasUncommittedChanges();
+        if (!hasChanges) {
+            // In feedback mode, agent might have already committed changes (via yarn checks auto-fix)
+            // or changes might have been pushed in a previous run
+            // Check if there are commits on this branch that aren't on the default branch
+            if (mode === 'feedback') {
+                console.log('  No uncommitted changes (feedback mode - checking for pushed commits)');
+                try {
+                    const diffOutput = git(`log ${defaultBranch}..HEAD --oneline`, { silent: true });
+                    if (diffOutput.trim()) {
+                        console.log('  Found existing commits on branch - proceeding to update Review Status');
+                        // Skip commit/push steps but continue to update Review Status
+                    } else {
+                        console.log('  No commits on branch either');
+                        git(`checkout ${defaultBranch}`);
+                        return { success: false, error: 'Agent did not make any changes' };
+                    }
+                } catch {
+                    console.log('  Could not check for branch commits');
+                    git(`checkout ${defaultBranch}`);
+                    return { success: false, error: 'Agent did not make any changes' };
+                }
+            } else {
+                // New implementation mode - must have changes
+                console.log('  No changes to commit');
+                git(`checkout ${defaultBranch}`);
+                return { success: false, error: 'Agent did not make any changes' };
+            }
         }
 
         // Run post-work yarn checks - fix any new issues
@@ -531,6 +570,12 @@ async function processItem(
             if (mode === 'new') {
                 console.log('  [DRY RUN] Would create PR');
             }
+            if (comment) {
+                console.log(`  [DRY RUN] Would post comment on ${mode === 'new' ? 'PR' : 'PR'}:`);
+                console.log('  ' + '='.repeat(60));
+                console.log(comment.split('\n').map(l => '  ' + l).join('\n'));
+                console.log('  ' + '='.repeat(60));
+            }
             console.log('  [DRY RUN] Would set Review Status to Waiting for Review');
             console.log('  [DRY RUN] Would send notification');
             // Discard changes and checkout back to default branch
@@ -543,26 +588,37 @@ async function processItem(
             return { success: true };
         }
 
-        // Commit changes
-        const commitPrefix = issueType === 'bug' ? 'fix' : 'feat';
-        const commitMessage = mode === 'new'
-            ? `${commitPrefix}: ${content.title}\n\nCloses #${issueNumber}`
-            : `fix: address review feedback for #${issueNumber}`;
+        // Commit changes (only if there are uncommitted changes)
+        if (hasChanges) {
+            const commitPrefix = issueType === 'bug' ? 'fix' : 'feat';
+            const commitMessage = mode === 'new'
+                ? `${commitPrefix}: ${content.title}\n\nCloses #${issueNumber}`
+                : `fix: address review feedback for #${issueNumber}`;
 
-        console.log('  Committing changes...');
-        commitChanges(commitMessage);
+            console.log('  Committing changes...');
+            commitChanges(commitMessage);
 
-        // Push to remote
-        if (!options.skipPush) {
-            console.log('  Pushing to remote...');
-            pushBranch(branchName, mode === 'feedback');
+            // Push to remote
+            if (!options.skipPush) {
+                console.log('  Pushing to remote...');
+                pushBranch(branchName, mode === 'feedback');
 
-            // Verify all commits are pushed
-            console.log('  Verifying all commits are pushed...');
-            if (!verifyAllPushed(branchName)) {
-                return { success: false, error: 'Failed to push all commits to remote. Please check network connection and try again.' };
+                // Verify all commits are pushed
+                console.log('  Verifying all commits are pushed...');
+                if (!verifyAllPushed(branchName)) {
+                    return { success: false, error: 'Failed to push all commits to remote. Please check network connection and try again.' };
+                }
+                console.log('  ✅ All commits pushed successfully');
             }
-            console.log('  ✅ All commits pushed successfully');
+        } else {
+            console.log('  Skipping commit (no uncommitted changes - using existing commits)');
+            // Verify existing commits are already pushed
+            if (!options.skipPush) {
+                console.log('  Verifying existing commits are pushed...');
+                if (!verifyAllPushed(branchName)) {
+                    console.log('  ⚠️ Warning: Some commits may not be pushed to remote');
+                }
+            }
         }
 
         let prNumber = processable.prNumber;
@@ -641,16 +697,34 @@ See issue #${issueNumber} for full context, product design, and technical design
             // Add comment on issue linking to PR
             const prLinkComment = addAgentPrefix('implementor', `Implementation PR: #${prNumber}`);
             await adapter.addIssueComment(issueNumber, prLinkComment);
-        } else {
-            // Add comment on PR about addressed feedback
-            if (prNumber && result.content) {
-                // Try to extract structured feedback resolution
-                const feedbackResolution = extractFeedbackResolution(result.content);
-                const comment = feedbackResolution
-                    ? formatFeedbackResolution(feedbackResolution)
-                    : 'Addressed review feedback. Ready for re-review.';
+
+            // Post summary comment on PR (if available)
+            if (comment) {
                 const prefixedComment = addAgentPrefix('implementor', comment);
                 await adapter.addPRComment(prNumber, prefixedComment);
+                console.log('  Summary comment posted on PR');
+                logGitHubAction(logCtx, 'comment', 'Posted implementation summary comment on PR');
+            }
+        } else {
+            // Add comment on PR about addressed feedback
+            if (prNumber) {
+                // Use structured output comment if available, otherwise fallback
+                let feedbackComment: string;
+                if (comment) {
+                    feedbackComment = comment;
+                } else if (result.content) {
+                    // Fallback: try to extract structured feedback resolution from text
+                    const feedbackResolution = extractFeedbackResolution(result.content);
+                    feedbackComment = feedbackResolution
+                        ? formatFeedbackResolution(feedbackResolution)
+                        : 'Addressed review feedback. Ready for re-review.';
+                } else {
+                    feedbackComment = 'Addressed review feedback. Ready for re-review.';
+                }
+                const prefixedComment = addAgentPrefix('implementor', feedbackComment);
+                await adapter.addPRComment(prNumber, prefixedComment);
+                console.log('  Feedback response comment posted on PR');
+                logGitHubAction(logCtx, 'comment', 'Posted feedback response comment on PR');
             }
         }
 
@@ -670,9 +744,9 @@ See issue #${issueNumber} for full context, product design, and technical design
             logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
         }
 
-        // Send notification
+        // Send notification (with summary)
         if (prNumber) {
-            await notifyPRReady(content.title, issueNumber, prNumber, mode === 'feedback', issueType);
+            await notifyPRReady(content.title, issueNumber, prNumber, mode === 'feedback', issueType, comment);
             console.log('  Notification sent');
         }
 

@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "b01131b9022ea5a6b2f3e8c29709d9d96b99666c",
-  "lastProjectCommit": "b451ef85fbbb924f8f6b93b0c682601c2e6a84db",
-  "lastSyncDate": "2026-01-23T14:27:37.513Z",
+  "lastSyncCommit": "04072c33f3017d422e8f38b54c17d78559fcf18c",
+  "lastProjectCommit": "71bb4e3f01dd0ee5f08063f2019f3e6e0aca44b2",
+  "lastSyncDate": "2026-01-23T15:35:59.089Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,21 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T15:35:59.283Z",
+      "templateCommit": "04072c33f3017d422e8f38b54c17d78559fcf18c",
+      "projectCommit": "71bb4e3f01dd0ee5f08063f2019f3e6e0aca44b2",
+      "filesApplied": 8,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "04072c3 feat: add NO TABLES instruction to all agent prompts \u001b[90m(23/01/2026)\u001b[0m\n  Add explicit MARKDOWN_FORMATTING_INSTRUCTIONS to all 12 agent prompts\n  to prevent agents from using tables in markdown output. Tables in GitHub\n  issues and PRs don't render well in notifications and mobile views.\n  \n  ## Changes\n  \n  ### New Constant: MARKDOWN_FORMATTING_INSTRUCTIONS\n  - Clear directive: \"NEVER USE TABLES IN MARKDOWN OUTPUT\"\n  - Shows BAD examples (tables) vs GOOD examples (lists)\n  - Instructs to use bulleted lists, numbered lists, or definition lists\n  - Provides concrete examples of the preferred format\n  \n  ### Updated Prompts (12 total)\n  \n  **Product Design:**\n  - buildProductDesignPrompt\n  - buildProductDesignRevisionPrompt\n  - buildProductDesignClarificationPrompt\n  \n  **Tech Design:**\n  - buildTechDesignPrompt\n  - buildTechDesignRevisionPrompt\n  - buildTechDesignClarificationPrompt\n  \n  **Implementation:**\n  - buildImplementationPrompt\n  - buildPRRevisionPrompt\n  - buildImplementationClarificationPrompt\n  \n  **Bug-Specific:**\n  - buildBugTechDesignPrompt\n  - buildBugImplementationPrompt\n  - buildBugTechDesignRevisionPrompt\n  \n  Each prompt now includes the formatting instructions before the ambiguity\n  instructions, making it prominent and unavoidable.\n  \n  ## Example Format Change\n  \n  Before (table):\n  | File | Changes |\n  |------|---------|\n  | src/file.ts | Add function |\n  \n  After (list):\n  **Files to Modify:**\n  - \\`src/file.ts\\`\n    - Add function\n    - Update imports\n  \n  This applies to all markdown output: designs, technical documents, and\n  PR summaries.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "a129d32 fix: update Review Status when addressing feedback with no new changes \u001b[90m(23/01/2026)\u001b[0m\n  Critical bug fix: When implementor agent addresses PR review feedback but\n  finds no uncommitted changes (because yarn checks auto-committed fixes),\n  it was exiting early and never updating the Review Status back to\n  \"Waiting for Review\". This caused the item to get stuck in \"Request\n  Changes\" status.\n  \n  ## The Bug\n  \n  When addressing feedback:\n  1. Agent successfully makes changes\n  2. yarn checks auto-fix commits them\n  3. hasUncommittedChanges() returns false\n  4. Script exits early at line 502\n  5. Never reaches Review Status update at line 700\n  6. Item stuck in \"Request Changes\" status\n  7. PR review agent keeps trying to process it\n  \n  ## The Fix\n  \n  In feedback mode when no uncommitted changes:\n  1. Check if there are commits on branch (git log defaultBranch..HEAD)\n  2. If yes, skip commit/push but continue to update Review Status\n  3. If no, fail with error as before\n  \n  This allows the flow to complete and update Review Status even when:\n  - yarn checks auto-committed fixes\n  - Changes were committed in a previous run\n  - Agent committed changes during its work\n  \n  ## Changes\n  \n  - Added hasChanges variable to track uncommitted changes\n  - In feedback mode with no uncommitted changes, check for existing commits\n  - Skip commit/push steps if no new changes but have existing commits\n  - Continue to post comment and update Review Status\n  - Properly handles the case where work is done but already committed\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "2ca5295 feat: add structured outputs and GitHub comments to all agents \u001b[90m(23/01/2026)\u001b[0m\n  Add structured JSON outputs to product-design, tech-design, and implement\n  agents following the pr-review pattern. Each agent now posts a high-level\n  summary as a GitHub comment and includes it in Telegram notifications.\n  \n  ## Changes\n  \n  ### New File: src/agents/shared/output-schemas.ts\n  - Define TypeScript interfaces and JSON schemas for all three agents\n  - Each schema has two fields:\n    - design/prSummary: Full document content\n    - comment: High-level summary for GitHub comment\n  \n  ### Updated Prompts (src/agents/shared/prompts.ts)\n  - Modified all prompt functions to request structured JSON output\n  - New mode: comment = \"Here's what I did/designed/planned\"\n  - Feedback mode: comment = \"Here's what I changed\"\n  \n  ### Updated Notifications (src/agents/shared/notifications.ts)\n  - Added optional summary parameter to notification functions\n  - Summaries are appended to Telegram notifications\n  \n  ### Updated Agent Files\n  **product-design.ts:**\n  - Added outputFormat to runAgent with fallback to markdown extraction\n  - Posts comment on GitHub issue with agent prefix\n  - Passes summary to Telegram notification\n  \n  **tech-design.ts:**\n  - Same pattern as product-design\n  - Posts comment on GitHub issue\n  \n  **implement.ts:**\n  - Added outputFormat to runAgent with fallback\n  - New mode: Posts summary comment on PR\n  - Feedback mode: Uses structured comment\n  - Passes summary to Telegram notification\n  \n  ### Updated Documentation\n  - docs/github-projects-integration.md: Added details about structured\n    outputs and GitHub comments for each agent type\n  \n  ## Output Format\n  \n  All agents now return structured JSON:\n  - ProductDesignOutput: { design: string, comment: string }\n  - TechDesignOutput: { design: string, comment: string }\n  - ImplementationOutput: { prSummary: string, comment: string }\n  \n  ## Comment Examples\n  \n  Product Design (New):\n  \"Here's the design overview: 1. Add filter 2. Show badges 3. Mobile design\"\n  \n  Tech Design (Feedback):\n  \"Here's what I changed: 1. Use DB instead of hardcoded 2. Add caching 3. Add loading state\"\n  \n  Implementation (New):\n  \"Here's what I did: 1. Created API 2. Added component 3. Added tests\"\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "e4b92ab fix: add graceful fallback for missing review statuses + verification \u001b[90m(23/01/2026)\u001b[0m",
+        "1c71c02 fix: prevent technical content in product design prompts \u001b[90m(23/01/2026)\u001b[0m\n  Add explicit instructions to product design prompts to exclude technical\n  implementation details and focus only on user-facing product design.\n  \n  Changes:\n  - Add \"CRITICAL - PRODUCT DESIGN ONLY\" section to all product design prompts\n  - Explicitly forbid: technical details, file paths, API endpoints, code snippets\n  - Focus on: user experience, UI/UX design, user-facing behavior\n  \n  This prevents the product-design agent from adding \"Technical Implementation\n  Notes\" or similar technical content to product design documents.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-23T14:27:37.887Z",
       "templateCommit": "b01131b9022ea5a6b2f3e8c29709d9d96b99666c",
@@ -343,19 +358,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "696c4e4 fix: resolve TypeScript errors in agents and telegram webhook \u001b[90m(20/01/2026)\u001b[0m\n  - Update notifyAgentStarted to accept 'clarification' mode\n    - Add status message for clarification mode: \"💬 Resuming After Clarification\"\n    - Fixes type errors in implement.ts, product-design.ts, tech-design.ts\n  \n  - Fix type mismatches in agent prompt builders\n    - Pass properly typed objects to buildImplementationClarificationPrompt\n    - Pass properly typed objects to buildProductDesignClarificationPrompt\n    - Pass properly typed objects to buildTechDesignClarificationPrompt\n    - Extract issueNumber and construct typed objects instead of passing raw content\n  \n  - Fix handleClarificationRequest calls\n    - Create properly typed item objects with non-null content\n    - Ensures type safety when passing to handleClarificationRequest\n  \n  - Add missing editMessageText helper function\n    - Simple wrapper around Telegram API editMessageText endpoint\n    - Used in clarification received flow\n    - Consistent with other message editing helpers\n  \n  All TypeScript errors resolved, yarn checks passes cleanly.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-18T09:57:58.596Z",
-      "templateCommit": "3fd533183ef5713030402298d306d30fe04f76c1",
-      "projectCommit": "a45bf62f9d287de0c1f8f15fd0f5510983f633ac",
-      "filesApplied": 2,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "3fd5331 refactor: extract global dialogs for easier template sync \u001b[90m(18/01/2026)\u001b[0m\n  Split global dialogs into template + project parts to prevent\n  merge conflicts in Layout.tsx:\n  - GlobalDialogs.template.tsx: Template dialogs (BugReport, FeatureRequest)\n  - GlobalDialogs.tsx: Imports template + adds project dialogs\n  \n  Layout.tsx now just imports <GlobalDialogs />, making it easier to\n  sync template changes without conflicting with project dialogs.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "5ede9df docs: add troubleshooting guide for checks-failed projects \u001b[90m(18/01/2026)\u001b[0m\n  - Add section on handling \"Checks Failed\" projects\n  - Document three root cause categories: template bug, integration\n    issue with skipped files, and project-specific code issue\n  - Explain the common case of skipped files causing integration issues\n  - Add guidance on manually merging skipped files\n  - Document edge cases on large template changes\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "df8d042 docs: update sync-children documentation for JSON mode \u001b[90m(18/01/2026)\u001b[0m\n  - Document JSON mode usage and structured output\n  - Add \"Checks Failed\" section with error details\n  - Show new summary format with file lists\n  - Document backward compatibility with legacy fallback\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -797,22 +799,22 @@
     ".github/workflows/issue-notifications.yml": "8ad1487f4ceed8b9392b285f7fed08e6",
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
-    "docs/github-projects-integration.md": "d2db9f8c0d820f3d29df765674479ef4",
+    "docs/github-projects-integration.md": "2f68ba3c22fb8a98fc493d9f3c1cbca0",
     "docs/init-github-projects-workflow.md": "5207c4cd7604cdec365e5da5973c9eb2",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "d2ca501939041f1f5c2ba4e5f579ff0f",
-    "src/agents/implement.ts": "7461ca8fa4cecb0c52e851c07091e397",
+    "src/agents/implement.ts": "729faacd495c2373f10049da98663ddb",
     "src/agents/index.ts": "388aab613d4556378ecf874127df6c50",
-    "src/agents/product-design.ts": "0de862c4d0a80ca868d2a52b9295c72e",
+    "src/agents/product-design.ts": "e86be7caf3c25116ecc90c7be13134f4",
     "src/agents/shared/claude.ts": "dc4edb4e24866c880f9ca121c5bbb909",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
-    "src/agents/shared/index.ts": "9521b828af2ca41b3cd514a405574d6b",
-    "src/agents/shared/notifications.ts": "04c4a8ee6001552df80d28991cc2807b",
-    "src/agents/shared/prompts.ts": "ce2e9ce2f633b350d734fcbad145495c",
+    "src/agents/shared/index.ts": "e0fba8a876bc1ba1732eba8059d25c24",
+    "src/agents/shared/notifications.ts": "0599cd3e842554aa1d526fe97b22db94",
+    "src/agents/shared/prompts.ts": "47fdb283780dfe53563ff6fadd650a22",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
     "src/agents/shared/utils.ts": "2561f018c65e182e2b9e8f8126af616c",
-    "src/agents/tech-design.ts": "6c3e33fd1f81a0c9f8eb5a03ae6da758",
+    "src/agents/tech-design.ts": "5590cbaeef452263a4f78f16f40874b1",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
     "src/apis/feature-requests/handlers/getGitHubStatuses.ts": "0eabde636f273832e64d2b82e7291ac9",
@@ -873,6 +875,7 @@
     "eslint-plugin-api-guidelines/package.json": "bed6bbc919cc3b93ca192912e13933bf",
     "eslint-plugin-state-management/package.json": "c5be1d4ae56862c71126fef13d713cce",
     "scripts/init-agents-copy-project.ts": "719483b8026b1459506bbd653b6b70c4",
-    "package.json": "02cba587466cf0ba6e14f1fd3789fa47"
+    "package.json": "02cba587466cf0ba6e14f1fd3789fa47",
+    "src/agents/shared/output-schemas.ts": "1da5fc8a50ae2f386662ff27164e836b"
   }
 }

@@ -52,9 +52,14 @@ import {
     // Types
     type CommonCLIOptions,
     type UsageStats,
+    type ProductDesignOutput,
     // Utils
     extractClarification,
     handleClarificationRequest,
+    // Output schemas
+    PRODUCT_DESIGN_OUTPUT_FORMAT,
+    // Agent Identity
+    addAgentPrefix,
 } from './shared';
 import { getIssueType } from './shared/utils';
 import {
@@ -182,6 +187,7 @@ async function processItem(
             timeout: options.timeout,
             progressLabel,
             workflow: 'product-design',
+            outputFormat: PRODUCT_DESIGN_OUTPUT_FORMAT,
         });
 
         if (!result.success || !result.content) {
@@ -209,22 +215,40 @@ async function processItem(
             );
         }
 
-        // Extract markdown design from output
-        const design = extractMarkdown(result.content);
-        if (!design) {
-            const error = 'Could not extract design document from output';
-            if (!options.dryRun) {
-                await notifyAgentError('Product Design', content.title, issueNumber, error);
+        // Extract structured output (with fallback to markdown extraction)
+        let design: string;
+        let comment: string | undefined;
+
+        const structuredOutput = result.structuredOutput as ProductDesignOutput | undefined;
+        if (structuredOutput) {
+            design = structuredOutput.design;
+            comment = structuredOutput.comment;
+            console.log(`  Design generated: ${design.length} chars (structured output)`);
+        } else {
+            // Fallback: extract markdown from text output
+            const extracted = extractMarkdown(result.content);
+            if (!extracted) {
+                const error = 'Could not extract design document from output';
+                if (!options.dryRun) {
+                    await notifyAgentError('Product Design', content.title, issueNumber, error);
+                }
+                return { success: false, error };
             }
-            return { success: false, error };
+            design = extracted;
+            console.log(`  Design generated: ${design.length} chars (fallback extraction)`);
         }
 
-        console.log(`  Design generated: ${design.length} chars`);
         console.log(`  Preview: ${design.slice(0, 100).replace(/\n/g, ' ')}...`);
 
         if (options.dryRun) {
             console.log('  [DRY RUN] Would update issue body');
             console.log('  [DRY RUN] Would set Review Status to Waiting for Review');
+            if (comment) {
+                console.log('  [DRY RUN] Would post comment:');
+                console.log('  ' + '='.repeat(60));
+                console.log(comment.split('\n').map(l => '  ' + l).join('\n'));
+                console.log('  ' + '='.repeat(60));
+            }
             console.log('  [DRY RUN] Would send notification');
             return { success: true };
         }
@@ -235,6 +259,14 @@ async function processItem(
         const newBody = buildUpdatedIssueBody(originalDescription, design, existingTechDesign);
         await adapter.updateIssueBody(issueNumber, newBody);
         console.log('  Issue body updated');
+
+        // Post summary comment on GitHub issue (if available)
+        if (comment) {
+            const prefixedComment = addAgentPrefix('product-design', comment);
+            await adapter.addIssueComment(issueNumber, prefixedComment);
+            console.log('  Summary comment posted');
+            logGitHubAction(logCtx, 'comment', 'Posted design summary comment');
+        }
 
         // Update review status (status stays at "Product Design")
         if (adapter.hasReviewStatusField()) {
@@ -248,8 +280,8 @@ async function processItem(
             logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
         }
 
-        // Send notification
-        await notifyProductDesignReady(content.title, issueNumber, mode === 'feedback', issueType);
+        // Send notification (with summary)
+        await notifyProductDesignReady(content.title, issueNumber, mode === 'feedback', issueType, comment);
         console.log('  Notification sent');
 
         // Log execution end

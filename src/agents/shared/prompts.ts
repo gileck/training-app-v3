@@ -71,6 +71,47 @@ Examples of when to ask for clarification:
 `;
 
 // ============================================================
+// MARKDOWN FORMATTING INSTRUCTIONS
+// ============================================================
+
+const MARKDOWN_FORMATTING_INSTRUCTIONS = `
+CRITICAL - Markdown Formatting:
+
+**NEVER USE TABLES IN MARKDOWN OUTPUT**
+
+Instead of tables, ALWAYS use:
+- ✅ Bulleted lists with sub-bullets
+- ✅ Numbered lists with nested items
+- ✅ Definition lists (term: description)
+
+Examples:
+
+BAD (table):
+| File | Changes |
+|------|---------|
+| src/file.ts | Add function |
+
+GOOD (list):
+**Files to Modify:**
+- \`src/file.ts\`
+  - Add function
+  - Update imports
+
+BAD (table):
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| /api/users | GET | List users |
+
+GOOD (nested list):
+**API Endpoints:**
+- \`/api/users\` (GET)
+  - Purpose: List users
+  - Returns: User array
+
+This applies to ALL markdown output: designs, technical documents, PR summaries.
+`;
+
+// ============================================================
 // PRODUCT DESIGN PROMPTS
 // ============================================================
 
@@ -102,6 +143,19 @@ ${commentsSection}
 
 Create a Product Design document. The size of your output should match the complexity of the feature - simple features get simple designs, complex features get detailed designs.
 
+**CRITICAL - PRODUCT DESIGN ONLY:**
+This is a PRODUCT design, NOT a technical design. Do NOT include:
+- Technical implementation details or code snippets
+- File paths or component names
+- API endpoints or database schemas
+- Technical architecture decisions
+- Implementation notes or instructions
+
+Focus ONLY on:
+- What the user sees and experiences
+- How the feature behaves from a user perspective
+- UI/UX design decisions
+
 **Required sections:**
 1. **Size Estimate** - S (small, few hours) / M (medium, 1-2 days) / L (large, multiple days)
 2. **Overview** - Brief summary of what this feature does and why it's needed
@@ -125,9 +179,11 @@ Before writing the design, explore the codebase:
 
 ## Output Format
 
-Your final output MUST be a Product Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: Complete Product Design document in markdown format (same structure as before)
+- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Format: "Here's the design overview: 1. ... 2. ... 3. ..."
 
-Keep it concise. A small feature might only need a few paragraphs. A large feature needs more detail.
+Keep the design concise. A small feature might only need a few paragraphs. A large feature needs more detail.
 
 Example for a SMALL feature (S):
 
@@ -178,6 +234,8 @@ Example for a MEDIUM/LARGE feature:
 [Only non-obvious cases that need design decisions]
 \`\`\`
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 Now explore the codebase and create the Product Design document.`;
@@ -224,11 +282,28 @@ ${feedbackSection}
 3. Revise the Product Design to address ALL feedback points
 4. Keep the output size proportional to the feature complexity
 
+**CRITICAL - PRODUCT DESIGN ONLY:**
+This is a PRODUCT design, NOT a technical design. Do NOT include:
+- Technical implementation details or code snippets
+- File paths or component names
+- API endpoints or database schemas
+- Technical architecture decisions
+- Implementation notes or instructions
+
+Focus ONLY on:
+- What the user sees and experiences
+- How the feature behaves from a user perspective
+- UI/UX design decisions
+
 ## Output Format
 
-Your final output MUST be the COMPLETE revised Product Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: COMPLETE revised Product Design document in markdown format (entire document, not just changes)
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
 
-Do NOT output just the changes - output the entire revised document. Keep it concise.
+Do NOT output just the changes in design - output the entire revised document. Keep it concise.
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -271,6 +346,19 @@ Continue your product design work using the admin's clarification as guidance. C
 
 If the admin's response is still unclear or raises new ambiguities, you may ask another clarification question using the same format.
 
+**CRITICAL - PRODUCT DESIGN ONLY:**
+This is a PRODUCT design, NOT a technical design. Do NOT include:
+- Technical implementation details or code snippets
+- File paths or component names
+- API endpoints or database schemas
+- Technical architecture decisions
+- Implementation notes or instructions
+
+Focus ONLY on:
+- What the user sees and experiences
+- How the feature behaves from a user perspective
+- UI/UX design decisions
+
 **Required sections:**
 1. **Size Estimate** - S (small, few hours) / M (medium, 1-2 days) / L (large, multiple days)
 2. **Overview** - Brief summary of what this feature does and why it's needed
@@ -286,7 +374,11 @@ If the admin's response is still unclear or raises new ambiguities, you may ask 
 
 ## Output Format
 
-Your final output MUST be a complete Product Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: Complete Product Design document in markdown format
+- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Format: "Here's the design overview: 1. ... 2. ... 3. ..."
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -351,9 +443,11 @@ Explore the codebase:
 
 ## Output Format
 
-Your final output MUST be a Technical Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: Complete Technical Design document in markdown format (same structure as before)
+- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
 
-Keep it concise. A small feature might only need a short list of files. A large feature needs more detail.
+Keep the design concise. A small feature might only need a short list of files. A large feature needs more detail.
 
 Example for a SMALL feature (S):
 
@@ -410,6 +504,8 @@ interface FeatureDocument {
 [Only for complex logic]
 \`\`\`
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 Now explore the codebase and create the Technical Design document.`;
@@ -464,9 +560,13 @@ ${feedbackSection}
 
 ## Output Format
 
-Your final output MUST be the COMPLETE revised Technical Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: COMPLETE revised Technical Design document in markdown format (entire document, not just changes)
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
 
-Do NOT output just the changes - output the entire revised document. Keep it concise.
+Do NOT output just the changes in design - output the entire revised document. Keep it concise.
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -523,7 +623,11 @@ If the admin's response is still unclear or raises new ambiguities, you may ask 
 
 ## Output Format
 
-Your final output MUST be a complete Technical Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: Complete Technical Design document in markdown format
+- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -635,13 +739,18 @@ Key principles:
 - Ensure all imports are correct
 - Do not add features or improvements beyond what's specified
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, you MUST provide a PR summary in this exact format:
+After implementing, provide your response as structured JSON with these fields:
+- **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
 
-\`\`\`pr-summary
+Example prSummary format:
+\`\`\`markdown
 ## Summary
 [2-4 bullet points describing what was implemented and key decisions made]
 
@@ -650,8 +759,6 @@ After implementing, you MUST provide a PR summary in this exact format:
 - **[filename]**: [brief description of change]
 [List the most important files changed - max 5-7 files]
 \`\`\`
-
-This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the feature now.`;
 }
@@ -753,23 +860,22 @@ Key principles:
 - Test your changes make sense in context
 - Follow TypeScript, React, and state management patterns from \`.cursor/rules/\`
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After making changes, you MUST provide a feedback resolution mapping in this exact format:
+After making changes, provide your response as structured JSON with these fields:
+- **prSummary**: Updated PR summary in markdown format with "## Summary" and "## Changes" sections
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
 
-\`\`\`feedback-resolution
+Example comment format:
+\`\`\`
+Here's what I changed:
 1. [Original feedback summary] → [What you changed to address it]
 2. [Original feedback summary] → [What you changed to address it]
-...
-\`\`\`
-
-Example:
-\`\`\`feedback-resolution
-1. Missing null check in file.ts:42 → Added null check with early return
-2. Variable name unclear → Renamed 'x' to 'userCount'
-3. Missing error handling → Added try-catch with user-friendly message
+3. [Original feedback summary] → [What you changed to address it]
 \`\`\`
 
 Begin addressing the feedback now.`;
@@ -829,13 +935,18 @@ If the admin's response is still unclear or raises new ambiguities, you may ask 
 - Use semantic color tokens (bg-background, not bg-white)
 - For state management, use React Query for server state and Zustand for client state
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, you MUST provide a PR summary in this exact format:
+After implementing, provide your response as structured JSON with these fields:
+- **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
 
-\`\`\`pr-summary
+Example prSummary format:
+\`\`\`markdown
 ## Summary
 [2-4 bullet points describing what was implemented and key decisions made]
 
@@ -844,8 +955,6 @@ After implementing, you MUST provide a PR summary in this exact format:
 - **[filename]**: [brief description of change]
 [List the most important files changed - max 5-7 files]
 \`\`\`
-
-This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the feature now.`;
 }
@@ -927,9 +1036,11 @@ Analyze this bug and create a Technical Design for the fix:
 
 ## Output Format
 
-Your final output MUST be a Technical Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: Complete Technical Design document in markdown format (same structure as shown in example below)
+- **comment**: High-level implementation plan for the fix to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
 
-Example:
+Example design structure:
 
 \`\`\`markdown
 # Bug Fix: [Issue Title]
@@ -962,6 +1073,8 @@ The error occurs in \`ComponentName.tsx\` when [specific condition]. The code as
 2. Verify fix by [verification steps]
 3. Test edge case: [edge case description]
 \`\`\`
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
@@ -1068,13 +1181,20 @@ Key principles for bug fixes:
 - DO NOT refactor surrounding code unless necessary for the fix
 - DO NOT add features or improvements beyond the bug fix
 
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
 ${AMBIGUITY_INSTRUCTIONS}
 
 ## Output
 
-After implementing, you MUST provide a PR summary in this exact format:
+After implementing, provide your response as structured JSON with these fields:
+- **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
 
-\`\`\`pr-summary
+Example prSummary format (for bug fixes, mention root cause, how it was fixed, and how to verify):
+\`\`\`markdown
 ## Summary
 [2-4 bullet points describing: the root cause, how it was fixed, and how to verify]
 
@@ -1083,8 +1203,6 @@ After implementing, you MUST provide a PR summary in this exact format:
 - **[filename]**: [brief description of change]
 [List the most important files changed - max 5-7 files]
 \`\`\`
-
-This summary will be used in the PR description and squash merge commit message, so make it informative and concise.
 
 Begin implementing the bug fix now.`;
 }
@@ -1130,9 +1248,13 @@ ${feedbackSection}
 
 ## Output Format
 
-Your final output MUST be the COMPLETE revised Technical Design document in markdown format, wrapped in a \`\`\`markdown code block.
+Provide your response as structured JSON with these fields:
+- **design**: COMPLETE revised Technical Design document in markdown format (entire document, not just changes)
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
 
-Do NOT output just the changes - output the entire revised document.
+Do NOT output just the changes in design - output the entire revised document.
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
