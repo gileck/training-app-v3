@@ -6,6 +6,7 @@ import {
     API_CREATE_EXERCISE,
     API_UPDATE_EXERCISE,
     API_DELETE_EXERCISE,
+    API_GET_MUSCLE_GROUPS,
 } from './index';
 import {
     ListExercisesRequest,
@@ -18,6 +19,8 @@ import {
     UpdateExerciseResponse,
     DeleteExerciseRequest,
     DeleteExerciseResponse,
+    GetMuscleGroupsRequest,
+    GetMuscleGroupsResponse,
 } from './types';
 
 /**
@@ -63,5 +66,14 @@ export const deleteExercise = async (
     params: DeleteExerciseRequest
 ): Promise<CacheResult<DeleteExerciseResponse>> => {
     return apiClient.post(API_DELETE_EXERCISE, params);
+};
+
+/**
+ * Get all unique muscle groups from exercise library
+ */
+export const getMuscleGroups = async (
+    params: GetMuscleGroupsRequest = {}
+): Promise<CacheResult<GetMuscleGroupsResponse>> => {
+    return apiClient.call(API_GET_MUSCLE_GROUPS, params);
 };
 
