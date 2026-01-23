@@ -6,6 +6,7 @@ import { Dumbbell } from 'lucide-react';
 import { getMuscleGroups } from '@/apis/exercise-definitions/client';
 import type { DailySummary } from '@/apis/activity-logs/types';
 import { calculateMuscleGroupData, getIntensityColor } from '../utils/muscleGroupCalculations';
+import { useQueryDefaults } from '@/client/query/defaults';
 
 export interface MuscleGroupIntensityChartProps {
     summaries: DailySummary[];
@@ -13,6 +14,8 @@ export interface MuscleGroupIntensityChartProps {
 }
 
 export function MuscleGroupIntensityChart({ summaries, isLoading }: MuscleGroupIntensityChartProps) {
+    const queryDefaults = useQueryDefaults();
+
     // Fetch muscle groups from API
     const { data: muscleGroupsData, isLoading: isMuscleGroupsLoading, error } = useQuery({
         queryKey: ['muscle-groups'],
@@ -21,7 +24,7 @@ export function MuscleGroupIntensityChart({ summaries, isLoading }: MuscleGroupI
             if (response.data?.error) throw new Error(response.data.error);
             return response.data;
         },
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+        ...queryDefaults,
     });
 
     const allMuscleGroups = muscleGroupsData?.muscleGroups || [];
