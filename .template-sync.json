@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "a14241d807fffd815d1cfef1f93e37c69f43a356",
-  "lastProjectCommit": "5fa13bf2d1e9c5f8c0a8199589495c8467f725c2",
-  "lastSyncDate": "2026-01-23T07:03:06.603Z",
+  "lastSyncCommit": "bd39492c9a276f7cee58162925d81335ceb246ae",
+  "lastProjectCommit": "089994cef6f1df532e9691802a47cbcd584dd996",
+  "lastSyncDate": "2026-01-23T07:17:19.170Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,18 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T07:17:19.418Z",
+      "templateCommit": "bd39492c9a276f7cee58162925d81335ceb246ae",
+      "projectCommit": "089994cef6f1df532e9691802a47cbcd584dd996",
+      "filesApplied": 4,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "bd39492 docs: add Vercel safety requirements to CLAUDE.md \u001b[90m(23/01/2026)\u001b[0m\n  Added critical deployment issues section covering:\n  - Vercel project linking requirement\n  - Local vs Vercel env var verification\n  - Updated with findings from recent env var investigation\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "4a0129a feat: require vercel link to prevent cross-project contamination \u001b[90m(23/01/2026)\u001b[0m\n  Add mandatory .vercel/project.json check to prevent accidentally\n  pushing environment variables to the wrong Vercel project.\n  \n  Changes:\n  \n  1. scripts/vercel-cli.ts:\n     - Fail early if .vercel/project.json doesn't exist\n     - Show clear error with step-by-step fix instructions\n     - Explain why this is critical (prevents cross-project overwrites)\n     - Suggest alternative: --project-id flag\n  \n  2. scripts/init-project.js:\n     - Added Step 9: promptVercelLink() function\n     - Prompts user to run `vercel link` at end of initialization\n     - Shows importance of linking before using vercel-cli\n     - Interactive: offers to run vercel link immediately\n     - Defaults to \"yes\" for recommended action\n  \n  3. docs/init-github-projects-workflow.md:\n     - Added \"STEP 0: Link to Vercel Project (REQUIRED)\"\n     - Placed before any vercel-cli usage instructions\n     - Explains why vercel link is mandatory\n     - Shows verification commands\n     - Updated \"Option 1\" section to reference STEP 0\n  \n  Why This Is Critical:\n  \n  Without .vercel/project.json, the vercel-cli could:\n  1. Target the wrong Vercel project (if you have multiple projects)\n  2. Overwrite another project's environment variables\n  3. Break another project's production deployment\n  \n  This was the root cause of the training-app-v3 incident where:\n  - Child project pushed env vars without .vercel/project.json\n  - Accidentally overwrote template's GITHUB_REPO and GITHUB_PROJECT_NUMBER\n  - Caused template project to have old values from child project\n  \n  Prevention:\n  \n  Now vercel-cli commands will FAIL FAST with a clear error message\n  if .vercel/project.json doesn't exist, preventing silent failures\n  and cross-project contamination.\n  \n  The init-project script now prompts users to link immediately,\n  making it part of the standard setup flow.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-23T07:03:06.838Z",
       "templateCommit": "a14241d807fffd815d1cfef1f93e37c69f43a356",
@@ -322,17 +334,6 @@
       "templateCommits": [
         "f568764 feat: add batch operations for report groups and \"Open\" status filter \u001b[90m(17/01/2026)\u001b[0m\n  Batch operations:\n  - Add batch update status and batch delete APIs\n  - Add actions menu to grouped report cards with options to mark all as\n    New/Investigating/Resolved/Closed or delete all reports in group\n  - Includes loading overlay and confirmation dialogs\n  \n  Open status filter:\n  - Add \"Open\" filter option that shows New + Investigating reports\n  - Set as default filter when entering Reports page\n  - UI-only filter with client-side filtering\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-17T15:58:39.792Z",
-      "templateCommit": "761726e9245af1638e7309d422836f9f2671cbfe",
-      "projectCommit": "f8cd291b619018f96ecdb516b655917918b3806f",
-      "filesApplied": 1,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "761726e fix: improve investigate-bugs agent prompt for faster investigation \u001b[90m(17/01/2026)\u001b[0m\n  - Add route-to-component mapping so agent starts at the correct component\n  - Detect React minified error URLs and instruct agent to fetch them FIRST\n  - Add WebFetch to allowed tools for fetching React error details\n  - Provide clear investigation strategy based on route location\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -368,7 +369,7 @@
     ".cursor/rules/ui-design-guidelines.mdc": "a5451c7005aee541409c45df3fa48f70",
     ".cursor/rules/ui-mobile-first-shadcn.mdc": "5733edcd51dda81af249abf560f00cfb",
     ".cursor/rules/user-access.mdc": "ebae151815e418c91e1454fc3baf4514",
-    "CLAUDE.md": "76b75eb8d0398350f6851295447406cf",
+    "CLAUDE.md": "b04f8eb4ed558f30093694f8031931ac",
     "NEW-PROJECT-CHECKLIST.md": "fff3458d7af6a2e107baf71d5f4cf5f7",
     "app-guildelines/React-components-guidelines.md": "35ed14e69baa3313d7fa99e446758135",
     "app-guildelines/Typescript-guildelines.md": "0c6a3d82216d6b5a21a0a37c2301759a",
@@ -424,7 +425,7 @@
     "scripts/debug-eslint.js": "08d2e4bc622ca1ec50e0db6260d234c6",
     "scripts/generate-icons.ts": "649bd7b923ee54aa820863fb0e4b5d50",
     "scripts/get-report.mjs": "19fb5556f3974ada1d0f1db8acefed2d",
-    "scripts/init-project.js": "50e646bac27a8f946a92b864ebd9374b",
+    "scripts/init-project.js": "5a8dc7cfd7f78f212ae9d8e65c8c58ba",
     "scripts/init-template.ts": "19a7ea27167225723ad5999795c0e55f",
     "scripts/merge-template-files.ts": "daac72e12511fe6286c14c2b11a364c6",
     "scripts/watch-checks.js": "b5252fd663f2434ad5cebf5b25b53a78",
@@ -710,7 +711,7 @@
     "docs/ios-pwa-fixes.md": "9e6d02bbf9ce60d7de835311601fc220",
     ".cursor/rules/vercel-cli-usage.mdc": "738ba8a16644f2d251599d4f8d69fbcd",
     "scripts/template-scripts/sync-template/utils/package-json-merge.ts": "bf0a2a9aff2e97afb74188f72871b4fa",
-    "scripts/vercel-cli.ts": "35db5ec7d81d1c8a17a3772930440309",
+    "scripts/vercel-cli.ts": "34e2cada33075e09841401aaa14da424",
     "src/apis/reports/handlers/batchDeleteReports.ts": "352186152611c0591f485daca5b0302d",
     "src/apis/reports/handlers/batchUpdateStatus.ts": "f2cf3457d5d85afc9a57d13358f89b0f",
     "docs/react-rendering-guidelines.md": "a11f224fdb478991869f50d072645193",
@@ -774,7 +775,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
-    "docs/init-github-projects-workflow.md": "e5f6027fb58f778a60c59c4adee30f2a",
+    "docs/init-github-projects-workflow.md": "b1294dd24cf40bb5293eb5a26370d428",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",

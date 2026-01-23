@@ -404,7 +404,54 @@ async function main() {
     deleteTemplateExampleFeatures();
 
     console.log('\n=== Initialization complete ===');
-    console.log('\n📋 Optional: To use vercel-cli, run: vercel link');
+
+    // Step 9: Prompt for Vercel linking
+    await promptVercelLink();
+}
+
+async function promptVercelLink() {
+    const vercelConfigPath = path.resolve(process.cwd(), '.vercel', 'project.json');
+
+    // Check if already linked
+    if (fs.existsSync(vercelConfigPath)) {
+        console.log('\n✅ Vercel project already linked');
+        try {
+            const config = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf8'));
+            console.log(`   Project: ${config.projectName || config.projectId}`);
+        } catch {
+            // Ignore parse errors
+        }
+        return;
+    }
+
+    console.log('\n⚠️  IMPORTANT: Link to Vercel Project');
+    console.log('═'.repeat(50));
+    console.log('');
+    console.log('Why this is critical:');
+    console.log('  • Prevents accidentally pushing env vars to wrong project');
+    console.log('  • Ensures vercel-cli commands target correct project');
+    console.log('  • Required for production deployment');
+    console.log('');
+    console.log('Without this, you might accidentally overwrite');
+    console.log('another project\'s environment variables!');
+    console.log('');
+
+    const answer = await prompt('Link to Vercel now? (recommended)', 'y');
+
+    if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes' || answer === '') {
+        console.log('\nRunning: vercel link');
+        console.log('Follow the prompts to select your project...\n');
+        try {
+            execSync('vercel link', { stdio: 'inherit', cwd: process.cwd() });
+            console.log('\n✅ Vercel project linked successfully!');
+        } catch (err) {
+            console.log('\n⚠️  Vercel link failed or was cancelled.');
+            console.log('You can run it later with: vercel link');
+        }
+    } else {
+        console.log('\n📋 Skipped. Run later with: vercel link');
+        console.log('   ⚠️  Remember to link before using vercel-cli commands!');
+    }
 }
 
 main().catch((err) => {

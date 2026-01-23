@@ -220,6 +220,29 @@ function getConfig(options: { cloudProxy?: boolean; projectId?: string; teamId?:
     let orgId = options.teamId;
 
     if (!projectId) {
+        // CRITICAL: Check if .vercel/project.json exists
+        if (!existsSync(VERCEL_PROJECT_JSON)) {
+            console.error('');
+            console.error('❌ Error: .vercel/project.json not found');
+            console.error('');
+            console.error('⚠️  CRITICAL: This project is not linked to a Vercel project.');
+            console.error('');
+            console.error('Why this matters:');
+            console.error('  • Without this file, commands may target the WRONG Vercel project');
+            console.error('  • This can overwrite another project\'s environment variables');
+            console.error('  • This is a common cause of production issues');
+            console.error('');
+            console.error('Fix:');
+            console.error('  1. Run: vercel link');
+            console.error('  2. Select your Vercel project when prompted');
+            console.error('  3. Verify: ls .vercel/project.json');
+            console.error('');
+            console.error('Alternatively, use --project-id flag:');
+            console.error('  yarn vercel-cli <command> --project-id prj_xxxxx');
+            console.error('');
+            process.exit(1);
+        }
+
         const projectConfig = getProjectConfig();
         if (projectConfig) {
             projectId = projectConfig.projectId;

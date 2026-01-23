@@ -748,7 +748,18 @@ Common pitfalls when deploying to production.
 
 **⚠️ CRITICAL Issues:**
 
-1. **`pages/` vs `src/pages/` Directory**
+1. **Vercel Project Linking (REQUIRED)**
+   - ✅ ALWAYS run `vercel link` before using `yarn vercel-cli` commands
+   - ❌ Without `.vercel/project.json`, you may push env vars to the WRONG project
+   - `vercel-cli` commands will **fail fast** if not linked
+   - Verify with: `yarn vercel-cli project`
+
+2. **Verify Local vs Production Env Vars Match**
+   - Run: `yarn verify-production --url https://your-app.vercel.app`
+   - Compares actual values (not just existence) between local and Vercel
+   - Catches mismatches that could break production
+
+3. **`pages/` vs `src/pages/` Directory**
    - This project uses `src/pages/` (NOT `pages/`)
    - ✅ ALWAYS place pages/API routes in `src/pages/`
    - ❌ NEVER create `pages/` directory at root

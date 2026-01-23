@@ -562,6 +562,40 @@ Push your environment variables to Vercel so the deployed app can access them.
 
 Missing even one variable will cause GitHub statuses to show as empty in the feature-request page.
 
+### 🔗 STEP 0: Link to Vercel Project (REQUIRED)
+
+**⚠️ YOU MUST DO THIS FIRST** before running ANY `yarn vercel-cli` commands:
+
+```bash
+vercel link
+```
+
+**Why this is critical:**
+- Creates `.vercel/project.json` with your project ID
+- Prevents accidentally pushing env vars to the WRONG Vercel project
+- Required for all vercel-cli commands to work correctly
+
+**What happens if you skip this:**
+- `yarn vercel-cli` commands will fail with an error
+- Or worse: might target a different project if you have multiple template projects
+- Could overwrite another project's environment variables
+
+**Verification:**
+```bash
+# Check that .vercel/project.json exists
+ls .vercel/project.json
+
+# Verify correct project
+yarn vercel-cli project
+```
+
+**Expected output:**
+```
+📦 Project: your-actual-project-name
+🆔 ID: prj_xxxxxxxxxxxxx
+🔗 URL: https://your-actual-project.vercel.app
+```
+
 ### ⚠️ CRITICAL: Verify Project ID Before Pushing
 
 **Before running ANY `yarn vercel-cli` commands that modify env vars:**
@@ -591,18 +625,23 @@ Missing even one variable will cause GitHub statuses to show as empty in the fea
 
 ### Option 1: Using Vercel CLI (Recommended)
 
-1. Install and link Vercel (if not already):
+**Prerequisites:**
+- Completed "STEP 0: Link to Vercel Project" above ✅
+- `.vercel/project.json` exists and verified ✅
+
+1. Install Vercel CLI globally (if not already):
    ```bash
    npm i -g vercel
-   vercel link
    ```
 
-2. **Verify project BEFORE pushing:**
+2. **Verify project ID BEFORE pushing** (critical!):
    ```bash
    yarn vercel-cli project
    ```
 
-4. Push environment variables from `.env.local`:
+   If this command fails or shows the wrong project, go back to STEP 0.
+
+3. Push environment variables from `.env.local`:
    ```bash
    yarn vercel-cli env:push --file .env.local --target production --overwrite
    ```
