@@ -346,6 +346,7 @@ async function checkGitHubProject(): Promise<CategoryResults> {
 
     const owner = process.env.GITHUB_OWNER;
     const projectNumber = process.env.GITHUB_PROJECT_NUMBER;
+    const token = process.env.GITHUB_TOKEN;
 
     if (!owner || !projectNumber) {
         checks.push({
@@ -365,8 +366,57 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     checks.push({
         passed: true,
         message: 'GitHub Project configuration present',
-        details: [`Project: ${owner}/projects/${projectNumber}`, 'Manual verification recommended']
+        details: [`Project: ${owner}/projects/${projectNumber}`]
     });
+
+    // Verify Review Status field has all required options
+    if (token) {
+        try {
+            // Use dynamic import to avoid loading server code at script load time
+            const { getProjectManagementAdapter } = await import('../src/server/project-management/index.js');
+            const { REVIEW_STATUSES } = await import('../src/server/project-management/config.js');
+
+            const adapter = getProjectManagementAdapter();
+            await adapter.init();
+
+            if (adapter.hasReviewStatusField()) {
+                const availableStatuses = await adapter.getAvailableReviewStatuses();
+                const requiredStatuses = Object.values(REVIEW_STATUSES);
+                const missingStatuses = requiredStatuses.filter(s => !availableStatuses.includes(s));
+
+                if (missingStatuses.length === 0) {
+                    checks.push({
+                        passed: true,
+                        message: `Review Status field has all 6 options ✓`,
+                        details: availableStatuses.map(s => `  - ${s}`)
+                    });
+                } else {
+                    checks.push({
+                        passed: false,
+                        message: `Review Status field missing ${missingStatuses.length} option(s)`,
+                        details: [
+                            'Missing options:',
+                            ...missingStatuses.map(s => `  - ${s}`),
+                            '',
+                            'Go to your GitHub Project → Edit "Review Status" field → Add missing options'
+                        ]
+                    });
+                }
+            } else {
+                checks.push({
+                    passed: false,
+                    message: 'Review Status field not found',
+                    details: ['Create "Review Status" custom field in your GitHub Project (see docs/init-github-projects-workflow.md Step 1)']
+                });
+            }
+        } catch (error) {
+            checks.push({
+                passed: false,
+                message: 'Could not verify Review Status field',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+            });
+        }
+    }
 
     const passed = checks.filter(c => c.passed).length;
     return {

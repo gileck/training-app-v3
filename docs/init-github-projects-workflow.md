@@ -194,17 +194,23 @@ The Status field should already exist. Configure it with these **exact** values:
 
 ### Create Review Status Custom Field
 
+> **⚠️ CRITICAL:** All 6 options are required. Missing options will cause agent errors.
+
 1. In your project, click the **"+"** button (add field)
 2. Select **"Single select"**
 3. Name it exactly: `Review Status`
-4. Add these **exact** options:
-   - `Waiting for Review`
-   - `Approved`
-   - `Request Changes`
-   - `Rejected`
-   - `Waiting for Clarification`
-   - `Clarification Received`
+4. Add these **exact** options (case-sensitive, all 6 required):
+   1. `Waiting for Review`
+   2. `Approved`
+   3. `Request Changes`
+   4. `Rejected`
+   5. `Waiting for Clarification`
+   6. `Clarification Received`
 5. Click **"Save"**
+
+**Verification:** Your field should show all 6 options as in the screenshot below. If any are missing, agents will fail with "Unknown review status" errors.
+
+![Review Status Options](https://github.com/user-attachments/assets/...) <!-- User should see all 6 options -->
 
 **What this field tracks:**
 
@@ -1129,6 +1135,12 @@ yarn verify-production --url https://your-app.vercel.app
 **Error: "Review Status field not found"**
 - Create the custom "Review Status" field (see Step 1)
 - Field name must be exactly "Review Status"
+
+**Error: "Unknown review status: Waiting for Clarification"**
+- One or more review status options are missing from your GitHub Project
+- All 6 options are required (see Step 1 for the full list)
+- Go to your project → Edit "Review Status" field → Add missing options
+- Common mistake: Only adding the first 4 options (missing "Waiting for Clarification" and "Clarification Received")
 
 ### Telegram Issues
 

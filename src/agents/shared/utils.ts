@@ -145,8 +145,18 @@ export async function handleClarificationRequest(
 
     // Set review status
     if (adapter.hasReviewStatusField()) {
-        await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForClarification);
-        console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForClarification}`);
+        // Try to use "Waiting for Clarification" if available, otherwise fall back to "Waiting for Review"
+        const availableStatuses = await adapter.getAvailableReviewStatuses();
+        const targetStatus = availableStatuses.includes(REVIEW_STATUSES.waitingForClarification)
+            ? REVIEW_STATUSES.waitingForClarification
+            : REVIEW_STATUSES.waitingForReview;
+
+        await adapter.updateItemReviewStatus(item.id, targetStatus);
+        console.log(`  Review Status updated to: ${targetStatus}`);
+
+        if (targetStatus !== REVIEW_STATUSES.waitingForClarification) {
+            console.log(`  ⚠️  Note: "Waiting for Clarification" status not available in project, using "Waiting for Review" instead`);
+        }
     }
 
     // Send notification

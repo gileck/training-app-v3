@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "0c4818a56710a4dfde4db9732da53d8f7f2c6e98",
-  "lastProjectCommit": "2d9044845fc56cd3b2b8995a09b6f65cd2b06ecb",
-  "lastSyncDate": "2026-01-23T14:11:56.508Z",
+  "lastSyncCommit": "b01131b9022ea5a6b2f3e8c29709d9d96b99666c",
+  "lastProjectCommit": "b451ef85fbbb924f8f6b93b0c682601c2e6a84db",
+  "lastSyncDate": "2026-01-23T14:27:37.513Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T14:27:37.887Z",
+      "templateCommit": "b01131b9022ea5a6b2f3e8c29709d9d96b99666c",
+      "projectCommit": "b451ef85fbbb924f8f6b93b0c682601c2e6a84db",
+      "filesApplied": 4,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "b01131b fix: add graceful fallback for missing review statuses + verification \u001b[90m(23/01/2026)\u001b[0m\n  - Add fallback when 'Waiting for Clarification' is not available\n  - Falls back to 'Waiting for Review' with warning message\n  - Update init docs to emphasize all 6 review status options are required\n  - Add verification script check for all required review status options\n  - Verify GitHub Project has all 6 options: Waiting for Review, Approved,\n    Request Changes, Rejected, Waiting for Clarification, Clarification Received\n  - Add troubleshooting entry for 'Unknown review status' error"
+      ]
+    },
     {
       "date": "2026-01-23T14:11:56.698Z",
       "templateCommit": "0c4818a56710a4dfde4db9732da53d8f7f2c6e98",
@@ -345,17 +356,6 @@
         "3fd5331 refactor: extract global dialogs for easier template sync \u001b[90m(18/01/2026)\u001b[0m\n  Split global dialogs into template + project parts to prevent\n  merge conflicts in Layout.tsx:\n  - GlobalDialogs.template.tsx: Template dialogs (BugReport, FeatureRequest)\n  - GlobalDialogs.tsx: Imports template + adds project dialogs\n  \n  Layout.tsx now just imports <GlobalDialogs />, making it easier to\n  sync template changes without conflicting with project dialogs.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "5ede9df docs: add troubleshooting guide for checks-failed projects \u001b[90m(18/01/2026)\u001b[0m\n  - Add section on handling \"Checks Failed\" projects\n  - Document three root cause categories: template bug, integration\n    issue with skipped files, and project-specific code issue\n  - Explain the common case of skipped files causing integration issues\n  - Add guidance on manually merging skipped files\n  - Document edge cases on large template changes\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "df8d042 docs: update sync-children documentation for JSON mode \u001b[90m(18/01/2026)\u001b[0m\n  - Document JSON mode usage and structured output\n  - Add \"Checks Failed\" section with error details\n  - Show new summary format with file lists\n  - Document backward compatibility with legacy fallback\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-18T09:43:06.093Z",
-      "templateCommit": "5ae81e7f71b2e39eb0535f5855318df7e21170e2",
-      "projectCommit": "5eba73653b3d50d7745a8d452e1cabfda6b8f239",
-      "filesApplied": 1,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "5ae81e7 fix: suppress console output in JSON mode for syncFiles \u001b[90m(18/01/2026)\u001b[0m\n  Prevents \"Applying safe changes\" log from appearing before JSON output.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -798,7 +798,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "d2db9f8c0d820f3d29df765674479ef4",
-    "docs/init-github-projects-workflow.md": "74f7f3653d83f192d7e92363f0fe0b24",
+    "docs/init-github-projects-workflow.md": "5207c4cd7604cdec365e5da5973c9eb2",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "d2ca501939041f1f5c2ba4e5f579ff0f",
@@ -811,7 +811,7 @@
     "src/agents/shared/notifications.ts": "04c4a8ee6001552df80d28991cc2807b",
     "src/agents/shared/prompts.ts": "ce2e9ce2f633b350d734fcbad145495c",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
-    "src/agents/shared/utils.ts": "0d7bf04c2ac28351bb31e4385d13c8a1",
+    "src/agents/shared/utils.ts": "2561f018c65e182e2b9e8f8126af616c",
     "src/agents/tech-design.ts": "6c3e33fd1f81a0c9f8eb5a03ae6da758",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
@@ -829,7 +829,7 @@
     "src/server/project-management/types.ts": "d4e944b637cc757f563721de189fbaf0",
     "src/agents/shared/loadEnv.ts": "9331f0533590ed63f4238b437e4067a2",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
-    "scripts/verify-github-projects-setup.ts": "8315c4fb419533014d431b829aca2810",
+    "scripts/verify-github-projects-setup.ts": "145f4a249d7959ea5387c464bdbb7efd",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
     "src/agents/pr-review.ts": "72bc870adfaf2489cf7491c7b2ff8b17",
@@ -873,6 +873,6 @@
     "eslint-plugin-api-guidelines/package.json": "bed6bbc919cc3b93ca192912e13933bf",
     "eslint-plugin-state-management/package.json": "c5be1d4ae56862c71126fef13d713cce",
     "scripts/init-agents-copy-project.ts": "719483b8026b1459506bbd653b6b70c4",
-    "package.json": "7d7e7b7ca47a51ada9286d342a25a271"
+    "package.json": "02cba587466cf0ba6e14f1fd3789fa47"
   }
 }
