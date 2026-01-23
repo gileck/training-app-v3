@@ -69,11 +69,11 @@ export function FloatingWorkoutBar() {
 
     return (
         <div
-            className="mx-2 mb-2 sm:mx-4 sm:mb-4"
+            className="fixed bottom-16 left-0 right-0 px-2 pb-2 sm:px-4 sm:pb-4 pointer-events-none z-40"
         >
             <button
                 onClick={handleBarClick}
-                className="w-full bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/25 p-3 flex items-center gap-3 active:scale-[0.98] transition-transform"
+                className="w-full max-w-screen-lg mx-auto bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/25 p-3 flex items-center gap-3 active:scale-[0.98] transition-transform pointer-events-auto"
             >
                 {/* Exercise Icon */}
                 <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 overflow-hidden flex-shrink-0 flex items-center justify-center">

@@ -35,49 +35,55 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
   // which automatically adjusts when iOS keyboard/toolbar appears/disappears.
   // The BottomNavBar sits at the flex container bottom (no position:fixed needed).
   // See BottomNavBar.tsx for full documentation of the iOS viewport fix.
+  //
+  // IMPORTANT: GlobalDialogs and ToastContainer are rendered OUTSIDE the flex
+  // container to prevent layout interference. They use portals/fixed positioning
+  // and must not participate in the 100dvh flex layout.
   return (
-    <div 
-      className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`}
-      style={{
-        height: isMobile ? '100dvh' : undefined,
-        minHeight: isMobile ? undefined : '100vh',
-      }}
-    >
-      {/* Top Navigation Bar */}
-      <TopNavBar
-        navItems={filterAdminNavItems(navItems, isAdmin)}
-        isStandalone={isStandalone}
-        onDrawerToggle={handleDrawerToggle}
-      />
-
-      {/* Mobile Drawer Menu */}
-      <DrawerMenu
-        navItems={menuItems}
-        adminNavItems={isAdmin ? adminMenuItems : undefined}
-        mobileOpen={mobileOpen}
-        onDrawerToggle={handleDrawerToggle}
-      />
-
-      {/* Main Content - scrolls internally on mobile */}
-      <main 
-        className="mx-auto w-full max-w-screen-lg flex-1 overflow-y-auto px-2 py-3 sm:px-4"
+    <>
+      <div
+        className={`flex flex-col ${isStandalone && isMobile ? 'pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`}
+        style={{
+          height: isMobile ? '100dvh' : undefined,
+          minHeight: isMobile ? undefined : '100vh',
+        }}
       >
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-      </main>
+        {/* Top Navigation Bar */}
+        <TopNavBar
+          navItems={filterAdminNavItems(navItems, isAdmin)}
+          isStandalone={isStandalone}
+          onDrawerToggle={handleDrawerToggle}
+        />
 
-      {/* Footer (hidden on mobile) */}
-      <Footer isStandalone={isStandalone} />
+        {/* Mobile Drawer Menu */}
+        <DrawerMenu
+          navItems={menuItems}
+          adminNavItems={isAdmin ? adminMenuItems : undefined}
+          mobileOpen={mobileOpen}
+          onDrawerToggle={handleDrawerToggle}
+        />
 
-      {/* Bottom Navigation (mobile only) */}
-      <BottomNavBar navItems={filterAdminNavItems(navItems, isAdmin)} />
+        {/* Main Content - scrolls internally on mobile */}
+        <main
+          className="mx-auto w-full max-w-screen-lg flex-1 overflow-y-auto px-2 py-3 sm:px-4"
+        >
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
 
-      {/* Global Dialogs (template + project) */}
+        {/* Footer (hidden on mobile) */}
+        <Footer isStandalone={isStandalone} />
+
+        {/* Bottom Navigation (mobile only) */}
+        <BottomNavBar navItems={filterAdminNavItems(navItems, isAdmin)} />
+      </div>
+
+      {/* Global Dialogs - outside flex container to prevent layout interference */}
       <GlobalDialogs />
 
-      {/* Toast Notifications */}
+      {/* Toast Notifications - outside flex container */}
       <ToastContainer />
-    </div>
+    </>
   );
 };
