@@ -33,7 +33,7 @@ export function getIntensityColor(intensity: 'heavy' | 'moderate' | 'light' | 'n
         case 'moderate':
             return 'bg-primary/70';
         case 'light':
-            return 'bg-primary/40';
+            return 'bg-warning/50';
         case 'not-trained':
             return 'bg-muted border border-dashed border-muted-foreground/30';
     }
