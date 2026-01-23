@@ -57,6 +57,14 @@ import {
     handleClarificationRequest,
 } from './shared';
 import { getIssueType } from './shared/utils';
+import {
+    createLogContext,
+    runWithLogContext,
+    logExecutionStart,
+    logExecutionEnd,
+    logGitHubAction,
+    logError,
+} from './lib/logging';
 
 // ============================================================
 // TYPES
@@ -95,12 +103,25 @@ async function processItem(
         return { success: false, error: 'Bug reports skip Product Design by default' };
     }
 
-    // Send "work started" notification
-    if (!options.dryRun) {
-        await notifyAgentStarted('Product Design', content.title, issueNumber, mode, issueType);
-    }
+    // Create log context
+    const logCtx = createLogContext({
+        issueNumber,
+        workflow: 'product-design',
+        phase: 'Product Design',
+        mode: mode === 'new' ? 'New design' : mode === 'feedback' ? 'Address feedback' : 'Clarification',
+        issueTitle: content.title,
+        issueType,
+    });
 
-    try {
+    return runWithLogContext(logCtx, async () => {
+        logExecutionStart(logCtx);
+
+        // Send "work started" notification
+        if (!options.dryRun) {
+            await notifyAgentStarted('Product Design', content.title, issueNumber, mode, issueType);
+        }
+
+        try {
         // Always fetch comments - they provide context for any phase
         const comments = await adapter.getIssueComments(issueNumber);
         const issueComments = comments.map((c) => ({
@@ -221,19 +242,44 @@ async function processItem(
             console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
         }
 
+        // Log GitHub actions
+        logGitHubAction(logCtx, 'issue_updated', `Updated issue body with product design`);
+        if (adapter.hasReviewStatusField()) {
+            logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
+        }
+
         // Send notification
         await notifyProductDesignReady(content.title, issueNumber, mode === 'feedback', issueType);
         console.log('  Notification sent');
+
+        // Log execution end
+        logExecutionEnd(logCtx, {
+            success: true,
+            toolCallsCount: 0, // Will be logged by SDK adapter
+            totalTokens: 0, // Will be logged by SDK adapter
+            totalCost: 0, // Will be logged by SDK adapter
+        });
 
         return { success: true };
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`  Error: ${errorMsg}`);
+
+        // Log error
+        logError(logCtx, error instanceof Error ? error : errorMsg, true);
+        logExecutionEnd(logCtx, {
+            success: false,
+            toolCallsCount: 0,
+            totalTokens: 0,
+            totalCost: 0,
+        });
+
         if (!options.dryRun) {
             await notifyAgentError('Product Design', content.title, issueNumber, errorMsg);
         }
         return { success: false, error: errorMsg };
     }
+    });
 }
 
 async function main(): Promise<void> {

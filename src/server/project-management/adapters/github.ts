@@ -109,10 +109,21 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
 
     /**
      * Get bot token for PRs, issues, and comments
-     * Falls back to admin token if bot token not provided
+     *
+     * IMPORTANT: GITHUB_BOT_TOKEN is required to ensure PRs are created by the bot account,
+     * not the admin. This allows the admin to approve PRs (GitHub doesn't allow self-approval).
+     *
+     * If GITHUB_BOT_TOKEN is not set, falls back to GITHUB_TOKEN with a warning.
      */
     private getBotToken(): string {
-        let token = process.env.GITHUB_BOT_TOKEN || process.env.GITHUB_TOKEN;
+        let token = process.env.GITHUB_BOT_TOKEN;
+
+        if (!token) {
+            console.warn('⚠️  WARNING: GITHUB_BOT_TOKEN not set. PRs will be created by admin account.');
+            console.warn('   You will NOT be able to approve your own PRs.');
+            console.warn('   See docs/github-projects-integration.md for bot account setup.');
+            token = process.env.GITHUB_TOKEN;
+        }
 
         if (!token) {
             throw new Error('GITHUB_BOT_TOKEN or GITHUB_TOKEN environment variable is required');
@@ -132,6 +143,14 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
             throw new Error('GitHub client not initialized. Call init() first.');
         }
         return this.octokit;
+    }
+
+    /**
+     * Get Octokit client for admin operations (PR reviews)
+     * Same as getOctokit() but named for clarity
+     */
+    private getAdminOctokit(): Octokit {
+        return this.getOctokit();
     }
 
     /**
@@ -855,7 +874,8 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         head: string,
         base: string,
         title: string,
-        body: string
+        body: string,
+        reviewers?: string[]
     ): Promise<CreatePRResult> {
         const oc = this.getBotOctokit(); // Use bot token for creating PRs
         const { owner, repo } = this.config.github;
@@ -868,6 +888,16 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
             title,
             body,
         });
+
+        // Request reviewers if provided
+        if (reviewers && reviewers.length > 0) {
+            await oc.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number: data.number,
+                reviewers,
+            });
+        }
 
         return {
             number: data.number,
@@ -954,7 +984,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         body: string
     ): Promise<void> {
         return withRetry(async () => {
-            const oc = this.getBotOctokit(); // Use bot token for submitting reviews
+            const oc = this.getAdminOctokit(); // Use admin token for PR reviews (so admin can approve bot's PRs)
             const { owner, repo } = this.config.github;
 
             await oc.pulls.createReview({

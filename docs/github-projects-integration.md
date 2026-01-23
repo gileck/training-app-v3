@@ -183,16 +183,28 @@ TELEGRAM_BOT_TOKEN=xxxxxxxxxxxxx
 
 | Token | Used For | Who It Appears As |
 |-------|----------|-------------------|
-| `GITHUB_TOKEN` (admin) | GitHub Projects queries, project status updates | Not visible to users |
+| `GITHUB_TOKEN` (admin) | GitHub Projects queries, project status updates, **PR reviews** | Your personal account (reviews), not visible (projects) |
 | `GITHUB_BOT_TOKEN` (bot) | Creating PRs, issues, comments | `dev-agent-bot` (or your bot account name) |
+
+**Token Usage Details:**
+
+| Operation | Token Used | Reason |
+|-----------|------------|--------|
+| Read/write GitHub Projects | `GITHUB_TOKEN` (admin) | Admin has project access |
+| Create issues | `GITHUB_BOT_TOKEN` (bot) | Issues appear from bot |
+| Update issue body | `GITHUB_BOT_TOKEN` (bot) | Updates appear from bot |
+| Post issue comments | `GITHUB_BOT_TOKEN` (bot) | Comments appear from bot |
+| Create PRs | `GITHUB_BOT_TOKEN` (bot) | PRs created by bot |
+| **Submit PR reviews (approve/request changes)** | `GITHUB_TOKEN` (admin) | **Admin reviews bot's PRs** |
+| Post PR comments | `GITHUB_BOT_TOKEN` (bot) | Comments appear from bot |
 
 **Benefits:**
 - ✅ No need to add bot account to GitHub Project (admin already has access)
 - ✅ Clear separation: visible actions = bot, data access = admin
-- ✅ You can approve PRs created by bot
+- ✅ **You can approve PRs created by bot** (GitHub doesn't allow self-approval)
 - ✅ Easy to identify bot vs human actions
 
-**Note:** If `GITHUB_BOT_TOKEN` is not provided, the system falls back to using `GITHUB_TOKEN` for everything (single-token mode).
+**Important:** If `GITHUB_BOT_TOKEN` is not set, the system falls back to using `GITHUB_TOKEN` with a warning. In this mode, **you cannot approve your own PRs** because they'll be created by your account.
 
 ### Getting GitHub Tokens
 
@@ -1212,6 +1224,106 @@ on:
 
 **Note:** Without automation, items will remain in their current phase until you manually run the appropriate agent.
 
+### Agent Execution Logs
+
+Every agent execution is automatically logged to a human-readable Markdown file for debugging and auditing purposes.
+
+**What Gets Logged:**
+
+Each log file captures a complete narrative of what happened:
+- Full prompts sent to Claude (with all issue details, comments, designs)
+- Tool calls (file reads, searches, edits, bash commands)
+- Tool outputs (file contents, search results, command output)
+- Text responses and thinking blocks from Claude
+- GitHub actions taken (comments posted, PRs created, status updates)
+- Token usage and costs
+- Errors with full context
+- Timestamps and durations
+
+**Log File Location:**
+
+```
+agent-logs/
+├── issue-42.md    # All agents for issue #42
+├── issue-43.md    # All agents for issue #43
+└── ...
+```
+
+**One Log Per Issue:**
+
+All agents working on the same issue append to the same log file, creating a complete chronological narrative:
+
+```markdown
+# Issue #42: Add dark mode toggle
+
+## Phase: Product Design
+**Agent:** product-design
+**Started:** 09:00:00
+
+### Prompt
+...full prompt with issue details...
+
+### Agent Execution
+**[09:00:05]** 🔧 Tool: Read → src/client/features/theme/store.ts
+**[09:00:10]** 📝 Response:
+# Product Design: Dark Mode Toggle
+...
+
+---
+
+## Phase: Technical Design
+**Agent:** tech-design
+**Started:** 14:30:00
+
+### Prompt
+...full prompt with product design...
+
+### Agent Execution
+...
+```
+
+**Viewing Logs:**
+
+```bash
+# List all logs
+yarn agent:logs --list
+
+# View specific issue log
+yarn agent:logs --issue 42
+
+# View most recent log
+yarn agent:logs --recent
+
+# Or just open the Markdown file directly
+cat agent-logs/issue-42.md
+```
+
+**Key Features:**
+
+- ✅ Logs are **human-readable Markdown** (open in any editor)
+- ✅ **One file per issue** - complete story from Product Design → Implementation
+- ✅ **Automatic** - no configuration needed
+- ✅ **Gitignored** - logs stay local for privacy
+- ✅ Multiple agents on the same issue append chronologically
+- ✅ Console output unchanged - logs are additive
+
+**Example Timeline:**
+
+1. **Morning:** Product Design agent runs on issue #42 → creates `issue-42.md`
+2. **Evening:** Tech Design agent runs on issue #42 → appends to `issue-42.md`
+3. **Next Day:** Implementation agent runs on issue #42 → appends to `issue-42.md`
+
+Result: One complete log file showing the entire journey!
+
+**Use Cases:**
+
+- Debug why an agent made specific decisions
+- Review what files the agent examined
+- Understand token usage and costs
+- Audit agent actions for compliance
+- Reproduce agent behavior with same prompts
+- Share execution details with team members
+
 ## Handling Feedback Loops
 
 ### How "Request Changes" Works
@@ -1225,6 +1337,59 @@ on:
    - Updates the issue/PR
    - Sets Review Status back to "Waiting for Review"
 5. Admin receives notification that revisions are ready
+
+### PR Review State and Multiple Review Cycles
+
+**Understanding Two Status Systems:**
+
+The system tracks status in two places:
+1. **GitHub Projects "Review Status" field** - Tracks workflow state (empty → Waiting for Review → Approved/Request Changes)
+2. **GitHub PR review state** - Native GitHub status (Changes requested, Approved, etc.)
+
+**What Happens During Multiple Review Cycles:**
+
+**Round 1:**
+1. PR-reviewer submits `REQUEST_CHANGES` review → GitHub PR shows "Changes requested" 🔴
+2. Projects Review Status = "Request Changes"
+
+**After implementer addresses feedback:**
+3. Implement agent pushes new commits to PR
+4. **GitHub behavior**: Old review marked as "outdated" (gray badge), but PR state stays "Changes requested"
+5. **Implement agent**: Resets Projects Review Status to "Waiting for Review"
+
+**Round 2 (if changes still insufficient):**
+6. PR-reviewer picks up item (Review Status = "Waiting for Review")
+7. **PR-reviewer should submit `REQUEST_CHANGES` again** (not `COMMENT`)
+8. GitHub creates a **new review entry** applying to the new commits
+9. Old review remains in timeline as "outdated"
+
+**Why Always Use REQUEST_CHANGES:**
+
+✅ **Correct approach:**
+- Submit `REQUEST_CHANGES` for each review cycle
+- Each review formally evaluates the current state of the PR
+- Creates clear review timeline showing all iterations
+- Old reviews are marked "outdated" automatically
+- PR remains properly blocked until approved
+
+❌ **Don't use `COMMENT` event:**
+- Using `COMMENT` doesn't formally review the new commits
+- Looks like a discussion, not a review decision
+- The old "Changes requested" remains the active review
+- Doesn't clearly signal that new changes were reviewed and found insufficient
+
+**Example Timeline:**
+```
+Review 1: REQUEST_CHANGES - "Fix the logic in handleSubmit"
+  └─ [outdated] Applied to commit abc123
+
+Commit: "fix: update handleSubmit logic" - def456
+
+Review 2: REQUEST_CHANGES - "Still has XSS vulnerability"
+  └─ [current] Applies to commit def456
+```
+
+Both reviews use `REQUEST_CHANGES` - this is the correct GitHub PR workflow.
 
 ### Writing Effective Review Comments
 

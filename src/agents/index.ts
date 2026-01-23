@@ -239,6 +239,27 @@ async function main() {
         }
     }
 
+    // Sync agent logs to dev repo (fail silently if not successful)
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('Syncing agent logs to dev repo...');
+    console.log('='.repeat(60));
+    try {
+        const syncScript = resolve(__dirname, '../../scripts/sync-agent-logs.sh');
+        execSync(`bash "${syncScript}"`, {
+            cwd: process.cwd(),
+            encoding: 'utf-8',
+            stdio: 'inherit',
+        });
+
+        // Get repo name from current working directory
+        const repoName = process.cwd().split('/').pop();
+        const devRepoPath = `~/Projects/${repoName}/agent-logs`;
+        console.log(`✅ Agent logs synced successfully to ${devRepoPath}`);
+    } catch {
+        console.warn('⚠️  Failed to sync agent logs (non-fatal)');
+        // Don't fail the whole process - this is just a convenience feature
+    }
+
     console.log('\nDone!');
 }
 

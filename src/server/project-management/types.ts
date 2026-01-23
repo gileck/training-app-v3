@@ -260,7 +260,8 @@ export interface ProjectManagementAdapter {
         head: string,
         base: string,
         title: string,
-        body: string
+        body: string,
+        reviewers?: string[]
     ): Promise<CreatePRResult>;
 
     /**

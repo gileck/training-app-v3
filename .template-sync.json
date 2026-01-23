@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "bd39492c9a276f7cee58162925d81335ceb246ae",
-  "lastProjectCommit": "089994cef6f1df532e9691802a47cbcd584dd996",
-  "lastSyncDate": "2026-01-23T07:17:19.170Z",
+  "lastSyncCommit": "de60f0ac33f3818cc29537af19fb012556d6cee5",
+  "lastProjectCommit": "0233c099bb286f180e972b4fa0aa7a658701bc39",
+  "lastSyncDate": "2026-01-23T10:00:57.870Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,31 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T10:00:58.118Z",
+      "templateCommit": "de60f0ac33f3818cc29537af19fb012556d6cee5",
+      "projectCommit": "0233c099bb286f180e972b4fa0aa7a658701bc39",
+      "filesApplied": 21,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "de60f0a docs: clarify PR review state and multiple REQUEST_CHANGES cycles \u001b[90m(23/01/2026)\u001b[0m\n  Explains how GitHub's PR review state works:\n  - Implementer pushing commits marks old reviews as 'outdated'\n  - PR state stays 'Changes requested' until new approval\n  - PR-reviewer should always submit REQUEST_CHANGES again (not COMMENT)\n  - Each review creates a new entry applying to current commits\n  - This is the correct GitHub PR workflow for iterative reviews",
+        "8d93da5 fix: add PR reviewer and remove duplicate PR review comments \u001b[90m(23/01/2026)\u001b[0m\n  - Implement agent now requests review from admin (GITHUB_OWNER) when creating PRs\n  - PR review agent no longer posts duplicate comments (formal review already appears as comment)\n  - Updated createPullRequest() to accept optional reviewers parameter\n  \n  This fixes two issues:\n  1. PRs now have admin as reviewer automatically\n  2. PR reviews no longer appear twice (once as comment, once as formal review)",
+        "9914e5a feat: enhance todo list capabilites with more features (#34) \u001b[90m(23/01/2026)\u001b[0m\n  Closes #33\n  \n  Co-authored-by: gileck <gileck@wix.com>",
+        "3412c81 fix: remove trailing dashes from branch names after truncation \u001b[90m(23/01/2026)\u001b[0m\n  The generateBranchName function was removing trailing dashes before truncating to 40 characters, causing branch names to end with dashes if the truncation occurred mid-word.\n  \n  Example issue:\n  - Title: \"enhance todo list capabilites with more features\"\n  - Old result: \"feature/issue-33-enhance-todo-list-capabilites-with-more-\"\n  - New result: \"feature/issue-33-enhance-todo-list-capabilites-with-more\"\n  \n  This caused 404 errors when the implement agent tried to create/fetch the branch.\n  \n  Fixed by moving the trailing dash removal to AFTER truncation.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "cfb0a43 feat: add sync-agent-logs script with auto-sync after agents \u001b[90m(23/01/2026)\u001b[0m\n  Created script to sync agent-logs from agents-copy repos to dev repos, and integrated it to run automatically after all agents complete.\n  \n  Features:\n  - Manual sync: yarn sync-agent-logs\n  - Auto-sync: Runs after all agents finish in src/agents/index.ts\n  - Works for all repos under ~/Projects/agents-copy/\n  - Copies to corresponding ~/Projects/[REPO_NAME]/agent-logs\n  - Never fails - errors are logged but don't stop execution\n  - Uses rsync for efficient sync (only changed files)\n  - Shows success message with path where logs were synced\n  \n  This allows viewing agent execution logs in the dev repository where development happens.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "6f92290 feat: add sync-agent-logs script for dev workflow \u001b[90m(23/01/2026)\u001b[0m\n  Created script to sync agent-logs from agents-copy repos to dev repos. This allows viewing agent execution logs in the dev repository where development happens.\n  \n  Usage:\n    yarn sync-agent-logs\n  \n  Features:\n  - Works for all repos under ~/Projects/agents-copy/\n  - Copies to corresponding ~/Projects/[REPO_NAME]/agent-logs\n  - Never fails if folders don't exist\n  - Uses rsync for efficient sync (only changed files)\n  - Shows summary of synced repos\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "6dc91ea fix: auto-advance agent should ignore Done items \u001b[90m(23/01/2026)\u001b[0m\n  The auto-advance agent was finding items with Review Status = \"Approved\" that were already in \"Done\" status, causing silent failures. These items likely had their Review Status left as \"Approved\" when moved to Done via GitHub webhooks or manual status changes.\n  \n  Changes:\n  - Filter out items with status = \"Done\" when searching for approved items\n  - Add detailed error logging to show which items failed and why\n  - Add console output for skipped items during execution\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "e658f9a feat: Redesign todo list (#32) \u001b[90m(23/01/2026)\u001b[0m\n  * feat: Redesign todo list\n  \n  Closes #31\n  \n  * fix: address review feedback for #31",
+        "5df15d7 refactor: move agent-logs directory to project root \u001b[90m(23/01/2026)\u001b[0m\n  Moved agent log directory from src/agents/agent-logs/ to agent-logs/ at project root. Logs are not source code and keeping them at root level is cleaner.\n  \n  Changes:\n  - Updated LOGS_DIR constant in writer.ts and view-agent-logs.ts\n  - Updated .gitignore path\n  - Updated documentation references\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "bd32bc3 fix: revert PR review status clearing - set to Approved instead \u001b[90m(23/01/2026)\u001b[0m\n  **Previous fix was incorrect:**\n  The last commit cleared Review Status when approving, but this loses information.\n  \n  **Correct behavior:**\n  - When approved: Set Review Status to \"Approved\"\n  - When requesting changes: Set Review Status to \"Request Changes\"\n  \n  **Why this works (no infinite loop):**\n  \n  PR Review Agent queries for:\n    status = \"PR Review\" AND reviewStatus = \"Waiting for Review\"\n  \n  Implement Agent queries for:\n    1. status = \"Ready for development\" AND reviewStatus = null\n    2. status = \"PR Review\" AND reviewStatus = \"Request Changes\"\n  \n  **Result:**\n  status = \"PR Review\" + reviewStatus = \"Approved\" means:\n  ✅ Agent reviewed and approved it\n  ✅ Admin should merge the PR\n  ✅ PR review agent won't pick it up (only looks for \"Waiting for Review\")\n  ✅ Implement agent won't pick it up (only looks for \"Request Changes\")\n  ✅ Preserves approval information for audit trail\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "1b390b1 fix(CRITICAL): PR review agent infinite loop - clear Review Status when approved \u001b[90m(23/01/2026)\u001b[0m\n  **Problem:**\n  PR review agent was setting Review Status to \"Approved\" after reviewing,\n  which meant it would keep getting picked up by the agent query that looks\n  for items with status=\"PR Review\" AND reviewStatus=\"Waiting for Review\".\n  This caused an infinite review loop.\n  \n  **Solution:**\n  - When approved: Call clearItemReviewStatus() to clear the status\n  - When requesting changes: Set status to \"Request Changes\"\n  \n  This ensures approved PRs are not picked up again by the agent, breaking\n  the infinite loop.\n  \n  **Changes:**\n  - Use clearItemReviewStatus() instead of updateItemReviewStatus(null)\n  - Split logic for approved vs request_changes cases\n  - Updated dry-run output to show \"(cleared)\" for approved\n  - Updated log messages to reflect cleared status\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "8af08fe fix: use correct GitHub tokens for PR creation and review \u001b[90m(23/01/2026)\u001b[0m\n  BREAKING CHANGE: GITHUB_BOT_TOKEN is now strongly recommended (warns if not set)\n  \n  **Problem:**\n  - Implementation agent was creating PRs with admin account (GITHUB_TOKEN)\n  - PR review agent was using bot token to review (can't approve own PRs)\n  - This prevented admin from approving PRs created by agents\n  \n  **Solution:**\n  1. Added warning when GITHUB_BOT_TOKEN is not set\n  2. Changed submitPRReview() to use admin token (GITHUB_TOKEN)\n  3. Added getAdminOctokit() method for clarity\n  4. Updated documentation with detailed token usage table\n  \n  **Token Usage:**\n  - GITHUB_TOKEN (admin): GitHub Projects, PR reviews\n  - GITHUB_BOT_TOKEN (bot): Create PRs, issues, comments\n  \n  **Why this matters:**\n  GitHub doesn't allow PR authors to approve their own PRs. By using the bot\n  token for PR creation and admin token for reviews, the admin can now\n  approve PRs created by the bot.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "a896275 feat: add console output for agent log file creation, detection, and saving \u001b[90m(23/01/2026)\u001b[0m\n  - Log file created message when new log file is created\n  - Log file found message when existing log is detected\n  - Log file saved message when agent execution completes\n  - All messages include the full log file path for easy access\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "c3624e9 docs: add agent execution logging section to GitHub Projects integration guide \u001b[90m(23/01/2026)\u001b[0m",
+        "9fb20df feat: add comprehensive agent execution logging system \u001b[90m(23/01/2026)\u001b[0m\n  - Create logging infrastructure (types, context, writer, logger)\n  - Integrate logging into Claude Code SDK adapter to capture:\n    - Full prompts with model/tools/timeout\n    - Tool calls with inputs\n    - Text responses and thinking blocks\n    - Token usage and costs\n  - Add logging to all agents (product-design, tech-design, implement, pr-review)\n  - Log GitHub actions (comments, PR creation, status updates)\n  - Log errors with full context\n  - Generate human-readable Markdown logs in src/agents/agent-logs/\n  - Add yarn agent:logs CLI for viewing logs\n  - One log file per issue with complete narrative across all phases\n  - All logs gitignored for privacy\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-23T07:17:19.418Z",
       "templateCommit": "bd39492c9a276f7cee58162925d81335ceb246ae",
@@ -323,17 +348,6 @@
       "templateCommits": [
         "8697f9b feat: separate admin pages from app pages in sidebar menu \u001b[90m(17/01/2026)\u001b[0m\n  Add visual separation in drawer menu with dedicated \"Admin\" section\n  for admin-only pages, shown only to admin users.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-17T16:29:09.708Z",
-      "templateCommit": "f56876439dce5f703b728656bbd8e5277d66d683",
-      "projectCommit": "dc134b9ddbfc75e3c7dde3ec9df3421438722de8",
-      "filesApplied": 11,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "f568764 feat: add batch operations for report groups and \"Open\" status filter \u001b[90m(17/01/2026)\u001b[0m\n  Batch operations:\n  - Add batch update status and batch delete APIs\n  - Add actions menu to grouped report cards with options to mark all as\n    New/Investigating/Resolved/Closed or delete all reports in group\n  - Includes loading overlay and confirmation dialogs\n  \n  Open status filter:\n  - Add \"Open\" filter option that shows New + Investigating reports\n  - Set as default filter when entering Reports page\n  - UI-only filter with client-side filtering\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -555,7 +569,7 @@
     "src/client/stores/index.ts": "065e4b7c8044dfcb4e6f90c652dc564e",
     "src/client/stores/registry.ts": "0a435708c18241d5d0e25377ed1b52bc",
     "src/client/stores/types.ts": "33965da5e9f8a213c6091badb572b95b",
-    "src/client/styles/globals.css": "980b8261fa76b04d3a9ea3569cd971fb",
+    "src/client/styles/globals.css": "af10bfaba1a17694e11f1b7cb54a0095",
     "src/client/utils/apiClient.ts": "f0593bcc2a7c071baecb8c43941c81af",
     "src/client/utils/id.ts": "9c425ec1e3b4a30b20293536818f8688",
     "src/client/utils/imageCompression.ts": "57f5cf80b4769466dd362853fdbba83d",
@@ -774,14 +788,14 @@
     ".github/workflows/issue-notifications.yml": "8ad1487f4ceed8b9392b285f7fed08e6",
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
-    "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
+    "docs/github-projects-integration.md": "dfed8947299f286b1a6f6f47cefb9f95",
     "docs/init-github-projects-workflow.md": "b1294dd24cf40bb5293eb5a26370d428",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
-    "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
-    "src/agents/implement.ts": "5afc0453e575c69c94fa603ef9b83fa8",
-    "src/agents/index.ts": "76efe16a56939c60fb7a978ea38f2d6f",
-    "src/agents/product-design.ts": "a994e0a6b4bcdea80ee9aadac4516d05",
+    "src/agents/auto-advance.ts": "d2ca501939041f1f5c2ba4e5f579ff0f",
+    "src/agents/implement.ts": "7461ca8fa4cecb0c52e851c07091e397",
+    "src/agents/index.ts": "388aab613d4556378ecf874127df6c50",
+    "src/agents/product-design.ts": "0de862c4d0a80ca868d2a52b9295c72e",
     "src/agents/shared/claude.ts": "dc4edb4e24866c880f9ca121c5bbb909",
     "src/agents/shared/config.ts": "13ca1e389e8d5949a1f4bafc09953007",
     "src/agents/shared/index.ts": "9521b828af2ca41b3cd514a405574d6b",
@@ -789,7 +803,7 @@
     "src/agents/shared/prompts.ts": "ce2e9ce2f633b350d734fcbad145495c",
     "src/agents/shared/types.ts": "e7d1f6646723ca03f8efcd9597ccd775",
     "src/agents/shared/utils.ts": "0d7bf04c2ac28351bb31e4385d13c8a1",
-    "src/agents/tech-design.ts": "d20ace9a1e27ed5ef471e6b9bb6744f9",
+    "src/agents/tech-design.ts": "6c3e33fd1f81a0c9f8eb5a03ae6da758",
     "src/apis/feature-requests/handlers/approveFeatureRequest.ts": "3d3e5296ef2d410103e019cdfca36007",
     "src/apis/feature-requests/handlers/getGitHubStatus.ts": "849feb3e5688009870613bd4c63ae84e",
     "src/apis/feature-requests/handlers/getGitHubStatuses.ts": "0eabde636f273832e64d2b82e7291ac9",
@@ -800,21 +814,21 @@
     "src/pages/api/telegram-webhook.ts": "3949d2119102c25b2e6eb235831beb6b",
     "src/server/github-status/index.ts": "40f7cdb3e59b8a8f1c7322981652b22c",
     "src/server/github-sync/index.ts": "cae1963a7d07cded01dd376a867ad0b2",
-    "src/server/project-management/adapters/github.ts": "9494484edffb6193b6d0567ae58507c5",
+    "src/server/project-management/adapters/github.ts": "884b42de2a0323a5486b0753b72fe49f",
     "src/server/project-management/config.ts": "03c72bb57ff00a67269780cd48e49989",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
-    "src/server/project-management/types.ts": "04db789469d39ddbd20ed19e9b2f9111",
+    "src/server/project-management/types.ts": "d4e944b637cc757f563721de189fbaf0",
     "src/agents/shared/loadEnv.ts": "9331f0533590ed63f4238b437e4067a2",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
     "scripts/verify-github-projects-setup.ts": "04cb1dd076d7c50e0e9ccf4681a159c5",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
     ".claude/commands/pr-review.md": "273f0803554ac42a2dcf437324ce1d0f",
-    "src/agents/pr-review.ts": "9a5030b9eeebf9c06971eb64b8975829",
+    "src/agents/pr-review.ts": "72bc870adfaf2489cf7491c7b2ff8b17",
     ".claude/commands/compact-claude.md": "5c78990dfefd805b52dfba63267f2a36",
     "docs/agent-library-abstraction.md": "b6300f0810ff71f6344a960f4f3d27a5",
     "docs/critical-deployment-issues.md": "0ce6fa06967905da4e0fdffe5ff1a30c",
     "docs/validation-planning-mode.md": "11dc882394ca394ee78d7b0ee6c8709e",
-    "src/agents/lib/adapters/claude-code-sdk.ts": "959c4502f4e01381e2c1ae75949ac681",
+    "src/agents/lib/adapters/claude-code-sdk.ts": "21f130aa568602effe772f894deff2b1",
     "src/agents/lib/adapters/cursor.ts": "3fe1b87373c8cb4706204c0ba045fcc7",
     "src/agents/lib/adapters/gemini.ts": "6ea34c8fa65166770b5e8bdfc282820e",
     "src/agents/lib/config.ts": "1ef79fa82d4fed3bb3871e7c8b25f965",
@@ -833,6 +847,16 @@
     "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "fd140cf25863c07bda5853f1501722a8",
     "docs/template-sync/migrate-to-split-index-files.md": "94698432f53479254d119cc0eb282470",
     "scripts/verify-credentials.ts": "944b5e70bfb76c415fd385807ba1cb7f",
-    "scripts/verify-production.ts": "bed1ee0ae683bd67a04f301583b580a3"
+    "scripts/verify-production.ts": "bed1ee0ae683bd67a04f301583b580a3",
+    ".emv": "d41d8cd98f00b204e9800998ecf8427e",
+    "scripts/sync-agent-logs.sh": "61cda590c1a0fa1882c5c8bc2d4de740",
+    "scripts/view-agent-logs.ts": "4802c33309135c20a22d6f98176fbb5b",
+    "src/agents/agent-logs/issue-31.md": "95b074d95e04e9923c3f197af1e01fe1",
+    "src/agents/lib/logging/context.ts": "fe9aa1b047edbd90d7bd070324e3683a",
+    "src/agents/lib/logging/index.ts": "766124d108138f8332c4d371b7c020c2",
+    "src/agents/lib/logging/logger.ts": "47e2a3b92de36a7baaeaa96c216bfecb",
+    "src/agents/lib/logging/types.ts": "f7fd5a93292d20eebf4aea6dafdb01a4",
+    "src/agents/lib/logging/writer.ts": "e2bdd34f311af77e89b5cf44397dc834",
+    "src/client/styles/todos.css": "52a26947fe2079066cd7e05751a09a2b"
   }
 }

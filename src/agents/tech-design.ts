@@ -63,6 +63,14 @@ import {
     extractClarification,
     handleClarificationRequest,
 } from './shared';
+import {
+    createLogContext,
+    runWithLogContext,
+    logExecutionStart,
+    logExecutionEnd,
+    logGitHubAction,
+    logError,
+} from './lib/logging';
 
 // ============================================================
 // TYPES
@@ -96,12 +104,25 @@ async function processItem(
     // Detect issue type and load bug diagnostics if applicable
     const issueType = getIssueType(content.labels);
 
-    // Send "work started" notification
-    if (!options.dryRun) {
-        await notifyAgentStarted('Technical Design', content.title, issueNumber, mode, issueType);
-    }
+    // Create log context
+    const logCtx = createLogContext({
+        issueNumber,
+        workflow: 'tech-design',
+        phase: 'Technical Design',
+        mode: mode === 'new' ? 'New design' : mode === 'feedback' ? 'Address feedback' : 'Clarification',
+        issueTitle: content.title,
+        issueType,
+    });
 
-    try {
+    return runWithLogContext(logCtx, async () => {
+        logExecutionStart(logCtx);
+
+        // Send "work started" notification
+        if (!options.dryRun) {
+            await notifyAgentStarted('Technical Design', content.title, issueNumber, mode, issueType);
+        }
+
+        try {
         const diagnostics = issueType === 'bug'
             ? await getBugDiagnostics(issueNumber)
             : null;
@@ -256,19 +277,44 @@ async function processItem(
             console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
         }
 
+        // Log GitHub actions
+        logGitHubAction(logCtx, 'issue_updated', `Updated issue body with technical design`);
+        if (adapter.hasReviewStatusField()) {
+            logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
+        }
+
         // Send notification
         await notifyTechDesignReady(content.title, issueNumber, mode === 'feedback', issueType);
         console.log('  Notification sent');
 
+        // Log execution end
+        logExecutionEnd(logCtx, {
+            success: true,
+            toolCallsCount: 0,
+            totalTokens: 0,
+            totalCost: 0,
+        });
+
         return { success: true };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error(`  Error: ${errorMsg}`);
-        if (!options.dryRun) {
-            await notifyAgentError('Technical Design', content.title, issueNumber, errorMsg);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`  Error: ${errorMsg}`);
+
+            // Log error
+            logError(logCtx, error instanceof Error ? error : errorMsg, true);
+            logExecutionEnd(logCtx, {
+                success: false,
+                toolCallsCount: 0,
+                totalTokens: 0,
+                totalCost: 0,
+            });
+
+            if (!options.dryRun) {
+                await notifyAgentError('Technical Design', content.title, issueNumber, errorMsg);
+            }
+            return { success: false, error: errorMsg };
         }
-        return { success: false, error: errorMsg };
-    }
+    });
 }
 
 async function main(): Promise<void> {

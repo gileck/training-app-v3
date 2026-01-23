@@ -61,6 +61,7 @@ async function advanceItem(
 
     // Skip items without a status
     if (!fromStatus) {
+        console.log(`  ⚠️  Skipped: "${title}" - Item has no status`);
         return {
             item,
             fromStatus: 'Unknown',
@@ -73,6 +74,7 @@ async function advanceItem(
     const toStatus = STATUS_TRANSITIONS[fromStatus];
 
     if (!toStatus) {
+        console.log(`  ⚠️  Skipped: "${title}" - No transition defined for status: ${fromStatus}`);
         return {
             item,
             fromStatus,
@@ -133,12 +135,14 @@ async function main() {
     const adapter = getProjectManagementAdapter();
     await adapter.init();
 
-    // Find all items with Review Status = Approved
+    // Find all items with Review Status = Approved (excluding Done items)
     console.log('\nSearching for approved items...\n');
 
     const allItems = await adapter.listItems({});
     const approvedItems = allItems.filter(
-        (item) => item.reviewStatus === REVIEW_STATUSES.approved
+        (item) =>
+            item.reviewStatus === REVIEW_STATUSES.approved &&
+            item.status !== STATUSES.done // Ignore items already done
     );
 
     if (approvedItems.length === 0) {
@@ -168,6 +172,16 @@ async function main() {
     console.log(`Succeeded: ${succeeded}`);
     if (failed > 0) {
         console.log(`Failed: ${failed}`);
+        console.log('\nFailure details:');
+        results
+            .filter((r) => !r.success)
+            .forEach((r) => {
+                const title = r.item.content?.title || `Item ${r.item.id}`;
+                const issueNum = r.item.content?.number || 'N/A';
+                console.log(`  • Issue #${issueNum}: ${title}`);
+                console.log(`    Status: ${r.fromStatus}`);
+                console.log(`    Error: ${r.error || 'Unknown error'}`);
+            });
     }
 
     if (options.dryRun) {

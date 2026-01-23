@@ -7,6 +7,14 @@
 import { query, type SDKAssistantMessage, type SDKResultMessage, type SDKToolProgressMessage } from '@anthropic-ai/claude-agent-sdk';
 import { agentConfig } from '../../shared/config';
 import type { AgentLibraryAdapter, AgentLibraryCapabilities, AgentRunOptions, AgentRunResult } from '../types';
+import {
+    getCurrentLogContext,
+    logPrompt,
+    logTextResponse,
+    logThinking,
+    logToolCall,
+    logTokenUsage,
+} from '../logging';
 
 // ============================================================
 // CONSTANTS
@@ -89,6 +97,16 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
             }, 100);
         }
 
+        // Log prompt if context is available
+        const logCtx = getCurrentLogContext();
+        if (logCtx) {
+            logPrompt(logCtx, prompt, {
+                model: agentConfig.claude.model,
+                tools: allowedTools,
+                timeout,
+            });
+        }
+
         try {
             for await (const message of query({
                 prompt,
@@ -110,14 +128,31 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 if (message.type === 'assistant') {
                     const assistantMsg = message as SDKAssistantMessage;
 
-                    // Extract text content
+                    // Extract text content and thinking blocks
                     const textParts: string[] = [];
+                    const thinkingParts: string[] = [];
                     for (const block of assistantMsg.message.content) {
                         if (block.type === 'text') {
                             textParts.push((block as { type: 'text'; text: string }).text);
                         }
+                        // Check for thinking blocks if available
+                        if (block.type === 'thinking') {
+                            thinkingParts.push((block as { type: 'thinking'; thinking: string }).thinking);
+                        }
                     }
                     const textContent = textParts.join('\n');
+
+                    // Log thinking blocks if context is available
+                    if (logCtx && thinkingParts.length > 0) {
+                        for (const thinking of thinkingParts) {
+                            logThinking(logCtx, thinking);
+                        }
+                    }
+
+                    // Log text content if context is available
+                    if (logCtx && textContent) {
+                        logTextResponse(logCtx, textContent);
+                    }
 
                     // Stream output if enabled
                     if (textContent && stream) {
@@ -134,6 +169,12 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                             const toolUse = block as { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
                             const toolName = toolUse.name;
                             const toolInput = toolUse.input;
+                            const toolId = toolUse.id;
+
+                            // Log tool call if context is available
+                            if (logCtx) {
+                                logToolCall(logCtx, toolId, toolName, toolInput);
+                            }
 
                             // Track files examined
                             if (toolName === 'Read' && toolInput?.file_path) {
@@ -188,6 +229,15 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                             cacheCreationInputTokens: resultMsg.usage.cache_creation_input_tokens ?? 0,
                             totalCostUSD: resultMsg.total_cost_usd ?? 0,
                         };
+
+                        // Log token usage if context is available
+                        if (logCtx) {
+                            logTokenUsage(logCtx, {
+                                inputTokens: usage.inputTokens,
+                                outputTokens: usage.outputTokens,
+                                cost: usage.totalCostUSD,
+                            });
+                        }
                     }
                     // Extract structured output
                     if ('structured_output' in resultMsg) {
