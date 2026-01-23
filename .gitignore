@@ -49,3 +49,6 @@ next-env.d.ts
 *.template
 template-diff-summary.md
 .mcp.json
+
+# agent logs
+agent-logs/
