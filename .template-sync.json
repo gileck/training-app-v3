@@ -8,7 +8,6 @@
   "lastSyncDate": "2026-01-23T13:37:12.816Z",
   "ignoredFiles": [
     ".template-sync.json",
-    "package.json",
     "README.md",
     ".env",
     ".env.local",
