@@ -41,6 +41,48 @@ This workflow automates the complete feature request and bug report pipeline:
 
 ---
 
+## ⚠️ CRITICAL SAFETY WARNINGS - Read This First!
+
+### Vercel Project ID Confusion
+
+**MOST COMMON MISTAKE:** Pushing environment variables to the wrong Vercel project.
+
+**The Problem:**
+- Vercel tokens are per-user, not per-project
+- One token can access ALL your projects
+- Using the wrong project ID will overwrite another project's configuration
+
+**Before running `yarn vercel-cli env:push`:**
+1. Get your project ID: `vercel project ls` or check `.vercel/project.json`
+2. Verify it's correct: `yarn vercel-cli project`
+3. **STOP AND DOUBLE-CHECK** - You're about to overwrite production environment variables
+4. If you have multiple projects from this template, triple-check the project ID
+
+**Signs you pushed to the wrong project:**
+- Telegram bot stops working in another project
+- Another app's GitHub integration breaks
+- You see env vars from one project in another
+
+### .env.local Takes Precedence
+
+Scripts read `.env.local` FIRST, then `.env`. If you have both files with different values, `.env.local` wins.
+
+**Recommendation:** Use `.env.local` as your single source of truth, not `.env`.
+
+### Token Scope Requirements
+
+**CRITICAL:** Your GitHub token MUST have BOTH `repo` AND `project` scopes from the start.
+
+**Common mistake:** Creating a token with only `repo` scope, then discovering `project` is missing during testing.
+
+**If you need to regenerate your token:**
+1. Generate a new token with both scopes
+2. Update `.env.local` with new token
+3. Re-push to Vercel: `yarn vercel-cli env:push --target production --overwrite`
+4. Re-push to GitHub Actions: `yarn setup-github-secrets`
+
+---
+
 ## Prerequisites
 
 > **🚨 CRITICAL: package.json Must Be Synced From Template**
@@ -64,6 +106,55 @@ Before starting, ensure you have:
 - [ ] GitHub CLI (`gh`) installed and authenticated (`gh auth login`)
 - [ ] A Telegram account (for notifications)
 - [ ] A Vercel account (for deployment)
+
+---
+
+## Quick Start - Recommended Order
+
+Follow these steps IN ORDER to avoid common mistakes:
+
+1. ✅ **Create `.env.local` from `.env.example` FIRST**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. ✅ **Generate GitHub token with BOTH scopes (repo + project)**
+   - Add to `.env.local` immediately
+   - Test it: `gh auth status`
+
+3. ✅ **Create GitHub Project (get project number)**
+   - Add to `.env.local`
+
+4. ✅ **Create Telegram bot (get token and chat ID)**
+   - Add both to `.env.local`
+   - Update `src/app.config.js`
+
+5. ✅ **Verify locally BEFORE touching Vercel/GitHub:**
+   ```bash
+   yarn verify-setup --skip-vercel --skip-github
+   ```
+
+6. ✅ **Deploy to Vercel (so you have a URL for webhook)**
+
+7. ✅ **Push to Vercel (DOUBLE-CHECK project ID first!):**
+   ```bash
+   # Verify project ID first
+   yarn vercel-cli project
+
+   # If correct, push
+   yarn vercel-cli env:push --target production --overwrite
+   ```
+
+8. ✅ **Set Telegram webhook (after deployment)**
+
+9. ✅ **Setup GitHub Actions (secrets and variables)**
+
+10. ✅ **Final verification:**
+    ```bash
+    yarn verify-setup
+    yarn verify-production --url https://your-app.vercel.app
+    yarn verify-credentials
+    ```
 
 ---
 
@@ -142,6 +233,10 @@ https://github.com/users/your-username/projects/3
 
 ## Step 2: Environment Variables (.env.local)
 
+> **⚠️ CRITICAL: Use .env.local (NOT .env)**
+>
+> All scripts prioritize `.env.local` over `.env`. This is Next.js convention for local secrets. If you use `.env`, some scripts may not find your variables.
+
 Add these variables to your `.env.local` file in the project root:
 
 **First time setup:**
@@ -168,7 +263,11 @@ LOCAL_TELEGRAM_CHAT_ID=your_chat_id    # From yarn telegram-setup (see Step 3)
 
 ### Getting a GitHub Token
 
-Your GitHub token needs **two critical scopes**: `repo` and `project`.
+> **❗ BOTH scopes are REQUIRED:**
+> - ✅ **repo** (for issues/PRs)
+> - ✅ **project** (for GitHub Projects V2)
+>
+> Missing either scope will cause errors later.
 
 #### Option 1: Fine-grained Personal Access Token (Recommended)
 
@@ -201,6 +300,42 @@ Your GitHub token needs **two critical scopes**: `repo` and `project`.
 5. Copy the token and add to `.env.local`
 
 **Security tip:** Never commit your `.env.local` file. It's already in `.gitignore`.
+
+### ⚠️ Token Must Have BOTH Scopes From The Start
+
+**CRITICAL:** Your GitHub token MUST have BOTH `repo` AND `project` scopes.
+
+**Common mistake:** Creating a token with only `repo` scope, then discovering `project` is missing later during testing.
+
+**Verification:** After generating your token, verify it has both scopes:
+```bash
+# Test repo access
+yarn github-pr list --state all --limit 1
+
+# Test project access (will fail if project scope is missing)
+yarn verify-setup --skip-vercel --skip-github
+```
+
+**If you need to regenerate your token:**
+1. Generate a new token with both scopes
+2. Update `.env.local` with new token
+3. Re-push to Vercel: `yarn vercel-cli env:push --target production --overwrite`
+4. Re-push to GitHub Actions: `yarn setup-github-secrets`
+
+### Important: Do NOT Add PROJECT_TOKEN to .env files
+
+**Common confusion:** Some users add both `GITHUB_TOKEN` and `PROJECT_TOKEN` to `.env.local`.
+
+**The truth:**
+- `.env.local`: Only needs `GITHUB_TOKEN`
+- GitHub Actions: Only needs `PROJECT_TOKEN` secret (which contains the same value)
+
+**Why two names?**
+- GitHub Actions reserves the `GITHUB_*` prefix for built-in variables
+- We use `PROJECT_TOKEN` as the secret name to avoid conflicts
+- But they contain the SAME token value
+
+**Bottom line:** Your `.env.local` should only have `GITHUB_TOKEN`, never `PROJECT_TOKEN`.
 
 ### Step 2.5: Bot Account Setup (Recommended)
 
@@ -342,9 +477,21 @@ You should see:
 - Enables instant in-app feedback when you tap Telegram buttons
 - Required for the one-click approval workflow
 
+> **💡 Note on 405 Errors:**
+>
+> If you test the webhook URL directly in your browser, you'll see "405 Method Not Allowed". This is **NORMAL** - the endpoint expects specific Telegram callback data via POST requests. Buttons will work correctly when you test with real notifications (see Step 6.5 below).
+
 ---
 
 ## Step 4: GitHub Repository Secrets & Variables
+
+> **📝 Why PROJECT_* prefix in GitHub Actions?**
+>
+> GitHub Actions reserves `GITHUB_*` prefix for its own built-in variables. We use `PROJECT_*` prefix in GitHub Actions but `GITHUB_*` locally in `.env.local`.
+>
+> **The VALUES are the same - only the NAMES differ:**
+> - Local `.env.local`: `GITHUB_OWNER=myusername`
+> - GitHub Actions: `PROJECT_OWNER=myusername`
 
 Your GitHub Actions workflows need access to Telegram credentials to send notifications.
 
@@ -375,7 +522,9 @@ If you prefer to set these manually:
 |-------------|-------|--------|
 | `TELEGRAM_BOT_TOKEN` | Your bot token | From BotFather (Step 3.1) |
 | `TELEGRAM_CHAT_ID` | Your chat ID | From `yarn telegram-setup` (Step 3.2) |
-| `PROJECT_TOKEN` | Your GitHub token | Same as `GITHUB_TOKEN` in `.env` |
+| `PROJECT_TOKEN` | Your GitHub token | Use the value from `GITHUB_TOKEN` in your `.env.local` |
+
+> **Note:** `PROJECT_TOKEN` is ONLY used as a GitHub Actions secret name. You do NOT need to add it to your `.env.local` file.
 
 **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
 
@@ -413,6 +562,33 @@ Push your environment variables to Vercel so the deployed app can access them.
 
 Missing even one variable will cause GitHub statuses to show as empty in the feature-request page.
 
+### ⚠️ CRITICAL: Verify Project ID Before Pushing
+
+**Before running ANY `yarn vercel-cli` commands that modify env vars:**
+
+1. **Check which project you're linked to:**
+   ```bash
+   yarn vercel-cli project
+   ```
+
+2. **Expected output:**
+   ```
+   📦 Project: your-actual-project-name
+   🆔 ID: prj_xxxxxxxxxxxxx
+   🔗 URL: https://your-actual-project.vercel.app
+   ```
+
+3. **Verify this matches your intended project:**
+   - Check the project name
+   - Check the URL
+   - If you have multiple projects, double-check this is the right one
+
+4. **If it's wrong:**
+   - Run `vercel link` to link to the correct project
+   - Or manually specify project ID: `--project-id prj_xxxxx`
+
+**DO NOT PROCEED until you're 100% certain the project ID is correct.**
+
 ### Option 1: Using Vercel CLI (Recommended)
 
 1. Install and link Vercel (if not already):
@@ -421,14 +597,19 @@ Missing even one variable will cause GitHub statuses to show as empty in the fea
    vercel link
    ```
 
-2. Push environment variables from `.env.local`:
+2. **Verify project BEFORE pushing:**
+   ```bash
+   yarn vercel-cli project
+   ```
+
+4. Push environment variables from `.env.local`:
    ```bash
    yarn vercel-cli env:push --file .env.local --target production --overwrite
    ```
 
    This will push all variables from `.env.local` to production.
 
-3. **Verify all GitHub variables were pushed:**
+5. **Verify all GitHub variables were pushed:**
    ```bash
    yarn vercel-cli env --target production | grep GITHUB_
    ```
@@ -723,9 +904,169 @@ Test the complete workflow end-to-end:
 
 **If any step fails**, see the [Troubleshooting](#troubleshooting) section.
 
+### 6.5: Quick Button Test
+
+Before the full workflow test, verify Telegram buttons work correctly:
+
+1. **Create a test GitHub issue**:
+   ```bash
+   gh issue create --title "test: workflow verification" --body "Testing webhook buttons"
+   ```
+
+2. **Manually send a test notification** (simulates what the workflow does):
+   - Go to your app's `/admin/reports` page (or similar admin interface)
+   - Or use the Telegram bot directly to send a message with buttons
+
+3. **Expected result**:
+   - Message appears in Telegram WITH buttons (not just text)
+   - Tapping a button updates the message or triggers an action
+   - No "webhook not set" or "405 error" messages appear
+
+4. **If buttons don't appear**:
+   - Verify webhook is set: `yarn telegram-webhook info`
+   - Should show your production URL (not localhost)
+   - Re-set webhook if needed: `yarn telegram-webhook set https://your-app.vercel.app/api/telegram-webhook`
+
+> **💡 Tip:** Buttons only work with your production deployment (Vercel URL). They won't work with localhost during development.
+
+### 6.6: Verification Scripts
+
+After deployment, use these two scripts to verify your setup:
+
+#### Test 1: Verify Credentials (Local)
+
+Test that your local credentials work correctly:
+
+```bash
+yarn verify-credentials
+```
+
+**What it tests:**
+- ✅ Environment variables in `.env.local`
+- ✅ GitHub API access (repo, issues, projects)
+- ✅ Telegram bot token validity
+- ✅ Webhook configuration
+- ✅ Sends test Telegram message
+
+**Expected output:**
+```
+🔍 Verifying Local Credentials
+══════════════════════════════════════════════════════════════════════
+
+📋 Environment Variables
+──────────────────────────────────────────────────────────────────────
+✓ GITHUB_TOKEN ✓
+✓ GITHUB_OWNER ✓
+...
+  10 passed, 0 failed
+
+🐙 GitHub API
+──────────────────────────────────────────────────────────────────────
+✓ Repository access works
+✓ Issues API works
+✓ GitHub Project access works (Your Project Name)
+  4 passed, 0 failed
+
+📱 Telegram API
+──────────────────────────────────────────────────────────────────────
+✓ Bot token valid (@your_bot)
+✓ Webhook is configured
+✓ Test message sent successfully
+  5 passed, 0 failed
+
+✅ All checks passed! 19/19
+```
+
+#### Test 2: Verify Production Deployment
+
+Test the actual deployed app on Vercel:
+
+```bash
+yarn verify-production --url https://your-app.vercel.app
+```
+
+**What it tests:**
+- ✅ Vercel project is linked
+- ✅ All environment variables set in Vercel production
+- ✅ Production app is accessible
+- ✅ Webhook endpoint exists and responds
+
+**Expected output:**
+```
+🔍 Verifying Production Deployment
+══════════════════════════════════════════════════════════════════════
+
+📍 Testing: https://your-app.vercel.app
+
+📦 Vercel Project
+──────────────────────────────────────────────────────────────────────
+✓ Vercel project linked
+  1 passed, 0 failed
+
+🔐 Vercel Environment Variables (Production)
+──────────────────────────────────────────────────────────────────────
+✓ Vercel CLI accessible
+✓ GITHUB_TOKEN in Vercel ✓
+✓ GITHUB_OWNER in Vercel ✓
+...
+  10 passed, 0 failed
+
+🌐 Production Deployment
+──────────────────────────────────────────────────────────────────────
+✓ Production app accessible
+✓ Webhook endpoint exists
+  2 passed, 0 failed
+
+✅ All checks passed! 13/13
+```
+
+**If any checks fail**, see the [Troubleshooting](#troubleshooting) section for specific fixes.
+
 ---
 
 ## Troubleshooting
+
+### Setup-Specific Issues
+
+**"Buttons appear but clicking does nothing"**
+- **Cause:** Webhook handler missing route format support
+- **Fix:** Ensure you have the latest template code for `/api/telegram-webhook.ts`
+- **Verification:** Check Vercel deployment logs when clicking button
+
+**"Pushed env vars to wrong Vercel project"**
+- **Cause:** Used wrong project ID (common with multiple template projects)
+- **Impact:** Overwrote another project's Telegram/GitHub configuration
+- **Fix:**
+  1. Get correct project IDs for both projects
+  2. Restore the overwritten project's env vars
+  3. Push to correct project with verified project ID
+- **Prevention:** Always run `yarn vercel-cli project` to verify BEFORE pushing
+
+**"Have both .env and .env.local with different values"**
+- **Cause:** Confusion about which file scripts read
+- **Impact:** Scripts may use wrong token/credentials
+- **Fix:** Use `.env.local` as single source of truth, delete `.env` or keep it as example only
+- **Verification:** `cat .env.local | grep GITHUB_TOKEN` should show your actual token
+
+**"PROJECT_TOKEN in .env files"**
+- **Cause:** Confusion about where PROJECT_TOKEN is needed
+- **Fix:** Remove `PROJECT_TOKEN` from `.env` and `.env.local` - it's ONLY needed as a GitHub Actions secret name (same value as GITHUB_TOKEN)
+- **Clarification:**
+  - Local development: uses `GITHUB_TOKEN` from `.env.local`
+  - GitHub Actions: uses `PROJECT_TOKEN` secret (which contains the same token)
+
+**"GitHub token works for PRs but not for Projects"**
+- **Cause:** Token missing `project` scope
+- **Fix:** Generate new token with BOTH `repo` and `project` scopes
+- **Verification:** `yarn verify-setup` will catch this
+
+**"Almost overwrote template webhook while testing"**
+- **Cause:** Testing with template bot token instead of project-specific bot
+- **Prevention:** ALWAYS create a new bot for each project (see Step 3 warning)
+- **If this happens:** Restore template webhook immediately:
+  ```bash
+  yarn telegram-webhook set https://template-domain.vercel.app/api/telegram-webhook
+  ```
 
 ### GitHub API Issues
 

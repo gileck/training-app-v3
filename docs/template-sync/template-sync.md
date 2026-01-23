@@ -145,6 +145,27 @@ Both arrays support glob patterns:
 - `ignoredFiles` and `projectSpecificFiles`: Files show in "Skipped" during sync
 - `templateIgnoredFiles`: Files are **completely invisible** - never synced, never shown
 
+### ⚠️ One-Time Migration for Existing Projects
+
+> **If your project was created before commit `4b8502a` (Jan 18, 2026)**, you need to manually update 5 index files to use the new template + project pattern.
+
+The template now splits aggregation files (like `apis.ts`, `routes/index.ts`, etc.) into two parts:
+- **`.template.ts` files** - Template code (auto-syncs from template)
+- **Main index files** - Your project code + imports from template
+
+This prevents merge conflicts during template sync.
+
+**📖 Migration Guide:** [migrate-to-split-index-files.md](migrate-to-split-index-files.md)
+
+The migration guide provides step-by-step instructions for updating:
+1. `src/apis/apis.ts`
+2. `src/client/features/index.ts`
+3. `src/client/components/NavLinks.tsx`
+4. `src/client/routes/index.ts`
+5. `src/server/database/collections/index.ts`
+
+Since these files are in `ignoredFiles`, this one-time manual update is required to adopt the new pattern.
+
 ### 3. Commit the Configuration
 
 ```bash

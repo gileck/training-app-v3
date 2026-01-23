@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "1e7fbb1782bac69e08f5d745a6c08b4adb2a7de2",
-  "lastProjectCommit": "2594c025a0dd22e92eff2c1ecc20aa81b84d9075",
-  "lastSyncDate": "2026-01-22T15:23:40.198Z",
+  "lastSyncCommit": "a14241d807fffd815d1cfef1f93e37c69f43a356",
+  "lastProjectCommit": "5fa13bf2d1e9c5f8c0a8199589495c8467f725c2",
+  "lastSyncDate": "2026-01-23T07:03:06.603Z",
   "ignoredFiles": [
     ".template-sync.json",
     "package.json",
@@ -57,6 +57,26 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-23T07:03:06.838Z",
+      "templateCommit": "a14241d807fffd815d1cfef1f93e37c69f43a356",
+      "projectCommit": "5fa13bf2d1e9c5f8c0a8199589495c8467f725c2",
+      "filesApplied": 7,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "a14241d fix(CRITICAL): use process.cwd() in loadEnv to fix child project bug \u001b[90m(23/01/2026)\u001b[0m\n  CRITICAL BUG FIX: loadEnv was using __dirname, causing child projects\n  to load the TEMPLATE's environment variables instead of their own.\n  \n  The Bug:\n  --------\n  When a child project ran `yarn vercel-cli env:push`:\n  1. Script imports loadEnv from template's src/agents/shared/\n  2. loadEnv used __dirname → resolved to TEMPLATE directory\n  3. Loaded .env.local from TEMPLATE (not child project!)\n  4. Loaded .vercel/project.json from TEMPLATE (not child project!)\n  5. Pushed template's env vars to template's Vercel project\n  6. OVERWROTE the template project's environment variables!\n  \n  This is why GITHUB_REPO and GITHUB_PROJECT_NUMBER had old values\n  from \"training-app-v3\" - a child project accidentally overwrote them.\n  \n  The Fix:\n  --------\n  Changed from:\n    const rootDir = resolve(__dirname, '../../../');\n  \n  To:\n    const rootDir = process.cwd();\n  \n  Now loadEnv uses the CURRENT WORKING DIRECTORY where the command\n  is run, not where the script file is located.\n  \n  Impact:\n  -------\n  - All scripts that import loadEnv now work correctly in child projects\n  - vercel-cli, agent scripts, and other tools load correct env files\n  - Child projects no longer accidentally modify template's Vercel project\n  - Each project operates on its own environment variables\n  \n  Testing:\n  --------\n  Verified that vercel-cli still works correctly after the fix.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "6dddf84 feat: add actual value comparison for local vs Vercel env vars \u001b[90m(23/01/2026)\u001b[0m\n  Enhanced verify-production script to compare actual environment\n  variable values between local .env.local and Vercel production.\n  \n  Changes:\n  - Uses `vercel env pull` to fetch production env values\n  - Strips quotes that Vercel adds around values\n  - Compares actual values (not just existence or length)\n  - Shows length differences as hints when values don't match\n  - No secrets exposed in output (only lengths shown)\n  \n  Output examples:\n    ✓ GITHUB_TOKEN - values match ✓ (40 chars)\n    ✗ JWT_SECRET - values DO NOT match\n      Local: 11 chars\n      Vercel: 15 chars\n      Update Vercel: yarn vercel-cli env:push\n  \n  This catches real production issues like:\n  - Outdated values in Vercel (not updated after local change)\n  - Values from wrong project still in Vercel\n  - Typos or incorrect values deployed to production\n  \n  Tested with all 9 critical env vars - all now match after sync.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "06e9ea7 feat: add local vs Vercel env var comparison check \u001b[90m(23/01/2026)\u001b[0m\n  Add new check to verify-production script that compares local and\n  Vercel environment variables to catch mismatches.\n  \n  What it checks:\n  - Variables exist in both .env.local and Vercel production\n  - Missing variables in either location\n  - Shows local value length as a hint (40 chars, etc.)\n  \n  What it doesn't check:\n  - Actual value equality (would require pulling Vercel env values)\n  - Variables can exist in both but have different values\n  - User should manually verify values match via Vercel dashboard\n  \n  Output example:\n    ✓ GITHUB_TOKEN - exists in both (40 chars locally)\n    ✓ MONGO_URI - exists in both (120 chars locally)\n    ✗ JWT_SECRET - missing in Vercel\n    💡 Note: This check verifies variables exist in both places\n  \n  This helps catch common deployment issues like:\n  - Forgot to push env vars to Vercel\n  - Typo in variable name (exists locally but not in Vercel)\n  - Missing variables in either location\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "9156257 docs: add migration guide for split index files pattern \u001b[90m(22/01/2026)\u001b[0m\n  Add comprehensive guide for child projects to migrate to the new\n  template + project pattern for index files.\n  \n  Why needed:\n  - Commit 4b8502a split aggregation files into .template.ts + main files\n  - These files are in ignoredFiles (don't auto-sync)\n  - Child projects need one-time manual update to adopt new pattern\n  \n  Changes:\n  - Created docs/template-sync/migrate-to-split-index-files.md\n    - Step-by-step migration for 5 index files\n    - Before/after code examples\n    - Verification checklist\n  - Updated docs/template-sync/template-sync.md\n    - Added prominent migration notice in Initial Setup section\n    - Links to detailed migration guide\n  \n  Files covered in migration:\n  1. src/apis/apis.ts\n  2. src/client/features/index.ts\n  3. src/client/components/NavLinks.tsx\n  4. src/client/routes/index.ts\n  5. src/server/database/collections/index.ts\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "a60d07b docs: comprehensive init guide improvements based on real usage \u001b[90m(22/01/2026)\u001b[0m\n  Implemented all feedback from child project setup experience:\n  \n  1. Critical Safety Warnings (NEW section before Prerequisites)\n     - Vercel project ID confusion (MOST COMMON MISTAKE)\n     - .env.local vs .env precedence\n     - Token scope requirements\n     - Prevention tips for dangerous mistakes\n  \n  2. Quick Start Order of Operations (NEW section)\n     - Step-by-step order to avoid dependency issues\n     - Emphasizes verification BEFORE pushing to Vercel/GitHub\n     - 10-step checklist with verification at each stage\n  \n  3. Enhanced Step 2 (Environment Variables)\n     - Token scope verification steps added\n     - PROJECT_TOKEN clarification (don't add to .env!)\n     - Clear explanation of naming differences\n  \n  4. Enhanced Step 5 (Vercel)\n     - CRITICAL project ID verification section\n     - Must verify BEFORE pushing env vars\n     - Clear steps to check and verify project\n     - Prevention for wrong project overwrites\n  \n  5. Enhanced Troubleshooting\n     - Setup-Specific Issues section (NEW)\n     - Common mistakes with clear causes/fixes\n     - Wrong Vercel project\n     - .env vs .env.local confusion\n     - PROJECT_TOKEN confusion\n     - Missing token scopes\n     - Webhook overwrites\n  \n  All improvements based on actual pain points:\n  - Vercel project ID was most dangerous mistake\n  - Token scope issues caught late in process\n  - PROJECT_TOKEN confusion widespread\n  - .env.local precedence not clear\n  \n  These changes should prevent >90% of setup issues.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "008810c refactor: split verification into credentials and production scripts \u001b[90m(22/01/2026)\u001b[0m\n  Created two separate verification scripts:\n  \n  1. yarn verify-credentials (renamed from verify-production)\n     - Tests LOCAL credentials work correctly\n     - Validates GitHub API access with local token\n     - Tests Telegram bot token\n     - Sends test message\n     - What it was doing before (testing from local machine)\n  \n  2. yarn verify-production (NEW - actually tests production)\n     - Tests the DEPLOYED Vercel app\n     - Verifies Vercel environment variables\n     - Tests production webhook endpoint\n     - Confirms app is accessible\n     - What users actually need\n  \n  Problem with old script:\n  - Named \"verify-production\" but tested local credentials\n  - Didn't actually test the deployed Vercel app\n  - Couldn't verify if production env vars were set\n  - Misleading - gave false confidence\n  \n  New approach:\n  - Clear separation: local credentials vs production deployment\n  - verify-credentials: \"Do my API keys work?\"\n  - verify-production: \"Is my Vercel app configured correctly?\"\n  \n  Updated init guide with both scripts and clear descriptions\n  of what each one tests and when to use it.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "b7c2573 feat: add production environment verification script \u001b[90m(22/01/2026)\u001b[0m\n  New script: yarn verify-production\n  \n  Tests production deployment configuration:\n  - Environment variables (all 10 required vars)\n  - GitHub API access (repo, issues, projects)\n  - Telegram API and webhook\n  - End-to-end test message\n  \n  Features:\n  - Validates GitHub token with repo/project scopes\n  - Tests GitHub Projects V2 GraphQL access\n  - Validates Telegram bot token\n  - Checks webhook configuration and errors\n  - Sends test message to verify end-to-end\n  - Clear pass/fail output with detailed errors\n  \n  Usage:\n    yarn verify-production\n  \n  Benefits:\n  - Catch missing env vars before production issues\n  - Verify webhook is set correctly\n  - Confirm API access works from production\n  - Quick health check after deployment\n  \n  Added to init guide as Step 6.6 with full example output.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "fdb2fd4 docs: improve init guide based on child project feedback \u001b[90m(22/01/2026)\u001b[0m\n  Changes based on real usage experience:\n  \n  1. Critical .env.local warning (Step 2):\n     - Added prominent warning to use .env.local NOT .env\n     - Scripts prioritize .env.local, this prevents common setup issues\n  \n  2. GitHub Token Permissions (Step 2):\n     - Made BOTH required scopes more prominent with ❗ callout\n     - Emphasized missing scopes cause errors later\n  \n  3. PROJECT_TOKEN clarification (Step 4):\n     - Added note: only for GitHub Actions, NOT needed in .env.local\n     - Prevents confusion about where to add it\n  \n  4. GitHub Actions naming explanation (Step 4):\n     - Added prominent explanation why PROJECT_* prefix in GitHub Actions\n     - Clarifies GITHUB_* reserved, values same but names differ\n  \n  5. Telegram webhook 405 errors (Step 3.3):\n     - Added note explaining 405 errors are NORMAL\n     - Endpoint expects Telegram POST data, not browser GETs\n     - Buttons work correctly despite browser 405s\n  \n  6. Quick Button Test (New Step 6.5):\n     - Added lightweight test before full integration\n     - Tests Telegram buttons work with webhook\n     - Provides troubleshooting steps if buttons don't appear\n  \n  These improvements address all 6 points from child project feedback.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+        "55aa9d5 fix(sync-template): improve --merge-package-json output messages \u001b[90m(22/01/2026)\u001b[0m",
+        "3fe9532 feat: add animation when mark to do done in the todo list (#30) \u001b[90m(22/01/2026)\u001b[0m\n  * feat: add animation when mark to do done in the todo list\n  \n  Closes #29\n  \n  * fix: address review feedback for #29"
+      ]
+    },
     {
       "date": "2026-01-22T15:23:40.366Z",
       "templateCommit": "1e7fbb1782bac69e08f5d745a6c08b4adb2a7de2",
@@ -313,17 +333,6 @@
       "templateCommits": [
         "761726e fix: improve investigate-bugs agent prompt for faster investigation \u001b[90m(17/01/2026)\u001b[0m\n  - Add route-to-component mapping so agent starts at the correct component\n  - Detect React minified error URLs and instruct agent to fetch them FIRST\n  - Add WebFetch to allowed tools for fetching React error details\n  - Provide clear investigation strategy based on route location\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
-    },
-    {
-      "date": "2026-01-17T12:55:43.042Z",
-      "templateCommit": "6cb99e8d4cfbfcc0ecbb5a9f17fa401e0c2585a2",
-      "projectCommit": "4246abadf5c92059f857a1cbbf3a645b7cd04bee",
-      "filesApplied": 3,
-      "filesSkipped": 15,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "6cb99e8 feat: add duplicate detection and token usage tracking to investigate-bugs \u001b[90m(17/01/2026)\u001b[0m\n  After investigating a bug report, the script now queries reports from +/- 2 days\n  and asks Claude to identify duplicates based on description/error similarity.\n  Duplicates are marked in the database and automatically excluded from future runs.\n  \n  Also adds token usage tracking to display input/output tokens and cost per\n  investigation and in the final summary.\n  \n  Changes:\n  - Add duplicateOf field to ReportDocument for tracking duplicate relationships\n  - Add findReportsInTimeRange() and markReportAsDuplicate() database methods\n  - Update findUninvestigatedReports() to exclude duplicates\n  - Add detectDuplicates() function using Claude to identify similar reports\n  - Display token count and cost per investigation and in summary\n  - Rename --limit to --limit-reports for clarity\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
     }
   ],
   "fileHashes": {
@@ -384,7 +393,7 @@
     "docs/template-sync/template-sync-implementation.md": "3b267f8fdb10c94a26d5ef3f565862a7",
     "docs/template-sync/template-sync-quick-start.md": "4815b00534fb0fc1dda5a810d30e8f09",
     "docs/template-sync/template-sync-visual-guide.md": "0b930d2e919a74cd10e3ace9410c3168",
-    "docs/template-sync/template-sync.md": "36e0a45878be9f3c8a8b960779473fc9",
+    "docs/template-sync/template-sync.md": "14d00816717a88c7338da04afc06b880",
     "docs/theming.md": "681e533f18a3628d4aee2cfad84c6797",
     "eslint-plugin-api-guidelines/index.js": "e04e1aefd7323b75255b23c1cfb34f28",
     "eslint-plugin-api-guidelines/rules/api-names-from-index.js": "e13771ec7fcf0e9655a662617c401186",
@@ -765,7 +774,7 @@
     ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
     ".github/workflows/pr-notifications.yml": "96cdaa4cc75e14231fd85d4b8e6c67a4",
     "docs/github-projects-integration.md": "4840a80cd4e6764d332776930975d29e",
-    "docs/init-github-projects-workflow.md": "6b1bdfc8347875c992b5ec417b322d01",
+    "docs/init-github-projects-workflow.md": "e5f6027fb58f778a60c59c4adee30f2a",
     "scripts/mark-issue-done.ts": "4db857332872b0d0ce08b9d519bc7aa5",
     "scripts/telegram-webhook-setup.ts": "8a4e8c4aee2e9c7f7478f4ac7f815de1",
     "src/agents/auto-advance.ts": "17abf21dea70c993904f03baced695b5",
@@ -794,7 +803,7 @@
     "src/server/project-management/config.ts": "03c72bb57ff00a67269780cd48e49989",
     "src/server/project-management/index.ts": "73326d5cbd7669177f60282ba72199ed",
     "src/server/project-management/types.ts": "04db789469d39ddbd20ed19e9b2f9111",
-    "src/agents/shared/loadEnv.ts": "02d1067840096e8fbc201ce9083e10d0",
+    "src/agents/shared/loadEnv.ts": "9331f0533590ed63f4238b437e4067a2",
     "scripts/audit-feature-request-status.ts": "89274e6afaa36f2760443b095bfeeaef",
     "scripts/verify-github-projects-setup.ts": "04cb1dd076d7c50e0e9ccf4681a159c5",
     "src/pages/api/test-telegram.ts": "1f85a359d6dee11129d8c6aeb5b66f3b",
@@ -820,6 +829,9 @@
     "src/client/routes/FeatureRequests/FeatureRequestDetail.tsx": "2d71e9b46af64c1989957ca0c9fb5e18",
     "src/client/routes/FeatureRequests/components/CollapsibleSection.tsx": "ccdce82b40508aefbd964ebfdfaa3565",
     "src/client/routes/FeatureRequests/components/GitHubIssueSection.tsx": "d51597f9e35e734a35192f644e588c2d",
-    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "82a2a29d6845a30a57102823e62f7ef3"
+    "scripts/template-scripts/sync-template/modes/merge-package-json.ts": "fd140cf25863c07bda5853f1501722a8",
+    "docs/template-sync/migrate-to-split-index-files.md": "94698432f53479254d119cc0eb282470",
+    "scripts/verify-credentials.ts": "944b5e70bfb76c415fd385807ba1cb7f",
+    "scripts/verify-production.ts": "bed1ee0ae683bd67a04f301583b580a3"
   }
 }

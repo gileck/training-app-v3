@@ -94,9 +94,11 @@ export async function runMergePackageJson(context: SyncContext): Promise<void> {
     }
 
     if (!hasChanges) {
-      log(context.options, '\n✅ No changes to merge from template.');
-      if (mergeResult.projectKeptFields.length > 0 || mergeResult.projectOnlyFields.length > 0) {
-        log(context.options, '   Your project-specific changes are preserved.');
+      const hasProjectChanges = mergeResult.projectKeptFields.length > 0 || mergeResult.projectOnlyFields.length > 0;
+      if (hasProjectChanges) {
+        log(context.options, '\n✅ No changes to merge from template. Your project-specific changes are preserved.');
+      } else {
+        log(context.options, '\n✅ Your package.json is in sync with the template.');
       }
       return;
     }
