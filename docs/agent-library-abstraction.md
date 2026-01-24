@@ -35,7 +35,11 @@ src/agents/
 │   ├── prompts.ts                # Library-agnostic
 │   ├── notifications.ts          # Library-agnostic
 │   └── index.ts                  # Re-exports from lib/
-└── [workflow files]              # product-design.ts, tech-design.ts, etc.
+└── core-agents/                  # Agent workflows
+    ├── productDesignAgent/       # Product design workflow
+    ├── technicalDesignAgent/     # Technical design workflow
+    ├── implementAgent/           # Implementation workflow
+    └── prReviewAgent/            # PR review workflow
 ```
 
 ### Key Components
@@ -486,10 +490,10 @@ const result = await runAgent({
 
 All workflow files have been updated to include the `workflow` option:
 
-- `product-design.ts` - `workflow: 'product-design'`
-- `tech-design.ts` - `workflow: 'tech-design'`
-- `implement.ts` - `workflow: 'implementation'`
-- `pr-review.ts` - `workflow: 'pr-review'`
+- `core-agents/productDesignAgent/index.ts` - `workflow: 'product-design'`
+- `core-agents/technicalDesignAgent/index.ts` - `workflow: 'tech-design'`
+- `core-agents/implementAgent/index.ts` - `workflow: 'implementation'`
+- `core-agents/prReviewAgent/index.ts` - `workflow: 'pr-review'`
 
 No changes required to prompt generation or output parsing logic.
 
@@ -633,10 +637,10 @@ await disposeAllAdapters();
 - `src/agents/lib/adapters/cursor.ts` - Cursor CLI implementation
 
 ### Workflow Files
-- `src/agents/product-design.ts` - Product design workflow
-- `src/agents/tech-design.ts` - Technical design workflow
-- `src/agents/implement.ts` - Implementation workflow
-- `src/agents/pr-review.ts` - PR review workflow
+- `src/agents/core-agents/productDesignAgent/index.ts` - Product design workflow
+- `src/agents/core-agents/technicalDesignAgent/index.ts` - Technical design workflow
+- `src/agents/core-agents/implementAgent/index.ts` - Implementation workflow
+- `src/agents/core-agents/prReviewAgent/index.ts` - PR review workflow
 
 ### Test Scripts
 - `scripts/test-cursor-adapter.ts` - Test script for Cursor adapter

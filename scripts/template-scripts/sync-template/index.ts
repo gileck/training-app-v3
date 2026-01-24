@@ -23,8 +23,8 @@
  *   --use-https              Use HTTPS instead of SSH for cloning (SSH is default)
  *   --merge-package-json     Only merge package.json from template (no full sync)
  *
- * Note: 'yarn checks' is automatically run before committing. If checks fail,
- *       changes are applied but NOT committed - you must fix issues and commit manually.
+ * Note: Validation checks (TypeScript + ESLint) are automatically run before committing.
+ *       If checks fail, changes are applied but NOT committed - you must fix issues and commit manually.
  *
  * Auto modes (non-interactive):
  *   --auto-safe-only         Apply only safe changes, skip all conflicts

@@ -74,7 +74,7 @@ Examples of when to ask for clarification:
 // MARKDOWN FORMATTING INSTRUCTIONS
 // ============================================================
 
-const MARKDOWN_FORMATTING_INSTRUCTIONS = `
+export const MARKDOWN_FORMATTING_INSTRUCTIONS = `
 CRITICAL - Markdown Formatting:
 
 **NEVER USE TABLES IN MARKDOWN OUTPUT**
@@ -423,7 +423,7 @@ ${productDesignSection}
 Create a Technical Design document. The size of your output should match the complexity of the feature - simple features get simple designs, complex features get detailed designs.
 
 **Required sections:**
-1. **Size & Complexity** - Effort (S/M/L) and complexity (Low/Medium/High)
+1. **Size & Complexity** - Effort (S/M/L/XL) and complexity (Low/Medium/High)
 2. **Overview** - Brief technical approach (1-2 sentences for small features)
 3. **Files to Create/Modify** - List of files with brief description of changes
 
@@ -432,6 +432,24 @@ Create a Technical Design document. The size of your output should match the com
 - **API Changes** - Only if new endpoints or modifications needed
 - **State Management** - Only if non-trivial state handling needed
 - **Implementation Notes** - Only for complex logic that needs explanation
+
+## Multi-PR Workflow (for L/XL features ONLY)
+
+**CRITICAL: For L or XL size features, you MUST split the implementation into phases.**
+
+Each phase:
+- Should be independently mergeable (can be deployed on its own)
+- Should be size S or M (not L or XL)
+- Should result in a single PR
+- Should have clear dependencies (which phases must complete before this one)
+
+If the feature is L or XL:
+1. Split it into 2-5 implementation phases
+2. Each phase should be a complete, testable unit of work
+3. Order phases so earlier phases don't depend on later ones
+4. Include the phases in your structured output
+
+**IMPORTANT**: Only include phases for L/XL features. For S/M features, do NOT include phases - they will be implemented in a single PR.
 
 ## Research Strategy
 
@@ -445,7 +463,19 @@ Explore the codebase:
 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Technical Design document in markdown format (same structure as before)
+- **phases** (L/XL features ONLY): Array of implementation phases (see schema below). Leave empty/null for S/M features.
 - **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
+
+**Phase schema (for L/XL features only):**
+\`\`\`json
+{
+  "order": 1,                    // Phase number (1, 2, 3, etc.)
+  "name": "Database Schema",     // Short phase name
+  "description": "...",          // What this phase implements
+  "files": ["src/..."],          // Files modified in this phase
+  "estimatedSize": "S"           // S or M (never L/XL for a single phase)
+}
+\`\`\`
 
 Keep the design concise. A small feature might only need a short list of files. A large feature needs more detail.
 
@@ -502,6 +532,69 @@ interface FeatureDocument {
 
 ## Implementation Notes (if needed)
 [Only for complex logic]
+\`\`\`
+
+Example for a LARGE feature (L/XL) with phases:
+
+\`\`\`markdown
+# Technical Design: User Authentication System
+
+**Size: L** | **Complexity: High**
+
+## Overview
+Implement complete user authentication with login, signup, password reset, and session management.
+
+## Implementation Phases
+
+This feature will be split into 3 PRs:
+
+### Phase 1: Database & Models (S)
+- User collection schema
+- Session management
+- Files: src/server/database/collections/users.ts, src/server/database/collections/sessions.ts
+
+### Phase 2: API Endpoints (M)
+- Login, logout, register endpoints
+- JWT token handling
+- Files: src/apis/auth/*, src/pages/api/process/auth_*.ts
+
+### Phase 3: UI Components (M)
+- Login form, register form
+- Protected route wrapper
+- Files: src/client/features/auth/*
+
+## Files to Create
+[List all files across all phases]
+
+## Files to Modify
+[List all modifications across all phases]
+\`\`\`
+
+**phases JSON output for L/XL example:**
+\`\`\`json
+[
+  {
+    "order": 1,
+    "name": "Database & Models",
+    "description": "User collection schema and session management",
+    "files": ["src/server/database/collections/users.ts", "src/server/database/collections/sessions.ts"],
+    "estimatedSize": "S"
+  },
+  {
+    "order": 2,
+    "name": "API Endpoints",
+    "description": "Login, logout, register endpoints with JWT handling",
+    "files": ["src/apis/auth/types.ts", "src/apis/auth/handlers/login.ts"],
+    "estimatedSize": "M"
+  },
+  {
+    "order": 3,
+    "name": "UI Components",
+    "description": "Login form, register form, protected route wrapper",
+    "files": ["src/client/features/auth/components/LoginForm.tsx"],
+    "estimatedSize": "M"
+  }
+]
 \`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
@@ -1180,8 +1273,6 @@ Key principles for bug fixes:
 - Add comments explaining non-obvious fixes
 - DO NOT refactor surrounding code unless necessary for the fix
 - DO NOT add features or improvements beyond the bug fix
-
-${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 

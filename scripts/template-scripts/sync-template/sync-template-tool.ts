@@ -302,12 +302,12 @@ export class TemplateSyncTool {
       const templateCommitsForReport = getTemplateCommitsSinceLastSync(this.context);
 
       if (!this.context.options.dryRun && result.autoMerged.length > 0) {
-        // Run yarn checks before committing
-        log(this.context.options, '\n🔍 Running yarn checks before committing...');
+        // Run validation checks (TypeScript + ESLint) before committing
+        log(this.context.options, '\n🔍 Running validation checks before committing...');
         const checksPass = await runValidation(this.context);
 
         if (!checksPass) {
-          logError('\n❌ yarn checks failed! Sync changes were applied but NOT committed.');
+          logError('\n❌ Validation checks failed! Sync changes were applied but NOT committed.');
           logError('   Please fix the issues above and commit manually.');
 
           // Still update config to track sync state

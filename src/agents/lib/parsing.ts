@@ -288,3 +288,146 @@ ${DESIGN_MARKERS.techEnd}`);
 
     return parts.join('\n');
 }
+
+// ============================================================
+// PHASE EXTRACTION (MULTI-PR WORKFLOW)
+// ============================================================
+
+/**
+ * Implementation phase for multi-PR workflow
+ */
+export interface ParsedPhase {
+    order: number;
+    name: string;
+    description: string;
+    files: string[];
+    estimatedSize: 'S' | 'M';
+}
+
+/**
+ * Extract implementation phases from tech design markdown (FALLBACK ONLY)
+ *
+ * ⚠️ DEPRECATED: This is a fallback for backward compatibility with issues created
+ * before the phase comment feature. New issues should use parsePhasesFromComment()
+ * from './phases.ts' which is more reliable.
+ *
+ * The new architecture:
+ * - Tech design agent: Posts phases as GitHub comment using formatPhasesToComment()
+ * - Implementation agent: Reads phases using parsePhasesFromComment()
+ * - This function: Only used if no phase comment exists (old issues)
+ *
+ * Looks for:
+ * 1. "## Implementation Phases" or "## Phases" section
+ * 2. Phase headers like "### Phase 1: Database Schema (S)"
+ *
+ * Returns null if no phases found (single-phase feature)
+ *
+ * @deprecated Prefer parsePhasesFromComment() from './phases.ts' for new implementations
+ */
+export function extractPhasesFromTechDesign(techDesign: string): ParsedPhase[] | null {
+    if (!techDesign) return null;
+
+    // Look for phases section
+    const phaseSectionMatch = techDesign.match(/##\s*(?:Implementation\s+)?Phases?\s*\n([\s\S]*?)(?=\n##\s+[^#]|$)/i);
+    if (!phaseSectionMatch) return null;
+
+    const phasesSection = phaseSectionMatch[1];
+
+    // Parse individual phases
+    // Pattern: ### Phase N: Name (Size)
+    const phasePattern = /###\s*Phase\s*(\d+)[:\s]+([^(\n]+)\s*(?:\(([SM])\))?[\s\n]+([\s\S]*?)(?=###\s*Phase\s*\d+|$)/gi;
+    const phases: ParsedPhase[] = [];
+
+    let match;
+    while ((match = phasePattern.exec(phasesSection)) !== null) {
+        const order = parseInt(match[1], 10);
+        const name = match[2].trim();
+        const size = (match[3] as 'S' | 'M') || 'M';
+        const content = match[4].trim();
+
+        // Extract files from the content (look for file paths in backticks or bullet points)
+        const files: string[] = [];
+        const filePatterns = [
+            /`(src\/[^`]+)`/g,  // backtick paths
+            /[-*]\s*`?([^`\n]+\/[^`\n]+\.[a-z]+)`?/gi,  // bullet points with file paths
+        ];
+
+        for (const pattern of filePatterns) {
+            let fileMatch;
+            while ((fileMatch = pattern.exec(content)) !== null) {
+                const file = fileMatch[1].trim();
+                if (file.includes('/') && !files.includes(file)) {
+                    files.push(file);
+                }
+            }
+        }
+
+        // Extract description (first non-empty line or bullet that isn't a file)
+        const lines = content.split('\n').filter(l => l.trim());
+        let description = '';
+        for (const line of lines) {
+            const cleanLine = line.replace(/^[-*]\s*/, '').trim();
+            // Skip if it's a file path
+            if (!cleanLine.includes('/') || !cleanLine.match(/\.[a-z]+$/i)) {
+                description = cleanLine;
+                break;
+            }
+        }
+        if (!description) {
+            description = name;
+        }
+
+        phases.push({
+            order,
+            name,
+            description,
+            files,
+            estimatedSize: size,
+        });
+    }
+
+    // Only return phases if we found at least 2 (otherwise it's not a multi-phase feature)
+    return phases.length >= 2 ? phases : null;
+}
+
+/**
+ * Parse phase string from GitHub project field
+ * @param phase Format "X/N" (e.g., "1/3")
+ * @returns Object with current and total, or null if invalid
+ */
+export function parsePhaseString(phase: string | null): { current: number; total: number } | null {
+    if (!phase) return null;
+
+    const match = phase.match(/^(\d+)\/(\d+)$/);
+    if (!match) return null;
+
+    const current = parseInt(match[1], 10);
+    const total = parseInt(match[2], 10);
+
+    if (current < 1 || current > total || total < 1) return null;
+
+    return { current, total };
+}
+
+/**
+ * Check if the tech design indicates an L or XL size feature
+ */
+export function isLargeFeature(techDesign: string): boolean {
+    if (!techDesign) return false;
+
+    // Look for size indicators
+    const sizeMatch = techDesign.match(/\*\*Size[:\s]*([SMLX]+)\*\*/i);
+    if (sizeMatch) {
+        const size = sizeMatch[1].toUpperCase();
+        return size === 'L' || size === 'XL';
+    }
+
+    // Alternative pattern: Size: L or Size: XL
+    const altMatch = techDesign.match(/Size[:\s]+([SMLX]+)/i);
+    if (altMatch) {
+        const size = altMatch[1].toUpperCase();
+        return size === 'L' || size === 'XL';
+    }
+
+    return false;
+}

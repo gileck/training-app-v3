@@ -76,6 +76,13 @@ export const REVIEW_STATUSES = {
  */
 export const REVIEW_STATUS_FIELD = 'Review Status';
 
+/**
+ * Custom field name for implementation phase tracking (multi-PR workflow)
+ * Format: "X/N" where X is current phase and N is total phases
+ * Example: "1/3" means phase 1 of 3
+ */
+export const IMPLEMENTATION_PHASE_FIELD = 'Implementation Phase';
+
 // Type helpers
 export type Status = (typeof STATUSES)[keyof typeof STATUSES];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[keyof typeof REVIEW_STATUSES];

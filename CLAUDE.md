@@ -449,16 +449,40 @@ Strict TypeScript guidelines.
 
 **CRITICAL: Always run `yarn checks` before completing work.**
 
+**Check Command:**
+
+| Command | Use Case | Behavior |
+|---------|----------|----------|
+| `yarn checks` or `yarn checks:ci` | **CI/CD, Automation, Pre-commit** | Runs BOTH checks, shows ALL errors, fails if EITHER fails |
+| `yarn checks:dev` | **Development** | Same as `checks:ci` (runs both, shows all) |
+
+**How It Works:**
+
+**`yarn checks:ci` (CI/CD Mode)**
+- ✅ Runs TypeScript check (`yarn ts`)
+- ✅ Runs ESLint check (`yarn lint`)
+- ✅ Shows output from BOTH checks (even if first one fails)
+- ✅ Fails with exit code 1 if EITHER check fails
+- **Note:** `yarn checks` is an alias to `yarn checks:ci`
+
+**Why This Approach:**
+Before, using `yarn ts && yarn lint` would stop at TypeScript errors and hide ESLint errors. Developers had to:
+1. Fix TypeScript errors
+2. Re-run to discover ESLint errors
+3. Fix ESLint errors
+
+Now, developers see ALL errors at once and can fix them together.
+
+**When to Use:**
+- ✅ Before committing code
+- ✅ Before creating pull requests
+- ✅ Before syncing to child projects
+- ✅ Before deploying to production
+- ✅ In GitHub Actions workflows
+- ✅ In automated scripts
+
 **For Claude Code (Planning Mode):**
 Always include a final task to run `yarn checks` in your plan.
-
-**Before any of these actions:**
-- ✅ Committing code
-- ✅ Creating pull requests
-- ✅ Syncing to child projects
-- ✅ Deploying to production
-
-**Always run:** `yarn checks`
 
 **If errors occur:**
 1. Fix TypeScript errors first
@@ -466,6 +490,109 @@ Always include a final task to run `yarn checks` in your plan.
 3. Re-run `yarn checks` until it passes
 
 **Docs:** [docs/validation-planning-mode.md](docs/validation-planning-mode.md)
+
+---
+
+## Exit Codes: The ONLY Reliable Way to Check Success/Failure
+
+**CRITICAL PRINCIPLE: NEVER parse command output to determine success/failure. ALWAYS use exit codes.**
+
+### Why Exit Codes?
+
+Exit codes are the universal standard for determining command success:
+- **Exit code 0** = Success
+- **Exit code non-zero** = Failure
+
+### The Problem with Output Parsing
+
+❌ **WRONG - Output Parsing (UNRELIABLE):**
+```typescript
+const output = execSync('yarn checks:ci');
+const success = output.includes('✅ All checks passed!'); // FRAGILE!
+```
+
+**Why this is bad:**
+- Output format can change
+- Output can be localized (different languages)
+- Output can be truncated or buffered incorrectly
+- Emoji rendering issues
+- Timing issues with stdout/stderr interleaving
+
+✅ **CORRECT - Exit Code (RELIABLE):**
+```typescript
+try {
+    const output = execSync('yarn checks:ci', { stdio: 'pipe' });
+    // If we get here, exit code was 0 = success
+    return { success: true, output };
+} catch (error) {
+    // execSync throws when exit code is non-zero = failure
+    return { success: false, output: error.stdout || error.message };
+}
+```
+
+### When to Use Exit Codes
+
+**ALWAYS use exit codes for:**
+- ✅ CI/CD workflows
+- ✅ Automated scripts
+- ✅ Agent workflows
+- ✅ Pre-commit hooks
+- ✅ Build pipelines
+- ✅ ANY automation
+
+**Exceptions (Use Structured Output Instead):**
+- When you need detailed status (not just pass/fail), use **structured JSON output**
+- Example: `yarn sync-template --json` returns JSON with detailed status
+
+### Example: Implement Agent
+
+```typescript
+// CORRECT implementation in src/agents/core-agents/implementAgent/index.ts
+function runYarnChecks(): { success: boolean; output: string } {
+    try {
+        const output = execSync('yarn checks:ci', {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            timeout: 120000,
+        });
+        // If execSync didn't throw, the command succeeded (exit code 0)
+        return { success: true, output };
+    } catch (error) {
+        // execSync throws when command exits with non-zero code = failure
+        const err = error as { stdout?: string; stderr?: string };
+        const output = err.stdout || err.stderr || String(error);
+        return { success: false, output };
+    }
+}
+```
+
+### Shell Script Exit Codes
+
+In bash scripts (like `scripts/checks-ci.sh`):
+```bash
+# Run commands and capture exit codes
+yarn ts
+TS_EXIT=$?
+
+yarn lint
+LINT_EXIT=$?
+
+# Check exit codes (not output!)
+if [ $TS_EXIT -eq 0 ] && [ $LINT_EXIT -eq 0 ]; then
+    exit 0  # Success
+else
+    exit 1  # Failure
+fi
+```
+
+### Documentation
+
+This principle is documented and enforced in:
+- `src/agents/core-agents/implementAgent/index.ts` - Uses exit codes
+- `scripts/checks-ci.sh` - Returns proper exit codes
+- `scripts/sync-child-projects.ts` - Requires JSON output, no output parsing
+
+**Rule:** If you find code parsing output to check success/failure, replace it with exit code checking or structured output (JSON).
 
 ---
 
@@ -702,11 +829,20 @@ Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 - Auto-completion when PR merges
 - Two-tier status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)
 
+**Multi-Phase Features (L/XL):**
+- Tech design agent generates 2-5 phases and posts them as a GitHub issue comment
+- Phase comment uses deterministic format with marker `<!-- AGENT_PHASES_V1 -->` (not LLM-generated)
+- Implementation agent reads phases from comment (reliable) or markdown (fallback)
+- **PR review agent is phase-aware** - verifies PR only implements the specified phase
+- Each phase is independently mergeable (S or M size)
+- Sequential PRs: Phase N+1 starts after Phase N merges
+
 **CLI Commands:**
 - `yarn init-agents-copy` - Create a separate copy for running agents (recommended)
 - `yarn agent:product-design` - Generate product designs
 - `yarn agent:tech-design` - Generate technical designs
 - `yarn agent:implement` - Implement features and create PRs
+- `yarn agent:pr-review` - **Review PRs (phase-aware, run via cron)**
 
 **Setup:**
 📚 **[docs/init-github-projects-workflow.md](docs/init-github-projects-workflow.md)** - Complete setup guide

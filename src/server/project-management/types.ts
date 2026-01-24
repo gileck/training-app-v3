@@ -216,6 +216,32 @@ export interface ProjectManagementAdapter {
     clearItemReviewStatus(itemId: string): Promise<void>;
 
     // --------------------------------------------------------
+    // Implementation Phase (Multi-PR Workflow)
+    // --------------------------------------------------------
+
+    /**
+     * Check if the implementation phase field exists
+     */
+    hasImplementationPhaseField(): boolean;
+
+    /**
+     * Get the current implementation phase for an item
+     * Returns format "X/N" (e.g., "1/3" for phase 1 of 3) or null if not set
+     */
+    getImplementationPhase(itemId: string): Promise<string | null>;
+
+    /**
+     * Set the implementation phase for an item
+     * @param value Format "X/N" (e.g., "1/3" for phase 1 of 3)
+     */
+    setImplementationPhase(itemId: string, value: string): Promise<void>;
+
+    /**
+     * Clear the implementation phase for an item
+     */
+    clearImplementationPhase(itemId: string): Promise<void>;
+
+    // --------------------------------------------------------
     // Issues
     // --------------------------------------------------------
 
@@ -292,6 +318,26 @@ export interface ProjectManagementAdapter {
         event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
         body: string
     ): Promise<void>;
+
+    /**
+     * Get PR details including state (open/closed) and merged status
+     * Returns null if PR doesn't exist
+     */
+    getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean } | null>;
+
+    /**
+     * Find the open PR for an issue.
+     *
+     * For feedback mode (Request Changes), finds the currently open PR
+     * to push fixes to. Returns both PR number AND branch name (from the PR itself).
+     *
+     * Why get branch from PR?
+     * - Branch name depends on title + phase - regenerating may fail if these changed
+     * - The PR itself knows its actual branch name - use that!
+     *
+     * @returns PR number and branch name, or null if no open PR found
+     */
+    findOpenPRForIssue(issueNumber: number): Promise<{ prNumber: number; branchName: string } | null>;
 
     // --------------------------------------------------------
     // Branches

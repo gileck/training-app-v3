@@ -1,7 +1,10 @@
 # PR Code Quality Checks
 #
-# Runs yarn checks on pull requests. Does not block merge but reports failures
+# Runs yarn checks:ci on pull requests. Does not block merge but reports failures
 # via GitHub PR comment and Telegram notification.
+#
+# Note: Uses checks:ci which runs BOTH TypeScript and ESLint, showing ALL errors
+# at once instead of failing fast on the first error.
 #
 # Required GitHub Secrets (set via `yarn setup-github-secrets`):
 #   - TELEGRAM_BOT_TOKEN: Your Telegram bot token
@@ -37,7 +40,7 @@ jobs:
         id: checks
         run: |
           set +e
-          OUTPUT=$(yarn checks 2>&1)
+          OUTPUT=$(yarn checks:ci 2>&1)
           EXIT_CODE=$?
 
           # Save output to file for multiline handling

@@ -563,11 +563,14 @@ Once routed, the appropriate AI agent picks up the item:
 - **For features:** Creates `feature/issue-#-title` branch, PR title: `feat: ...`
 - **For bugs:** Creates `fix/issue-#-title` branch, PR title: `fix: ...`
 - Posts high-level summary comment on PR (e.g., "Here's what I did: 1. ... 2. ... 3. ...")
+- **Posts status comment on issue** (e.g., "📋 Opening PR #123" or "🔧 Addressed feedback on PR #123")
 - Sends Telegram notification with summary
 - Bug implementation prompts include session logs and diagnostics
 
 **Feedback Mode:**
-When addressing review feedback, agents post "Here's what I changed: 1. ... 2. ... 3. ..." instead of "Here's what I did/designed"
+When addressing review feedback, agents:
+- Post "Here's what I changed: 1. ... 2. ... 3. ..." on the PR
+- Post status comment on issue (e.g., "🔧 Addressed feedback on PR #123 - ready for re-review")
 
 ### Alternative: App UI Approval
 
@@ -623,7 +626,7 @@ This requires:
 |------|--------|-------------|
 | `.github/workflows/issue-notifications.yml` | Issues, comments | Telegram notifications for issue events |
 | `.github/workflows/pr-notifications.yml` | Pull requests, reviews | Telegram notifications for PR events |
-| `.github/workflows/pr-merged-mark-done.yml` | PR merged | Auto-marks issue as Done when PR merges |
+| `.github/workflows/pr-merged-mark-done.yml` | PR merged | Handles phase transitions + posts status comments on merge |
 | `.github/workflows/deploy-notify.yml` | Deployments | Deployment notifications |
 | `.github/workflows/pr-checks.yml` | PR opened/updated | Run checks on PRs |
 | `.github/workflows/claude-code-review.yml` | PR opened/updated | Automated Claude Code PR review |
@@ -884,10 +887,11 @@ Feature Request Submitted
 **Key Points:**
 - **MongoDB status** stays `'in_progress'` throughout the entire workflow (Product Design → Tech Design → Ready for development → PR Review)
 - **Detailed workflow tracking** happens in GitHub Projects (Product Design, Technical Design, etc.)
-- **GitHub Action auto-completion**: When PR is merged, the action automatically:
-  - Extracts the issue number from the PR body (e.g., "Closes #123")
-  - Updates GitHub Project item status to "Done"
-  - Updates MongoDB feature request status to `'done'`
+- **GitHub Action on PR merge** (`on-pr-merged.ts`): When PR is merged, the action automatically:
+  - Extracts the issue number from the PR body ("Closes #123" or "Part of #123")
+  - Posts a status comment on the issue (phase-aware for multi-phase features)
+  - For multi-phase: Increments phase counter, returns to Implementation status
+  - For final/single phase: Updates GitHub Project status to "Done" + MongoDB to `'done'`
   - Sends a Telegram notification confirming completion
 
 ### Admin Actions
@@ -982,6 +986,53 @@ Please respond with one of:
 - "Option 1" → Agent proceeds with Option 1 as described
 - "Option 1, but fetch user from database on backend instead of frontend" → Agent uses Option 1 approach with specified modification
 - "New Option: Store both requestedBy ID and requestedByName, fetch user details on hover" → Agent implements the completely new approach
+
+### Rejection Handling
+
+When an item is marked as "Rejected" (via Review Status), it enters a terminal state and requires manual intervention.
+
+**How Rejection Works:**
+
+1. Admin reviews a design or PR
+2. Admin sets Review Status = "Rejected" (via Telegram button, GitHub Projects, or App UI)
+3. Item is skipped by all agents - no agent will pick it up
+4. Item remains in its current phase on the project board
+
+**Handling Rejected Items:**
+
+Since rejected items accumulate with no automatic cleanup, you have these options:
+
+| Action | How | When to Use |
+|--------|-----|-------------|
+| **Close Issue** | Close the GitHub issue manually | Item won't be implemented (won't fix, duplicate, out of scope) |
+| **Move to Backlog** | Change Project Status to "Backlog" + clear Review Status | Defer for future consideration |
+| **Un-reject** | Clear Review Status (set to empty) | Changed your mind, want agents to process it |
+
+**Example Scenarios:**
+
+*Permanently reject:*
+```
+1. Review Status = "Rejected" (via Telegram or GitHub)
+2. Close the GitHub issue
+3. Issue remains closed, won't be processed
+```
+
+*Defer for later:*
+```
+1. Review Status = "Rejected" (via Telegram or GitHub)
+2. Change Project Status to "Backlog"
+3. Clear Review Status (set to empty or null)
+4. Item waits in Backlog until manually moved to a phase
+```
+
+*Accidental rejection:*
+```
+1. Review Status = "Rejected" (accidentally)
+2. Clear Review Status (set to empty)
+3. Item is now ready for agents to pick up again
+```
+
+**Important:** Rejected items never auto-advance. They stay in their current phase until manually moved or closed.
 
 ### Alternative Workflows (Non-Product Features)
 
@@ -1105,6 +1156,132 @@ Implementation Agent:
 Admin merges → Done
 ```
 
+### Multi-PR Workflow (L/XL Features)
+
+For large features (L/XL size), the system automatically splits implementation into multiple phases, each resulting in a separate PR.
+
+**How it works:**
+
+1. **Tech Design Agent** generates phases for L/XL features:
+   - Splits feature into 2-5 independently mergeable phases
+   - Each phase should be size S or M (not L/XL)
+   - Phases are ordered so dependencies flow forward
+   - **Posts phases as GitHub comment** (for reliable retrieval)
+
+2. **Implementation Agent** implements one phase at a time:
+   - Reads phases from GitHub comment (reliable) or markdown (fallback)
+   - Creates phase-specific branch: `feature/issue-{N}-phase-{X}-{slug}`
+   - PR title includes phase: `feat: Feature Name (Phase 1/3)`
+   - PR body includes phase description
+
+3. **PR Review Agent** reviews each phase's PR:
+   - **Phase-aware review**: Knows which phase is being reviewed
+   - Verifies PR only implements the specified phase (not future phases)
+   - Checks that changes are in expected files for the phase
+   - Ensures phase is independently mergeable
+   - Run via: `yarn agent:pr-review` (or cron job)
+
+4. **On PR Merge** (`on-pr-merged.ts`):
+   - Posts status comment on issue (e.g., "✅ Phase 1/3 complete - Merged PR #101")
+   - If more phases remain: Issue returns to "Implementation" status, phase counter increments
+   - If all phases complete: Posts final comment, issue moves to "Done"
+
+**Phase Storage & Retrieval:**
+
+The system uses a deterministic two-layer approach for storing and retrieving implementation phases:
+
+| Layer | Location | Method | Reliability |
+|-------|----------|--------|-------------|
+| **Primary** | GitHub Issue Comment | `parsePhasesFromComment()` | 100% reliable |
+| **Fallback** | Tech Design Markdown | `extractPhasesFromTechDesign()` | Regex-based, for backward compatibility |
+
+**Phase Comment Format:**
+```markdown
+<!-- AGENT_PHASES_V1 -->
+## Implementation Phases
+
+This feature will be implemented in 3 sequential PRs:
+
+### Phase 1: Database Schema (S)
+
+Set up user and session collections
+
+**Files to modify:**
+- `src/server/database/collections/users.ts`
+- `src/server/database/collections/sessions.ts`
+
+### Phase 2: API Endpoints (M)
+
+Implement login and register endpoints
+
+**Files to modify:**
+- `src/apis/auth/index.ts`
+- `src/pages/api/process/auth_login.ts`
+
+---
+*Phase tracking managed by Implementation Agent*
+```
+
+**Why this architecture?**
+- ✅ **Deterministic**: Both serialization and deserialization use our code, not LLM formatting
+- ✅ **Reliable**: The comment format is controlled and predictable
+- ✅ **Visible**: Human-readable in GitHub UI for debugging
+- ✅ **Backward Compatible**: Falls back to markdown parsing for old issues
+
+**Example Flow (L feature with 3 phases):**
+
+| Step | Action | GitHub Project State |
+|------|--------|---------------------|
+| 1 | Tech Design generates phases + posts comment | Status: Ready for development |
+| 2 | Implementation agent runs (Phase 1) | Status: PR Review, Phase: 1/3 |
+| 3 | **PR Review agent reviews** (phase-aware) | Review Status: Approved/Request Changes |
+| 4 | Admin merges PR #101 | Status: Implementation, Phase: 2/3 |
+| 5 | Implementation agent runs (Phase 2) | Status: PR Review, Phase: 2/3 |
+| 6 | **PR Review agent reviews** (phase-aware) | Review Status: Approved/Request Changes |
+| 7 | Admin merges PR #102 | Status: Implementation, Phase: 3/3 |
+| 8 | Implementation agent runs (Phase 3) | Status: PR Review, Phase: 3/3 |
+| 9 | **PR Review agent reviews** (phase-aware) | Review Status: Approved/Request Changes |
+| 10 | Admin merges PR #103 | Status: Done, Phase: (cleared) |
+
+**PR Review Agent Cron Setup:**
+
+The PR review agent should run on a schedule to automatically review pending PRs:
+```bash
+# Example cron entry (every 15 minutes)
+*/15 * * * * cd /path/to/project && yarn agent:pr-review >> /var/log/pr-review.log 2>&1
+```
+
+**Setup Required:**
+
+Add the "Implementation Phase" field to your GitHub Project:
+1. In your project, click the "+" button (add field)
+2. Select "Text" (not Single select)
+3. Name it exactly: `Implementation Phase`
+4. Click "Save"
+
+The field stores values like "1/3" (phase 1 of 3).
+
+**Telegram Notifications:**
+
+You'll receive notifications at each phase:
+- "✅ Phase 1/3 merged. Starting Phase 2..."
+- "🎉 All 3 phases complete!" (on final merge)
+
+**When to use:**
+
+| Feature Size | Phases | Behavior |
+|--------------|--------|----------|
+| S | None | Single PR |
+| M | None | Single PR |
+| L | 2-3 | Multiple PRs |
+| XL | 3-5 | Multiple PRs |
+
+**Fallback:**
+
+If the "Implementation Phase" field doesn't exist, the system falls back to single-phase behavior (one PR for the entire feature).
+
+---
+
 ### Pull Request Format (Squash-Merge Ready)
 
 The implement agent creates PRs that are **immediately ready for squash merge** without any editing needed.
@@ -1154,10 +1331,72 @@ See issue #123 for full context, product design, and technical design.
 - Result: A perfect, clean conventional commit without any manual editing
 
 **Auto-completion on merge:**
-When you merge the PR, a GitHub Action automatically:
-- Extracts the issue number from "Closes #123"
-- Updates the project item status to "Done"
+When you merge the PR, a GitHub Action (`on-pr-merged.ts`) automatically:
+- Extracts the issue number from "Closes #123" or "Part of #123"
+- Posts a status comment on the issue (see "Issue Status Comments" section)
+- For multi-phase: Increments phase counter and returns to Implementation status
+- For final/single phase: Updates the project item status to "Done"
 - Sends a Telegram notification confirming completion
+
+## Issue Status Comments (Workflow Visibility)
+
+The system automatically posts status comments on GitHub issues at key workflow points. This provides visibility on the issue itself about current status, so the issue reflects the complete history of the project.
+
+### Comment Types
+
+| Event | Agent | Comment Format |
+|-------|-------|----------------|
+| **PR Opened** | Implementor | `⚙️ [Implementor Agent] 📋 Opening PR #123` |
+| **PR Opened (Phase)** | Implementor | `⚙️ [Implementor Agent] 📋 **Phase 1/3**: Opening PR #123 - Database Schema` |
+| **Feedback Addressed** | Implementor | `⚙️ [Implementor Agent] 🔧 Addressed feedback on PR #123 - ready for re-review` |
+| **Feedback Addressed (Phase)** | Implementor | `⚙️ [Implementor Agent] 🔧 **Phase 2/3**: Addressed feedback on PR #123 - ready for re-review` |
+| **PR Approved** | PR Review | `👀 [PR Review Agent] ✅ PR approved - ready for merge (#123)` |
+| **PR Approved (Phase)** | PR Review | `👀 [PR Review Agent] ✅ **Phase 1/3**: PR approved - ready for merge (#123)` |
+| **Changes Requested** | PR Review | `👀 [PR Review Agent] ⚠️ Changes requested on PR (#123)` |
+| **Changes Requested (Phase)** | PR Review | `👀 [PR Review Agent] ⚠️ **Phase 2/3**: Changes requested on PR (#123)` |
+| **Mid-Phase Merged** | on-pr-merged | `✅ **Phase 1/3** complete - Merged PR #123`<br>`🔄 Starting Phase 2/3...` |
+| **Final Phase Merged** | on-pr-merged | `✅ **Phase 3/3** complete - Merged PR #123`<br>`🎉 **All 3 phases complete!** Issue is now Done.` |
+| **Single-Phase Merged** | on-pr-merged | `✅ Merged PR #123 - Issue complete!` |
+
+### Example Issue Timeline
+
+For a 2-phase feature, the issue comments would look like:
+
+```
+🎨 [Product Design Agent]
+Here's the design overview...
+
+🏗️ [Tech Design Agent]
+Here's the implementation plan...
+
+⚙️ [Implementor Agent] 📋 **Phase 1/2**: Opening PR #101 - Database Schema
+
+👀 [PR Review Agent] ⚠️ **Phase 1/2**: Changes requested on PR (#101)
+
+⚙️ [Implementor Agent] 🔧 **Phase 1/2**: Addressed feedback on PR #101 - ready for re-review
+
+👀 [PR Review Agent] ✅ **Phase 1/2**: PR approved - ready for merge (#101)
+
+✅ **Phase 1/2** complete - Merged PR #101
+🔄 Starting Phase 2/2...
+
+⚙️ [Implementor Agent] 📋 **Phase 2/2**: Opening PR #102 - API Endpoints
+
+👀 [PR Review Agent] ✅ **Phase 2/2**: PR approved - ready for merge (#102)
+
+✅ **Phase 2/2** complete - Merged PR #102
+🎉 **All 2 phases complete!** Issue is now Done.
+```
+
+### Benefits
+
+- **Single Source of Truth**: Issue comments show complete workflow history
+- **Phase Visibility**: Clear indication of current phase in multi-phase features
+- **PR Linking**: Easy to navigate between issues and PRs
+- **Review Status**: Know at a glance if PR is approved or needs changes
+- **Agent Attribution**: Emoji prefixes identify which agent took each action
+
+---
 
 ## Running the Agents
 
@@ -1412,6 +1651,60 @@ Result: One complete log file showing the entire journey!
    - Sets Review Status back to "Waiting for Review"
 5. Admin receives notification that revisions are ready
 
+### Finding the Correct PR in Feedback Mode (Critical for Multi-Phase)
+
+When the implementation agent addresses PR feedback, it needs to find the **currently open PR** to push fixes to. This is especially critical for multi-phase workflows where an issue may have had multiple PRs over time (some already merged).
+
+**The Problem:**
+- Issue #42 has 3 phases
+- Phase 1 PR merged (PR #101 - closed)
+- Phase 2 PR is open with feedback (PR #102 - open)
+- Agent needs to find PR #102, NOT PR #101
+
+**The Solution:**
+
+The agent uses `findOpenPRForIssue()` to search for open PRs referencing the issue:
+
+```typescript
+const openPR = await adapter.findOpenPRForIssue(issueNumber);
+// Returns: { prNumber: 102, branchName: 'feature/issue-42-phase-2-...' }
+```
+
+**Key Design Decisions:**
+
+| Aspect | Decision | Why |
+|--------|----------|-----|
+| PR State | Only search **OPEN** PRs | Avoids finding old merged/closed PRs |
+| Branch Name | Get from PR, not regenerate | Branch name = f(title, phase) - if these changed, regeneration fails |
+| Single Open PR | Assume at most 1 open PR per issue | Multi-phase creates sequential PRs, not parallel |
+
+**Branch Name from PR (Not Regenerated):**
+
+Branch names are generated as: `{prefix}/issue-{N}-phase-{X}-{slug}`
+
+Why get it from the PR?
+- Title could have changed since PR was created
+- Phase number parsing might differ
+- The PR itself **knows** its actual branch name
+- Getting from PR = 100% reliable
+
+**Mode Detection:**
+
+| Status | Review Status | Mode | PR Action |
+|--------|---------------|------|-----------|
+| Ready for dev | Empty | `new` | Always create new PR |
+| Implementation | Request Changes | `feedback` | Find open PR via `findOpenPRForIssue()` |
+
+**New Mode (Always Create):**
+- No idempotency check for existing PRs
+- Reason: In multi-phase, old merged PRs would be incorrectly detected as "existing"
+- Simply creates a new PR for the new phase
+
+**Feedback Mode (Find Open PR):**
+1. Call `findOpenPRForIssue(issueNumber)`
+2. If found → checkout branch (from PR), push fixes
+3. If not found → skip with warning (no open PR to fix)
+
 ### PR Review State and Multiple Review Cycles
 
 **Understanding Two Status Systems:**
@@ -1601,6 +1894,55 @@ The agents are designed to minimize API calls. If you hit limits:
 - Wait for the rate limit to reset
 - Use `--limit` to process fewer items at once
 
+### Known Edge Cases
+
+**Concurrent Agent Execution**
+
+If two instances of the same agent run simultaneously (rare but possible):
+- Both may pick up the same items
+- Both may try to update the same Review Status
+- Could result in duplicate processing
+
+**Mitigations in place:**
+1. **Idempotency checks** - Agents check if work already exists:
+   - PR already created? Skip PR creation
+   - Design already in issue body? Skip design generation
+2. **Review Status tracking** - Items with non-empty Review Status are skipped
+
+**Optional lock mechanism:**
+Lock functions are available but not enabled by default:
+```typescript
+import { acquireAgentLock, releaseAgentLock } from './shared';
+
+// In agent main():
+if (!acquireAgentLock('product-design')) {
+    console.error('Another instance running');
+    process.exit(1);
+}
+```
+
+**When to enable locking:**
+- Running agents via cron/CI (automated)
+- Multiple users may trigger agents simultaneously
+- You want guaranteed single-instance execution
+
+**Note:** The lock mechanism uses PID-based detection, so crashed agents automatically recover (no 30-minute lockouts).
+
+---
+
+**Agent Crash Mid-Processing**
+
+If an agent crashes (Ctrl+C, kill, exception) during processing:
+
+| Scenario | What Happens | Recovery |
+|----------|--------------|----------|
+| Crash before any work | Item stays in queue | Next run processes it |
+| Crash after design, before status update | Design exists in issue | Next run: idempotency check skips design, updates status |
+| Crash after PR created, before comment | PR exists, no comment on issue | Next run: may create duplicate PR (rare) |
+| Crash after status update | Work complete | No recovery needed |
+
+**Worst case:** Duplicate PR created. This is easily fixable manually and extremely rare (requires crash in ~100ms window).
+
 ## Child Project Setup (Quick Start)
 
 For projects based on this template:
@@ -1639,10 +1981,24 @@ For projects based on this template:
 src/
 ├── agents/                          # CLI agent scripts
 │   ├── index.ts                     # Master CLI (yarn github-workflows-agent)
-│   ├── product-design.ts            # Generate product design
-│   ├── tech-design.ts               # Generate technical design
-│   ├── implement.ts                 # Implement + create PR
 │   ├── auto-advance.ts              # Auto-advance approved items
+│   ├── core-agents/                 # Agent workflows
+│   │   ├── productDesignAgent/      # Generate product design
+│   │   │   ├── index.ts
+│   │   │   └── AGENTS.md
+│   │   ├── technicalDesignAgent/    # Generate technical design
+│   │   │   ├── index.ts
+│   │   │   └── AGENTS.md
+│   │   ├── implementAgent/          # Implement + create PR
+│   │   │   ├── index.ts
+│   │   │   └── AGENTS.md
+│   │   └── prReviewAgent/           # Review PRs
+│   │       ├── index.ts
+│   │       └── AGENTS.md
+│   ├── lib/                         # Agent library abstraction
+│   │   ├── types.ts                 # Library adapter interface
+│   │   ├── config.ts                # Configuration loader
+│   │   └── adapters/                # Provider implementations
 │   └── shared/
 │       ├── config.ts                # Agent-specific config + re-exports
 │       ├── claude.ts                # Claude SDK runner
@@ -1674,10 +2030,14 @@ src/
 │           └── approve/
 │               └── [requestId].ts   # Fallback approval endpoint (localhost only)
 
+scripts/
+└── on-pr-merged.ts                   # Handle PR merge: phase transitions + status comments
+
 .github/
 └── workflows/
     ├── issue-notifications.yml      # Issue event notifications
     ├── pr-notifications.yml         # PR event notifications
+    ├── pr-merged-mark-done.yml      # On PR merge → runs on-pr-merged.ts
     ├── pr-checks.yml                # PR checks
     └── deploy-notify.yml            # Deployment notifications
 ```

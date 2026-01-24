@@ -14,16 +14,18 @@
  *   yarn github-workflows-agent --all [options]               # Run all in sequence
  *
  * Options:
- *   --skip-pull     Skip pulling latest changes from master (not recommended)
- *   --dry-run       Preview without changes (passed to agents)
- *   --id <id>       Process specific item (passed to agents)
- *   --limit <n>     Limit items to process (passed to agents)
- *   --stream        Stream Claude output (passed to agents only)
+ *   --skip-pull       Skip pulling latest changes from master (not recommended)
+ *   --dry-run         Preview without changes (passed to agents)
+ *   --id <id>         Process specific item (passed to agents)
+ *   --limit <n>       Limit items to process (passed to agents)
+ *   --global-limit    Stop workflow after first agent processes items (only with --all)
+ *   --stream          Stream Claude output (passed to agents only)
  *
  * Examples:
  *   yarn github-workflows-agent --product-design --dry-run
  *   yarn github-workflows-agent --tech-design --id PVTI_xxx
  *   yarn github-workflows-agent --all --dry-run
+ *   yarn github-workflows-agent --all --global-limit          # Stop after first agent runs
  *   yarn github-workflows-agent --implement --skip-pull       # Run without pulling
  */
 
@@ -31,10 +33,10 @@ import { spawn, execSync } from 'child_process';
 import { resolve } from 'path';
 
 const SCRIPTS = {
-    'product-design': resolve(__dirname, 'product-design.ts'),
-    'tech-design': resolve(__dirname, 'tech-design.ts'),
-    'implement': resolve(__dirname, 'implement.ts'),
-    'pr-review': resolve(__dirname, 'pr-review.ts'),
+    'product-design': resolve(__dirname, 'core-agents/productDesignAgent/index.ts'),
+    'tech-design': resolve(__dirname, 'core-agents/technicalDesignAgent/index.ts'),
+    'implement': resolve(__dirname, 'core-agents/implementAgent/index.ts'),
+    'pr-review': resolve(__dirname, 'core-agents/prReviewAgent/index.ts'),
     'auto-advance': resolve(__dirname, 'auto-advance.ts'),
 };
 
@@ -119,34 +121,55 @@ Usage:
   yarn github-workflows-agent --all [options]               Run all in sequence
 
 Options:
-  --skip-pull     Skip pulling latest changes from master (not recommended)
-  --dry-run       Preview without changes (passed to agents)
-  --id <id>       Process specific item (passed to agents)
-  --limit <n>     Limit items to process (passed to agents)
-  --stream        Stream Claude output (passed to agents only)
+  --skip-pull       Skip pulling latest changes from master (not recommended)
+  --dry-run         Preview without changes (passed to agents)
+  --id <id>         Process specific item (passed to agents)
+  --limit <n>       Limit items to process (passed to agents)
+  --global-limit    Stop workflow after first agent processes items (only with --all)
+  --stream          Stream Claude output (passed to agents only)
 
 Examples:
   yarn github-workflows-agent --product-design --dry-run
   yarn github-workflows-agent --tech-design --id PVTI_xxx
   yarn github-workflows-agent --all --dry-run
+  yarn github-workflows-agent --all --global-limit          # Stop after first agent runs
   yarn github-workflows-agent --implement --skip-pull       # Run without pulling
 `);
 }
 
-function runScript(scriptPath: string, args: string[]): Promise<number> {
+function runScript(scriptPath: string, args: string[]): Promise<{ exitCode: number; processedItems: boolean }> {
     return new Promise((resolve) => {
+        let output = '';
+
         const child = spawn('tsx', [scriptPath, ...args], {
-            stdio: 'inherit',
+            stdio: 'pipe',
             env: process.env,
         });
 
+        // Capture and forward stdout
+        child.stdout?.on('data', (data) => {
+            const text = data.toString();
+            process.stdout.write(text);
+            output += text;
+        });
+
+        // Capture and forward stderr
+        child.stderr?.on('data', (data) => {
+            const text = data.toString();
+            process.stderr.write(text);
+            output += text;
+        });
+
         child.on('close', (code) => {
-            resolve(code ?? 0);
+            // Check if agent processed any items
+            // Look for "Processing N item(s)" pattern in output
+            const processedItems = /Processing \d+ item\(s\)/.test(output);
+            resolve({ exitCode: code ?? 0, processedItems });
         });
 
         child.on('error', (err) => {
             console.error(`Failed to run script: ${err.message}`);
-            resolve(1);
+            resolve({ exitCode: 1, processedItems: false });
         });
     });
 }
@@ -163,6 +186,7 @@ async function main() {
     const scriptsToRun: string[] = [];
     const passThrough: string[] = [];
     let skipPull = false;
+    let globalLimit = false;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -181,8 +205,10 @@ async function main() {
             scriptsToRun.push('auto-advance');
         } else if (arg === '--skip-pull') {
             skipPull = true;
+        } else if (arg === '--global-limit') {
+            globalLimit = true;
         } else {
-            // Pass through to scripts (but not --skip-pull)
+            // Pass through to scripts (but not --skip-pull or --global-limit)
             passThrough.push(arg);
         }
     }
@@ -199,6 +225,11 @@ async function main() {
     } else {
         console.log('\n⚠️  Skipping git pull (--skip-pull specified)');
         console.log('   Running with current code - may be outdated!\n');
+    }
+
+    // Global limit: stop after first agent processes items
+    if (globalLimit) {
+        console.log('🎯 Global limit enabled - will stop after first agent processes items\n');
     }
 
     // Remove duplicates while preserving order
@@ -231,11 +262,18 @@ async function main() {
             scriptArgs = ['--skip-pull', ...scriptArgs];
         }
 
-        const exitCode = await runScript(scriptPath, scriptArgs);
+        const { exitCode, processedItems } = await runScript(scriptPath, scriptArgs);
 
         if (exitCode !== 0 && !passThrough.includes('--dry-run')) {
             console.error(`\nScript ${scriptName} failed with exit code ${exitCode}`);
             // Continue with other scripts even if one fails
+        }
+
+        // Global limit: stop if this agent processed items
+        if (globalLimit && processedItems) {
+            console.log(`\n🛑 Global limit reached - ${scriptName} processed items, stopping workflow`);
+            console.log('   Remaining agents will run in next execution\n');
+            break;
         }
     }
 

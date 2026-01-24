@@ -194,7 +194,10 @@ The Status field should already exist. Configure it with these **exact** values:
 
 ### Create Review Status Custom Field
 
-> **⚠️ CRITICAL:** All 6 options are required. Missing options will cause agent errors.
+> **⚠️ CRITICAL:** All 6 options are REQUIRED. Missing any option will cause agent failures.
+>
+> **COMMON MISTAKE:** Forgetting to add "Waiting for Clarification" and "Clarification Received".
+> These statuses are used when agents need input from admin. Without them, agents will fail when they encounter ambiguous requirements.
 
 1. In your project, click the **"+"** button (add field)
 2. Select **"Single select"**
@@ -204,9 +207,11 @@ The Status field should already exist. Configure it with these **exact** values:
    2. `Approved`
    3. `Request Changes`
    4. `Rejected`
-   5. `Waiting for Clarification`
-   6. `Clarification Received`
+   5. `Waiting for Clarification` ⚠️ **REQUIRED** - Agents fail without this
+   6. `Clarification Received` ⚠️ **REQUIRED** - Agents fail without this
 5. Click **"Save"**
+
+**After setup, run `yarn verify-setup` to validate all 6 status options exist.**
 
 **Verification:** Your field should show all 6 options as in the screenshot below. If any are missing, agents will fail with "Unknown review status" errors.
 
@@ -223,6 +228,57 @@ The Status field should already exist. Configure it with these **exact** values:
 | `Rejected` | Won't proceed with this item |
 | `Waiting for Clarification` | AI needs input from admin |
 | `Clarification Received` | Admin answered, AI should resume |
+
+### Create Implementation Phase Custom Field (Optional - for Multi-PR Workflow)
+
+This field enables splitting large features (L/XL) into multiple PRs. **Optional** - without it, all features are implemented in a single PR.
+
+1. In your project, click the **"+"** button (add field)
+2. Select **"Text"** (NOT Single select)
+3. Name it exactly: `Implementation Phase`
+4. Click **"Save"**
+
+**What this field tracks:**
+
+The field stores values like "1/3" (phase 1 of 3). It's automatically managed by the agents:
+- Set when implementation starts on an L/XL feature
+- Incremented when each phase's PR is merged
+- Cleared when all phases are complete
+
+**How Phase Tracking Works:**
+
+The system uses a two-layer approach for storing and retrieving implementation phases:
+
+| Component | Storage | Usage |
+|-----------|---------|-------|
+| **Phase Counter** | GitHub Project Field (`Implementation Phase`) | Tracks current phase: `"1/3"` |
+| **Phase Details** | GitHub Issue Comment | Stores phase names, descriptions, files |
+
+**Tech Design Agent:**
+1. Generates phases for L/XL features
+2. Posts phases as a GitHub issue comment with marker `<!-- AGENT_PHASES_V1 -->`
+3. Format is deterministic (not LLM-generated)
+
+**Implementation Agent:**
+1. Reads phases from comment (reliable) or markdown (fallback)
+2. Implements current phase
+3. Creates PR with phase info
+
+**Example Workflow:**
+```
+1. Tech design generates phases → Posts comment with phase details
+2. Implementation reads comment → Gets phase 1 details
+3. Creates PR for phase 1 → Sets field to "1/3"
+4. PR merged → Script updates field to "2/3"
+5. Implementation reads comment → Gets phase 2 details
+6. Repeat until all phases complete
+```
+
+**When to add this field:**
+- **Add it** if you want large features to be split into multiple PRs
+- **Skip it** if you prefer all features to be single-PR (simpler workflow)
+
+See [Multi-PR Workflow](./github-projects-integration.md#multi-pr-workflow-lxl-features) for details.
 
 ### Get Your Project Number
 

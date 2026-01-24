@@ -418,6 +418,45 @@ async function checkGitHubProject(): Promise<CategoryResults> {
         }
     }
 
+    // Verify Implementation Phase field (optional - for multi-PR workflow)
+    if (token) {
+        try {
+            const { getProjectManagementAdapter } = await import('../src/server/project-management/index.js');
+            const adapter = getProjectManagementAdapter();
+            await adapter.init();
+
+            if (adapter.hasImplementationPhaseField()) {
+                checks.push({
+                    passed: true,
+                    message: 'Implementation Phase field exists ✓ (multi-PR workflow enabled)',
+                    details: ['L/XL features will be split into multiple PRs']
+                });
+            } else {
+                checks.push({
+                    passed: true,
+                    message: 'Implementation Phase field not found (optional)',
+                    details: [
+                        'All features will use single-PR workflow',
+                        'To enable multi-PR workflow for L/XL features:',
+                        '  1. Go to your GitHub Project',
+                        '  2. Click "+" button (add field)',
+                        '  3. Select "Text"',
+                        '  4. Name it exactly: "Implementation Phase"',
+                        '  5. Click "Save"',
+                        '',
+                        'See docs/init-github-projects-workflow.md for details'
+                    ]
+                });
+            }
+        } catch (error) {
+            checks.push({
+                passed: false,
+                message: 'Could not verify Implementation Phase field',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+            });
+        }
+    }
+
     const passed = checks.filter(c => c.passed).length;
     return {
         category: 'GitHub Project',

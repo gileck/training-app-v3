@@ -71,6 +71,20 @@ async function advanceItem(
         };
     }
 
+    // PR Review items are handled by GitHub Action on PR merge, not auto-advance
+    // The merge script (scripts/mark-issue-done.ts) handles phase transitions:
+    // - If more phases remain: moves back to "Ready for development" with next phase
+    // - If final phase: moves to "Done"
+    if (fromStatus === STATUSES.prReview) {
+        return {
+            item,
+            fromStatus,
+            toStatus: 'N/A',
+            success: false,
+            error: 'PR Review handled by GitHub Action on merge',
+        };
+    }
+
     const toStatus = STATUS_TRANSITIONS[fromStatus];
 
     if (!toStatus) {

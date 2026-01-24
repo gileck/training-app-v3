@@ -21,7 +21,7 @@ import type {
     ProjectFieldOption,
     ListItemsOptions,
 } from '../types';
-import { getProjectConfig, REVIEW_STATUS_FIELD, type ProjectConfig } from '../config';
+import { getProjectConfig, REVIEW_STATUS_FIELD, IMPLEMENTATION_PHASE_FIELD, type ProjectConfig } from '../config';
 
 /**
  * Execute with exponential backoff retry on rate limit
@@ -62,6 +62,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     private projectId: string | null = null;
     private statusFieldId: string | null = null;
     private reviewStatusFieldId: string | null = null;
+    private implementationPhaseFieldId: string | null = null;
     private statusOptions: Map<string, string> = new Map();
     private reviewStatusOptions: Map<string, string> = new Map();
     private _initialized = false;
@@ -260,6 +261,11 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
                 for (const option of field.options) {
                     this.reviewStatusOptions.set(option.name, option.id);
                 }
+            }
+
+            // Implementation Phase is a text field, not single select
+            if (field.name === IMPLEMENTATION_PHASE_FIELD) {
+                this.implementationPhaseFieldId = field.id;
             }
         }
 
@@ -677,6 +683,87 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
     }
 
     // ============================================================
+    // IMPLEMENTATION PHASE (MULTI-PR WORKFLOW)
+    // ============================================================
+
+    hasImplementationPhaseField(): boolean {
+        return this.implementationPhaseFieldId !== null;
+    }
+
+    async getImplementationPhase(itemId: string): Promise<string | null> {
+        const item = await this.getItem(itemId);
+        if (!item) return null;
+
+        const phaseField = item.fieldValues.find(
+            (fv) => fv.fieldName === IMPLEMENTATION_PHASE_FIELD
+        );
+
+        return phaseField?.value || null;
+    }
+
+    async setImplementationPhase(itemId: string, value: string): Promise<void> {
+        const oc = this.getOctokit();
+
+        if (!this.implementationPhaseFieldId) {
+            // Field doesn't exist, log warning and return (fallback to single-phase behavior)
+            console.warn(`  Implementation Phase field "${IMPLEMENTATION_PHASE_FIELD}" not found in project`);
+            console.warn('  Falling back to single-phase behavior');
+            return;
+        }
+
+        const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+            updateProjectV2ItemFieldValue(
+                input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { text: $value }
+                }
+            ) {
+                projectV2Item {
+                    id
+                }
+            }
+        }`;
+
+        await oc.graphql(mutation, {
+            projectId: this.projectId,
+            itemId,
+            fieldId: this.implementationPhaseFieldId,
+            value,
+        });
+    }
+
+    async clearImplementationPhase(itemId: string): Promise<void> {
+        const oc = this.getOctokit();
+
+        if (!this.implementationPhaseFieldId) {
+            // Field doesn't exist, nothing to clear
+            return;
+        }
+
+        const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
+            clearProjectV2ItemFieldValue(
+                input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                }
+            ) {
+                projectV2Item {
+                    id
+                }
+            }
+        }`;
+
+        await oc.graphql(mutation, {
+            projectId: this.projectId,
+            itemId,
+            fieldId: this.implementationPhaseFieldId,
+        });
+    }
+
+    // ============================================================
     // ISSUES
     // ============================================================
 
@@ -1009,6 +1096,79 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         return data.default_branch;
     }
 
+    async getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean } | null> {
+        try {
+            const oc = this.getOctokit();
+            const { owner, repo } = this.config.github;
+
+            const { data } = await oc.pulls.get({
+                owner,
+                repo,
+                pull_number: prNumber,
+            });
+
+            return {
+                state: data.state as 'open' | 'closed',
+                merged: data.merged || false,
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Find the open PR for an issue.
+     *
+     * For feedback mode (Request Changes), we need to find the currently open PR
+     * to push fixes to. This method searches for open PRs that reference the issue
+     * and returns both the PR number AND the branch name (from the PR itself).
+     *
+     * Why get branch from PR instead of regenerating?
+     * - Branch name is deterministic but depends on title + phase
+     * - If title changed or phase is wrong, regeneration fails
+     * - The PR itself knows its actual branch name - use that!
+     *
+     * @returns PR number and branch name, or null if no open PR found
+     */
+    async findOpenPRForIssue(issueNumber: number): Promise<{ prNumber: number; branchName: string } | null> {
+        try {
+            const oc = this.getOctokit();
+            const { owner, repo } = this.config.github;
+
+            // List open PRs
+            const { data: prs } = await oc.pulls.list({
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100, // Should be enough for most repos
+            });
+
+            // Find PRs that reference this issue
+            // Look for "Closes #N", "Part of #N", or "#N" in PR body
+            const issuePatterns = [
+                new RegExp(`Closes\\s+#${issueNumber}\\b`, 'i'),
+                new RegExp(`Part of\\s+#${issueNumber}\\b`, 'i'),
+                new RegExp(`#${issueNumber}\\b`),
+            ];
+
+            for (const pr of prs) {
+                const body = pr.body || '';
+                const matchesIssue = issuePatterns.some(pattern => pattern.test(body));
+
+                if (matchesIssue) {
+                    return {
+                        prNumber: pr.number,
+                        branchName: pr.head.ref, // The actual branch name from the PR
+                    };
+                }
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
     async createBranch(branchName: string): Promise<void> {
         const oc = this.getOctokit();
         const { owner, repo } = this.config.github;
@@ -1032,14 +1192,17 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         const oc = this.getOctokit();
         const { owner, repo } = this.config.github;
 
+        console.log(`  🔍 Checking if branch exists on GitHub: ${branchName}`);
         try {
             await oc.git.getRef({
                 owner,
                 repo,
                 ref: `heads/${branchName}`,
             });
+            console.log(`  ✅ Branch exists on GitHub`);
             return true;
         } catch {
+            console.log(`  ℹ️  Branch not found on GitHub (404 is expected - will create it)`);
             return false;
         }
     }

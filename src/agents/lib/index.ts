@@ -155,4 +155,17 @@ export {
     extractTechDesign,
     buildUpdatedIssueBody,
     DESIGN_MARKERS,
+    // Phase extraction for multi-PR workflow (fallback - prefer phases.ts functions)
+    extractPhasesFromTechDesign,
+    parsePhaseString,
+    isLargeFeature,
+    type ParsedPhase,
 } from './parsing';
+
+// Re-export phase serialization/deserialization (primary method for multi-PR workflow)
+export {
+    formatPhasesToComment,
+    parsePhasesFromComment,
+    hasPhaseComment,
+    getPhaseCommentMarker,
+} from './phases';

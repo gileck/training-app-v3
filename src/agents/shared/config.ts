@@ -10,6 +10,7 @@ export {
     STATUSES,
     REVIEW_STATUSES,
     REVIEW_STATUS_FIELD,
+    IMPLEMENTATION_PHASE_FIELD,
     getProjectConfig,
     getRepoUrl,
     getProjectUrl,

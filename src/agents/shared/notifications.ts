@@ -496,3 +496,44 @@ ${typeEmoji} ${typeLabel}
 
     return sendToAdmin(message, buildViewIssueButton(issueUrl));
 }
+
+/**
+ * Notify admin that a phase of a multi-PR feature was completed
+ */
+export async function notifyPhaseComplete(
+    currentPhase: number,
+    totalPhases: number,
+    title: string,
+    issueNumber: number,
+    prNumber: number
+): Promise<SendResult> {
+    const issueUrl = getIssueUrl(issueNumber);
+    const prUrl = getPrUrl(prNumber);
+
+    const isLastPhase = currentPhase >= totalPhases;
+    const status = isLastPhase
+        ? `✅ All ${totalPhases} phases complete!`
+        : `✅ Phase ${currentPhase}/${totalPhases} merged`;
+
+    const nextAction = isLastPhase
+        ? 'Issue will be marked as Done.'
+        : `Starting Phase ${currentPhase + 1}/${totalPhases}...`;
+
+    const message = `<b>Agent (Multi-PR):</b> ${status}
+
+📋 ${escapeHtml(title)}
+🔗 Issue #${issueNumber} → PR #${prNumber}
+
+${nextAction}`;
+
+    const buttons: InlineKeyboardMarkup = {
+        inline_keyboard: [
+            [
+                { text: '🔀 View PR', url: prUrl },
+                { text: '📋 View Issue', url: issueUrl },
+            ],
+        ],
+    };
+
+    return sendToAdmin(message, buttons);
+}

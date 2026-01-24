@@ -4,16 +4,9 @@
  * Admin dashboard for managing feature requests.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Button } from '@/client/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/client/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -26,38 +19,28 @@ import { Input } from '@/client/components/ui/input';
 import { Textarea } from '@/client/components/ui/textarea';
 import { Loader2, AlertCircle, Inbox, Lightbulb, ArrowUpDown, Plus, Send } from 'lucide-react';
 import { useFeatureRequests, useCreateFeatureRequest } from './hooks';
-import { useFeatureRequestsStore, StatusFilterOption } from './store';
+import { useFeatureRequestsStore } from './store';
 import { FeatureRequestCard } from './components/FeatureRequestCard';
+import { FilterChipBar } from './components/FilterChipBar';
+import { applyAllFilters } from './utils/filterUtils';
 import { toast } from '@/client/components/ui/toast';
-import type { FeatureRequestStatus, FeatureRequestPriority } from '@/apis/feature-requests/types';
+import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
 
-const statusOptions: { value: StatusFilterOption; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'new', label: 'New' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
-    { value: 'rejected', label: 'Rejected' },
-];
-
-const priorityOptions: { value: FeatureRequestPriority | 'all'; label: string }[] = [
-    { value: 'all', label: 'All Priorities' },
-    { value: 'critical', label: 'Critical' },
-    { value: 'high', label: 'High' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'low', label: 'Low' },
-];
-
-// Active statuses (excludes done, rejected)
-const activeStatuses: FeatureRequestStatus[] = ['new', 'in_progress'];
+// No longer needed - replaced with FilterChipBar component
 
 export function FeatureRequests() {
-    // Persistent UI state from store
-    const statusFilter = useFeatureRequestsStore((state) => state.statusFilter);
-    const setStatusFilter = useFeatureRequestsStore((state) => state.setStatusFilter);
-    const priorityFilter = useFeatureRequestsStore((state) => state.priorityFilter);
-    const setPriorityFilter = useFeatureRequestsStore((state) => state.setPriorityFilter);
+    // Persistent multi-filter state from store
+    const statusFilters = useFeatureRequestsStore((state) => state.statusFilters);
+    const priorityFilters = useFeatureRequestsStore((state) => state.priorityFilters);
+    const githubFilters = useFeatureRequestsStore((state) => state.githubFilters);
+    const activityFilters = useFeatureRequestsStore((state) => state.activityFilters);
     const sortOrder = useFeatureRequestsStore((state) => state.sortOrder);
+
+    const toggleStatusFilter = useFeatureRequestsStore((state) => state.toggleStatusFilter);
+    const togglePriorityFilter = useFeatureRequestsStore((state) => state.togglePriorityFilter);
+    const toggleGitHubFilter = useFeatureRequestsStore((state) => state.toggleGitHubFilter);
+    const toggleActivityFilter = useFeatureRequestsStore((state) => state.toggleActivityFilter);
+    const clearAllFilters = useFeatureRequestsStore((state) => state.clearAllFilters);
     const setSortOrder = useFeatureRequestsStore((state) => state.setSortOrder);
 
     // Dialog state
@@ -72,30 +55,45 @@ export function FeatureRequests() {
 
     const createMutation = useCreateFeatureRequest();
 
-    // Build API filters
-    const apiStatusFilter =
-        statusFilter === 'all' || statusFilter === 'active'
-            ? undefined
-            : (statusFilter as FeatureRequestStatus);
-
+    // Fetch all requests without API-level filtering (client-side filtering now)
     const { data: rawRequests, isLoading, error } = useFeatureRequests({
-        status: apiStatusFilter,
-        priority: priorityFilter === 'all' ? undefined : priorityFilter,
         sortOrder,
     });
 
-    // Apply client-side filtering for 'active' status
-    let requests = rawRequests;
-    if (statusFilter === 'active' && rawRequests) {
-        requests = rawRequests.filter((r) => activeStatuses.includes(r.status as FeatureRequestStatus));
-    }
+    // Build GitHub status map for filtering
+    // Use Record instead of Map to prevent infinite re-renders (stable reference comparison)
+    const githubStatusMap = useMemo(() => {
+        const map: Record<string, GetGitHubStatusResponse | undefined> = {};
+        // This will be populated as individual cards fetch their statuses
+        // For now, we'll use the status from the request object itself
+        rawRequests?.forEach((request) => {
+            if (request.githubProjectItemId && request.githubProjectStatus) {
+                map[request._id] = {
+                    status: request.githubProjectStatus,
+                    reviewStatus: request.githubReviewStatus || null,
+                };
+            }
+        });
+        return map;
+    }, [rawRequests]);
 
-    // Apply client-side priority filter if we fetched all
-    if (priorityFilter !== 'all' && requests) {
-        requests = requests.filter((r) => r.priority === priorityFilter);
-    }
+    // Apply client-side filtering using all active filters
+    const filteredRequests = useMemo(() => {
+        if (!rawRequests) return [];
 
-    const showLoading = isLoading || requests === undefined;
+        return applyAllFilters(
+            rawRequests,
+            {
+                statusFilters,
+                priorityFilters,
+                githubFilters,
+                activityFilters,
+            },
+            githubStatusMap
+        );
+    }, [rawRequests, statusFilters, priorityFilters, githubFilters, activityFilters, githubStatusMap]);
+
+    const showLoading = isLoading || rawRequests === undefined;
 
     const handleDialogClose = () => {
         setTitle('');
@@ -139,9 +137,9 @@ export function FeatureRequests() {
                 <div className="flex items-center gap-2">
                     <Lightbulb className="h-6 w-6 text-yellow-500" />
                     <h1 className="text-xl font-semibold">Feature Requests</h1>
-                    {!showLoading && requests && (
+                    {!showLoading && filteredRequests && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">
-                            {requests.length}
+                            {filteredRequests.length}
                         </span>
                     )}
                 </div>
@@ -151,47 +149,25 @@ export function FeatureRequests() {
                 </Button>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-                <Select
-                    value={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as StatusFilterOption)}
-                >
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {statusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <Select
-                    value={priorityFilter}
-                    onValueChange={(value) =>
-                        setPriorityFilter(value as FeatureRequestPriority | 'all')
-                    }
-                >
-                    <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {priorityOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
+            {/* Filter Chips */}
+            <div className="flex items-center gap-2">
+                <FilterChipBar
+                    statusFilters={statusFilters}
+                    onToggleStatusFilter={toggleStatusFilter}
+                    priorityFilters={priorityFilters}
+                    onTogglePriorityFilter={togglePriorityFilter}
+                    githubFilters={githubFilters}
+                    onToggleGitHubFilter={toggleGitHubFilter}
+                    activityFilters={activityFilters}
+                    onToggleActivityFilter={toggleActivityFilter}
+                    onClearAll={clearAllFilters}
+                />
                 <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
                     title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
+                    className="shrink-0"
                 >
                     <ArrowUpDown className="h-4 w-4" />
                 </Button>
@@ -211,16 +187,30 @@ export function FeatureRequests() {
                         </p>
                     </CardContent>
                 </Card>
-            ) : requests?.length === 0 ? (
+            ) : filteredRequests.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">No feature requests found.</p>
+                        <p className="mt-4 text-muted-foreground">
+                            {rawRequests && rawRequests.length > 0
+                                ? 'No feature requests match the current filters.'
+                                : 'No feature requests found.'}
+                        </p>
+                        {rawRequests && rawRequests.length > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={clearAllFilters}
+                                className="mt-4"
+                            >
+                                Clear Filters
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {requests?.map((request) => (
+                    {filteredRequests.map((request) => (
                         <FeatureRequestCard key={request._id} request={request} />
                     ))}
                 </div>
