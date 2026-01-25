@@ -7,17 +7,21 @@
  * Secrets:
  * - TELEGRAM_BOT_TOKEN: For Telegram notifications
  * - TELEGRAM_CHAT_ID: Chat ID to receive notifications (from LOCAL_TELEGRAM_CHAT_ID in env)
- * - GITHUB_TOKEN: Bot account token for posting comments/marking items done (from GITHUB_BOT_TOKEN in env, fallback to GITHUB_TOKEN)
+ * - PROJECT_TOKEN: Bot account token for GitHub Actions (from GITHUB_BOT_TOKEN in env, fallback to GITHUB_TOKEN)
  *
  * Variables:
  * - TELEGRAM_NOTIFICATIONS_ENABLED: Set to 'true' to enable GitHub Actions notifications
+ * - PROJECT_OWNER: GitHub username or organization (from GITHUB_OWNER in env)
+ * - PROJECT_REPO: Repository name (from GITHUB_REPO in env)
+ * - PROJECT_NUMBER: GitHub Project number (from GITHUB_PROJECT_NUMBER in env)
+ * - PROJECT_OWNER_TYPE: 'user' or 'organization' (from GITHUB_OWNER_TYPE in env)
  *
  * Usage:
  *   yarn setup-github-secrets
  *
  * Prerequisites:
  *   - GitHub CLI (gh) installed and authenticated
- *   - .env.local (or .env) file with TELEGRAM_BOT_TOKEN, LOCAL_TELEGRAM_CHAT_ID, and GITHUB_BOT_TOKEN (or GITHUB_TOKEN)
+ *   - .env.local (or .env) file with required environment variables
  */
 
 import { execSync } from 'child_process';
@@ -33,13 +37,25 @@ const ENV_FILE = existsSync(resolve(process.cwd(), '.env.local'))
 const REQUIRED_SECRETS = [
     { envKey: 'TELEGRAM_BOT_TOKEN', githubKey: 'TELEGRAM_BOT_TOKEN', description: 'Telegram Bot Token' },
     { envKey: 'LOCAL_TELEGRAM_CHAT_ID', githubKey: 'TELEGRAM_CHAT_ID', description: 'Telegram Chat ID' },
-    // GitHub Actions needs bot token for posting comments - try GITHUB_BOT_TOKEN first, fallback to GITHUB_TOKEN
-    { envKey: 'GITHUB_BOT_TOKEN', fallbackKey: 'GITHUB_TOKEN', githubKey: 'GITHUB_TOKEN', description: 'Bot account token for GitHub Actions' },
+    // GitHub Actions needs GITHUB_TOKEN (admin token) for project access
+    // GITHUB_BOT_TOKEN doesn't have project:read scope - only use admin token
+    // Note: Workflow uses PROJECT_TOKEN secret name
+    { envKey: 'GITHUB_TOKEN', githubKey: 'PROJECT_TOKEN', description: 'Admin token for GitHub Actions (needs project access)' },
 ];
 
 // Variables (non-sensitive configuration)
-const REQUIRED_VARIABLES = [
+// Some have static values, others are read from env file
+const STATIC_VARIABLES = [
     { githubKey: 'TELEGRAM_NOTIFICATIONS_ENABLED', value: 'true', description: 'Enable Telegram notifications' },
+];
+
+// Variables that map from .env.local to GitHub Actions variables
+// Note: GitHub Actions uses PROJECT_* prefix, .env.local uses GITHUB_* prefix
+const ENV_BASED_VARIABLES = [
+    { envKey: 'GITHUB_OWNER', githubKey: 'PROJECT_OWNER', description: 'GitHub username or organization' },
+    { envKey: 'GITHUB_REPO', githubKey: 'PROJECT_REPO', description: 'Repository name' },
+    { envKey: 'GITHUB_PROJECT_NUMBER', githubKey: 'PROJECT_NUMBER', description: 'GitHub Project number' },
+    { envKey: 'GITHUB_OWNER_TYPE', githubKey: 'PROJECT_OWNER_TYPE', description: 'Owner type (user or organization)' },
 ];
 
 function parseEnvFile(filePath: string): Record<string, string> {
@@ -93,7 +109,13 @@ function checkGhAuth(): boolean {
 
 function setGitHubSecret(key: string, value: string): boolean {
     try {
-        execSync(`gh secret set ${key} --body "${value}"`, { stdio: 'inherit' });
+        // Use stdin to avoid shell interpolation issues with special characters/newlines
+        // Trim the value to remove any accidental trailing whitespace/newlines
+        const trimmedValue = value.trim();
+        execSync(`gh secret set ${key}`, {
+            input: trimmedValue,
+            stdio: ['pipe', 'inherit', 'inherit'],
+        });
         return true;
     } catch {
         return false;
@@ -102,7 +124,13 @@ function setGitHubSecret(key: string, value: string): boolean {
 
 function setGitHubVariable(key: string, value: string): boolean {
     try {
-        execSync(`gh variable set ${key} --body "${value}"`, { stdio: 'inherit' });
+        // Use stdin to avoid shell interpolation issues with special characters
+        // Trim the value to remove any accidental trailing whitespace/newlines
+        const trimmedValue = value.trim();
+        execSync(`gh variable set ${key}`, {
+            input: trimmedValue,
+            stdio: ['pipe', 'inherit', 'inherit'],
+        });
         return true;
     } catch {
         return false;
@@ -161,6 +189,13 @@ async function main() {
         }
     }
 
+    // Check for missing env-based variables (required for GitHub Projects integration)
+    for (const variable of ENV_BASED_VARIABLES) {
+        if (!env[variable.envKey]) {
+            missing.push(`${variable.envKey} (${variable.description})`);
+        }
+    }
+
     if (missing.length > 0) {
         const envFileName = ENV_FILE.endsWith('.env.local') ? '.env.local' : '.env';
         console.error(`❌ Missing required environment variables in ${envFileName}:`);
@@ -193,16 +228,35 @@ async function main() {
         }
     }
 
-    // Set variables
+    // Set static variables
     console.log('\nSetting GitHub variables...\n');
 
     let varsSuccess = 0;
     let varsFailed = 0;
 
-    for (const variable of REQUIRED_VARIABLES) {
+    for (const variable of STATIC_VARIABLES) {
         process.stdout.write(`  ${variable.githubKey}=${variable.value}... `);
 
         if (setGitHubVariable(variable.githubKey, variable.value)) {
+            console.log('✓');
+            varsSuccess++;
+        } else {
+            console.log('✗');
+            varsFailed++;
+        }
+    }
+
+    // Set env-based variables (read from .env.local)
+    for (const variable of ENV_BASED_VARIABLES) {
+        const value = env[variable.envKey];
+        if (!value) {
+            console.log(`  ${variable.githubKey} (from ${variable.envKey})... ⚠ skipped (not in env)`);
+            continue;
+        }
+
+        process.stdout.write(`  ${variable.githubKey}=${value} (from ${variable.envKey})... `);
+
+        if (setGitHubVariable(variable.githubKey, value)) {
             console.log('✓');
             varsSuccess++;
         } else {
@@ -222,6 +276,7 @@ async function main() {
         console.log('\nYour GitHub workflows are now configured for:');
         console.log('   - Telegram notifications');
         console.log('   - GitHub Projects V2 integration');
+        console.log('   - Project automation (on-pr-merged workflow)');
     }
 }
 

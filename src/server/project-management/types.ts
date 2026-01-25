@@ -275,6 +275,20 @@ export interface ProjectManagementAdapter {
      */
     addIssueToProject(issueNodeId: string): Promise<string>;
 
+    /**
+     * Find an issue comment by marker
+     * @returns Comment with id and body, or null if not found
+     */
+    findIssueCommentByMarker(issueNumber: number, marker: string): Promise<{
+        id: number;
+        body: string;
+    } | null>;
+
+    /**
+     * Update an existing issue comment
+     */
+    updateIssueComment(issueNumber: number, commentId: number, body: string): Promise<void>;
+
     // --------------------------------------------------------
     // Pull Requests
     // --------------------------------------------------------
@@ -301,6 +315,12 @@ export interface ProjectManagementAdapter {
     getPRComments(prNumber: number): Promise<ProjectItemComment[]>;
 
     /**
+     * Get the list of files changed in a PR (from GitHub API)
+     * This is the authoritative list of what's actually in the PR
+     */
+    getPRFiles(prNumber: number): Promise<string[]>;
+
+    /**
      * Add a comment to a PR
      */
     addPRComment(prNumber: number, body: string): Promise<number>;
@@ -320,10 +340,45 @@ export interface ProjectManagementAdapter {
     ): Promise<void>;
 
     /**
-     * Get PR details including state (open/closed) and merged status
+     * Get PR details including state (open/closed), merged status, and head branch
      * Returns null if PR doesn't exist
      */
-    getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean } | null>;
+    getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean; headBranch: string } | null>;
+
+    /**
+     * Merge a pull request using squash merge
+     */
+    mergePullRequest(
+        prNumber: number,
+        commitTitle: string,
+        commitMessage: string
+    ): Promise<void>;
+
+    /**
+     * Find a PR comment by marker and return its body
+     * Returns null if not found
+     */
+    findPRCommentByMarker(prNumber: number, marker: string): Promise<{
+        id: number;
+        body: string;
+    } | null>;
+
+    /**
+     * Update an existing PR comment
+     */
+    updatePRComment(prNumber: number, commentId: number, body: string): Promise<void>;
+
+    /**
+     * Get PR info for commit message generation
+     */
+    getPRInfo(prNumber: number): Promise<{
+        title: string;
+        body: string;
+        additions: number;
+        deletions: number;
+        changedFiles: number;
+        commits: number;
+    } | null>;
 
     /**
      * Find the open PR for an issue.
@@ -357,6 +412,12 @@ export interface ProjectManagementAdapter {
      * Check if a branch exists
      */
     branchExists(branchName: string): Promise<boolean>;
+
+    /**
+     * Delete a branch from the repository
+     * Used to clean up feature branches after PR merge
+     */
+    deleteBranch(branchName: string): Promise<void>;
 
     // --------------------------------------------------------
     // Project Fields (for advanced use)

@@ -1,5 +1,14 @@
 #!/bin/bash
-# Pre-commit hook: Reset yarn.lock to avoid committing wixpress registry URLs
+# Pre-commit hook: Reset yarn.lock and remove package-lock.json to avoid
+# committing wixpress registry URLs
 # See docs/eslint-typescript-wixpress-issue.md for details
 
+# Reset yarn.lock to HEAD (avoids committing private registry URLs)
 git checkout yarn.lock 2>/dev/null
+
+# Remove package-lock.json if it exists (project uses yarn, not npm)
+if [ -f "package-lock.json" ]; then
+    echo "⚠️  Removing package-lock.json (project uses yarn)"
+    git rm --cached package-lock.json 2>/dev/null || true
+    rm -f package-lock.json
+fi

@@ -384,10 +384,21 @@ logger.info('feature', 'Message', { meta: { ... } });
 | **Owner** | App administrator | `ownerTelegramChatId` in app.config.js | New signups, errors, API thresholds, system alerts |
 | **User** | Individual logged-in users | `telegramChatId` in user's Profile | Personal alerts, task updates, user-specific events |
 
+**Owner Notifications - 3 Categories:**
+
+Owner notifications can be split into 3 separate chats to reduce information overload:
+
+| Category | Frequency | Priority | Config |
+|----------|-----------|----------|--------|
+| **Vercel Deployments** | Low | Medium | `VERCEL_TELEGRAM_CHAT_ID` |
+| **GitHub Activity** | Medium | Low | `GITHUB_TELEGRAM_CHAT_ID` |
+| **Agent Workflow** | High | High | `AGENT_TELEGRAM_CHAT_ID` |
+
 **Setup:**
 - Requires `TELEGRAM_BOT_TOKEN` in `.env`
 - Run `yarn telegram-setup` to get chat IDs
-- Owner: Set `ownerTelegramChatId` in app.config.js
+- **Simple mode:** Use same chat ID for all (`LOCAL_TELEGRAM_CHAT_ID`)
+- **Advanced mode:** Configure 3 separate chats (see env vars above)
 - Users: Each user sets their own chat ID in Profile settings
 
 **Usage:**
@@ -493,106 +504,24 @@ Always include a final task to run `yarn checks` in your plan.
 
 ---
 
-## Exit Codes: The ONLY Reliable Way to Check Success/Failure
+## Exit Codes
 
-**CRITICAL PRINCIPLE: NEVER parse command output to determine success/failure. ALWAYS use exit codes.**
+**CRITICAL: NEVER parse command output to determine success/failure. ALWAYS use exit codes.**
 
-### Why Exit Codes?
-
-Exit codes are the universal standard for determining command success:
 - **Exit code 0** = Success
 - **Exit code non-zero** = Failure
 
-### The Problem with Output Parsing
-
-❌ **WRONG - Output Parsing (UNRELIABLE):**
 ```typescript
-const output = execSync('yarn checks:ci');
-const success = output.includes('✅ All checks passed!'); // FRAGILE!
-```
-
-**Why this is bad:**
-- Output format can change
-- Output can be localized (different languages)
-- Output can be truncated or buffered incorrectly
-- Emoji rendering issues
-- Timing issues with stdout/stderr interleaving
-
-✅ **CORRECT - Exit Code (RELIABLE):**
-```typescript
+// CORRECT - use try/catch with execSync
 try {
     const output = execSync('yarn checks:ci', { stdio: 'pipe' });
-    // If we get here, exit code was 0 = success
     return { success: true, output };
 } catch (error) {
-    // execSync throws when exit code is non-zero = failure
     return { success: false, output: error.stdout || error.message };
 }
 ```
 
-### When to Use Exit Codes
-
-**ALWAYS use exit codes for:**
-- ✅ CI/CD workflows
-- ✅ Automated scripts
-- ✅ Agent workflows
-- ✅ Pre-commit hooks
-- ✅ Build pipelines
-- ✅ ANY automation
-
-**Exceptions (Use Structured Output Instead):**
-- When you need detailed status (not just pass/fail), use **structured JSON output**
-- Example: `yarn sync-template --json` returns JSON with detailed status
-
-### Example: Implement Agent
-
-```typescript
-// CORRECT implementation in src/agents/core-agents/implementAgent/index.ts
-function runYarnChecks(): { success: boolean; output: string } {
-    try {
-        const output = execSync('yarn checks:ci', {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 120000,
-        });
-        // If execSync didn't throw, the command succeeded (exit code 0)
-        return { success: true, output };
-    } catch (error) {
-        // execSync throws when command exits with non-zero code = failure
-        const err = error as { stdout?: string; stderr?: string };
-        const output = err.stdout || err.stderr || String(error);
-        return { success: false, output };
-    }
-}
-```
-
-### Shell Script Exit Codes
-
-In bash scripts (like `scripts/checks-ci.sh`):
-```bash
-# Run commands and capture exit codes
-yarn ts
-TS_EXIT=$?
-
-yarn lint
-LINT_EXIT=$?
-
-# Check exit codes (not output!)
-if [ $TS_EXIT -eq 0 ] && [ $LINT_EXIT -eq 0 ]; then
-    exit 0  # Success
-else
-    exit 1  # Failure
-fi
-```
-
-### Documentation
-
-This principle is documented and enforced in:
-- `src/agents/core-agents/implementAgent/index.ts` - Uses exit codes
-- `scripts/checks-ci.sh` - Returns proper exit codes
-- `scripts/sync-child-projects.ts` - Requires JSON output, no output parsing
-
-**Rule:** If you find code parsing output to check success/failure, replace it with exit code checking or structured output (JSON).
+**Docs:** [docs/exit-codes-guide.md](docs/exit-codes-guide.md)
 
 ---
 
@@ -747,76 +676,113 @@ git pushh                     # git push + prompt to sync (after setup-hooks)
 
 ## GitHub PR CLI Tool
 
-Command-line tool for managing GitHub pull requests.
+CLI for managing GitHub pull requests. Requires `GITHUB_TOKEN` in `.env`.
 
-**Summary:** `yarn github-pr` provides a CLI for creating, updating, and merging PRs using the GitHub API via `@octokit/rest`. Requires `GITHUB_TOKEN` in `.env`.
-
-**Setup:**
+**Key Commands:**
 ```bash
-# Add to .env (Fine-grained token with repo permissions, or Classic token with `repo` scope)
-GITHUB_TOKEN=github_pat_xxxxx...
-```
-
-**Available Commands:**
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `create` | Create a new PR | `yarn github-pr create --title "feat: feature" --body "Description"` |
-| `list` | List PRs | `yarn github-pr list --state open` |
-| `info` | Get PR details | `yarn github-pr info --pr 1` |
-| `comment` | Add comment | `yarn github-pr comment --pr 1 --message "LGTM!"` |
-| `title` | Update title | `yarn github-pr title --pr 1 --text "feat: new feature"` |
-| `body` | Update description | `yarn github-pr body --pr 1 --text "Description here"` |
-| `label` | Add/remove labels | `yarn github-pr label --pr 1 --add bug,urgent` |
-| `reviewer` | Request reviewers | `yarn github-pr reviewer --pr 1 --users alice,bob` |
-| `merge` | Merge PR | `yarn github-pr merge --pr 1 --method squash` |
-| `close` | Close PR | `yarn github-pr close --pr 1` |
-
-**Common Workflows:**
-
-```bash
-# Create a PR
-git checkout -b feat/my-feature
-# ... make changes, commit ...
-git push -u origin feat/my-feature
-yarn github-pr create --title "feat: my feature" --body "Description"
-# Or create as draft:
-yarn github-pr create --title "feat: my feature" --body "WIP" --draft
-
-# Update PR title and description
-yarn github-pr title --pr 1 --text "feat: improved title"
-yarn github-pr body --pr 1 --text "## Summary\nDetailed description..."
-
-# Add a comment
-yarn github-pr comment --pr 1 --message "Ready for review!"
-
-# Squash and merge with custom commit message
-yarn github-pr merge --pr 1 --method squash \
-  --title "feat: my feature" \
-  --message "Detailed commit description"
+yarn github-pr create --title "feat: feature" --body "Description"
+yarn github-pr list --state open
+yarn github-pr merge --pr 1 --method squash
 ```
 
 **Key Points:**
-- Auto-detects `owner/repo` from git remote (or use `--owner`/`--repo`)
-- Auto-detects current branch for PR creation (or use `--head`)
-- Auto-detects default branch for PR base (or use `--base`)
-- Loads `GITHUB_TOKEN` from `.env` automatically
+- Auto-detects `owner/repo` from git remote
+- Use `--cloud-proxy` flag in Claude Code cloud environment
 - Merge methods: `merge`, `squash`, `rebase` (default: `squash`)
 
-**Cloud Environment (Claude Code Web):**
+**Docs:** [docs/github-pr-cli-guide.md](docs/github-pr-cli-guide.md)
+
+---
+
+## Git Worktree Workflow
+
+Isolated development using git worktrees with clean commit history.
+
+**Summary:** Use worktrees for feature/fix development, then squash merge to main for a clean single commit.
+
+**Quick Reference:**
 ```bash
-yarn github-pr --cloud-proxy list --state open
-yarn github-pr --cloud-proxy create --title "feat: feature" --body "Description"
+# === CREATE ===
+git worktree add -b fix/my-fix ../project-fix HEAD
+cd ../project-fix && yarn install
+
+# === WORK ===
+# ... make changes, commit freely ...
+yarn checks
+
+# === MERGE (from main worktree) ===
+cd /main/project
+git merge --squash fix/my-fix
+git commit -m "fix: detailed message
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+git push origin main
+
+# === CLEANUP ===
+git worktree remove ../project-fix
+git branch -d fix/my-fix
 ```
 
-Use `--cloud-proxy` when running in Claude Code cloud environment. This enables:
-- HTTP proxy support via `HTTPS_PROXY`/`HTTP_PROXY` env vars
-- Quote stripping from `GITHUB_TOKEN` (cloud may add literal quotes)
-- Proxy git remote URL parsing (`/git/owner/repo` format)
+**Key Points:**
+- **Squash merge** combines all worktree commits into ONE clean commit
+- Write the final detailed commit message when merging to main
+- No need for PRs on small fixes - merge directly to main
+- Always run `yarn checks` before merging
 
-**IMPORTANT:** Always use `--cloud-proxy` flag when running github-pr commands.
+**Docs:** [docs/git-worktree-workflow.md](docs/git-worktree-workflow.md)
 
-**Script:** `scripts/github-pr.ts`
+---
+
+## Lock File Management (yarn.lock & package-lock.json)
+
+Special handling for lock files due to corporate network constraints.
+
+**Problem:** Local development requires private npm registry (`npm.dev.wixpress.com`) because access to public npm is blocked. However, Vercel deployments need public registry URLs.
+
+**Solution - Multi-Layer Protection:**
+
+| Layer | yarn.lock | package-lock.json |
+|-------|-----------|-------------------|
+| **Committed version** | ✅ Public npm registry (for Vercel) | ❌ Should not exist (project uses yarn) |
+| **Local changes** | Auto-reset by pre-commit hook | Auto-removed by pre-commit hook |
+| **GitHub Action** | Blocks PRs with `npm.dev.wixpress.com` | Blocks PRs containing this file |
+
+**For Local Development:**
+
+When you run `yarn install` locally, yarn.lock will update with private Wix registry URLs. This is expected and safe - the pre-commit hook automatically resets it to the committed version.
+
+**IMPORTANT - Use yarn, not npm:**
+
+This project uses Yarn. If you accidentally run `npm install`, it will create `package-lock.json` with private registry URLs. The pre-commit hook will automatically remove it, but always use:
+
+```bash
+yarn install  # ✅ Correct
+npm install   # ❌ Wrong - creates package-lock.json
+```
+
+**Pre-commit Hook Behavior:**
+
+The hook in `.githooks/pre-commit` automatically:
+1. Resets `yarn.lock` to HEAD (removes private registry URLs)
+2. Removes `package-lock.json` if it exists (project uses yarn)
+
+**GitHub Action Protection:**
+
+The workflow `.github/workflows/validate-yarn-lock.yml` runs on all PRs that modify lock files:
+1. Fails if `package-lock.json` exists
+2. Fails if `yarn.lock` contains `npm.dev.wixpress.com`
+
+**When dependencies need updating (rare):**
+
+Option 1: Let CI/Vercel regenerate yarn.lock automatically
+Option 2: Use a machine with public npm access to generate clean yarn.lock
+Option 3: Manually clean private registry URLs before committing
+
+**To bypass the hook (not recommended):**
+
+```bash
+git commit --no-verify  # Use with extreme caution
+```
 
 ---
 
@@ -854,72 +820,32 @@ Automated pipeline from feature requests to merged PRs using GitHub Projects V2.
 - Per-workflow overrides configurable in `src/agents/agents.config.ts`
 - Available libraries: `claude-code-sdk`, `cursor`, `gemini` (stub)
 
+**PR Merge Flow:**
+- PR Review Agent approves → generates commit message → saves to PR comment
+- Admin gets Telegram with Merge/Request Changes buttons
+- Merge: uses saved commit message, squash merges
+- Request Changes: back to implementor (admin must comment explaining changes)
+
 **Docs:** [docs/github-projects-integration.md](docs/github-projects-integration.md), [docs/agent-library-abstraction.md](docs/agent-library-abstraction.md)
 
 ---
 
 ## Vercel CLI Tool
 
-Command-line tool for managing Vercel deployments and projects.
+CLI for managing Vercel deployments. Requires `VERCEL_TOKEN` in `.env`.
 
-**Summary:** `yarn vercel-cli` provides a CLI for listing deployments, viewing build logs, checking environment variables, and getting project info using the Vercel REST API. Requires `VERCEL_TOKEN` in `.env`.
-
-**Setup:**
+**Key Commands:**
 ```bash
-# Add to .env (get token from https://vercel.com/account/tokens)
-VERCEL_TOKEN=your_token_here
-
-# Link project (recommended for auto-detection)
-vercel link
-```
-
-**Available Commands:**
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `list` | List deployments | `yarn vercel-cli list --target production` |
-| `info` | Get deployment details | `yarn vercel-cli info --deployment dpl_xxx` |
-| `logs` | Get build logs | `yarn vercel-cli logs --deployment dpl_xxx` |
-| `env` | List environment variables | `yarn vercel-cli env --target production` |
-| `env:push` | Push .env to Vercel | `yarn vercel-cli env:push --overwrite` |
-| `project` | Show project info | `yarn vercel-cli project` |
-
-**Common Workflows:**
-
-```bash
-# Check latest production deployment
-yarn vercel-cli list --target production --limit 1
-
-# Debug a failed deployment
-yarn vercel-cli list --state ERROR
-yarn vercel-cli info --deployment dpl_xxx
+yarn vercel-cli list --target production
 yarn vercel-cli logs --deployment dpl_xxx
-
-# Verify environment variables before deploy
-yarn vercel-cli env --target production
-
-# Push all .env variables to Vercel (all targets)
-yarn vercel-cli env:push
-
-# Push only to production, overwriting existing
-yarn vercel-cli env:push --target production --overwrite
+yarn vercel-cli env:push --overwrite
 ```
 
 **Key Points:**
-- Auto-detects project from `.vercel/project.json` (or use `--project-id`)
-- Auto-detects team from linked project (or use `--team-id`)
-- Loads `VERCEL_TOKEN` from `.env` automatically
-- Build logs only (runtime logs require Vercel dashboard)
+- Run `vercel link` first to auto-detect project
+- Use `--cloud-proxy` flag in Claude Code cloud environment
 
-**Cloud Environment (Claude Code Web):**
-```bash
-yarn vercel-cli --cloud-proxy list
-yarn vercel-cli --cloud-proxy logs --deployment dpl_xxx
-```
-
-Use `--cloud-proxy` when running in Claude Code cloud environment.
-
-**Script:** `scripts/vercel-cli.ts`
+**Docs:** [docs/vercel-cli-guide.md](docs/vercel-cli-guide.md)
 **Rules:** [.cursor/rules/vercel-cli-usage.mdc](.cursor/rules/vercel-cli-usage.mdc)
 
 ---

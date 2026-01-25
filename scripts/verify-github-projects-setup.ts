@@ -341,6 +341,156 @@ async function checkGitHubRepo(): Promise<CategoryResults> {
     };
 }
 
+async function checkTokenPermissions(): Promise<CategoryResults> {
+    const checks: CheckResult[] = [];
+
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+    const projectNumber = process.env.GITHUB_PROJECT_NUMBER;
+    const ownerType = process.env.GITHUB_OWNER_TYPE || 'user';
+    const token = process.env.GITHUB_TOKEN;
+    const botToken = process.env.GITHUB_BOT_TOKEN;
+
+    if (!token) {
+        checks.push({
+            passed: false,
+            message: 'GITHUB_TOKEN not set - cannot verify permissions',
+            details: ['Set GITHUB_TOKEN in .env.local']
+        });
+        return {
+            category: 'Token Permissions',
+            checks,
+            passed: 0,
+            failed: 1
+        };
+    }
+
+    // Test 1: Check repo access (repo scope)
+    try {
+        const repoResult = runCommand(`curl -s -o /dev/null -w "%{http_code}" -H "Authorization: bearer ${token}" https://api.github.com/repos/${owner}/${repo}`);
+        const repoAccessOk = repoResult === '200';
+        checks.push({
+            passed: repoAccessOk,
+            message: `GITHUB_TOKEN repo access ${repoAccessOk ? '✓' : '✗'}`,
+            details: repoAccessOk ? undefined : [
+                `HTTP ${repoResult} - Token cannot access ${owner}/${repo}`,
+                'Ensure token has "repo" scope (Classic) or "Contents: Read" (Fine-grained)'
+            ]
+        });
+    } catch (error) {
+        checks.push({
+            passed: false,
+            message: 'GITHUB_TOKEN repo access check failed',
+            details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+        });
+    }
+
+    // Test 2: Check project access (project scope) via GraphQL
+    try {
+        const projectQuery = ownerType === 'org'
+            ? `query { organization(login: \\"${owner}\\") { projectV2(number: ${projectNumber}) { id title } } }`
+            : `query { user(login: \\"${owner}\\") { projectV2(number: ${projectNumber}) { id title } } }`;
+
+        const graphqlResult = runCommand(
+            `curl -s -H "Authorization: bearer ${token}" -X POST -d '{"query":"${projectQuery}"}' https://api.github.com/graphql`
+        );
+
+        if (graphqlResult) {
+            const parsed = JSON.parse(graphqlResult);
+            const projectData = ownerType === 'org'
+                ? parsed?.data?.organization?.projectV2
+                : parsed?.data?.user?.projectV2;
+
+            if (projectData?.id) {
+                checks.push({
+                    passed: true,
+                    message: `GITHUB_TOKEN project access ✓`,
+                    details: [`Can access project: "${projectData.title}"`]
+                });
+            } else if (parsed?.errors) {
+                const errorMsg = parsed.errors[0]?.message || 'Unknown error';
+                checks.push({
+                    passed: false,
+                    message: 'GITHUB_TOKEN project access ✗',
+                    details: [
+                        `Error: ${errorMsg}`,
+                        '',
+                        'For Classic PAT: ensure "project" scope is checked',
+                        'For Fine-grained PAT: ensure "Projects: Read and write" under Account permissions'
+                    ]
+                });
+            } else {
+                checks.push({
+                    passed: false,
+                    message: 'GITHUB_TOKEN project access ✗',
+                    details: [
+                        'Project not found or no access',
+                        `Tried to access: ${ownerType}/${owner}/projects/${projectNumber}`,
+                        '',
+                        'For Classic PAT: ensure "project" scope is checked',
+                        'For Fine-grained PAT: ensure "Projects: Read and write" under Account permissions'
+                    ]
+                });
+            }
+        }
+    } catch (error) {
+        checks.push({
+            passed: false,
+            message: 'GITHUB_TOKEN project access check failed',
+            details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+        });
+    }
+
+    // Test 3: Check bot token permissions (if set)
+    if (botToken) {
+        try {
+            const botRepoResult = runCommand(`curl -s -o /dev/null -w "%{http_code}" -H "Authorization: bearer ${botToken}" https://api.github.com/repos/${owner}/${repo}`);
+            const botRepoAccessOk = botRepoResult === '200';
+            checks.push({
+                passed: botRepoAccessOk,
+                message: `GITHUB_BOT_TOKEN repo access ${botRepoAccessOk ? '✓' : '✗'}`,
+                details: botRepoAccessOk ? undefined : [
+                    `HTTP ${botRepoResult} - Bot token cannot access ${owner}/${repo}`,
+                    'Bot token needs "repo" scope for creating PRs'
+                ]
+            });
+
+            // Check bot can create PRs (needs write access)
+            const botUserResult = runCommand(`curl -s -H "Authorization: bearer ${botToken}" https://api.github.com/user`);
+            if (botUserResult) {
+                const botUser = JSON.parse(botUserResult);
+                if (botUser.login) {
+                    checks.push({
+                        passed: true,
+                        message: `GITHUB_BOT_TOKEN authenticated as: ${botUser.login} ✓`,
+                        details: ['PRs will be created by this account (allowing admin to approve)']
+                    });
+                }
+            }
+        } catch (error) {
+            checks.push({
+                passed: false,
+                message: 'GITHUB_BOT_TOKEN check failed',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+            });
+        }
+    } else {
+        checks.push({
+            passed: true,
+            message: 'GITHUB_BOT_TOKEN not set (optional)',
+            details: ['PRs will be created by admin account - you cannot approve your own PRs']
+        });
+    }
+
+    const passed = checks.filter(c => c.passed).length;
+    return {
+        category: 'Token Permissions',
+        checks,
+        passed,
+        failed: checks.length - passed
+    };
+}
+
 async function checkGitHubProject(): Promise<CategoryResults> {
     const checks: CheckResult[] = [];
 
@@ -497,6 +647,7 @@ async function main() {
 
     if (!options.skipGithub) {
         results.push(await checkGitHubRepo());
+        results.push(await checkTokenPermissions());
         results.push(await checkGitHubProject());
     }
 

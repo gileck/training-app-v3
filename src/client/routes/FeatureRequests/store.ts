@@ -1,5 +1,6 @@
 import { createStore } from '@/client/stores';
 import type { FeatureRequestStatus, FeatureRequestPriority } from '@/apis/feature-requests/types';
+import type { SortMode } from './utils/sortingUtils';
 
 // Stable fallback references (prevent infinite loops in selectors)
 const EMPTY_STATUS_FILTERS: string[] = [];
@@ -9,6 +10,7 @@ const EMPTY_ACTIVITY_FILTERS: ('recent' | 'stale')[] = [];
 
 /**
  * Feature Requests page filter types
+ * @deprecated Use SortMode from sortingUtils instead
  */
 export type FeatureRequestsSortOrder = 'asc' | 'desc';
 
@@ -39,7 +41,9 @@ interface FeatureRequestsState {
     githubFilters: GitHubFilterOption[];
     activityFilters: ActivityFilterOption[];
 
-    sortOrder: FeatureRequestsSortOrder;
+    // Sorting
+    sortOrder: FeatureRequestsSortOrder; // Legacy
+    sortMode: SortMode;
 
     // Track if user has ever interacted with filters (to prevent forcing default on reload)
     hasInteractedWithFilters?: boolean;
@@ -50,6 +54,9 @@ interface FeatureRequestsState {
     toggleGitHubFilter: (filter: GitHubFilterOption) => void;
     toggleActivityFilter: (filter: ActivityFilterOption) => void;
     clearAllFilters: () => void;
+
+    // Sorting actions
+    setSortMode: (mode: SortMode) => void;
 
     // Legacy actions (for backward compatibility)
     setStatusFilter?: (status: StatusFilterOption) => void;
@@ -73,7 +80,8 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
         priorityFilters: EMPTY_PRIORITY_FILTERS,
         githubFilters: EMPTY_GITHUB_FILTERS,
         activityFilters: EMPTY_ACTIVITY_FILTERS,
-        sortOrder: 'desc',
+        sortOrder: 'desc', // Legacy
+        sortMode: 'smart', // Default to smart sort
 
         // Multi-filter toggle actions
         toggleStatusFilter: (filter: string) =>
@@ -129,6 +137,8 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
                 hasInteractedWithFilters: true,
             }),
 
+        setSortMode: (mode: SortMode) => set({ sortMode: mode }),
+
         setSortOrder: (order: FeatureRequestsSortOrder) => set({ sortOrder: order }),
     }),
     persistOptions: {
@@ -138,6 +148,7 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
             githubFilters: state.githubFilters,
             activityFilters: state.activityFilters,
             sortOrder: state.sortOrder,
+            sortMode: state.sortMode,
             hasInteractedWithFilters: state.hasInteractedWithFilters,
         }),
         // Migration function to handle old format
@@ -162,7 +173,8 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
                     priorityFilters,
                     githubFilters: [],
                     activityFilters: [],
-                    sortOrder: state.sortOrder || 'desc',
+                    sortOrder: (state.sortOrder as FeatureRequestsSortOrder) || 'desc',
+                    sortMode: 'smart', // Default to smart sort
                     hasInteractedWithFilters: true, // Mark as interacted since they had old filters
                 };
             }
@@ -177,11 +189,21 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
                 return {
                     ...state,
                     statusFilters: ['active'], // Default to 'active' only on first load
+                    sortMode: (state.sortMode as SortMode) || 'smart', // Ensure sortMode exists
                     hasInteractedWithFilters: false, // Still first load
-                };
+                } as Partial<FeatureRequestsState>;
             }
 
-            return state;
+            // Ensure sortMode exists for existing users
+            if (!state.sortMode) {
+                return {
+                    ...state,
+                    sortMode: 'smart' as SortMode,
+                } as Partial<FeatureRequestsState>;
+            }
+
+            // Return the state as-is (it already matches the persisted structure)
+            return state as Partial<FeatureRequestsState>;
         },
     },
 });

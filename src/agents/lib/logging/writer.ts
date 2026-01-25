@@ -61,3 +61,23 @@ export function appendToLog(issueNumber: number, content: string): void {
 export function logExists(issueNumber: number): boolean {
     return fs.existsSync(getLogPath(issueNumber));
 }
+
+/**
+ * Read the entire log file content
+ */
+export function readLog(issueNumber: number): string {
+    const logPath = getLogPath(issueNumber);
+    if (!fs.existsSync(logPath)) {
+        return '';
+    }
+    return fs.readFileSync(logPath, 'utf-8');
+}
+
+/**
+ * Write the entire log file content (overwrites existing)
+ */
+export function writeLog(issueNumber: number, content: string): void {
+    ensureLogDir();
+    const logPath = getLogPath(issueNumber);
+    fs.writeFileSync(logPath, content, 'utf-8');
+}

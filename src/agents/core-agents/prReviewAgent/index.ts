@@ -36,6 +36,7 @@ import {
     runAgent,
     // Notifications
     notifyPRReviewComplete,
+    notifyPRReadyToMerge,
     notifyAgentError,
     notifyAgentStarted,
     // Types
@@ -62,7 +63,16 @@ import {
 } from '../../lib/phases';
 import {
     extractTechDesign,
+    generateCommitMessage,
+    formatCommitMessageComment,
+    parseArtifactComment,
+    getTechDesignPath,
+    updateImplementationPhaseArtifact,
 } from '../../lib';
+import {
+    readDesignDoc,
+} from '../../lib/design-files';
+import { COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
 import {
     createPrReviewerAgentPrompt,
     type PromptContext,
@@ -260,6 +270,11 @@ async function processItem(
         }
 
         try {
+            // Fetch PR files (authoritative list from GitHub API)
+            console.log('  Fetching PR files from GitHub...');
+            const prFiles = await adapter.getPRFiles(prNumber);
+            console.log(`  PR contains ${prFiles.length} file(s): ${prFiles.join(', ')}`);
+
             // Fetch all PR comments
             console.log('  Fetching PR comments...');
             const prConversationComments = await adapter.getPRComments(prNumber);
@@ -273,6 +288,7 @@ async function processItem(
             // Build prompt context - pass all comments together
             const promptContext: PromptContext = {
                 phaseInfo: processable.phaseInfo,
+                prFiles, // Authoritative list from GitHub API
                 prComments: prConversationComments.map(c => ({
                     author: c.author,
                     body: c.body,
@@ -327,6 +343,11 @@ async function processItem(
                 console.log(`\n  [DRY RUN] Summary: ${summary}`);
                 console.log(`\n  [DRY RUN] Would submit official GitHub review: ${decision === 'approved' ? 'APPROVE' : 'REQUEST_CHANGES'}`);
                 console.log(`\n  [DRY RUN] Would update review status to: ${decision === 'approved' ? 'Approved' : 'Request Changes'}`);
+
+                if (decision === 'approved') {
+                    console.log(`\n  [DRY RUN] Would generate and save commit message to PR comment`);
+                    console.log(`\n  [DRY RUN] Would send Telegram with Merge/Request Changes buttons`);
+                }
             } else {
                 // Submit official GitHub PR review (this automatically posts as a comment)
                 const prefixedReview = addAgentPrefix('pr-review', reviewText);
@@ -357,8 +378,106 @@ async function processItem(
                 await adapter.updateItemReviewStatus(item.id, newReviewStatus);
                 console.log(`  Updated review status to: ${newReviewStatus}`);
 
-                // Send notification
-                await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
+                // Handle approval flow: generate commit message, save to PR comment, notify admin
+                if (decision === 'approved') {
+                    // 1. Update artifact comment to show PR is approved
+                    try {
+                        if (processable.phaseInfo) {
+                            // Multi-phase feature
+                            await updateImplementationPhaseArtifact(
+                                adapter,
+                                issueNumber,
+                                processable.phaseInfo.current,
+                                processable.phaseInfo.total,
+                                processable.phaseInfo.phaseName || '',
+                                'approved',
+                                prNumber
+                            );
+                        } else {
+                            // Single-phase feature - use Phase 1/1 format for consistency
+                            await updateImplementationPhaseArtifact(
+                                adapter,
+                                issueNumber,
+                                1,
+                                1,
+                                '',
+                                'approved',
+                                prNumber
+                            );
+                        }
+                        console.log('  Updated artifact comment - PR approved');
+                    } catch (error) {
+                        console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+                    }
+
+                    // 2. Get PR info for commit message
+                    const prInfo = await adapter.getPRInfo(prNumber);
+                    if (prInfo) {
+                        // 3. Generate commit message
+                        const phaseInfoForCommit = processable.phaseInfo
+                            ? { current: processable.phaseInfo.current, total: processable.phaseInfo.total }
+                            : undefined;
+                        const commitMsg = generateCommitMessage(prInfo, item.content, phaseInfoForCommit);
+                        console.log(`  Generated commit message: ${commitMsg.title}`);
+
+                        // 4. Save/update commit message as PR comment
+                        const existingComment = await adapter.findPRCommentByMarker(prNumber, COMMIT_MESSAGE_MARKER);
+                        const commentBody = formatCommitMessageComment(commitMsg.title, commitMsg.body);
+
+                        if (existingComment) {
+                            // Update existing comment (re-approval after changes)
+                            await adapter.updatePRComment(prNumber, existingComment.id, commentBody);
+                            console.log('  Updated commit message comment');
+                        } else {
+                            // Create new comment
+                            await adapter.addPRComment(prNumber, commentBody);
+                            console.log('  Posted commit message comment');
+                        }
+
+                        // 5. Send notification with merge/request changes buttons
+                        await notifyPRReadyToMerge(
+                            content.title,
+                            issueNumber,
+                            prNumber,
+                            commitMsg,
+                            issueType
+                        );
+                    } else {
+                        // Fallback: use old notification if PR info not available
+                        await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
+                    }
+                } else {
+                    // Request changes - update artifact and notify
+                    try {
+                        if (processable.phaseInfo) {
+                            await updateImplementationPhaseArtifact(
+                                adapter,
+                                issueNumber,
+                                processable.phaseInfo.current,
+                                processable.phaseInfo.total,
+                                processable.phaseInfo.phaseName || '',
+                                'changes-requested',
+                                prNumber
+                            );
+                        } else {
+                            // Single-phase feature - use Phase 1/1 format for consistency
+                            await updateImplementationPhaseArtifact(
+                                adapter,
+                                issueNumber,
+                                1,
+                                1,
+                                '',
+                                'changes-requested',
+                                prNumber
+                            );
+                        }
+                        console.log('  Updated artifact comment - changes requested');
+                    } catch (error) {
+                        console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+                    }
+
+                    await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
+                }
             }
 
             // Log execution end
@@ -474,8 +593,26 @@ async function run(options: PRReviewOptions): Promise<void> {
                 updatedAt: c.updatedAt,
             }));
 
+            // Try to get phases from:
+            // 1. Issue comments (most reliable - deterministic format)
+            // 2. Tech design file (new system)
+            // 3. Issue body (old system - fallback)
+            let techDesign: string | null = null;
+
+            // Try file-based tech design first
+            const artifact = parseArtifactComment(commentsList);
+            const techPath = getTechDesignPath(artifact);
+            if (techPath && artifact?.techDesign?.status === 'approved') {
+                techDesign = readDesignDoc(issueNumber, 'tech');
+            }
+
+            // Fallback to issue body
+            if (!techDesign && item.content.body) {
+                techDesign = extractTechDesign(item.content.body);
+            }
+
             const phases = parsePhasesFromComment(commentsList) ||
-                          (item.content.body ? extractPhasesFromTechDesign(extractTechDesign(item.content.body) || '') : null);
+                          (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
 
             const currentPhaseDetails = phases?.find(p => p.order === parsed.current);
 

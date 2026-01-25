@@ -65,15 +65,106 @@ Replace each long section with its compacted version, ensuring:
 - Formatting is consistent with other sections
 - The overall structure and flow remain intact
 
-### Step 5: Verify
+### Step 5: Content Verification (CRITICAL)
 
-After compacting:
-1. Check that CLAUDE.md is significantly shorter
-2. Verify all links to new docs are correct
-3. Ensure no content was lost (just moved)
-4. Run `yarn checks` to ensure no issues
+**IMPORTANT:** Before committing, you MUST verify that ALL removed content exists in the referenced docs. This prevents accidental loss of important information.
 
-### Step 6: Report Results
+#### 5.1 Extract Original Content
+
+For each section being compacted, save the original content BEFORE making changes:
+```bash
+# Extract original section to temp file (adjust line range as needed)
+git show HEAD:CLAUDE.md | sed -n '/^## Section Name/,/^---$/p' > /tmp/original_section.md
+```
+
+#### 5.2 Content Verification Checklist
+
+For each extracted section, verify ALL of the following:
+
+**A. Line Count Check**
+```bash
+# New doc should be >= original section (content + headers/navigation)
+wc -l /tmp/original_section.md
+wc -l docs/new-section-guide.md
+```
+- ✅ New doc lines >= Original section lines (accounting for added headers/navigation)
+- ❌ If new doc is significantly shorter, content may be missing
+
+**B. Key Pattern Verification**
+
+Identify 3-5 unique, important phrases from the original section and verify they exist in the new doc:
+```bash
+# Example patterns to check (customize for each section)
+grep -c "UNIQUE_PHRASE_1" docs/new-section-guide.md  # Should be >= 1
+grep -c "UNIQUE_PHRASE_2" docs/new-section-guide.md  # Should be >= 1
+grep -c "important_function_name" docs/new-section-guide.md  # Should be >= 1
+```
+
+**C. Code Block Verification**
+
+Count code blocks in original vs new:
+```bash
+# Count code blocks (``` markers)
+grep -c '```' /tmp/original_section.md
+grep -c '```' docs/new-section-guide.md
+```
+- ✅ New doc should have >= same number of code blocks
+
+**D. Table Verification (if applicable)**
+
+If original has tables, verify all rows exist:
+```bash
+# Count table rows
+grep -c '^\|' /tmp/original_section.md
+grep -c '^\|' docs/new-section-guide.md
+```
+
+**E. Critical Warnings Verification**
+
+Check that all CRITICAL/WARNING/IMPORTANT markers are preserved:
+```bash
+grep -i "critical\|warning\|important" /tmp/original_section.md
+grep -i "critical\|warning\|important" docs/new-section-guide.md
+```
+
+#### 5.3 Verification Report
+
+After all checks, provide a verification report:
+```
+🔍 Content Verification Report
+
+Section: [Section Name]
+Original: X lines | New Doc: Y lines ✅/❌
+
+Key Patterns:
+- "pattern 1": Found ✅
+- "pattern 2": Found ✅
+- "pattern 3": Found ✅
+
+Code Blocks: Original: N | New: M ✅/❌
+Tables: Original: N rows | New: M rows ✅/❌
+Critical Warnings: All preserved ✅/❌
+
+Status: VERIFIED ✅ / FAILED ❌
+```
+
+#### 5.4 Failure Handling
+
+If ANY verification fails:
+1. **DO NOT commit** the changes
+2. Restore from backup: `cp CLAUDE.md.backup CLAUDE.md`
+3. Fix the missing content in the new doc
+4. Re-run verification
+5. Only proceed when ALL checks pass
+
+### Step 6: Final Checks
+
+After content verification passes:
+1. Run `yarn checks` to ensure no TypeScript/ESLint issues
+2. Verify all doc links are correct and files exist
+3. Remove backup file only after successful commit
+
+### Step 7: Report Results
 
 Provide a summary to the user:
 ```
@@ -86,12 +177,19 @@ Provide a summary to the user:
 
 📄 Extracted sections:
 1. [Section Name] → docs/section-name.md
+   - Original: X lines | New: Y lines ✅
+   - Key patterns verified ✅
+   - Code blocks preserved ✅
+
 2. [Section Name] → docs/section-name-extended.md
+   - Original: X lines | New: Y lines ✅
+   - Key patterns verified ✅
+   - Tables preserved ✅
 ...
 
-💾 Backup created: CLAUDE.md.backup
+🔍 Verification: ALL PASSED ✅
 
-✅ All content preserved, just reorganized for better readability.
+✅ All content preserved and verified, just reorganized for better readability.
 ```
 
 ## Compaction Guidelines
@@ -143,3 +241,5 @@ Common pitfalls that cause infinite re-renders.
 - All detailed information remains accessible via docs
 - CLAUDE.md becomes a better quick reference guide
 - Detailed docs serve as comprehensive references
+- **CRITICAL:** Never skip the verification step - it prevents accidental content loss
+- If verification fails, DO NOT commit - fix the issue first

@@ -34,6 +34,7 @@ export interface PRReviewComment {
 
 export interface PromptContext {
     phaseInfo?: PhaseInfo;
+    prFiles: string[]; // Authoritative list from GitHub API
     prComments: PRComment[];
     prReviewComments: PRReviewComment[];
 }
@@ -44,6 +45,14 @@ export interface PromptContext {
 
 function createPhaseContextSection(phaseInfo: PhaseInfo): string {
     const { current, total, phaseName, phaseDescription, phaseFiles } = phaseInfo;
+
+    // Separate source files from documentation files
+    const sourceFiles = phaseFiles?.filter(f =>
+        !f.startsWith('docs/') && !f.startsWith('.cursor/rules/')
+    ) || [];
+    const docFiles = phaseFiles?.filter(f =>
+        f.startsWith('docs/') || f.startsWith('.cursor/rules/')
+    ) || [];
 
     let section = `## ⚠️ MULTI-PHASE IMPLEMENTATION - PHASE-SPECIFIC REVIEW REQUIRED
 
@@ -57,10 +66,22 @@ function createPhaseContextSection(phaseInfo: PhaseInfo): string {
 `;
     }
 
-    if (phaseFiles && phaseFiles.length > 0) {
-        section += `**Expected Files for this Phase:**
+    if (sourceFiles.length > 0) {
+        section += `**Expected Source Files for this Phase:**
 `;
-        for (const file of phaseFiles) {
+        for (const file of sourceFiles) {
+            section += `- \`${file}\`
+`;
+        }
+        section += `
+`;
+    }
+
+    if (docFiles.length > 0) {
+        section += `**Relevant Documentation (verify compliance):**
+The tech design specified these docs as relevant for this phase. READ them and verify the implementation follows their guidelines:
+`;
+        for (const file of docFiles) {
             section += `- \`${file}\`
 `;
         }
@@ -75,8 +96,13 @@ function createPhaseContextSection(phaseInfo: PhaseInfo): string {
 4. ✅ Check that the PR follows the phase description above
 `;
 
-    if (phaseFiles && phaseFiles.length > 0) {
-        section += `5. ✅ Verify changes are primarily in the expected files listed above
+    if (sourceFiles.length > 0) {
+        section += `5. ✅ Verify changes are primarily in the expected source files listed above
+`;
+    }
+
+    if (docFiles.length > 0) {
+        section += `6. ✅ Verify implementation follows the guidelines in the relevant documentation
 `;
     }
 
@@ -102,7 +128,16 @@ ${comment.body}
 `;
     }
 
-    section += `**Note:** If Claude (GitHub App) has reviewed this PR, use his feedback as optional helpful guidance but not as final authority. You are the final decision maker.
+    section += `**⚠️ IMPORTANT - Claude GitHub App Feedback:**
+If Claude (GitHub App) has reviewed this PR, you MUST explicitly respond to each point he raised. Include a "Claude Feedback Response" section in your review:
+
+\`\`\`
+### Claude Feedback Response
+1. [Claude's point about X] - **AGREE** - Added to changes requested
+2. [Claude's point about Y] - **DISAGREE** - This pattern is acceptable because [reason]
+\`\`\`
+
+You are the final decision maker, but you must provide reasoning for each point you agree or disagree with. Do not silently ignore Claude's feedback.
 
 ---
 
@@ -135,6 +170,19 @@ ${comment.body}
 `;
 
     return section;
+}
+
+function createPRFilesSection(prFiles: string[]): string {
+    return `## Files in this PR (from GitHub API)
+
+**IMPORTANT:** These are the ONLY files that are part of this PR. Review ONLY these files.
+Do NOT flag files that are not in this list - they are NOT part of this PR.
+
+${prFiles.map(f => `- \`${f}\``).join('\n')}
+
+---
+
+`;
 }
 
 function createInstructionsSection(): string {
@@ -187,17 +235,19 @@ ${MARKDOWN_FORMATTING_INSTRUCTIONS}
  *
  * The prompt is structured as:
  * 1. Phase context (if multi-phase workflow)
- * 2. PR comments (if any)
- * 3. Inline review comments (if any)
- * 4. Instructions
- * 5. /review slash command
- * 6. Output format instructions
+ * 2. PR files list (authoritative from GitHub API)
+ * 3. PR comments (if any)
+ * 4. Inline review comments (if any)
+ * 5. Instructions
+ * 6. /review slash command
+ * 7. Output format instructions
  */
 export function createPrReviewerAgentPrompt(context: PromptContext): string {
-    const { phaseInfo, prComments, prReviewComments } = context;
+    const { phaseInfo, prFiles, prComments, prReviewComments } = context;
 
     return `
 ${phaseInfo ? createPhaseContextSection(phaseInfo) : ''}
+${createPRFilesSection(prFiles)}
 ${prComments.length > 0 ? createPRCommentsSection(prComments) : ''}
 ${prReviewComments.length > 0 ? createReviewCommentsSection(prReviewComments) : ''}
 ${createInstructionsSection()}

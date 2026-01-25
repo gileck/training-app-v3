@@ -26,12 +26,113 @@
 
 import '../src/agents/shared/loadEnv';
 import { getProjectManagementAdapter } from '@/server/project-management';
+import type { ProjectManagementAdapter } from '@/server/project-management/types';
 import { STATUSES } from '@/server/project-management/config';
 import { sendNotificationToOwner } from '@/server/telegram';
 import { appConfig } from '@/app.config';
 import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/feature-requests';
 import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/reports';
 import { parsePhaseString } from '../src/agents/lib/parsing';
+import {
+    updateDesignArtifact,
+    getDesignDocLink,
+    hasPhaseComment,
+    updateImplementationArtifact,
+    updateImplementationPhaseArtifact,
+    parseArtifactComment,
+    initializeImplementationPhases,
+} from '../src/agents/lib';
+import { readDesignDoc } from '../src/agents/lib/design-files';
+import { formatPhasesToComment, parsePhasesFromMarkdown } from '../src/agents/lib/phases';
+
+/**
+ * Handle design PR merged event
+ *
+ * NOTE: Status updates are handled by Telegram webhook (primary flow).
+ * This function only handles idempotent backup operations:
+ * 1. Update artifact comment on issue
+ * 2. For tech design PRs with phases, post phases comment on issue (if not exists)
+ *
+ * Status is NOT updated here to avoid conflicts with Telegram webhook.
+ */
+async function handleDesignPRMerged(
+    adapter: ProjectManagementAdapter,
+    prNumber: number,
+    prTitle: string,
+    issueNumber: number,
+    isProductDesign: boolean
+): Promise<void> {
+    const designType = isProductDesign ? 'product' : 'tech';
+    const designLabel = isProductDesign ? 'Product Design' : 'Technical Design';
+
+    console.log(`\n📄 Processing ${designLabel} PR merge...`);
+
+    // 1. Update artifact comment on issue
+    console.log(`  Updating artifact comment on issue #${issueNumber}...`);
+    await updateDesignArtifact(adapter, issueNumber, {
+        type: isProductDesign ? 'product-design' : 'tech-design',
+        path: getDesignDocLink(issueNumber, designType),
+        status: 'approved',
+        lastUpdated: new Date().toISOString().split('T')[0],
+        prNumber,
+    });
+    console.log('  Artifact comment updated');
+
+    // 2. Find project item and advance status
+    const items = await adapter.listItems({ limit: 100 });
+    const item = items.find((i) => i.content?.type === 'Issue' && i.content.number === issueNumber);
+
+    if (!item) {
+        console.log(`  ⚠️ No project item found for issue #${issueNumber}`);
+        return;
+    }
+
+    console.log(`  Found project item: ${item.id}`);
+    console.log(`  Current status: ${item.status}`);
+    console.log('  (Status update handled by Telegram webhook - skipping here)')
+
+    // Delete the design branch after successful merge (idempotent - may already be deleted)
+    try {
+        const prDetails = await adapter.getPRDetails(prNumber);
+        if (prDetails?.headBranch) {
+            console.log(`  Cleaning up design branch: ${prDetails.headBranch}`);
+            await adapter.deleteBranch(prDetails.headBranch);
+        }
+    } catch (error) {
+        // Branch may already be deleted by Telegram webhook - that's fine
+        console.log('  Branch already deleted or not found (skipping)');
+    }
+
+    // 3. For tech design PRs, check for phases and initialize in artifact comment
+    if (!isProductDesign) {
+        const techDesign = readDesignDoc(issueNumber, 'tech');
+        if (techDesign) {
+            const phases = parsePhasesFromMarkdown(techDesign);
+            if (phases && phases.length >= 2) {
+                // Check if phases comment already exists (idempotency)
+                const comments = await adapter.getIssueComments(issueNumber);
+                if (!hasPhaseComment(comments)) {
+                    const phasesComment = formatPhasesToComment(phases);
+                    await adapter.addIssueComment(issueNumber, phasesComment);
+                    console.log(`  Posted phases comment (${phases.length} phases)`);
+                } else {
+                    console.log('  Phases comment already exists, skipping');
+                }
+
+                // Pre-populate all phases in artifact comment with "pending" status
+                await initializeImplementationPhases(
+                    adapter,
+                    issueNumber,
+                    phases.map(p => ({ order: p.order, name: p.name }))
+                );
+            }
+        }
+    }
+
+    // Status comment and Telegram notification handled by Telegram webhook
+
+    console.log(`\n✅ ${designLabel} PR backup operations completed\n`);
+}
 
 async function main() {
     const prNumber = process.env.PR_NUMBER;
@@ -48,7 +149,26 @@ async function main() {
     console.log(`Title: ${prTitle}`);
     console.log(`Merged by: ${mergedBy}`);
 
-    // Extract issue number from PR body
+    // Check for design PRs by title pattern
+    // Format: "docs: product design for issue #123" or "docs: technical design for issue #123"
+    const productDesignMatch = prTitle.match(/^docs:\s*product\s+design\s+for\s+issue\s+#(\d+)/i);
+    const techDesignMatch = prTitle.match(/^docs:\s*technical?\s+design\s+for\s+issue\s+#(\d+)/i);
+
+    if (productDesignMatch || techDesignMatch) {
+        const issueNumber = parseInt((productDesignMatch || techDesignMatch)![1], 10);
+        const isProductDesign = !!productDesignMatch;
+
+        console.log(`\n📋 Detected ${isProductDesign ? 'Product' : 'Technical'} Design PR for issue #${issueNumber}`);
+
+        // Initialize adapter
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        await handleDesignPRMerged(adapter, parseInt(prNumber), prTitle, issueNumber, isProductDesign);
+        return;
+    }
+
+    // Extract issue number from PR body for implementation PRs
     // Looks for patterns like "Closes #123", "Fixes #123", "Resolves #123", "Part of #123"
     const closesMatch = prBody.match(/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/i);
     const partOfMatch = prBody.match(/part\s+of\s+#(\d+)/i);
@@ -98,6 +218,30 @@ async function main() {
         if (parsedPhase) {
             console.log(`📋 Multi-phase feature: Phase ${parsedPhase.current}/${parsedPhase.total}`);
 
+            // Get phase name from artifact comment if available
+            const issueComments = await adapter.getIssueComments(issueNumber);
+            const artifact = parseArtifactComment(issueComments);
+            const currentPhaseArtifact = artifact?.implementation?.phases?.find(
+                p => p.phase === parsedPhase.current
+            );
+            const phaseName = currentPhaseArtifact?.name || `Phase ${parsedPhase.current}`;
+
+            // Update artifact comment to mark phase as merged
+            try {
+                await updateImplementationPhaseArtifact(
+                    adapter,
+                    issueNumber,
+                    parsedPhase.current,
+                    parsedPhase.total,
+                    phaseName,
+                    'merged',
+                    parseInt(prNumber, 10)
+                );
+                console.log('  Updated artifact comment - phase marked as merged');
+            } catch (error) {
+                console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+            }
+
             if (parsedPhase.current < parsedPhase.total) {
                 // More phases to go - increment phase and return to Implementation
                 const nextPhase = parsedPhase.current + 1;
@@ -120,6 +264,13 @@ async function main() {
                 if (adapter.hasReviewStatusField() && item.reviewStatus) {
                     await adapter.clearItemReviewStatus(item.id);
                     console.log('  Cleared review status');
+                }
+
+                // Delete the feature branch after successful phase merge
+                const prDetails = await adapter.getPRDetails(parseInt(prNumber, 10));
+                if (prDetails?.headBranch) {
+                    console.log(`  Cleaning up feature branch: ${prDetails.headBranch}`);
+                    await adapter.deleteBranch(prDetails.headBranch);
                 }
 
                 // Send notification for phase completion
@@ -167,7 +318,23 @@ Run <code>yarn agent:implement</code> to continue.`;
             await adapter.clearImplementationPhase(item.id);
             console.log('  Cleared Implementation Phase field');
         } else {
-            // Single-phase feature - add completion comment
+            // Single-phase feature - update artifact comment and add completion comment
+            try {
+                // Use Phase 1/1 format for consistency
+                await updateImplementationPhaseArtifact(
+                    adapter,
+                    issueNumber,
+                    1,
+                    1,
+                    '', // No name for single-phase
+                    'merged',
+                    parseInt(prNumber, 10)
+                );
+                console.log('  Updated artifact comment - implementation marked as merged');
+            } catch (error) {
+                console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+            }
+
             const completionComment = `✅ Merged PR #${prNumber} - Issue complete!`;
             await adapter.addIssueComment(issueNumber, completionComment);
             console.log('  Completion comment added to issue');
@@ -182,6 +349,13 @@ Run <code>yarn agent:implement</code> to continue.`;
         if (adapter.hasReviewStatusField() && item.reviewStatus) {
             await adapter.clearItemReviewStatus(item.id);
             console.log('Cleared review status');
+        }
+
+        // Delete the feature branch after successful merge
+        const prDetails = await adapter.getPRDetails(parseInt(prNumber, 10));
+        if (prDetails?.headBranch) {
+            console.log(`\nCleaning up feature branch: ${prDetails.headBranch}`);
+            await adapter.deleteBranch(prDetails.headBranch);
         }
 
         // Update feature request OR bug report in MongoDB

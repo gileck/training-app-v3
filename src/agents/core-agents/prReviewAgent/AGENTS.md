@@ -9,8 +9,10 @@ The PR Review Agent reviews pull requests for code quality, correctness, and com
 - Validate phase-specific implementations (multi-phase features)
 - Check TypeScript, React, state management, and UI patterns
 - Submit official GitHub PR reviews (APPROVE or REQUEST_CHANGES)
+- Post status comment on issue (phase-aware)
 - Update Review Status after review
-- Consider Claude Code GitHub App feedback (if present)
+- Consider Claude Code GitHub App feedback (if present, as optional guidance)
+- **On approval:** Generate commit message and save to PR comment for admin merge
 
 ## Entry Point
 
@@ -69,7 +71,8 @@ The agent processes items that match:
 **If approved:**
 - Status: `"PR Review"` (unchanged)
 - Review Status: `"Approved"`
-- Admin can now merge (manual step)
+- Commit message saved to PR comment (marker: `<!-- COMMIT_MESSAGE_V1 -->`)
+- Admin notified via Telegram with Merge/Request Changes buttons
 
 **If requesting changes:**
 - Status: `"PR Review"` (unchanged)
@@ -201,43 +204,58 @@ const { prNumber, branchName } = openPR;
    - If not found → Fetch from remote
    - Remember original branch for cleanup
 
-7. Fetch PR context
+7. Fetch PR files from GitHub API ← CRITICAL
+   - Use adapter.getPRFiles(prNumber)
+   - This is the AUTHORITATIVE list of files in the PR
+   - NOT relying on local git diff (which can be misleading)
+
+8. Fetch PR context
    - Get PR conversation comments
    - Get PR review comments (inline code reviews)
-   - Separate Claude Code comments from others
 
-8. Build review prompt
-   - Add phase context (if multi-phase) ← CRITICAL
-   - Add Claude Code feedback (as advisory input)
-   - Add other PR comments
+9. Build review prompt
+   - Add phase context (if multi-phase)
+   - Add PR files list from GitHub API ← tells agent exactly which files to review
+   - Add PR comments (including Claude Code feedback as optional guidance)
    - Add project guidelines to check
 
-9. Run /review command
-   - Uses native /review slash command
-   - LLM has access to: Read, Glob, Grep, Bash
-   - Can read all code in the checked-out branch
-   - Output format: PR_REVIEW_OUTPUT_FORMAT
+10. Run /review command
+    - Uses native /review slash command
+    - LLM has access to: Read, Glob, Grep, Bash
+    - Can read all code in the checked-out branch
+    - Prompt explicitly lists files to review (from GitHub API)
+    - Output format: PR_REVIEW_OUTPUT_FORMAT
 
-10. Extract structured output
+11. Extract structured output
     - decision: 'approved' | 'request_changes'
     - summary: 1-2 sentence summary
     - reviewText: Full review content
 
-11. Submit official GitHub review
+12. Submit official GitHub review
     - Use GitHub API: submitPRReview()
     - Event: APPROVE or REQUEST_CHANGES
     - Body: reviewText (with agent prefix)
 
-12. Update Review Status
+13. Post status comment on issue
+    - Phase-aware: "✅ **Phase 2/3**: PR approved - ready for merge (#123)"
+    - Or: "⚠️ **Phase 1/2**: Changes requested on PR (#123)"
+
+14. Update Review Status
     - If approved → "Approved"
     - If requesting changes → "Request Changes"
 
-13. Checkout back to original branch
+15. If approved: Generate and save commit message
+    - Fetch PR info (title, body, stats)
+    - Generate commit message (title + body)
+    - Save/update PR comment with marker: <!-- COMMIT_MESSAGE_V1 -->
+    - Overwrites previous comment on re-approval
+
+16. Checkout back to original branch
     - Always cleanup, even on error
 
-14. Send notification
-    - Notify admin via Telegram
-    - Include decision and summary
+17. Send notification
+    - If approved: Telegram with commit preview + [Merge] + [Request Changes] buttons
+    - If requesting changes: Telegram with decision summary
 ```
 
 ## GitHub Issue Interaction
@@ -273,6 +291,23 @@ const { prNumber, branchName } = openPR;
 ## PR Interaction
 
 ### Reading from PR
+
+**PR Files (Authoritative List from GitHub API):**
+```typescript
+const prFiles = await adapter.getPRFiles(prNumber);
+// Returns: ['src/client/routes/FeatureRequests/components/FeatureRequestCard.tsx', ...]
+```
+
+This is the **authoritative list** of files in the PR:
+- Fetched directly from GitHub API (not local git diff)
+- Not affected by local branch state
+- Not affected by main branch moving forward
+- Passed to prompt to tell agent exactly which files to review
+
+**Why this matters:**
+- Local `git diff main` can include files that aren't in the PR
+- If feature branch is behind main, diff shows extra files
+- GitHub API gives the true PR contents
 
 **PR Conversation Comments:**
 ```typescript
@@ -336,37 +371,150 @@ I've reviewed the PR and it looks good. Here are my findings:
 Overall, this PR is ready to merge.
 ```
 
-## Claude Code GitHub App Integration
+## Commit Message Storage (On Approval)
 
-### Reading Claude's Feedback
+When a PR is approved, the agent generates a commit message and saves it as a PR comment for later use during merge.
+
+### Commit Message Generation
 
 ```typescript
-// Separate Claude Code comments from others
-const claudeComments = prConversationComments.filter(c => c.author.toLowerCase() === 'claude');
-const otherComments = prConversationComments.filter(c => c.author.toLowerCase() !== 'claude');
+import { generateCommitMessage, formatCommitMessageComment } from '@/agents/lib/commitMessage';
 
-// Add to prompt as advisory input
-if (claudeComments.length > 0) {
-    contextPrompt += '## Claude Code Review (Optional Guidance)\n\n';
-    contextPrompt += 'Claude Code has provided the following feedback as additional guidance:\n\n';
-    // ... include Claude's feedback
-    contextPrompt += 'Note: Claude Code feedback is advisory. You are the final authority.\n';
+// Get PR info for commit message
+const prInfo = await adapter.getPRInfo(prNumber);
+
+// Generate commit message (deterministic, no AI)
+const commitMsg = generateCommitMessage(prInfo, item.content, phaseInfo);
+// Returns: { title: string, body: string }
+```
+
+**Commit Message Format:**
+```
+Title: feat: Add user authentication (same as PR title)
+
+Body:
+- Adds login and logout endpoints
+- Implements JWT token handling
+
+Changes: +245/-32 across 8 files
+Phase: 2/3 (if multi-phase)
+
+Closes #42 (or "Part of #42" for non-final phases)
+```
+
+### Saving to PR Comment
+
+```typescript
+import { COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
+
+// Check for existing commit message comment (re-approval scenario)
+const existingComment = await adapter.findPRCommentByMarker(prNumber, COMMIT_MESSAGE_MARKER);
+const commentBody = formatCommitMessageComment(commitMsg.title, commitMsg.body);
+
+if (existingComment) {
+    // Update existing comment (overwrites old commit message)
+    await adapter.updatePRComment(prNumber, existingComment.id, commentBody);
+} else {
+    // Create new comment
+    await adapter.addPRComment(prNumber, commentBody);
 }
+```
+
+**Comment Format:**
+```markdown
+<!-- COMMIT_MESSAGE_V1 -->
+## Commit Message
+
+This commit message will be used when merging this PR:
+
+**Title:**
+```
+feat: Add user authentication
+```
+
+**Body:**
+```
+- Adds login and logout endpoints
+- Implements JWT token handling
+
+Changes: +245/-32 across 8 files
+
+Closes #42
+```
+
+---
+*Generated by PR Review Agent. Admin will use this when merging.*
+```
+
+### Admin Merge via Telegram
+
+After saving the commit message, the agent sends a Telegram notification:
+
+```typescript
+await notifyPRReadyToMerge(
+    issueTitle,
+    issueNumber,
+    prNumber,
+    commitMsg,    // { title, body }
+    issueType     // 'bug' | 'feature'
+);
+```
+
+**Telegram Message:**
+```
+PR Review: ✅ Approved!
+
+Issue: Add user authentication (#42)
+PR: #123
+
+Commit Message:
+`feat: Add user authentication`
+
+- Adds login and logout endpoints
+- Implements JWT token handling...
+
+[✅ Merge] [🔄 Request Changes]
+[👀 View PR]
+```
+
+**Button Actions:**
+- **Merge**: Fetches commit message from PR comment, squash merges PR
+- **Request Changes**: Status → "Ready for development", Review Status → "Request Changes"
+
+### Re-Approval Behavior
+
+When a PR is re-approved after changes:
+1. Agent generates NEW commit message (reflects updated code)
+2. Finds existing commit message comment by marker
+3. Updates the comment (overwrites old message)
+4. Sends new Telegram notification to admin
+
+This ensures the commit message always reflects the current state of the PR.
+
+## Claude Code GitHub App Integration
+
+### Handling Claude's Feedback
+
+All PR comments (including Claude bot comments) are passed together to the prompt. The agent is **required to explicitly respond to Claude's feedback** if present.
+
+**Required Response Format:**
+```markdown
+### Claude Feedback Response
+1. [Claude's point about X] - **AGREE** - Added to changes requested
+2. [Claude's point about Y] - **DISAGREE** - This pattern is acceptable because [reason]
 ```
 
 ### Authority Hierarchy
 
-```markdown
-## Your Role and Authority
+The PR Review Agent is the final authority, but must:
+1. **Explicitly acknowledge** each point Claude raised
+2. **State AGREE or DISAGREE** for each point
+3. **Provide reasoning** for disagreements
 
-**You are the FINAL AUTHORITY on this PR review.** Your decision determines the status.
-
-If Claude Code provided feedback above:
-- Treat it as helpful advisory input
-- You may override his suggestions if they conflict with project priorities
-- You may approve even if Claude requested changes (if you determine they're not necessary)
-- Use your judgment based on project guidelines
-```
+This ensures:
+- Claude's feedback is never silently ignored
+- There's a clear audit trail of why feedback was accepted/rejected
+- Valid feedback gets incorporated into the review
 
 ## LLM Response Format
 
@@ -478,17 +626,22 @@ await adapter.updateItemReviewStatus(item.id, newReviewStatus);
 
 ### Downstream (After)
 
-**Admin (Manual):**
-- If approved → Admin merges PR
-- If request changes → Implementation Agent addresses feedback
+**Admin Merge Flow (via Telegram):**
+- On approval → Admin receives Telegram notification with:
+  - Commit message preview
+  - [Merge] button → Squash merges PR with saved commit message
+  - [Request Changes] button → Status = "Ready for development", Review Status = "Request Changes"
+  - [View PR] link
+- Admin clicks Merge → `on-pr-merged.ts` webhook → Status = "Done"
+- Admin clicks Request Changes → Must comment on PR explaining what to fix
 
 **Implementation Agent (Feedback Loop):**
 - When Review Status = "Request Changes"
-- Admin moves Status back to "Implementation"
-- Implementation Agent addresses feedback
+- Status moved back to "Ready for development" (by admin via Telegram)
+- Implementation Agent addresses feedback (reads PR comments)
 - Creates new commits on same PR
-- Returns to "PR Review"
-- This agent re-reviews
+- Sets Review Status = "Waiting for Review", Status = "PR Review"
+- This agent re-reviews → generates NEW commit message (overwrites old)
 
 ### Parallel
 
@@ -893,8 +1046,11 @@ rm -f ${LOCKFILE}
 ## Related Documentation
 
 - **Overall workflow:** `docs/github-projects-integration.md`
+- **PR Merge Flow:** `docs/github-projects-integration.md#pr-merge-flow-admin-approval`
 - **Multi-PR workflow:** `docs/github-projects-integration.md#multi-pr-workflow-lxl-features`
 - **Phase architecture:** `docs/github-projects-integration.md#phase-storage--retrieval`
 - **Project guidelines:** `.cursor/rules/`
 - **Phase utilities:** `src/agents/lib/phases.ts`
+- **Commit message utilities:** `src/agents/lib/commitMessage.ts`
+- **Telegram webhook handlers:** `src/pages/api/telegram-webhook.ts`
 - **Cron setup:** `docs/github-projects-integration.md#pr-review-agent-cron-setup`

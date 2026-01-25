@@ -820,8 +820,16 @@ yarn verify-setup
    - Required variables (all GitHub and Telegram config)
    - Workflow permissions (read-write access)
 
-4. **GitHub Project**
-   - Project configuration present (manual verification recommended)
+4. **Token Permissions** (NEW - actual API permission tests)
+   - `GITHUB_TOKEN` can access the repository (repo scope)
+   - `GITHUB_TOKEN` can access GitHub Projects V2 (project scope)
+   - `GITHUB_BOT_TOKEN` can access repo (if set)
+   - Shows which GitHub user each token authenticates as
+
+5. **GitHub Project**
+   - Project exists and is accessible
+   - Review Status field has all 6 required options
+   - Implementation Phase field exists (for multi-PR workflow)
 
 **Expected output (all passing):**
 ```
@@ -876,17 +884,29 @@ yarn verify-setup
 
   11 passed, 0 failed
 
+📋 Token Permissions
+──────────────────────────────────────────────────────────────────────
+✓ GITHUB_TOKEN repo access ✓
+✓ GITHUB_TOKEN project access ✓
+    Can access project: "Your Project Name"
+✓ GITHUB_BOT_TOKEN repo access ✓
+✓ GITHUB_BOT_TOKEN authenticated as: your-bot-username ✓
+    PRs will be created by this account (allowing admin to approve)
+
+  4 passed, 0 failed
+
 📋 GitHub Project
 ──────────────────────────────────────────────────────────────────────
 ✓ GitHub Project configuration present
-    Project: gileck/projects/3
-    Manual verification recommended
+    Project: your-username/projects/3
+✓ Review Status field has all 6 options ✓
+✓ Implementation Phase field exists ✓ (multi-PR workflow enabled)
 
-  1 passed, 0 failed
+  3 passed, 0 failed
 
 ══════════════════════════════════════════════════════════════════════
 
-📊 Overall: 34/34 checks passed
+📊 Overall: 43/43 checks passed
 
 ✅ All checks passed! Your setup is ready.
 ```
@@ -1197,6 +1217,43 @@ yarn verify-production --url https://your-app.vercel.app
 - All 6 options are required (see Step 1 for the full list)
 - Go to your project → Edit "Review Status" field → Add missing options
 - Common mistake: Only adding the first 4 options (missing "Waiting for Clarification" and "Clarification Received")
+
+### Token Permission Issues
+
+**"GITHUB_TOKEN project access ✗" in verify-setup**
+- **Cause:** Token is missing the `project` scope
+- **For Classic PAT:** Go to token settings → ensure `project` checkbox is checked
+- **For Fine-grained PAT:** Go to token settings → Account permissions → Projects: Read and write
+- **Important:** Fine-grained PATs have "Projects" under **Account permissions**, NOT Repository permissions (common mistake)
+
+**"Could not resolve to a ProjectV2 with the number X"**
+- **Cause 1:** Token doesn't have `project` scope
+- **Cause 2:** Wrong project number in `GITHUB_PROJECT_NUMBER`
+- **Cause 3:** Wrong owner type (`user` vs `org`)
+- **Fix:** Run `yarn verify-setup` to see detailed Token Permissions diagnostics
+
+**PR merge workflow fails in GitHub Actions but works locally**
+- **Cause:** The `PROJECT_TOKEN` secret in GitHub Actions has different permissions than local `GITHUB_TOKEN`
+- **Fix:**
+  1. Generate a new token with both `repo` AND `project` scopes
+  2. Update local `.env.local` with new token
+  3. Update GitHub Actions secret: `gh secret set PROJECT_TOKEN --body "ghp_your_new_token"`
+  4. Run `yarn verify-setup` to confirm both local and remote tokens work
+
+**How to test token permissions manually:**
+```bash
+# Test repo access
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: bearer YOUR_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO
+# Should return: 200
+
+# Test project access (replace OWNER and PROJECT_NUMBER)
+curl -s -H "Authorization: bearer YOUR_TOKEN" \
+  -X POST -d '{"query":"query { user(login: \"OWNER\") { projectV2(number: PROJECT_NUMBER) { id title } } }"}' \
+  https://api.github.com/graphql
+# Should return project data, not errors
+```
 
 ### Telegram Issues
 

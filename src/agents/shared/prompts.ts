@@ -181,7 +181,7 @@ Before writing the design, explore the codebase:
 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Product Design document in markdown format (same structure as before)
-- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Format: "Here's the design overview: 1. ... 2. ... 3. ..."
+- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Keep the design concise. A small feature might only need a few paragraphs. A large feature needs more detail.
 
@@ -299,7 +299,7 @@ Focus ONLY on:
 
 Provide your response as structured JSON with these fields:
 - **design**: COMPLETE revised Product Design document in markdown format (entire document, not just changes)
-- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Do NOT output just the changes in design - output the entire revised document. Keep it concise.
 
@@ -376,7 +376,7 @@ Focus ONLY on:
 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Product Design document in markdown format
-- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Format: "Here's the design overview: 1. ... 2. ... 3. ..."
+- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
@@ -464,7 +464,7 @@ Explore the codebase:
 Provide your response as structured JSON with these fields:
 - **design**: Complete Technical Design document in markdown format (same structure as before)
 - **phases** (L/XL features ONLY): Array of implementation phases (see schema below). Leave empty/null for S/M features.
-- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
+- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 **Phase schema (for L/XL features only):**
 \`\`\`json
@@ -472,10 +472,25 @@ Provide your response as structured JSON with these fields:
   "order": 1,                    // Phase number (1, 2, 3, etc.)
   "name": "Database Schema",     // Short phase name
   "description": "...",          // What this phase implements
-  "files": ["src/..."],          // Files modified in this phase
+  "files": ["src/...", "docs/...", ".cursor/rules/..."],  // Source files to modify + relevant docs
   "estimatedSize": "S"           // S or M (never L/XL for a single phase)
 }
 \`\`\`
+
+**IMPORTANT - Files Array Content:**
+The \`files\` array should include BOTH:
+1. **Source files to create/modify** - The actual implementation files (e.g., \`src/apis/...\`, \`src/client/...\`)
+2. **Relevant documentation** - Docs the implementor should read before implementing this phase:
+   - \`docs/\` files for detailed patterns (e.g., \`docs/mongodb-usage.md\`, \`docs/theming.md\`)
+   - \`.cursor/rules/\` files for coding guidelines (e.g., \`.cursor/rules/state-management-guidelines.mdc\`)
+
+Select docs based on what the phase touches:
+- Database work → \`docs/mongodb-usage.md\`, \`.cursor/rules/mongodb-usage.mdc\`
+- API endpoints → \`docs/api-endpoint-format.md\`, \`.cursor/rules/client-server-communications.mdc\`
+- UI components → \`docs/theming.md\`, \`.cursor/rules/react-component-organization.mdc\`, \`.cursor/rules/shadcn-usage.mdc\`
+- State management → \`docs/state-management.md\`, \`.cursor/rules/state-management-guidelines.mdc\`
+- Authentication → \`docs/authentication.md\`, \`.cursor/rules/user-access.mdc\`
+- Offline/PWA → \`docs/offline-pwa-support.md\`, \`docs/react-query-mutations.md\`
 
 Keep the design concise. A small feature might only need a short list of files. A large feature needs more detail.
 
@@ -577,21 +592,36 @@ This feature will be split into 3 PRs:
     "order": 1,
     "name": "Database & Models",
     "description": "User collection schema and session management",
-    "files": ["src/server/database/collections/users.ts", "src/server/database/collections/sessions.ts"],
+    "files": [
+      "src/server/database/collections/users.ts",
+      "src/server/database/collections/sessions.ts",
+      "docs/mongodb-usage.md",
+      ".cursor/rules/mongodb-usage.mdc"
+    ],
     "estimatedSize": "S"
   },
   {
     "order": 2,
     "name": "API Endpoints",
     "description": "Login, logout, register endpoints with JWT handling",
-    "files": ["src/apis/auth/types.ts", "src/apis/auth/handlers/login.ts"],
+    "files": [
+      "src/apis/auth/types.ts",
+      "src/apis/auth/handlers/login.ts",
+      "docs/api-endpoint-format.md",
+      ".cursor/rules/client-server-communications.mdc"
+    ],
     "estimatedSize": "M"
   },
   {
     "order": 3,
     "name": "UI Components",
     "description": "Login form, register form, protected route wrapper",
-    "files": ["src/client/features/auth/components/LoginForm.tsx"],
+    "files": [
+      "src/client/features/auth/components/LoginForm.tsx",
+      "docs/theming.md",
+      ".cursor/rules/react-component-organization.mdc",
+      ".cursor/rules/shadcn-usage.mdc"
+    ],
     "estimatedSize": "M"
   }
 ]
@@ -655,7 +685,7 @@ ${feedbackSection}
 
 Provide your response as structured JSON with these fields:
 - **design**: COMPLETE revised Technical Design document in markdown format (entire document, not just changes)
-- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Do NOT output just the changes in design - output the entire revised document. Keep it concise.
 
@@ -718,7 +748,7 @@ If the admin's response is still unclear or raises new ambiguities, you may ask 
 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Technical Design document in markdown format
-- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
+- **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
@@ -802,6 +832,14 @@ Implement the feature as specified in ${implementationSource}:
 5. Add necessary imports and exports
 6. Do NOT write tests unless specifically requested
 
+## Understanding Phase Files (Multi-Phase Features)
+
+If this is a multi-phase feature, the phase's \`files\` list contains TWO types of files:
+1. **Source files to create/modify** - Files in \`src/\` that you will implement
+2. **Relevant documentation** - Files in \`docs/\` and \`.cursor/rules/\` that you should READ FIRST
+
+**CRITICAL**: Before implementing, identify and READ all documentation files from the phase's file list. These were specifically selected by the tech design as relevant to this phase's implementation.
+
 ## Implementation Guidelines
 
 **CRITICAL**: Before implementing, read the project guidelines in \`.cursor/rules/\`:
@@ -812,9 +850,18 @@ Implement the feature as specified in ${implementationSource}:
 - \`.cursor/rules/feature-based-structure.mdc\` - File organization by feature
 - \`.cursor/rules/ui-design-guidelines.mdc\` - UI/UX patterns
 - \`.cursor/rules/shadcn-usage.mdc\` - shadcn/ui component usage
+- \`.cursor/rules/theming-guidelines.mdc\` - **CRITICAL** Theming and color usage
 - \`.cursor/rules/client-server-communications.mdc\` - API patterns
 - \`.cursor/rules/mongodb-usage.mdc\` - Database operations (if applicable)
 - \`.cursor/rules/app-guidelines-checklist.mdc\` - Comprehensive checklist
+
+**THEMING (Read \`docs/theming.md\` and \`.cursor/rules/theming-guidelines.mdc\` before styling)**:
+- **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
+- **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
+- For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`
+- **Exceptions**:
+  - Dialog overlays may use \`bg-black/60\` for backdrop opacity
+  - Hardcoded colors ONLY if specifically requested in the task requirements (e.g., brand colors from product team). In this case, add a code comment: \`// Hardcoded per task requirement: "[quote the specific requirement]"\`
 
 Key principles:
 - Follow the existing code patterns in the codebase
@@ -822,7 +869,6 @@ Key principles:
 - Follow the project's ESLint rules
 - Keep components small and focused
 - Use existing UI components from shadcn/ui
-- Use semantic color tokens (bg-background, not bg-white)
 - For state management, use React Query for server state and Zustand for client state
 
 ## Important Notes
@@ -840,7 +886,7 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 After implementing, provide your response as structured JSON with these fields:
 - **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
-- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Example prSummary format:
 \`\`\`markdown
@@ -946,6 +992,14 @@ You have received feedback from two different reviewers with distinct roles:
 
 **Follow project guidelines in \`.cursor/rules/\`** (same as initial implementation)
 
+**THEMING (Read \`docs/theming.md\` and \`.cursor/rules/theming-guidelines.mdc\` if fixing styling issues)**:
+- **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
+- **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
+- For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`
+- **Exceptions**:
+  - Dialog overlays may use \`bg-black/60\` for backdrop opacity
+  - Hardcoded colors ONLY if specifically requested in the task requirements (e.g., brand colors from product team). In this case, add a code comment: \`// Hardcoded per task requirement: "[quote the specific requirement]"\`
+
 Key principles:
 - Address ALL feedback points
 - Keep changes focused on the feedback
@@ -961,7 +1015,7 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 After making changes, provide your response as structured JSON with these fields:
 - **prSummary**: Updated PR summary in markdown format with "## Summary" and "## Changes" sections
-- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Example comment format:
 \`\`\`
@@ -1036,7 +1090,7 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 After implementing, provide your response as structured JSON with these fields:
 - **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
-- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Example prSummary format:
 \`\`\`markdown
@@ -1131,7 +1185,7 @@ Analyze this bug and create a Technical Design for the fix:
 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Technical Design document in markdown format (same structure as shown in example below)
-- **comment**: High-level implementation plan for the fix to post as GitHub comment (3-5 bullet points). Format: "Here's the implementation plan: 1. ... 2. ... 3. ..."
+- **comment**: High-level implementation plan for the fix to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Example design structure:
 
@@ -1282,7 +1336,7 @@ ${AMBIGUITY_INSTRUCTIONS}
 
 After implementing, provide your response as structured JSON with these fields:
 - **prSummary**: Complete PR summary in markdown format with "## Summary" and "## Changes" sections (this will be used in PR description and squash merge commit)
-- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Format: "Here's what I did: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you did to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Example prSummary format (for bug fixes, mention root cause, how it was fixed, and how to verify):
 \`\`\`markdown
@@ -1341,7 +1395,7 @@ ${feedbackSection}
 
 Provide your response as structured JSON with these fields:
 - **design**: COMPLETE revised Technical Design document in markdown format (entire document, not just changes)
-- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Format: "Here's what I changed: 1. ... 2. ... 3. ..."
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Do NOT output just the changes in design - output the entire revised document.
 

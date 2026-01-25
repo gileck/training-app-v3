@@ -47,7 +47,7 @@ jobs:
       - name: Send deployment started notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
@@ -139,7 +139,7 @@ jobs:
         if: success()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
@@ -194,7 +194,7 @@ jobs:
         if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           ERROR_MSG: ${{ steps.deployment.outputs.error }}
           LOG_URL: ${{ steps.deployment.outputs.log_url }}

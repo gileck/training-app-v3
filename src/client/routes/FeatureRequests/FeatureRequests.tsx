@@ -14,19 +14,35 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/client/components/ui/dropdown-menu';
 import { Label } from '@/client/components/ui/label';
 import { Input } from '@/client/components/ui/input';
 import { Textarea } from '@/client/components/ui/textarea';
-import { Loader2, AlertCircle, Inbox, Lightbulb, ArrowUpDown, Plus, Send } from 'lucide-react';
+import { Loader2, AlertCircle, Inbox, Lightbulb, Plus, Send, ArrowDownAZ } from 'lucide-react';
 import { useFeatureRequests, useCreateFeatureRequest } from './hooks';
 import { useFeatureRequestsStore } from './store';
 import { FeatureRequestCard } from './components/FeatureRequestCard';
+import { CompletedSection } from './components/CompletedSection';
 import { FilterChipBar } from './components/FilterChipBar';
 import { applyAllFilters } from './utils/filterUtils';
+import { applySorting, separateDoneItems } from './utils/sortingUtils';
+import type { SortMode } from './utils/sortingUtils';
 import { toast } from '@/client/components/ui/toast';
 import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
 
-// No longer needed - replaced with FilterChipBar component
+// Sort mode display labels
+const SORT_MODE_LABELS: Record<SortMode, string> = {
+    smart: 'Smart (Default)',
+    newest: 'Newest First',
+    oldest: 'Oldest First',
+    priority: 'Priority',
+    updated: 'Recently Updated',
+};
 
 export function FeatureRequests() {
     // Persistent multi-filter state from store
@@ -34,14 +50,14 @@ export function FeatureRequests() {
     const priorityFilters = useFeatureRequestsStore((state) => state.priorityFilters);
     const githubFilters = useFeatureRequestsStore((state) => state.githubFilters);
     const activityFilters = useFeatureRequestsStore((state) => state.activityFilters);
-    const sortOrder = useFeatureRequestsStore((state) => state.sortOrder);
+    const sortMode = useFeatureRequestsStore((state) => state.sortMode);
 
     const toggleStatusFilter = useFeatureRequestsStore((state) => state.toggleStatusFilter);
     const togglePriorityFilter = useFeatureRequestsStore((state) => state.togglePriorityFilter);
     const toggleGitHubFilter = useFeatureRequestsStore((state) => state.toggleGitHubFilter);
     const toggleActivityFilter = useFeatureRequestsStore((state) => state.toggleActivityFilter);
     const clearAllFilters = useFeatureRequestsStore((state) => state.clearAllFilters);
-    const setSortOrder = useFeatureRequestsStore((state) => state.setSortOrder);
+    const setSortMode = useFeatureRequestsStore((state) => state.setSortMode);
 
     // Dialog state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
@@ -56,9 +72,7 @@ export function FeatureRequests() {
     const createMutation = useCreateFeatureRequest();
 
     // Fetch all requests without API-level filtering (client-side filtering now)
-    const { data: rawRequests, isLoading, error } = useFeatureRequests({
-        sortOrder,
-    });
+    const { data: rawRequests, isLoading, error } = useFeatureRequests({});
 
     // Build GitHub status map for filtering
     // Use Record instead of Map to prevent infinite re-renders (stable reference comparison)
@@ -77,11 +91,12 @@ export function FeatureRequests() {
         return map;
     }, [rawRequests]);
 
-    // Apply client-side filtering using all active filters
-    const filteredRequests = useMemo(() => {
-        if (!rawRequests) return [];
+    // Apply client-side filtering and sorting
+    const { activeRequests, doneRequests } = useMemo(() => {
+        if (!rawRequests) return { activeRequests: [], doneRequests: [] };
 
-        return applyAllFilters(
+        // First, apply filters
+        const filtered = applyAllFilters(
             rawRequests,
             {
                 statusFilters,
@@ -91,7 +106,17 @@ export function FeatureRequests() {
             },
             githubStatusMap
         );
-    }, [rawRequests, statusFilters, priorityFilters, githubFilters, activityFilters, githubStatusMap]);
+
+        // Then, separate done items from active items
+        const { activeItems, doneItems } = separateDoneItems(filtered, githubStatusMap);
+
+        // Finally, apply sorting (only to active items, done items already sorted by completion date)
+        const sortedActive = applySorting(activeItems, sortMode, githubStatusMap);
+
+        return { activeRequests: sortedActive, doneRequests: doneItems };
+    }, [rawRequests, statusFilters, priorityFilters, githubFilters, activityFilters, githubStatusMap, sortMode]);
+
+    const totalFilteredCount = activeRequests.length + doneRequests.length;
 
     const showLoading = isLoading || rawRequests === undefined;
 
@@ -137,9 +162,9 @@ export function FeatureRequests() {
                 <div className="flex items-center gap-2">
                     <Lightbulb className="h-6 w-6 text-yellow-500" />
                     <h1 className="text-xl font-semibold">Feature Requests</h1>
-                    {!showLoading && filteredRequests && (
+                    {!showLoading && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">
-                            {filteredRequests.length}
+                            {totalFilteredCount}
                         </span>
                     )}
                 </div>
@@ -149,7 +174,7 @@ export function FeatureRequests() {
                 </Button>
             </div>
 
-            {/* Filter Chips */}
+            {/* Filter Chips and Sort Controls */}
             <div className="flex items-center gap-2">
                 <FilterChipBar
                     statusFilters={statusFilters}
@@ -162,15 +187,50 @@ export function FeatureRequests() {
                     onToggleActivityFilter={toggleActivityFilter}
                     onClearAll={clearAllFilters}
                 />
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                    title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
-                    className="shrink-0"
-                >
-                    <ArrowUpDown className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 gap-2"
+                        >
+                            <ArrowDownAZ className="h-4 w-4" />
+                            <span className="hidden sm:inline">{SORT_MODE_LABELS[sortMode]}</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                            onClick={() => setSortMode('smart')}
+                            className={sortMode === 'smart' ? 'bg-accent' : ''}
+                        >
+                            {SORT_MODE_LABELS.smart}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setSortMode('newest')}
+                            className={sortMode === 'newest' ? 'bg-accent' : ''}
+                        >
+                            Newest First
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setSortMode('oldest')}
+                            className={sortMode === 'oldest' ? 'bg-accent' : ''}
+                        >
+                            Oldest First
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setSortMode('priority')}
+                            className={sortMode === 'priority' ? 'bg-accent' : ''}
+                        >
+                            Priority
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setSortMode('updated')}
+                            className={sortMode === 'updated' ? 'bg-accent' : ''}
+                        >
+                            Recently Updated
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             {/* Content */}
@@ -187,7 +247,7 @@ export function FeatureRequests() {
                         </p>
                     </CardContent>
                 </Card>
-            ) : filteredRequests.length === 0 ? (
+            ) : totalFilteredCount === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -210,9 +270,13 @@ export function FeatureRequests() {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {filteredRequests.map((request) => (
+                    {/* Active items */}
+                    {activeRequests.map((request) => (
                         <FeatureRequestCard key={request._id} request={request} />
                     ))}
+
+                    {/* Completed section (auto-collapsed) */}
+                    <CompletedSection doneItems={doneRequests} />
                 </div>
             )}
 

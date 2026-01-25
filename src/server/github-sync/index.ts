@@ -13,6 +13,7 @@ import {
     sendBugRoutingNotification,
 } from '@/server/telegram';
 import { getProjectManagementAdapter, STATUSES } from '@/server/project-management';
+import { ensureArtifactComment } from '@/agents/lib';
 
 // ============================================================
 // HELPERS
@@ -163,6 +164,9 @@ export async function syncFeatureRequestToGitHub(
         // Set status to Backlog
         await adapter.updateItemStatus(projectItemId, STATUSES.backlog);
 
+        // Create empty artifact comment (design docs and implementation PRs will be tracked here)
+        await ensureArtifactComment(adapter, issueNumber);
+
         // Update MongoDB with GitHub fields
         await featureRequests.updateGitHubFields(requestId, {
             githubIssueUrl: issueUrl,
@@ -286,6 +290,9 @@ export async function syncBugReportToGitHub(
 
         // Set status to Backlog
         await adapter.updateItemStatus(projectItemId, STATUSES.backlog);
+
+        // Create empty artifact comment (implementation PRs will be tracked here)
+        await ensureArtifactComment(adapter, issueNumber);
 
         // Update MongoDB with GitHub fields
         await reports.updateReport(reportId, {

@@ -45,7 +45,7 @@ export interface StatusTransition {
  * GitHub action information
  */
 export interface GitHubAction {
-    action: 'comment' | 'pr_created' | 'issue_updated' | 'label_added';
+    action: 'comment' | 'pr_created' | 'issue_updated' | 'label_added' | 'branch' | 'pr';
     details: string;
     timestamp: Date;
 }
@@ -69,4 +69,15 @@ export interface ExecutionSummary {
     totalTokens: number;
     totalCost: number;
     success: boolean;
+}
+
+/**
+ * Phase cost data for cumulative summary
+ */
+export interface PhaseData {
+    name: string;
+    duration: number;
+    toolCallsCount: number;
+    totalTokens: number;
+    totalCost: number;
 }

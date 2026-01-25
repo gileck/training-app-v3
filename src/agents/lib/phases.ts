@@ -112,6 +112,56 @@ export function parsePhasesFromComment(comments: GitHubComment[]): Implementatio
     return phases.length >= 2 ? phases : null;
 }
 
+/**
+ * Parse implementation phases from tech design markdown content
+ *
+ * This is a fallback for when phases need to be extracted from the design document
+ * rather than a formatted comment. Uses similar patterns but adapted for raw markdown.
+ *
+ * @param markdown - Tech design markdown content
+ * @returns Array of parsed phases, or null if no phases found
+ */
+export function parsePhasesFromMarkdown(markdown: string): ImplementationPhase[] | null {
+    if (!markdown) {
+        return null;
+    }
+
+    const phases: ImplementationPhase[] = [];
+
+    // Pattern to match phases in tech design document
+    // Supports formats like:
+    // ## Phase 1: Name (S)
+    // ### Phase 1: Name (M)
+    const phasePattern = /#{2,3}\s*Phase\s+(\d+):\s*([^(\n]+)\s*\(([SM])\)\s*\n+([\s\S]*?)(?=(?:#{2,3}\s*Phase\s+\d+:|##[^#]|$))/g;
+
+    let match;
+    while ((match = phasePattern.exec(markdown)) !== null) {
+        const [, orderStr, name, size, content] = match;
+
+        // Extract description (first paragraph or line before file list)
+        const descriptionMatch = content.match(/^([^\n*-]+(?:\n[^\n*-]+)*)/);
+        const description = descriptionMatch ? descriptionMatch[1].trim() : '';
+
+        // Extract files from markdown list (- `file` or * `file`)
+        const files: string[] = [];
+        const fileMatches = content.matchAll(/[-*]\s*`([^`]+)`/g);
+        for (const fileMatch of fileMatches) {
+            files.push(fileMatch[1]);
+        }
+
+        phases.push({
+            order: parseInt(orderStr, 10),
+            name: name.trim(),
+            description,
+            files,
+            estimatedSize: size as 'S' | 'M',
+        });
+    }
+
+    // Only return phases if we found at least 2 (multi-phase feature)
+    return phases.length >= 2 ? phases : null;
+}
+
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================

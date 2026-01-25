@@ -83,6 +83,12 @@ export const REVIEW_STATUS_FIELD = 'Review Status';
  */
 export const IMPLEMENTATION_PHASE_FIELD = 'Implementation Phase';
 
+/**
+ * Marker to identify commit message comments on PRs
+ * Used by PR Review agent to store and retrieve commit messages for merge
+ */
+export const COMMIT_MESSAGE_MARKER = '<!-- COMMIT_MESSAGE_V1 -->';
+
 // Type helpers
 export type Status = (typeof STATUSES)[keyof typeof STATUSES];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[keyof typeof REVIEW_STATUSES];

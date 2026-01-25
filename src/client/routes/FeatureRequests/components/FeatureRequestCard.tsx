@@ -12,9 +12,13 @@ import {
     DropdownMenuSubTrigger,
 } from '@/client/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
-import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, Eye, ExternalLink, GitPullRequest, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
-import { StatusBadge, PriorityBadge } from './StatusBadge';
+import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, ExternalLink, GitPullRequest, Loader2, RotateCcw } from 'lucide-react';
+import { StatusBadge, PriorityBadge, GitHubStatusBadge } from './StatusBadge';
+import { StatusIndicatorStrip } from './StatusIndicatorStrip';
+import { MetadataIconRow } from './MetadataIconRow';
 import { DesignReviewPanel } from './DesignReviewPanel';
+import { HealthIndicator } from './HealthIndicator';
+import { PrimaryActionButton } from './PrimaryActionButton';
 import type { FeatureRequestClient, FeatureRequestPriority, DesignPhaseType } from '@/apis/feature-requests/types';
 import { useUpdatePriority, useDeleteFeatureRequest, useApproveFeatureRequest, useGitHubStatus, useGitHubStatuses, useUpdateGitHubStatus, useUpdateGitHubReviewStatus, useClearGitHubReviewStatus } from '../hooks';
 import { useRouter } from '@/client/router';
@@ -24,14 +28,6 @@ interface FeatureRequestCardProps {
 }
 
 const allPriorities: FeatureRequestPriority[] = ['low', 'medium', 'high', 'critical'];
-
-// Priority color mapping for left border accent using semantic tokens
-const priorityBorderColors: Record<FeatureRequestPriority, string> = {
-    critical: 'border-l-destructive',
-    high: 'border-l-warning',
-    medium: 'border-l-info',
-    low: 'border-l-muted-foreground',
-};
 
 export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
     const { navigate } = useRouter();
@@ -45,9 +41,6 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
     const updatePriorityMutation = useUpdatePriority();
     const deleteMutation = useDeleteFeatureRequest();
     const approveMutation = useApproveFeatureRequest();
-
-    // Get priority border color with fallback
-    const priorityBorderColor = request.priority ? priorityBorderColors[request.priority] : 'border-l-muted-foreground';
 
     // Fetch GitHub Project status only if there's a GitHub project item
     const { data: githubStatus, isLoading: isLoadingGitHubStatus } = useGitHubStatus(
@@ -100,18 +93,23 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
           ? 'tech'
           : null;
 
-    const canReviewDesign = currentDesignPhase && currentDesignPhase.content && currentPhaseType;
+    const canReviewDesign = !!(currentDesignPhase && currentDesignPhase.content && currentPhaseType);
 
     const handleCardClick = () => {
         navigate(`/admin/feature-requests/${request._id}`);
     };
 
     return (
-        <Card className={`border-l-4 ${priorityBorderColor} transition-shadow hover:shadow-md`}>
-            <CardHeader className="pb-3">
+        <Card className="relative border border-border shadow-sm transition-all duration-200 ease-out hover:shadow-md overflow-hidden">
+            {/* Left-edge status indicator strip (4px) */}
+            <StatusIndicatorStrip request={request} githubStatus={githubStatus?.status} />
+
+            <CardHeader className="pb-2 pt-3 px-4">
+                {/* 3-zone layout: Left (handled by strip), Center (main content), Right (actions) */}
                 <div className="flex items-start justify-between gap-3">
+                    {/* Center Zone: Main Content */}
                     <div
-                        className="flex-1 space-y-2 cursor-pointer"
+                        className="flex-1 min-w-0 cursor-pointer pl-2"
                         onClick={handleCardClick}
                         role="button"
                         tabIndex={0}
@@ -122,66 +120,54 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                             }
                         }}
                     >
-                        <CardTitle className="text-base font-semibold leading-tight hover:text-primary transition-colors">
+                        {/* Title - max 2 lines, semibold, high contrast */}
+                        <CardTitle className="text-base font-semibold leading-tight line-clamp-2 hover:text-primary transition-colors mb-1.5">
                             {request.title}
                         </CardTitle>
-                        <div className="flex flex-wrap items-center gap-3">
+
+                        {/* Status Row: Inline badges and metadata icons with compact spacing */}
+                        <div className="flex flex-wrap items-center gap-2">
                             {/* Show GitHub status as primary when linked, fallback to DB status */}
                             {request.githubProjectItemId ? (
                                 isLoadingGitHubStatus ? (
-                                    <span className="text-sm text-muted-foreground">Loading status...</span>
-                                ) : githubStatus?.status ? (
-                                    <div className="flex items-center gap-2">
-                                        <span className="rounded-md bg-primary px-2.5 py-0.5 text-sm font-medium text-primary-foreground">
-                                            {githubStatus.status}
-                                        </span>
-                                        {githubStatus.reviewStatus && (
-                                            <span className="text-xs text-muted-foreground">
-                                                ({githubStatus.reviewStatus})
-                                            </span>
-                                        )}
+                                    <div className="flex items-center gap-1.5">
+                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground">Loading...</span>
                                     </div>
-                                ) : (
-                                    <StatusBadge
-                                        status={request.status}
+                                ) : githubStatus?.status ? (
+                                    <GitHubStatusBadge
+                                        status={githubStatus.status}
+                                        reviewStatus={githubStatus.reviewStatus}
                                     />
+                                ) : (
+                                    <StatusBadge status={request.status} />
                                 )
                             ) : (
-                                <StatusBadge
-                                    status={request.status}
-                                />
+                                <StatusBadge status={request.status} />
                             )}
+
                             <PriorityBadge priority={request.priority} />
+
+                            {/* Metadata icon row */}
+                            <MetadataIconRow request={request} />
                         </div>
                     </div>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        {canApprove && (
-                            <Button
-                                variant="default"
-                                size="sm"
-                                onClick={handleApprove}
-                                disabled={approveMutation.isPending}
-                                className="gap-1"
-                            >
-                                <CheckCircle className="h-4 w-4" />
-                                {approveMutation.isPending ? 'Approving...' : 'Approve'}
-                            </Button>
-                        )}
-                        {canReviewDesign && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowDesignReview(true)}
-                                className="gap-1"
-                            >
-                                <Eye className="h-4 w-4" />
-                                Review
-                            </Button>
-                        )}
+
+                    {/* Right Zone: Actions - compact and aligned */}
+                    <div className="flex items-start gap-1 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                        <PrimaryActionButton
+                            canApprove={canApprove}
+                            canReviewDesign={canReviewDesign}
+                            onApprove={handleApprove}
+                            onReview={() => setShowDesignReview(true)}
+                            isApproving={approveMutation.isPending}
+                        />
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsExpanded(!isExpanded)}
+                            className="h-8 w-8"
+                            aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         >
                             {isExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -270,58 +256,64 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
             </CardHeader>
 
             {isExpanded && (
-                <CardContent className="space-y-5 pt-3 transition-all duration-200 ease-in-out">
-                    <div className="space-y-2 rounded-lg bg-muted/30 p-3">
+                <CardContent className="space-y-4 pt-2 px-4 pb-4 transition-all duration-200 ease-out">
+                    <div className="space-y-2 rounded-lg bg-muted/20 p-3">
                         <h4 className="text-sm font-medium">Description</h4>
-                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                        <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
                             {request.description}
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-sm">
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
                             <User className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">{request.requestedByName}</span>
                         </div>
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">{new Date(request.createdAt).toLocaleDateString()}</span>
                         </div>
                         {request.page && (
-                            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
+                            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
                                 <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="text-muted-foreground">{request.page}</span>
                             </div>
                         )}
                     </div>
 
-                    {/* GitHub Links */}
+                    {/* GitHub Integration Section */}
                     {(request.githubIssueUrl || request.githubPrUrl) && (
-                        <div className="flex flex-wrap gap-3 text-sm">
-                            {request.githubIssueUrl && (
-                                <a
-                                    href={request.githubIssueUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
-                                >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    <span>Issue #{request.githubIssueNumber}</span>
-                                </a>
-                            )}
-                            {request.githubPrUrl && (
-                                <a
-                                    href={request.githubPrUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
-                                >
-                                    <GitPullRequest className="h-3.5 w-3.5" />
-                                    <span>PR #{request.githubPrNumber}</span>
-                                </a>
-                            )}
+                        <div className="space-y-2 rounded-lg border-l-2 border-l-primary/20 bg-primary/5 p-3">
+                            <h4 className="text-sm font-medium">GitHub Integration</h4>
+                            <div className="flex flex-wrap gap-3 text-sm">
+                                {request.githubIssueUrl && (
+                                    <a
+                                        href={request.githubIssueUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
+                                    >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                        <span>Issue #{request.githubIssueNumber}</span>
+                                    </a>
+                                )}
+                                {request.githubPrUrl && (
+                                    <a
+                                        href={request.githubPrUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
+                                    >
+                                        <GitPullRequest className="h-3.5 w-3.5" />
+                                        <span>PR #{request.githubPrNumber}</span>
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     )}
+
+                    {/* Health Indicator - shown in expanded view only when not healthy */}
+                    <HealthIndicator request={request} githubStatus={githubStatus} />
 
                     {currentDesignPhase?.content && (
                         <div className="space-y-2 rounded-lg border border-info/30 bg-info/5 p-3">
@@ -343,10 +335,10 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                     )}
 
                     {request.comments && request.comments.length > 0 && (
-                        <div className="space-y-3 rounded-lg bg-muted/30 p-3">
+                        <div className="space-y-3 rounded-lg bg-muted/20 p-3">
                             <div className="flex items-center gap-2">
                                 <h4 className="text-sm font-medium">Comments</h4>
-                                <span className="inline-flex items-center justify-center rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                                <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                                     {request.comments.length}
                                 </span>
                             </div>
@@ -354,22 +346,22 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                 {request.comments.slice(-3).map((comment) => (
                                     <div
                                         key={comment.id}
-                                        className={`rounded-md border p-3 text-sm shadow-sm ${
-                                            comment.isAdmin ? 'bg-background' : 'bg-background/50'
+                                        className={`rounded-md border border-border/50 p-3 text-sm ${
+                                            comment.isAdmin ? 'bg-background' : 'bg-muted/10'
                                         }`}
                                     >
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className="font-medium text-foreground">{comment.authorName}</span>
                                             {comment.isAdmin && (
-                                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
+                                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium">
                                                     Admin
                                                 </span>
                                             )}
-                                            <span>
+                                            <span className="text-muted-foreground">
                                                 {new Date(comment.createdAt).toLocaleString()}
                                             </span>
                                         </div>
-                                        <p className="mt-2 text-foreground">{comment.content}</p>
+                                        <p className="mt-2 text-sm text-foreground leading-relaxed">{comment.content}</p>
                                     </div>
                                 ))}
                             </div>

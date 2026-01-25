@@ -9,3 +9,4 @@ export * from './types';
 export * from './context';
 export * from './writer';
 export * from './logger';
+export * from './cost-summary';

@@ -79,6 +79,15 @@ import {
     parsePhasesFromComment,
 } from '../../lib/phases';
 import {
+    parseArtifactComment,
+    getProductDesignPath,
+    getTechDesignPath,
+    updateImplementationPhaseArtifact,
+} from '../../lib/artifacts';
+import {
+    readDesignDoc,
+} from '../../lib/design-files';
+import {
     createLogContext,
     runWithLogContext,
     logExecutionStart,
@@ -329,11 +338,7 @@ async function processItem(
             }
         }
 
-        // Extract designs from issue body (optional - may be skipped for simple/internal work)
-        const productDesign = extractProductDesign(content.body);
-        const techDesign = extractTechDesign(content.body);
-
-        // Always fetch issue comments early - they're needed for phase extraction and prompts
+        // Always fetch issue comments early - they're needed for artifact comment, phase extraction, and prompts
         const allIssueComments = await adapter.getIssueComments(issueNumber);
         const issueComments: GitHubComment[] = allIssueComments.map((c) => ({
             id: c.id,
@@ -344,6 +349,46 @@ async function processItem(
         }));
         if (issueComments.length > 0) {
             console.log(`  Found ${issueComments.length} comment(s) on issue`);
+        }
+
+        // Extract designs - try files first (new system), fallback to issue body (old system)
+        let productDesign: string | null = null;
+        let techDesign: string | null = null;
+
+        // Try artifact comment first (new file-based system)
+        const artifact = parseArtifactComment(issueComments);
+        if (artifact) {
+            // Try to read from files
+            const productPath = getProductDesignPath(artifact);
+            const techPath = getTechDesignPath(artifact);
+
+            if (productPath && artifact.productDesign?.status === 'approved') {
+                productDesign = readDesignDoc(issueNumber, 'product');
+                if (productDesign) {
+                    console.log(`  Loaded product design from file (new system)`);
+                }
+            }
+
+            if (techPath && artifact.techDesign?.status === 'approved') {
+                techDesign = readDesignDoc(issueNumber, 'tech');
+                if (techDesign) {
+                    console.log(`  Loaded tech design from file (new system)`);
+                }
+            }
+        }
+
+        // Fallback to issue body for any designs not found in files (backward compatibility)
+        if (!productDesign) {
+            productDesign = extractProductDesign(content.body);
+            if (productDesign) {
+                console.log(`  Loaded product design from issue body (fallback)`);
+            }
+        }
+        if (!techDesign) {
+            techDesign = extractTechDesign(content.body);
+            if (techDesign) {
+                console.log(`  Loaded tech design from issue body (fallback)`);
+            }
         }
 
         // Check for multi-phase implementation (L/XL features)
@@ -848,6 +893,37 @@ See issue #${issueNumber} for full context, product design, and technical design
                 prNumber = pr.number;
                 console.log(`  Created PR #${prNumber}: ${pr.url}`);
 
+                // Update artifact comment with implementation PR
+                try {
+                    if (currentPhase && totalPhases && currentPhaseDetails) {
+                        // Multi-phase feature
+                        await updateImplementationPhaseArtifact(
+                            adapter,
+                            issueNumber,
+                            currentPhase,
+                            totalPhases,
+                            currentPhaseDetails.name,
+                            'in-review',
+                            prNumber
+                        );
+                    } else {
+                        // Single-phase feature - use Phase 1/1 format for consistency
+                        await updateImplementationPhaseArtifact(
+                            adapter,
+                            issueNumber,
+                            1,
+                            1,
+                            '', // No name for single-phase
+                            'in-review',
+                            prNumber
+                        );
+                    }
+                    console.log('  Updated artifact comment with PR link');
+                } catch (error) {
+                    // Non-fatal error - PR is still created successfully
+                    console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+                }
+
                 // Trigger Claude Code review
                 try {
                     console.log('  Triggering Claude Code review...');
@@ -897,9 +973,11 @@ See issue #${issueNumber} for full context, product design, and technical design
                     feedbackComment = 'Addressed review feedback. Ready for re-review.';
                 }
                 const prefixedComment = addAgentPrefix('implementor', feedbackComment);
-                await adapter.addPRComment(prNumber, prefixedComment);
-                console.log('  Feedback response comment posted on issue and PR');
-                logGitHubAction(logCtx, 'comment', 'Posted feedback response comment on issue and PR');
+                // Add @claude to trigger Claude GitHub App to re-review the fixes
+                const commentWithReviewRequest = `${prefixedComment}\n\n@claude please review the changes`;
+                await adapter.addPRComment(prNumber, commentWithReviewRequest);
+                console.log('  Feedback response comment posted on PR (with @claude review request)');
+                logGitHubAction(logCtx, 'comment', 'Posted feedback response on PR with @claude review request');
             }
         }
 
@@ -932,9 +1010,9 @@ See issue #${issueNumber} for full context, product design, and technical design
         // Log execution end
         logExecutionEnd(logCtx, {
             success: true,
-            toolCallsCount: 0,
-            totalTokens: 0,
-            totalCost: 0,
+            toolCallsCount: 0, // Not tracked in UsageStats
+            totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+            totalCost: result.usage?.totalCostUSD ?? 0,
         });
 
         return { success: true, prNumber };

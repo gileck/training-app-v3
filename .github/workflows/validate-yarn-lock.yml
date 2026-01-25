@@ -1,0 +1,66 @@
+name: Validate Lock Files
+
+on:
+  pull_request:
+    paths:
+      - 'yarn.lock'
+      - 'package-lock.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for package-lock.json
+        run: |
+          echo "🔍 Checking for package-lock.json..."
+
+          # Check if package-lock.json exists (should not - project uses yarn)
+          if [ -f "package-lock.json" ]; then
+            echo ""
+            echo "❌ ERROR: package-lock.json should not exist in this repo"
+            echo ""
+            echo "This project uses Yarn, not npm."
+            echo "package-lock.json was likely created by running 'npm install'"
+            echo "and may contain private registry URLs that break Vercel builds."
+            echo ""
+            echo "To fix this PR:"
+            echo "  git rm package-lock.json"
+            echo "  git commit -m 'chore: remove package-lock.json (project uses yarn)'"
+            echo "  git push"
+            echo ""
+            echo "Always use 'yarn install' instead of 'npm install'"
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ No package-lock.json found"
+
+      - name: Check yarn.lock for private Wix registry URLs
+        run: |
+          echo "🔍 Checking yarn.lock for private registry URLs..."
+
+          # Check if yarn.lock contains the private Wix registry
+          if grep -q "npm.dev.wixpress.com" yarn.lock; then
+            echo ""
+            echo "❌ ERROR: yarn.lock contains private Wix registry URLs"
+            echo ""
+            echo "Found 'npm.dev.wixpress.com' in yarn.lock."
+            echo "This will break Vercel deployments which cannot access the private registry."
+            echo ""
+            echo "This happened because dependencies were installed from the local"
+            echo "corporate network, which uses the private npm registry."
+            echo ""
+            echo "To fix this PR:"
+            echo "  git checkout origin/${{ github.base_ref }} -- yarn.lock"
+            echo "  git commit -m 'chore: revert yarn.lock to remove private registry URLs'"
+            echo "  git push"
+            echo ""
+            echo "If you need to update dependencies, ensure they come from public npm."
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ No private registry URLs found - yarn.lock is clean"

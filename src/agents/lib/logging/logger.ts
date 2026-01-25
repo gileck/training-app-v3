@@ -4,6 +4,7 @@ import type {
     ExecutionSummary,
 } from './types';
 import { appendToLog, writeLogHeader, logExists, getLogPath } from './writer';
+import { updateCostSummary } from './cost-summary';
 
 /**
  * Format timestamp as HH:MM:SS
@@ -286,6 +287,17 @@ export function logExecutionEnd(
 `;
 
     appendToLog(ctx.issueNumber, content);
+
+    // Update cumulative cost summary
+    updateCostSummary(ctx, {
+        name: ctx.phase,
+        duration,
+        toolCallsCount: summary.toolCallsCount || 0,
+        totalTokens: summary.totalTokens || 0,
+        totalCost: summary.totalCost || 0,
+    }).catch((error) => {
+        console.error('Failed to update cost summary:', error);
+    });
 
     // Print log file location
     const logPath = getLogPath(ctx.issueNumber);

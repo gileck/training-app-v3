@@ -834,6 +834,38 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }));
     }
 
+    async findIssueCommentByMarker(issueNumber: number, marker: string): Promise<{
+        id: number;
+        body: string;
+    } | null> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        const { data: comments } = await oc.issues.listComments({
+            owner,
+            repo,
+            issue_number: issueNumber,
+            per_page: 100,
+        });
+
+        const comment = comments.find(c => c.body?.includes(marker));
+        if (!comment) return null;
+
+        return { id: comment.id, body: comment.body || '' };
+    }
+
+    async updateIssueComment(_issueNumber: number, commentId: number, body: string): Promise<void> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        await oc.issues.updateComment({
+            owner,
+            repo,
+            comment_id: commentId,
+            body,
+        });
+    }
+
     async getIssueDetails(issueNumber: number): Promise<import('../types').GitHubIssueDetails | null> {
         const oc = this.getBotOctokit();
         const { owner, repo } = this.config.github;
@@ -1034,6 +1066,24 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }));
     }
 
+    /**
+     * Get the list of files changed in a PR (from GitHub API, not local git)
+     * This is the authoritative list of what's actually in the PR
+     */
+    async getPRFiles(prNumber: number): Promise<string[]> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        const { data } = await oc.pulls.listFiles({
+            owner,
+            repo,
+            pull_number: prNumber,
+            per_page: 100,
+        });
+
+        return data.map((file) => file.filename);
+    }
+
     async addPRComment(prNumber: number, body: string): Promise<number> {
         return withRetry(async () => {
             const oc = this.getBotOctokit(); // Use bot token for creating PR comments
@@ -1096,7 +1146,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         return data.default_branch;
     }
 
-    async getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean } | null> {
+    async getPRDetails(prNumber: number): Promise<{ state: 'open' | 'closed'; merged: boolean; headBranch: string } | null> {
         try {
             const oc = this.getOctokit();
             const { owner, repo } = this.config.github;
@@ -1110,6 +1160,85 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
             return {
                 state: data.state as 'open' | 'closed',
                 merged: data.merged || false,
+                headBranch: data.head.ref,
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    async mergePullRequest(
+        prNumber: number,
+        commitTitle: string,
+        commitMessage: string
+    ): Promise<void> {
+        return withRetry(async () => {
+            const oc = this.getOctokit(); // Use admin token for merging
+            const { owner, repo } = this.config.github;
+
+            await oc.pulls.merge({
+                owner,
+                repo,
+                pull_number: prNumber,
+                merge_method: 'squash',
+                commit_title: commitTitle,
+                commit_message: commitMessage,
+            });
+        });
+    }
+
+    async findPRCommentByMarker(prNumber: number, marker: string): Promise<{
+        id: number;
+        body: string;
+    } | null> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        const { data: comments } = await oc.issues.listComments({
+            owner,
+            repo,
+            issue_number: prNumber,
+            per_page: 100,
+        });
+
+        const comment = comments.find(c => c.body?.includes(marker));
+        if (!comment) return null;
+
+        return { id: comment.id, body: comment.body || '' };
+    }
+
+    async updatePRComment(_prNumber: number, commentId: number, body: string): Promise<void> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        await oc.issues.updateComment({
+            owner,
+            repo,
+            comment_id: commentId,
+            body,
+        });
+    }
+
+    async getPRInfo(prNumber: number): Promise<{
+        title: string;
+        body: string;
+        additions: number;
+        deletions: number;
+        changedFiles: number;
+        commits: number;
+    } | null> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        try {
+            const { data: pr } = await oc.pulls.get({ owner, repo, pull_number: prNumber });
+            return {
+                title: pr.title,
+                body: pr.body || '',
+                additions: pr.additions,
+                deletions: pr.deletions,
+                changedFiles: pr.changed_files,
+                commits: pr.commits,
             };
         } catch {
             return null;
@@ -1204,6 +1333,37 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         } catch {
             console.log(`  ℹ️  Branch not found on GitHub (404 is expected - will create it)`);
             return false;
+        }
+    }
+
+    async deleteBranch(branchName: string): Promise<void> {
+        const oc = this.getOctokit();
+        const { owner, repo } = this.config.github;
+        const defaultBranch = await this.getDefaultBranch();
+
+        // Safety check: never delete the default branch
+        if (branchName === defaultBranch) {
+            console.warn(`  ⚠️ Refusing to delete default branch: ${branchName}`);
+            return;
+        }
+
+        try {
+            await oc.git.deleteRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`,
+            });
+            console.log(`  🗑️ Deleted branch: ${branchName}`);
+        } catch (error: unknown) {
+            // Don't fail if branch doesn't exist (may have been deleted manually)
+            const is404 = error instanceof Error &&
+                'status' in error &&
+                (error as { status: number }).status === 404;
+            if (is404) {
+                console.log(`  ℹ️ Branch already deleted or doesn't exist: ${branchName}`);
+            } else {
+                throw error;
+            }
         }
     }
 

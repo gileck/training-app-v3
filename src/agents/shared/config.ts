@@ -40,6 +40,18 @@ export interface AgentConfig {
 }
 
 /**
+ * Budget configuration for cost tracking and alerts
+ */
+export interface BudgetConfig {
+    /** Cost threshold for yellow warning (USD) */
+    warningThresholdUSD: number;
+    /** Cost threshold for red alert (USD) */
+    alertThresholdUSD: number;
+    /** Whether to send Telegram alerts when thresholds are exceeded */
+    telegramAlertsEnabled: boolean;
+}
+
+/**
  * Agent configuration
  */
 export const agentConfig: AgentConfig = {
@@ -51,4 +63,13 @@ export const agentConfig: AgentConfig = {
         maxTurns: 100,
         timeoutSeconds: 600,
     },
+};
+
+/**
+ * Budget configuration for cost tracking
+ */
+export const budgetConfig: BudgetConfig = {
+    warningThresholdUSD: 5.00,
+    alertThresholdUSD: 10.00,
+    telegramAlertsEnabled: true,
 };
