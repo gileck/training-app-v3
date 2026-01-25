@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "bb227d11125951304597ef6dc7ee67a232701c1b",
-  "lastProjectCommit": "9d708e332c5ba9343bb4989683913694755da77d",
-  "lastSyncDate": "2026-01-25T17:55:58.992Z",
+  "lastSyncCommit": "f14af82f844184976f953fef291249219bbb2764",
+  "lastProjectCommit": "5cde16ad9e7ac4a1ddfd885a0202eef3c3523571",
+  "lastSyncDate": "2026-01-25T17:58:38.324Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-25T17:58:38.493Z",
+      "templateCommit": "f14af82f844184976f953fef291249219bbb2764",
+      "projectCommit": "5cde16ad9e7ac4a1ddfd885a0202eef3c3523571",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "f14af82 feat: add /workflow-review slash command for agent log analysis \u001b[90m(25/01/2026)\u001b[0m\n  Adds a new Claude slash command that analyzes agent execution logs\n  from agent-logs/ directory to identify issues, inefficiencies, and\n  improvement opportunities in the github-agents workflow.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-24T12:54:22.347Z",
       "templateCommit": "49acd7e4339bcdcb6f394f2c265f498b85807a83",
@@ -373,17 +384,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "106bae4 fix: agents and scripts now load .env.local files \u001b[90m(20/01/2026)\u001b[0m\n  All agent scripts (product-design, tech-design, implement, auto-advance)\n  and utility scripts (github-pr, telegram-*, vercel-cli, mark-issue-done)\n  now properly load environment variables from both .env and .env.local\n  files, with .env.local taking priority.\n  \n  Created shared loadEnv utility that follows Next.js convention:\n  - Loads .env first (base config)\n  - Loads .env.local second (overrides with local secrets)\n  \n  This fixes the \"Missing required environment variable\" errors that\n  occurred when GitHub Projects variables existed only in .env.local.\n  \n  Changes:\n  - Created src/agents/shared/loadEnv.ts utility\n  - Updated src/agents/shared/index.ts to import loadEnv\n  - Replaced 'dotenv/config' with loadEnv in 4 agent files\n  - Replaced 'dotenv/config' with loadEnv in 6 script files\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-20T17:26:30.955Z",
-      "templateCommit": "02e0155a3cfb0e6d2b8865275b734508069d1165",
-      "projectCommit": "288257a7d5e2ed56a550dff499f29a357f3eda6b",
-      "filesApplied": 1,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "02e0155 docs: add critical yarn checks requirements \u001b[90m(20/01/2026)\u001b[0m\n  CLAUDE.md:\n  - Add new \"Validation & Quality Checks\" section before Guidelines Compliance\n  - CRITICAL requirement for Claude Code planning mode: always include yarn checks as final task\n  - Emphasize running yarn checks before commits, PRs, syncs, and deploys\n  - Clear expected output and error handling workflow\n  \n  .claude/commands/sync-children.md:\n  - Add \"CRITICAL: Run Yarn Checks First\" section at top\n  - Explain why running yarn checks before sync is critical:\n    - Prevents breaking changes from propagating to all children\n    - Saves time by fixing template once instead of in every child\n    - Maintains quality standards\n    - Avoids cascading failures\n  - Add Step 0: Validate Template (REQUIRED) in Process section\n  - Clear workflow: validate template → only then sync children\n  \n  Rationale:\n  Previous sync-children runs propagated TypeScript errors to all child projects,\n  requiring manual fixes in each project. This adds mandatory validation step to\n  prevent broken code from being synced.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -949,6 +949,7 @@
     "task-manager/plans/task-10-plan.md": "a53118eab4a0cb5c4361945c39e99436",
     "task-manager/task-management-cli.md": "06a74a4981d58346024a354ca7978b72",
     "task-manager/tasks-cli.ts": "962b8dc2e9b7e11d74d1932507d3a702",
-    "task-manager/tasks.md": "9a7d3175896e1447fd6e734f046b56e2"
+    "task-manager/tasks.md": "9a7d3175896e1447fd6e734f046b56e2",
+    ".claude/commands/workflow-review.md": "6ee5200c1ce5bd05accaea5a890b57d0"
   }
 }
