@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/ui
 import { Skeleton } from '@/client/components/ui/skeleton';
 import {
     TrendingUp,
-    Dumbbell,
     BarChart3,
 } from 'lucide-react';
 import {
@@ -17,6 +16,7 @@ import {
 import { useActivitySummary } from '../hooks';
 import type { DateRange } from '../store';
 import { RecoveryScore } from './RecoveryScore';
+import { MuscleGroupIntensityChart } from './MuscleGroupIntensityChart';
 
 function formatShortDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -127,19 +127,6 @@ export function ProgressCharts({ dateRange }: ProgressChartsProps) {
         exercises: summary.totalExercises,
     }));
 
-    // Calculate muscle group frequency
-    const muscleFrequency: Record<string, number> = {};
-    summaries.forEach((summary) => {
-        summary.muscleGroups.forEach((muscle) => {
-            muscleFrequency[muscle] = (muscleFrequency[muscle] || 0) + 1;
-        });
-    });
-
-    const muscleData = Object.entries(muscleFrequency)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([muscle, count]) => ({ muscle, count }));
-
     return (
         <div className="space-y-4">
             {/* Sets per day chart */}
@@ -185,53 +172,8 @@ export function ProgressCharts({ dateRange }: ProgressChartsProps) {
                 </CardContent>
             </Card>
 
-            {/* Muscle groups chart */}
-            {muscleData.length > 0 && (
-                <Card className="rounded-xl">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Dumbbell className="h-4 w-4" />
-                            Muscle Groups Trained
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={muscleData} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                                <XAxis
-                                    type="number"
-                                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                                    axisLine={{ stroke: 'hsl(var(--border))' }}
-                                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                                />
-                                <YAxis
-                                    type="category"
-                                    dataKey="muscle"
-                                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                                    axisLine={{ stroke: 'hsl(var(--border))' }}
-                                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                                    width={70}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        border: '1px solid hsl(var(--border))',
-                                        borderRadius: '8px',
-                                        fontSize: '12px',
-                                    }}
-                                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                                />
-                                <Bar
-                                    dataKey="count"
-                                    fill="hsl(210, 100%, 50%)"
-                                    radius={[0, 4, 4, 0]}
-                                    name="Days Trained"
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            )}
+            {/* Muscle groups intensity chart */}
+            <MuscleGroupIntensityChart summaries={summaries} isLoading={false} />
         </div>
     );
 }

@@ -68,3 +68,14 @@ export interface DeleteExerciseResponse {
     error?: string;
 }
 
+// Get unique muscle groups from exercise library
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface GetMuscleGroupsRequest {
+    // No parameters needed - returns all unique muscle groups from exercises
+}
+
+export interface GetMuscleGroupsResponse {
+    muscleGroups?: string[];
+    error?: string;
+}
+
