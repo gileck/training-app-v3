@@ -1,4 +1,10 @@
-name: Mark Issue Done on PR Merge
+name: On PR Merged - Handle Phase Transitions (DISABLED)
+
+# DISABLED: All PR merge logic has been moved to the Telegram webhook.
+# The Telegram webhook is now the single source of truth for PR merge handling.
+# See: src/pages/api/telegram-webhook.ts (handleMergeCallback function)
+#
+# This workflow is kept for reference but disabled via the `if: false` condition.
 
 # Trigger when a PR is closed
 on:
@@ -6,9 +12,10 @@ on:
     types: [closed]
 
 jobs:
-  mark-done:
-    # Only run if PR was actually merged (not just closed)
-    if: github.event.pull_request.merged == true
+  on-pr-merged:
+    # DISABLED - All logic moved to Telegram webhook
+    # To re-enable, change to: if: github.event.pull_request.merged == true
+    if: false
     runs-on: ubuntu-latest
 
     steps:
@@ -18,12 +25,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Mark issue as Done
+      - name: Handle PR merge (phase transitions + status comments)
         env:
           GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           GITHUB_OWNER: ${{ vars.PROJECT_OWNER }}
@@ -36,4 +43,4 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
         run: |
-          yarn tsx scripts/mark-issue-done.ts
+          yarn tsx scripts/on-pr-merged.ts

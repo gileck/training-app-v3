@@ -6,12 +6,22 @@
  * Supports multiple flows:
  *
  * 1. Initial Feature Request Approval:
- *    - Callback: "approve_request:requestId:token"
+ *    - Callback: "approve_request:requestId"
  *    - Creates GitHub issue from feature request
  *
  * 2. Design Review Actions (Product/Tech Design):
  *    - Callback: "approve:issueNumber" | "changes:issueNumber" | "reject:issueNumber"
  *    - Updates GitHub Project review status
+ *
+ * 3. PR Merge Flow (after PR Review approval):
+ *    - Callback: "merge:issueNumber:prNumber" - Squash merge PR with saved commit message
+ *    - Callback: "reqchanges:issueNumber:prNumber" - Send back to implementation
+ *
+ * 4. Clarification Flow:
+ *    - Callback: "clarified:issueNumber" - Mark clarification as received
+ *
+ * 5. Routing (after initial sync):
+ *    - Callback: "route_feature:requestId:destination" | "route_bug:reportId:destination"
  *
  * This is a direct API route because Telegram sends webhook requests directly to this URL.
  * It cannot go through the standard API architecture.
@@ -19,9 +29,23 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getProjectManagementAdapter } from '@/server/project-management';
-import { STATUSES, REVIEW_STATUSES } from '@/server/project-management/config';
+import { STATUSES, REVIEW_STATUSES, COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
 import { featureRequests, reports } from '@/server/database';
 import { approveFeatureRequest, approveBugReport } from '@/server/github-sync';
+import { parseCommitMessageComment } from '@/agents/lib/commitMessage';
+import { getPrUrl } from '@/server/project-management/config';
+import { readDesignDoc } from '@/agents/lib/design-files';
+import { formatPhasesToComment, parsePhasesFromMarkdown, hasPhaseComment } from '@/agents/lib/phases';
+import {
+    initializeImplementationPhases,
+    parsePhaseString,
+    updateDesignArtifact,
+    getDesignDocLink,
+    updateImplementationPhaseArtifact,
+    parseArtifactComment,
+} from '@/agents/lib';
+import { sendNotificationToOwner } from '@/server/telegram';
+import { appConfig } from '@/app.config';
 
 /**
  * Status transitions when approved - move to next phase
@@ -652,6 +676,505 @@ async function handleClarificationReceived(
     }
 }
 
+/**
+ * Handle merge callback from Telegram - SINGLE SOURCE OF TRUTH for PR merge handling
+ * Callback format: "merge:issueNumber:prNumber"
+ *
+ * This function handles ALL post-merge operations:
+ * 1. Merge the PR (or handle if already merged)
+ * 2. Get phase info for multi-phase features
+ * 3. Update artifact comment
+ * 4. Post status comment on issue
+ * 5. Update project status (next phase or Done)
+ * 6. Clear review status
+ * 7. Update MongoDB (for final/single phase → done)
+ * 8. Delete the feature branch
+ * 9. Update Telegram message with confirmation
+ */
+async function handleMergeCallback(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    prNumber: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the commit message from PR comment
+        const commitComment = await adapter.findPRCommentByMarker(prNumber, COMMIT_MESSAGE_MARKER);
+        if (!commitComment) {
+            return { success: false, error: 'Commit message not found on PR. Please run PR Review again.' };
+        }
+
+        const commitMsg = parseCommitMessageComment(commitComment.body);
+        if (!commitMsg) {
+            return { success: false, error: 'Could not parse commit message. Please run PR Review again.' };
+        }
+
+        // 2. Try to merge the PR (skip if already merged)
+        let alreadyMerged = false;
+        try {
+            await adapter.mergePullRequest(prNumber, commitMsg.title, commitMsg.body);
+            console.log(`Telegram webhook: merged PR #${prNumber}`);
+        } catch (mergeError) {
+            const errorMsg = mergeError instanceof Error ? mergeError.message : String(mergeError);
+            // Check if PR was already merged
+            if (errorMsg.includes('already been merged') ||
+                errorMsg.includes('Pull Request is not mergeable') ||
+                errorMsg.includes('not open')) {
+                console.log(`Telegram webhook: PR #${prNumber} already merged, continuing with status updates`);
+                alreadyMerged = true;
+            } else {
+                throw mergeError;
+            }
+        }
+
+        // 3. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            console.warn(`Telegram webhook: project item not found for issue #${issueNumber}`);
+            // Still return success if PR was merged - issue just wasn't in project
+            if (alreadyMerged || !commitComment) {
+                return { success: true };
+            }
+        }
+
+        // 4. Check for multi-phase implementation
+        const phase = item ? await adapter.getImplementationPhase(item.itemId) : null;
+        const parsedPhase = parsePhaseString(phase);
+
+        // Get phase name from artifact comment if available
+        const issueComments = await adapter.getIssueComments(issueNumber);
+        const artifact = parseArtifactComment(issueComments);
+        const currentPhaseArtifact = artifact?.implementation?.phases?.find(
+            p => parsedPhase && p.phase === parsedPhase.current
+        );
+        const phaseName = currentPhaseArtifact?.name || (parsedPhase ? `Phase ${parsedPhase.current}` : '');
+
+        let statusMessage = '';
+        let isMultiPhaseMiddle = false;
+
+        if (parsedPhase && item) {
+            console.log(`Telegram webhook: Multi-phase feature: Phase ${parsedPhase.current}/${parsedPhase.total}`);
+
+            // Update artifact comment to mark phase as merged
+            try {
+                await updateImplementationPhaseArtifact(
+                    adapter,
+                    issueNumber,
+                    parsedPhase.current,
+                    parsedPhase.total,
+                    phaseName,
+                    'merged',
+                    prNumber
+                );
+                console.log('Telegram webhook: updated artifact comment - phase marked as merged');
+            } catch (artifactError) {
+                console.warn('Telegram webhook: failed to update artifact comment:', artifactError);
+            }
+
+            if (parsedPhase.current < parsedPhase.total) {
+                // Mid-phase: increment and return to Implementation
+                isMultiPhaseMiddle = true;
+                const nextPhase = parsedPhase.current + 1;
+
+                // Post status comment on issue
+                const phaseCompleteComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n🔄 Starting Phase ${nextPhase}/${parsedPhase.total}...`;
+                await adapter.addIssueComment(issueNumber, phaseCompleteComment);
+                console.log(`Telegram webhook: posted phase completion comment`);
+
+                // Update phase counter
+                await adapter.setImplementationPhase(item.itemId, `${nextPhase}/${parsedPhase.total}`);
+                console.log(`Telegram webhook: updated Implementation Phase to: ${nextPhase}/${parsedPhase.total}`);
+
+                // Return to Implementation status
+                await adapter.updateItemStatus(item.itemId, STATUSES.implementation);
+                console.log(`Telegram webhook: status updated to: ${STATUSES.implementation}`);
+
+                // Clear review status for next phase
+                if (adapter.hasReviewStatusField() && item.reviewStatus) {
+                    await adapter.clearItemReviewStatus(item.itemId);
+                    console.log('Telegram webhook: cleared review status');
+                }
+
+                statusMessage = `📋 Phase ${parsedPhase.current}/${parsedPhase.total} complete\n🔄 Starting Phase ${nextPhase}/${parsedPhase.total}`;
+            } else {
+                // Final phase - mark as Done
+                console.log(`Telegram webhook: All ${parsedPhase.total} phases complete!`);
+
+                // Post final completion comment
+                const allPhasesCompleteComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n🎉 **All ${parsedPhase.total} phases complete!** Issue is now Done.`;
+                await adapter.addIssueComment(issueNumber, allPhasesCompleteComment);
+
+                // Clear phase field
+                await adapter.clearImplementationPhase(item.itemId);
+                console.log('Telegram webhook: cleared Implementation Phase field');
+
+                statusMessage = `🎉 All ${parsedPhase.total} phases complete!\n📊 Status: Done`;
+            }
+        } else if (item) {
+            // Single-phase feature
+            try {
+                // Use Phase 1/1 format for consistency
+                await updateImplementationPhaseArtifact(
+                    adapter,
+                    issueNumber,
+                    1,
+                    1,
+                    '', // No name for single-phase
+                    'merged',
+                    prNumber
+                );
+                console.log('Telegram webhook: updated artifact comment - implementation marked as merged');
+            } catch (artifactError) {
+                console.warn('Telegram webhook: failed to update artifact comment:', artifactError);
+            }
+
+            // Post completion comment
+            const completionComment = `✅ Merged PR #${prNumber} - Issue complete!`;
+            await adapter.addIssueComment(issueNumber, completionComment);
+
+            statusMessage = '📊 Status: Done';
+        }
+
+        // 5. For final/single phase: Update status to Done, update MongoDB
+        if (!isMultiPhaseMiddle && item) {
+            // Update GitHub Project status to Done
+            await adapter.updateItemStatus(item.itemId, STATUSES.done);
+            console.log('Telegram webhook: status updated to Done');
+
+            // Clear review status
+            if (adapter.hasReviewStatusField() && item.reviewStatus) {
+                await adapter.clearItemReviewStatus(item.itemId);
+                console.log('Telegram webhook: cleared review status');
+            }
+
+            // Update MongoDB
+            const featureRequest = await featureRequests.findByGitHubIssueNumber(issueNumber);
+            if (featureRequest) {
+                await featureRequests.updateFeatureRequestStatus(featureRequest._id, 'done');
+                console.log('Telegram webhook: feature request marked as done in database');
+            } else {
+                const bugReport = await reports.findByGitHubIssueNumber(issueNumber);
+                if (bugReport) {
+                    await reports.updateReport(bugReport._id.toString(), { status: 'resolved' });
+                    console.log('Telegram webhook: bug report marked as resolved in database');
+                }
+            }
+        }
+
+        // 6. Delete the feature branch
+        try {
+            const prDetails = await adapter.getPRDetails(prNumber);
+            if (prDetails?.headBranch) {
+                await adapter.deleteBranch(prDetails.headBranch);
+                console.log(`Telegram webhook: deleted branch ${prDetails.headBranch}`);
+            }
+        } catch {
+            // Branch may already be deleted - that's fine
+            console.log('Telegram webhook: branch already deleted or not found');
+        }
+
+        // 7. Update the Telegram message with confirmation
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const statusUpdate = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '✅ <b>Merged Successfully!</b>',
+                `PR #${prNumber} has been squash-merged.`,
+                statusMessage,
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                originalText + statusUpdate,
+                'HTML'
+            );
+        }
+
+        // 8. Send notification for multi-phase mid-phase completion (optional)
+        if (isMultiPhaseMiddle && parsedPhase && appConfig.ownerTelegramChatId && process.env.TELEGRAM_BOT_TOKEN) {
+            const nextPhase = parsedPhase.current + 1;
+            const message = `<b>Agent (Multi-PR):</b> ✅ Phase ${parsedPhase.current}/${parsedPhase.total} merged
+
+🔗 Issue #${issueNumber}
+🔀 PR #${prNumber}
+
+Starting Phase ${nextPhase}/${parsedPhase.total}...
+Run <code>yarn agent:implement</code> to continue.`;
+
+            // Use different chat ID for agent notifications if configured
+            await sendNotificationToOwner(message, {
+                parseMode: 'HTML',
+            });
+            console.log('Telegram webhook: sent multi-phase notification');
+        }
+
+        console.log(`Telegram webhook: completed merge handling for PR #${prNumber}, issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling merge:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle design PR approval callback
+ * Callback format: "design_approve:prNumber:issueNumber:type"
+ * where type is "product" or "tech"
+ *
+ * Actions:
+ * 1. Merge the design PR (squash)
+ * 2. Update artifact comment on issue
+ * 3. Advance status to next phase
+ * 4. For tech design: post phases comment and initialize implementation phases
+ */
+async function handleDesignPRApproval(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    prNumber: number,
+    issueNumber: number,
+    designType: 'product' | 'tech'
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Generate commit message for design PR
+        const commitTitle = `docs: ${designType} design for issue #${issueNumber}`;
+        const commitBody = `Approved ${designType} design document.\n\nPart of #${issueNumber}`;
+
+        // 2. Merge the design PR
+        await adapter.mergePullRequest(prNumber, commitTitle, commitBody);
+
+        // 3. Update artifact comment on issue
+        const isProductDesign = designType === 'product';
+        await updateDesignArtifact(adapter, issueNumber, {
+            type: isProductDesign ? 'product-design' : 'tech-design',
+            path: getDesignDocLink(issueNumber, designType),
+            status: 'approved',
+            lastUpdated: new Date().toISOString().split('T')[0],
+            prNumber,
+        });
+        console.log(`Telegram webhook: updated design artifact for issue #${issueNumber}`);
+
+        // 4. Advance status to next phase
+        const designLabel = designType === 'product' ? 'Product Design' : 'Technical Design';
+        const nextPhase = designType === 'product' ? STATUSES.techDesign : STATUSES.implementation;
+        const nextPhaseLabel = designType === 'product' ? 'Tech Design' : 'Implementation';
+
+        // Find and update the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (item) {
+            // Update status to next phase
+            await adapter.updateItemStatus(item.itemId, nextPhase);
+            console.log(`Telegram webhook: advanced status to ${nextPhase}`);
+
+            // Clear review status
+            if (adapter.hasReviewStatusField() && item.reviewStatus) {
+                await adapter.clearItemReviewStatus(item.itemId);
+                console.log(`Telegram webhook: cleared review status`);
+            }
+
+            // Delete the design branch
+            const prDetails = await adapter.getPRDetails(prNumber);
+            if (prDetails?.headBranch) {
+                await adapter.deleteBranch(prDetails.headBranch);
+                console.log(`Telegram webhook: deleted branch ${prDetails.headBranch}`);
+            }
+
+            // For tech design PRs, handle phases for multi-PR workflow
+            if (designType === 'tech') {
+                const techDesign = readDesignDoc(issueNumber, 'tech');
+                if (techDesign) {
+                    const phases = parsePhasesFromMarkdown(techDesign);
+                    if (phases && phases.length >= 2) {
+                        // Post phases comment on issue (for implementation agent to read)
+                        const issueComments = await adapter.getIssueComments(issueNumber);
+                        if (!hasPhaseComment(issueComments)) {
+                            const phasesComment = formatPhasesToComment(phases);
+                            await adapter.addIssueComment(issueNumber, phasesComment);
+                            console.log(`Telegram webhook: posted phases comment (${phases.length} phases)`);
+                        }
+
+                        // Initialize implementation phases in artifact comment
+                        await initializeImplementationPhases(
+                            adapter,
+                            issueNumber,
+                            phases.map(p => ({ order: p.order, name: p.name }))
+                        );
+                        console.log(`Telegram webhook: initialized implementation phases`);
+                    }
+                }
+            }
+        } else {
+            console.warn(`Telegram webhook: project item not found for issue #${issueNumber}`);
+        }
+
+        // 4. Update the message to show success
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const statusUpdate = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '✅ <b>Merged Successfully!</b>',
+                `${designLabel} PR #${prNumber} merged.`,
+                `📊 Status: ${nextPhaseLabel}`,
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                originalText + statusUpdate,
+                'HTML'
+            );
+        }
+
+        console.log(`Telegram webhook: merged ${designType} design PR #${prNumber} for issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling design PR approval:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle design PR request changes callback
+ * Callback format: "design_changes:prNumber:issueNumber:type"
+ * where type is "product" or "tech"
+ *
+ * Actions:
+ * 1. Update review status to "Request Changes"
+ * 2. Design agent will pick it up on next run
+ */
+async function handleDesignPRRequestChanges(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    prNumber: number,
+    issueNumber: number,
+    designType: 'product' | 'tech'
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // 2. Update review status to Request Changes
+        await adapter.updateItemReviewStatus(item.itemId, REVIEW_STATUSES.requestChanges);
+
+        // 3. Update the message with instructions
+        const prUrl = getPrUrl(prNumber);
+        const designLabel = designType === 'product' ? 'Product Design' : 'Technical Design';
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const statusUpdate = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '🔄 <b>Changes Requested</b>',
+                '',
+                `📊 Status: ${item.status}`,
+                `📋 Review Status: ${REVIEW_STATUSES.requestChanges}`,
+                '',
+                `<b>Next:</b> <a href="${prUrl}">Comment on the ${designLabel} PR</a> explaining what needs to change.`,
+                'Design agent will revise on next run.',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                originalText + statusUpdate,
+                'HTML'
+            );
+        }
+
+        console.log(`Telegram webhook: requested changes for ${designType} design PR #${prNumber}, issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling design PR request changes:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle request changes callback from Telegram (admin requests changes after PR approval)
+ * Callback format: "reqchanges:issueNumber:prNumber"
+ */
+async function handleRequestChangesCallback(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    prNumber: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // 2. Move back to Implementation with Request Changes
+        await adapter.updateItemStatus(item.itemId, STATUSES.implementation);
+        await adapter.updateItemReviewStatus(item.itemId, REVIEW_STATUSES.requestChanges);
+
+        // 3. Update the message with instructions
+        const prUrl = getPrUrl(prNumber);
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const statusUpdate = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '🔄 <b>Marked for Changes</b>',
+                '',
+                `📊 Status: ${STATUSES.implementation}`,
+                `📋 Review Status: ${REVIEW_STATUSES.requestChanges}`,
+                '',
+                `<b>Next:</b> <a href="${prUrl}">Comment on the PR</a> explaining what needs to change.`,
+                'Implementor will pick it up on next run.',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                originalText + statusUpdate,
+                'HTML'
+            );
+        }
+
+        console.log(`Telegram webhook: requested changes for PR #${prNumber}, issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling request changes:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
@@ -851,57 +1374,128 @@ export default async function handler(
             return res.status(200).json({ ok: true });
         }
 
-        // Direct issue routing (for testing): "route:issueNumber:destination"
-        if (action === 'route' && parts.length === 3) {
+        // Merge PR: "merge:issueNumber:prNumber"
+        if (action === 'merge' && parts.length === 3) {
             const issueNumber = parseInt(parts[1], 10);
-            const destination = parts[2];
+            const prNumber = parseInt(parts[2], 10);
 
-            if (!issueNumber) {
-                await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue number');
+            if (!issueNumber || !prNumber) {
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue or PR number');
                 return res.status(200).json({ ok: true });
             }
 
-            try {
-                const adapter = getProjectManagementAdapter();
-                await adapter.init();
+            const result = await handleMergeCallback(
+                botToken,
+                callback_query,
+                issueNumber,
+                prNumber
+            );
 
-                // Find the project item
-                const projectItem = await findItemByIssueNumber(adapter, issueNumber);
-
-                if (!projectItem) {
-                    await answerCallbackQuery(
-                        botToken,
-                        callback_query.id,
-                        `Issue #${issueNumber} not found in project`
-                    );
-                    return res.status(200).json({ ok: true });
-                }
-
-                // Update status
-                await adapter.updateItemStatus(projectItem.itemId, destination);
-
-                // Update message
-                if (callback_query.message) {
-                    const newText = `${callback_query.message.text || ''}\n\n✅ <b>Routed to: ${destination}</b>`;
-                    await editMessageText(
-                        botToken,
-                        callback_query.message.chat.id,
-                        callback_query.message.message_id,
-                        newText
-                    );
-                }
-
-                await answerCallbackQuery(botToken, callback_query.id, `✅ Routed to ${destination}`);
-                return res.status(200).json({ ok: true });
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '✅ Merged!');
+            } else {
                 await answerCallbackQuery(
                     botToken,
                     callback_query.id,
-                    `❌ ${errorMessage.slice(0, 150)}`
+                    `❌ ${result.error?.slice(0, 150)}`
                 );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Request changes (admin requests changes after approval): "reqchanges:issueNumber:prNumber"
+        if (action === 'reqchanges' && parts.length === 3) {
+            const issueNumber = parseInt(parts[1], 10);
+            const prNumber = parseInt(parts[2], 10);
+
+            if (!issueNumber || !prNumber) {
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue or PR number');
                 return res.status(200).json({ ok: true });
             }
+
+            const result = await handleRequestChangesCallback(
+                botToken,
+                callback_query,
+                issueNumber,
+                prNumber
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '🔄 Marked for changes');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Design PR approval: "design_approve:prNumber:issueNumber:type"
+        if (action === 'design_approve' && parts.length === 4) {
+            const prNumber = parseInt(parts[1], 10);
+            const issueNumber = parseInt(parts[2], 10);
+            const designType = parts[3] as 'product' | 'tech';
+
+            if (!prNumber || !issueNumber || !['product', 'tech'].includes(designType)) {
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid callback data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleDesignPRApproval(
+                botToken,
+                callback_query,
+                prNumber,
+                issueNumber,
+                designType
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '✅ Merged!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Design PR request changes: "design_changes:prNumber:issueNumber:type"
+        if (action === 'design_changes' && parts.length === 4) {
+            const prNumber = parseInt(parts[1], 10);
+            const issueNumber = parseInt(parts[2], 10);
+            const designType = parts[3] as 'product' | 'tech';
+
+            if (!prNumber || !issueNumber || !['product', 'tech'].includes(designType)) {
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid callback data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleDesignPRRequestChanges(
+                botToken,
+                callback_query,
+                prNumber,
+                issueNumber,
+                designType
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '🔄 Changes requested');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
         }
 
         // Unknown action

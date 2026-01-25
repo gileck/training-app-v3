@@ -4,8 +4,8 @@
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "f14af82f844184976f953fef291249219bbb2764",
-  "lastProjectCommit": "5cde16ad9e7ac4a1ddfd885a0202eef3c3523571",
-  "lastSyncDate": "2026-01-25T17:58:38.324Z",
+  "lastProjectCommit": "bdbc14b03aaab21ac9e42aac83e0a5c262bd21d5",
+  "lastSyncDate": "2026-01-25T17:59:37.572Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,15 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-25T17:59:37.739Z",
+      "templateCommit": "f14af82f844184976f953fef291249219bbb2764",
+      "projectCommit": "bdbc14b03aaab21ac9e42aac83e0a5c262bd21d5",
+      "filesApplied": 2,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": []
+    },
     {
       "date": "2026-01-25T17:58:38.493Z",
       "templateCommit": "f14af82f844184976f953fef291249219bbb2764",
@@ -373,17 +382,6 @@
         "33210dc docs: add critical GitHub status production deployment troubleshooting \u001b[90m(21/01/2026)\u001b[0m\n  Extended the init guide with comprehensive troubleshooting for the\n  common production issue where GitHub statuses show as empty in the\n  feature-request page.\n  \n  Changes to docs/init-github-projects-workflow.md:\n  - Added new \"GitHub Status Integration Issues\" section in Troubleshooting\n  - Enhanced Step 5 with critical warnings about required GitHub env vars\n  - Added verification steps to confirm all 5 GitHub variables are set\n  - Included detailed fix instructions using vercel-cli\n  \n  This addresses the production integration issue where:\n  - GitHub workflows work locally but not in production\n  - Feature-request page shows empty GitHub statuses\n  - Missing GITHUB_OWNER, GITHUB_REPO, GITHUB_PROJECT_NUMBER, or\n    GITHUB_OWNER_TYPE environment variables in Vercel\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "3ad3d23 docs: add critical production deployment notes for GitHub integration \u001b[90m(21/01/2026)\u001b[0m\n  Added section in GitHub Projects Integration documenting the critical\n  requirement to push GitHub environment variables to Vercel production.\n  \n  Without GITHUB_OWNER, GITHUB_REPO, GITHUB_PROJECT_NUMBER, and\n  GITHUB_OWNER_TYPE in production, GitHub statuses will show as empty\n  in the feature-request page.\n  \n  Includes commands for:\n  - Pushing env vars to Vercel\n  - Verifying variables are set\n  - Triggering redeployment\n  \n  This addresses the production integration issue where GitHub workflows\n  work locally but not in production.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "fc017de fix: add null check for unknown feature request status values (#14) \u001b[90m(20/01/2026)\u001b[0m"
-      ]
-    },
-    {
-      "date": "2026-01-20T17:36:56.662Z",
-      "templateCommit": "106bae449b2e700dea6c84deefede9313683397d",
-      "projectCommit": "9e6531d7d91c8aebda0b27f519b492f03d744c91",
-      "filesApplied": 12,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "106bae4 fix: agents and scripts now load .env.local files \u001b[90m(20/01/2026)\u001b[0m\n  All agent scripts (product-design, tech-design, implement, auto-advance)\n  and utility scripts (github-pr, telegram-*, vercel-cli, mark-issue-done)\n  now properly load environment variables from both .env and .env.local\n  files, with .env.local taking priority.\n  \n  Created shared loadEnv utility that follows Next.js convention:\n  - Loads .env first (base config)\n  - Loads .env.local second (overrides with local secrets)\n  \n  This fixes the \"Missing required environment variable\" errors that\n  occurred when GitHub Projects variables existed only in .env.local.\n  \n  Changes:\n  - Created src/agents/shared/loadEnv.ts utility\n  - Updated src/agents/shared/index.ts to import loadEnv\n  - Replaced 'dotenv/config' with loadEnv in 4 agent files\n  - Replaced 'dotenv/config' with loadEnv in 6 script files\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -823,7 +821,7 @@
     "src/client/components/ui/textarea.tsx": "52a7a3622e1eb49a6b75ae46df5eea37",
     ".env.example": "ea000cfeeba573172b42600b80bea15b",
     ".github/workflows/issue-notifications.yml": "9eb7ce565da814d9b2c8230d6be723ae",
-    ".github/workflows/pr-merged-mark-done.yml": "9fb190e5c19c47196b111b068f7298d8",
+    ".github/workflows/pr-merged-mark-done.yml": "5e9735f06d22e84fff30f51944cd5d1b",
     ".github/workflows/pr-notifications.yml": "5fb15f3dc3e7b4024546f1dfb66fe148",
     "docs/github-projects-integration.md": "fc5d7ffc95de0bea68eaf7b7153959a2",
     "docs/init-github-projects-workflow.md": "ef7b5c63e5d5efedb82def5f7a08d317",
@@ -848,7 +846,7 @@
     "src/apis/feature-requests/handlers/updateGitHubStatus.ts": "9f72422f1685d2674d6b22ea3688d880",
     "src/apis/reports/handlers/approveBugReport.ts": "182b0ea59beae5fea90c66f133eac1df",
     "src/pages/api/feature-requests/approve/[requestId].ts": "60c0b11fdc89106809fc4399e8d2fc4e",
-    "src/pages/api/telegram-webhook.ts": "3949d2119102c25b2e6eb235831beb6b",
+    "src/pages/api/telegram-webhook.ts": "32fb1f608334e45ceea379484de3829c",
     "src/server/github-status/index.ts": "40f7cdb3e59b8a8f1c7322981652b22c",
     "src/server/github-sync/index.ts": "858f6c896dd660899b04d8466e558696",
     "src/server/project-management/adapters/github.ts": "6d2c1e4f86735bf908f4bbcc806a6b56",
