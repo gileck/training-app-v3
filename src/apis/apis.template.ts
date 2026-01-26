@@ -12,10 +12,12 @@ import { clearCacheApiHandlers } from "./settings/clearCache/server";
 import { authApiHandlers } from "./auth/server";
 import { reportsApiHandlers } from "./reports/server";
 import { featureRequestsApiHandlers } from "./feature-requests/server";
+import { agentLogApiHandlers } from "./agent-log/server";
 
 export const templateApiHandlers = mergeApiHandlers(
   clearCacheApiHandlers,
   authApiHandlers,
   reportsApiHandlers,
-  featureRequestsApiHandlers
+  featureRequestsApiHandlers,
+  agentLogApiHandlers
 );

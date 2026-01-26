@@ -16,6 +16,10 @@ export function createLogContext(options: {
     mode?: string;
     issueTitle: string;
     issueType?: 'feature' | 'bug' | 'chore' | 'docs' | 'refactor';
+    /** Current GitHub Projects status (column) when agent started */
+    currentStatus?: string | null;
+    /** Current review status when agent started */
+    currentReviewStatus?: string | null;
 }): LogContext {
     return {
         ...options,

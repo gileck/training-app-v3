@@ -218,6 +218,8 @@ async function processItem(
         mode: mode === 'new' ? 'New design' : mode === 'feedback' ? 'Address feedback' : 'Clarification',
         issueTitle: content.title,
         issueType,
+        currentStatus: item.status,
+        currentReviewStatus: item.reviewStatus,
     });
 
     return runWithLogContext(logCtx, async () => {
@@ -464,9 +466,9 @@ Part of #${issueNumber}
             // Log execution end
             logExecutionEnd(logCtx, {
                 success: true,
-                toolCallsCount: 0, // Will be logged by SDK adapter
-                totalTokens: 0, // Will be logged by SDK adapter
-                totalCost: 0, // Will be logged by SDK adapter
+                toolCallsCount: 0, // Not tracked in UsageStats
+                totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+                totalCost: result.usage?.totalCostUSD ?? 0,
             });
 
             return { success: true };

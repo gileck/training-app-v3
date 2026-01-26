@@ -37,11 +37,17 @@ function formatTime(date: Date): string {
  * Parse existing cost summary from log content
  * Returns array of phase data from the existing summary table
  * Fails gracefully - returns empty array if parsing fails
+ *
+ * IMPORTANT: The regex must match ONLY the cost summary section, not `## Summary`
+ * headings that appear in design documents (inside prompts). The cost summary
+ * is always preceded by `---\n\n` and has "(Updated after X)" in the title.
  */
 export function parseCostSummary(logContent: string): PhaseData[] {
     try {
-        // Match the Summary section
-        const summaryMatch = logContent.match(/## Summary.*?\n([\s\S]*?)(?=\n##[^#]|$)/);
+        // Match the cost summary section specifically
+        // Must be preceded by `---\n\n` and have "(Updated after" in title
+        // This avoids matching `## Summary` sections in design documents
+        const summaryMatch = logContent.match(/---\n\n## Summary \(Updated after [^)]+\)\n\n([\s\S]*?)(?=\n##[^#]|$)/);
         if (!summaryMatch) {
             console.log('  💰 No existing cost summary found - creating new one');
             return [];
@@ -124,11 +130,15 @@ export function parseCostSummary(logContent: string): PhaseData[] {
 /**
  * Remove existing Summary section from log content
  * Fails gracefully - returns original content if removal fails
+ *
+ * IMPORTANT: Must match ONLY the cost summary, not `## Summary` in agent responses.
+ * Cost summaries always have "(Updated after X)" in the title.
  */
 function removeSummarySection(logContent: string): string {
     try {
-        // Remove from "## Summary" to the next "##" heading or end of file
-        const updated = logContent.replace(/---\n\n## Summary[\s\S]*?(?=\n##[^#]|$)/, '');
+        // Remove cost summary section specifically
+        // Must have "(Updated after" to distinguish from `## Summary` in agent responses
+        const updated = logContent.replace(/---\n\n## Summary \(Updated after [^)]+\)[\s\S]*?(?=\n##[^#]|$)/, '');
 
         // If replacement happened (content changed), log it
         if (updated !== logContent) {

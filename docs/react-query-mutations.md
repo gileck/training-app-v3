@@ -843,6 +843,149 @@ function MyList() {
 
 ---
 
+## Updating Multiple Caches (List + Detail Views)
+
+When a mutation affects data displayed in **both** a list view and a detail view, you must update **both** caches in `onMutate` for proper optimistic behavior.
+
+### The Problem
+
+A common mistake is only updating the list cache:
+
+```typescript
+// ❌ WRONG - Only updates list cache
+export function useUpdateTodo() {
+    return useMutation({
+        mutationFn: updateTodo,
+        onMutate: async (variables) => {
+            // Only updates the list
+            queryClient.setQueryData(['todos'], (old) => ({
+                todos: old.todos.map(t =>
+                    t._id === variables.todoId ? { ...t, ...variables } : t
+                )
+            }));
+        },
+    });
+}
+```
+
+**Result**: List view updates instantly, but detail view (`/todos/:id`) shows stale data until refetch.
+
+### The Solution: Update Both Caches
+
+```typescript
+// ✅ CORRECT - Updates both list and individual caches
+export function useUpdateTodo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (variables: UpdateTodoInput) => {
+            const response = await updateTodo(variables);
+            if (response.data?.error) throw new Error(response.data.error);
+            return response.data;
+        },
+
+        onMutate: async (variables) => {
+            // Cancel both queries
+            await queryClient.cancelQueries({ queryKey: ['todos'] });
+            await queryClient.cancelQueries({ queryKey: ['todo', variables.todoId] });
+
+            // Snapshot both for rollback
+            const previousList = queryClient.getQueryData(['todos']);
+            const previousItem = queryClient.getQueryData(['todo', variables.todoId]);
+
+            // 1. Update the LIST cache
+            queryClient.setQueryData(['todos'], (old) => {
+                if (!old?.todos) return old;
+                return {
+                    todos: old.todos.map(t =>
+                        t._id === variables.todoId
+                            ? { ...t, ...variables, updatedAt: new Date().toISOString() }
+                            : t
+                    )
+                };
+            });
+
+            // 2. Update the INDIVIDUAL ITEM cache
+            queryClient.setQueryData(['todo', variables.todoId], (old) => {
+                if (!old?.todo) return old;
+                return {
+                    todo: { ...old.todo, ...variables, updatedAt: new Date().toISOString() }
+                };
+            });
+
+            return { previousList, previousItem };
+        },
+
+        onError: (_err, variables, context) => {
+            // Rollback BOTH caches
+            if (context?.previousList) {
+                queryClient.setQueryData(['todos'], context.previousList);
+            }
+            if (context?.previousItem) {
+                queryClient.setQueryData(['todo', variables.todoId], context.previousItem);
+            }
+        },
+
+        onSuccess: () => {},
+        onSettled: () => {},
+    });
+}
+```
+
+### When to Use This Pattern
+
+| Scenario | Update Both Caches? |
+|----------|---------------------|
+| List view only (no detail route) | No - single cache is fine |
+| List + detail views exist | **Yes** - both need updates |
+| Delete mutation | Update list cache + optionally remove individual cache |
+| Create mutation | Update list cache (individual cache created on navigation) |
+
+### Query Key Conventions
+
+For this pattern to work, establish consistent query keys:
+
+```typescript
+// Query keys (define once, use everywhere)
+export const todosQueryKey = ['todos'] as const;
+export const todoQueryKey = (id: string) => ['todo', id] as const;
+
+// In list hook
+useQuery({ queryKey: todosQueryKey, ... });
+
+// In detail hook
+useQuery({ queryKey: todoQueryKey(todoId), ... });
+
+// In mutation - reference same keys
+queryClient.setQueryData(todosQueryKey, ...);
+queryClient.setQueryData(todoQueryKey(variables.todoId), ...);
+```
+
+### Delete Mutations: Handle Navigation
+
+For delete mutations, also consider removing the individual cache to prevent showing deleted data if user navigates back:
+
+```typescript
+export function useDeleteTodo() {
+    return useMutation({
+        mutationFn: deleteTodo,
+        onMutate: async (variables) => {
+            // Update list cache (remove item)
+            queryClient.setQueryData(['todos'], (old) => ({
+                todos: old.todos.filter(t => t._id !== variables.todoId)
+            }));
+
+            // Remove individual cache entirely
+            queryClient.removeQueries({ queryKey: ['todo', variables.todoId] });
+
+            return { previous };
+        },
+    });
+}
+```
+
+---
+
 ## Offline behavior note (this app)
 
 When offline, `apiClient.post` queues the request and returns `{ data: {}, isFromCache: false }` immediately.

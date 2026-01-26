@@ -44,18 +44,14 @@ function getOwnerChatId(): string | null {
 }
 
 /**
- * Build review action buttons for a PR (includes Open PR button)
+ * Build simple View PR button (for implementation PRs)
+ * Implementation PRs should be reviewed by PR Review agent, not manually approved
  */
-function buildPRReviewButtons(issueNumber: number, prUrl: string): InlineKeyboardMarkup {
+function buildViewPRButton(prUrl: string): InlineKeyboardMarkup {
     return {
         inline_keyboard: [
             [
-                { text: '🔀 Open PR', url: prUrl },
-            ],
-            [
-                { text: '✅ Approve', callback_data: `approve:${issueNumber}` },
-                { text: '📝 Request Changes', callback_data: `changes:${issueNumber}` },
-                { text: '❌ Reject', callback_data: `reject:${issueNumber}` },
+                { text: '🔀 View PR', url: prUrl },
             ],
         ],
     };
@@ -266,6 +262,8 @@ ${isRevision ? 'Design updated based on feedback. ' : ''}Review and approve to p
 
 /**
  * Notify admin that PR is ready for review
+ * Implementation PRs will be reviewed by PR Review agent (cron job)
+ * Only shows View PR button - no manual approve/reject actions
  */
 export async function notifyPRReady(
     title: string,
@@ -290,9 +288,9 @@ ${typeEmoji} ${typeLabel}
 🔗 Issue #${issueNumber} → PR #${prNumber}
 📊 Status: PR Review (Waiting for Review)
 
-${isRevision ? 'Changes made based on feedback. ' : ''}Review and merge to complete.${summarySection}`;
+${isRevision ? 'PR updated based on feedback. ' : ''}Waiting for PR Review agent to review.${summarySection}`;
 
-    return sendToAdmin(message, buildPRReviewButtons(issueNumber, prUrl));
+    return sendToAdmin(message, buildViewPRButton(prUrl));
 }
 
 /**

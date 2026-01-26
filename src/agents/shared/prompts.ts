@@ -459,6 +459,8 @@ Explore the codebase:
 3. Check \`src/server/database/collections/\` for database patterns
 4. Look at \`src/client/routes/\` for component patterns
 
+**Data availability check**: Before specifying UI that displays data, verify the schema/types have the required fields. If missing, note "requires schema change" or remove the feature from design.
+
 ## Output Format
 
 Provide your response as structured JSON with these fields:
@@ -980,6 +982,22 @@ You have received feedback from two different reviewers with distinct roles:
 - **Redundant feedback**: Address the issue once - both reviewers will be satisfied
 
 **Important**: Treat all feedback seriously. Both reviewers have HIGH priority in their respective domains.
+
+### When Reviewer Feedback Conflicts with Project Rules
+
+**Project docs and rules are the source of truth.** Claude reviewers may not be fully aware of all project-specific patterns documented in \`docs/\` and \`.cursor/rules/\`.
+
+If a reviewer suggests a change that **contradicts** project documentation:
+1. **Follow the project docs/rules** - they take precedence
+2. **Do NOT implement the conflicting suggestion**
+3. **Explain in your summary comment** why you did not address that point, citing the specific doc/rule
+
+Example:
+\`\`\`
+3. [Claude suggested moving toasts out of onSuccess] → **Not implemented** - per \`docs/react-query-mutations.md\`, toasts in onSuccess are explicitly allowed as "ephemeral UI feedback"
+\`\`\`
+
+The reviewer will see your explanation and understand the project convention in the next review cycle.
 
 ## Your Task
 

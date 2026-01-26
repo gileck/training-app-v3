@@ -9,6 +9,10 @@ export interface LogContext {
     issueTitle: string;
     issueType?: 'feature' | 'bug' | 'chore' | 'docs' | 'refactor';
     startTime: Date;
+    /** Current GitHub Projects status (column) when agent started */
+    currentStatus?: string | null;
+    /** Current review status when agent started */
+    currentReviewStatus?: string | null;
 }
 
 /**
@@ -81,3 +85,13 @@ export interface PhaseData {
     totalTokens: number;
     totalCost: number;
 }
+
+// =============================================================================
+// External Event Logging Types
+// =============================================================================
+// Re-export from API types to maintain single source of truth
+
+export type {
+    ExternalLogSource,
+    ExternalLogEvent,
+} from '@/apis/agent-log/types';

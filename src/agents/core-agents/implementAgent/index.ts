@@ -303,6 +303,8 @@ async function processItem(
         mode: mode === 'new' ? 'New implementation' : mode === 'feedback' ? 'Address feedback' : 'Clarification',
         issueTitle: content.title,
         issueType,
+        currentStatus: item.status,
+        currentReviewStatus: item.reviewStatus,
     });
 
     return runWithLogContext(logCtx, async () => {
