@@ -5,7 +5,7 @@
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
   "lastSyncCommit": "7db722d178dd5f1c17bc86633defb45826ef056e",
   "lastProjectCommit": "25ac83bc2ecb96de4b896cbd7a63cf19e466d75e",
-  "lastSyncDate": "2026-01-27T16:58:58.317Z",
+  "lastSyncDate": "2026-01-27T17:00:05.234Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -921,7 +921,7 @@
     "eslint-plugin-api-guidelines/package.json": "bed6bbc919cc3b93ca192912e13933bf",
     "eslint-plugin-state-management/package.json": "c5be1d4ae56862c71126fef13d713cce",
     "scripts/init-agents-copy-project.ts": "719483b8026b1459506bbd653b6b70c4",
-    "package.json": "df469a1c8f9753908ff279e807ea55f5",
+    "package.json": "c65af7fb9141a1c54d34e5b7c6222533",
     "src/agents/shared/output-schemas.ts": "4fbe8171a67f71e74800b29bb6210992",
     "AGENTS_WORKFLOW_CODE_REVIEW.md": "b37b10e0b8c2f75924b7386fdb3b8e58",
     "scripts/checks-ci.sh": "fc387a4ee1045868e8ec6691f4ac1ca1",
