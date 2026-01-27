@@ -62,6 +62,10 @@ export const addPlanExercise = async (
             durationSeconds: request.durationSeconds || 0,
             comments: request.comments || '',
             order: nextOrder,
+            // Include overrides if provided
+            ...(request.overrides && Object.keys(request.overrides).length > 0
+                ? { overrides: request.overrides }
+                : {}),
             createdAt: now,
             updatedAt: now,
         };
@@ -79,6 +83,8 @@ export const addPlanExercise = async (
             durationSeconds: newExercise.durationSeconds,
             comments: newExercise.comments,
             order: newExercise.order,
+            // Include overrides if present
+            ...(newExercise.overrides ? { overrides: newExercise.overrides } : {}),
             createdAt: newExercise.createdAt.toISOString(),
             updatedAt: newExercise.updatedAt.toISOString(),
             exerciseDef: {

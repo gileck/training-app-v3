@@ -8,10 +8,27 @@ import type { PlanExerciseClient } from '@/server/database/collections/planExerc
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 
 /**
+ * Overrides for exercise definition fields.
+ * All fields are optional - only overridden fields are stored.
+ * When displaying, merge these with the original definition.
+ */
+export interface ExerciseOverrides {
+    name?: string;
+    imageUrl?: string;
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+/**
  * Exercise with its definition, used for display
  */
 export interface PlanExerciseWithDefinition extends PlanExerciseClient {
     exerciseDef: ExerciseDefinitionClient;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverrides;
 }
 
 /**
@@ -57,6 +74,7 @@ export interface ExerciseUpdates {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    overrides?: ExerciseOverrides;
 }
 
 /**
@@ -71,4 +89,5 @@ export interface NewExercise {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    overrides?: ExerciseOverrides;
 }

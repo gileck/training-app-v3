@@ -1,6 +1,19 @@
 import { ObjectId } from 'mongodb';
 
 /**
+ * Overrides for exercise definition fields (stored per plan exercise)
+ */
+export interface ExerciseOverridesDb {
+    name?: string;
+    imageUrl?: string;
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+/**
  * Represents an exercise configuration within a training plan
  */
 export interface PlanExercise {
@@ -13,6 +26,8 @@ export interface PlanExercise {
     durationSeconds: number; // for static/timed exercises
     comments: string;
     order: number;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesDb;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -33,6 +48,19 @@ export type PlanExerciseUpdate = Partial<
 };
 
 /**
+ * Client-friendly overrides
+ */
+export interface ExerciseOverridesClient {
+    name?: string;
+    imageUrl?: string;
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+/**
  * Client-friendly plan exercise with string IDs
  */
 export interface PlanExerciseClient {
@@ -45,6 +73,8 @@ export interface PlanExerciseClient {
     durationSeconds: number;
     comments: string;
     order: number;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesClient;
     createdAt: string;
     updatedAt: string;
 }

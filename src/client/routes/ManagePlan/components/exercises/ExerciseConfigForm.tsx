@@ -4,8 +4,11 @@ import { Button } from '@/client/components/ui/button';
 import { Input } from '@/client/components/ui/input';
 import { Textarea } from '@/client/components/ui/textarea';
 import { Label } from '@/client/components/ui/label';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, ChevronDown, Settings2 } from 'lucide-react';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseOverrides } from '@/client/features/plan-data/types';
+import { CustomizeExerciseSheet } from './CustomizeExerciseSheet';
+import { getEffectiveExerciseValues } from '../../utils/exerciseOverrides';
 
 interface ExerciseConfigFormProps {
     exercise: ExerciseDefinitionClient;
@@ -13,7 +16,8 @@ interface ExerciseConfigFormProps {
     initialReps?: number;
     initialWeight?: number;
     initialComments?: string;
-    onSubmit: (config: { sets: number; reps: number; weight: number; comments: string }) => void;
+    initialOverrides?: ExerciseOverrides;
+    onSubmit: (config: { sets: number; reps: number; weight: number; comments: string; overrides?: ExerciseOverrides }) => void;
     onBack: () => void;
     isPending: boolean;
     submitLabel?: string;
@@ -25,6 +29,7 @@ export function ExerciseConfigForm({
     initialReps,
     initialWeight,
     initialComments = '',
+    initialOverrides,
     onSubmit,
     onBack,
     isPending,
@@ -38,9 +43,24 @@ export function ExerciseConfigForm({
     const [weight, setWeight] = useState(initialWeight ?? (exercise.isBodyweight ? 0 : 20));
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [comments, setComments] = useState(initialComments);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [customizeOpen, setCustomizeOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [overrides, setOverrides] = useState<ExerciseOverrides | undefined>(initialOverrides);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [customizeExpanded, setCustomizeExpanded] = useState(false);
+
+    // Get effective values for display
+    const effectiveValues = getEffectiveExerciseValues(exercise, overrides);
+    const hasOverrides = overrides && Object.keys(overrides).length > 0;
 
     const handleSubmit = () => {
-        onSubmit({ sets, reps, weight, comments: comments.trim() });
+        onSubmit({ sets, reps, weight, comments: comments.trim(), overrides });
+    };
+
+    const handleCustomizeSave = (newOverrides: ExerciseOverrides | undefined) => {
+        setOverrides(newOverrides);
+        setCustomizeOpen(false);
     };
 
     return (
@@ -49,10 +69,10 @@ export function ExerciseConfigForm({
                 <div className="space-y-6">
                     <div className="flex items-center gap-4">
                         <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden flex-shrink-0 relative">
-                            {exercise.imageUrl ? (
+                            {effectiveValues.imageUrl ? (
                                 <Image
-                                    src={exercise.imageUrl}
-                                    alt={exercise.name}
+                                    src={effectiveValues.imageUrl}
+                                    alt={effectiveValues.name}
                                     fill
                                     className="object-contain"
                                     unoptimized
@@ -63,11 +83,16 @@ export function ExerciseConfigForm({
                                 </div>
                             )}
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-lg">{exercise.name}</h3>
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{effectiveValues.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                                {exercise.primaryMuscle} • {exercise.type}
+                                {effectiveValues.primaryMuscle} • {effectiveValues.type}
                             </p>
+                            {hasOverrides && effectiveValues.name !== exercise.name && (
+                                <p className="text-xs text-muted-foreground/70">
+                                    Based on: {exercise.name}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -147,8 +172,53 @@ export function ExerciseConfigForm({
                             />
                         </div>
                     </div>
+
+                    {/* Customize Exercise Section */}
+                    <div className="space-y-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => setCustomizeExpanded(!customizeExpanded)}
+                            className="w-full justify-between h-12 rounded-xl"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Settings2 className="h-4 w-4" />
+                                <span>Customize Exercise</span>
+                                {hasOverrides && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                        Modified
+                                    </span>
+                                )}
+                            </div>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${customizeExpanded ? 'rotate-180' : ''}`} />
+                        </Button>
+                        {customizeExpanded && (
+                            <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+                                <p className="text-sm text-muted-foreground">
+                                    Customize this exercise&apos;s name, image, muscle groups, and more. 
+                                    Changes only apply to this instance in your plan.
+                                </p>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setCustomizeOpen(true)}
+                                    className="w-full"
+                                >
+                                    <Settings2 className="h-4 w-4 mr-2" />
+                                    {hasOverrides ? 'Edit Customizations' : 'Customize Exercise'}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Customize Exercise Sheet */}
+            <CustomizeExerciseSheet
+                open={customizeOpen}
+                onOpenChange={setCustomizeOpen}
+                exerciseDef={exercise}
+                currentOverrides={overrides}
+                onSave={handleCustomizeSave}
+            />
 
             {/* Footer */}
             <div className="shrink-0 border-t px-5 py-4 flex gap-3">

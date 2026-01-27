@@ -224,6 +224,7 @@ export function useUpdatePlanExerciseAdapter(planId: string) {
                 weight?: number;
                 durationSeconds?: number;
                 comments?: string;
+                overrides?: ExerciseUpdates['overrides'];
             },
             options?: { onSuccess?: () => void; onError?: (error: Error) => void }
         ) => {
@@ -234,6 +235,7 @@ export function useUpdatePlanExerciseAdapter(planId: string) {
                 if (params.weight !== undefined) updates.weight = params.weight;
                 if (params.durationSeconds !== undefined) updates.durationSeconds = params.durationSeconds;
                 if (params.comments !== undefined) updates.comments = params.comments;
+                if (params.overrides !== undefined) updates.overrides = params.overrides;
 
                 updateExercise(planId, params.planExerciseId, updates);
                 syncPlanToServer(planId);

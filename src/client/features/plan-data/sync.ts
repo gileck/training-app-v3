@@ -179,6 +179,10 @@ async function doSyncToServer(planId: string, forceSync: boolean = false): Promi
                 durationSeconds: ex.durationSeconds,
                 comments: ex.comments,
                 order: ex.order,
+                // Include overrides if present
+                ...(ex.overrides && Object.keys(ex.overrides).length > 0
+                    ? { overrides: ex.overrides }
+                    : {}),
             })),
             weekProgress: plan.weekProgress,
             clientLastSyncedAt: plan.lastSyncedAt,
