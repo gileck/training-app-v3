@@ -10,6 +10,33 @@ import { getFileHash, storeFileHash } from '../files';
 import { writePackageJson, formatMergeSummary, formatConflictMessage, resolveFieldConflictsInteractively } from '../utils/package-json-merge';
 
 /**
+ * Copy a file or symlink from source to destination.
+ * Handles symlinks by recreating them at the destination instead of copying the target content.
+ */
+function copyFileOrSymlink(src: string, dest: string): void {
+  const stat = fs.lstatSync(src);
+
+  if (stat.isSymbolicLink()) {
+    // For symlinks, read the link target and recreate the symlink
+    const linkTarget = fs.readlinkSync(src);
+
+    // Remove existing file/symlink at destination if it exists
+    // Use try/catch since lstatSync throws if path doesn't exist
+    try {
+      fs.lstatSync(dest);
+      fs.unlinkSync(dest);
+    } catch {
+      // Destination doesn't exist, which is fine
+    }
+
+    fs.symlinkSync(linkTarget, dest);
+  } else {
+    // Regular file - use standard copy
+    fs.copyFileSync(src, dest);
+  }
+}
+
+/**
  * Apply sync changes based on mode and conflict resolutions
  */
 export async function syncFiles(
@@ -80,7 +107,7 @@ export async function syncFiles(
           if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
           }
-          fs.copyFileSync(templateFilePath, projectFilePath);
+          copyFileOrSymlink(templateFilePath, projectFilePath);
 
           // Store the hash of the synced file for future comparison
           const hash = getFileHash(templateFilePath);
@@ -112,7 +139,7 @@ export async function syncFiles(
               if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
               }
-              fs.copyFileSync(templateFilePath, projectFilePath);
+              copyFileOrSymlink(templateFilePath, projectFilePath);
 
               // Store the hash of the synced file for future comparison
               const hash = getFileHash(templateFilePath);
@@ -138,7 +165,7 @@ export async function syncFiles(
             // Save template version for manual merge (original behavior)
             result.conflicts.push(change.path);
             if (!context.options.dryRun) {
-              fs.copyFileSync(templateFilePath, projectFilePath + '.template');
+              copyFileOrSymlink(templateFilePath, projectFilePath + '.template');
               // Don't update hash - let user merge and it will be handled next sync
             }
             break;
