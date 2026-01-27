@@ -1,85 +1,113 @@
 # Task Format Specification
 
-This document defines the standardized markdown format for tasks in `tasks.md`.
+This document defines the standardized format for tasks in the task management system.
 
-## Format Overview
+## Current Structure
 
-Each task follows this structure:
+Tasks are stored as **individual markdown files** in `task-manager/tasks/` with YAML frontmatter. The `tasks.md` file is **auto-generated** and should not be manually edited.
+
+```
+task-manager/
+├── tasks/              # Individual task files (edit these)
+│   ├── task-1.md
+│   ├── task-2.md
+│   └── ...
+├── tasks.md            # Auto-generated summary index (DO NOT EDIT)
+└── lib/                # Task management library
+```
+
+## Individual Task File Format
+
+Each task file (`tasks/task-N.md`) follows this structure:
 
 ```markdown
-## N. Task Title
+---
+number: 5
+title: "Add User Authentication"
+priority: High
+size: M
+complexity: Medium
+status: TODO
+dateAdded: 2026-01-27
+dateUpdated: 2026-01-28
+dateCompleted: 2026-01-29
+completionCommit: abc1234
+---
 
-| Priority | Complexity | Size | Status |
-|----------|------------|------|--------|
-| **[Priority]** | [Complexity] | [Size] | [Status] |
+# Task 5: Add User Authentication
 
-**Date Added:** YYYY-MM-DD
-**Date Updated:** YYYY-MM-DD _(Optional, only when task is modified)_
+**Summary:** Add JWT-based authentication with persistent sessions
 
-**Summary:** Brief one-sentence description of the task.
+## Details
 
-**Details:** _(Optional)_
 Detailed description, context, problem statement, or background.
 
-**Implementation Notes:** _(Optional)_
+## Implementation Notes
+
 Technical details, code snippets, API references, or implementation approach.
 
-**Files to Modify:**
+## Files to Modify
+
 - `path/to/file.ts` - What needs to change
 - `path/to/another.ts` - What needs to change
 
-**Dependencies:** _(Optional)_
-- Task #N must be completed first
+## Dependencies
+
+- Task #3 must be completed first
 - Requires feature X to be deployed
 
-**Risks/Blockers:** _(Optional)_
+## Risks
+
 - Potential issue that could delay or block this task
 - Known challenges or unknowns
 
-**Notes:** _(Optional)_
-- Additional context or comments
-- Historical information about decisions made
+## Notes
+
+Additional context or comments
 ```
 
 ## Field Definitions
 
-### Required Fields
+### YAML Frontmatter (Required Metadata)
 
-#### 1. Number (N)
-- **Format:** Sequential integer starting from 1
+#### number
+- **Type:** Integer
+- **Required:** Yes
+- **Auto-assigned:** By library (highest + 1)
 - **Rules:** Never reuse numbers, even for deleted tasks
-- **Example:** `## 1. Task Title`
 
-#### 2. Title
+#### title
+- **Type:** String
+- **Required:** Yes
 - **Format:** Clear, actionable title in imperative form
 - **Rules:**
   - Start with verb when possible: "Add", "Fix", "Refactor", "Update"
-  - Keep concise (< 60 characters)
-  - For completed tasks: use strikethrough `~~Title~~` and append `✅ DONE`
+  - Keep concise (< 80 characters)
 - **Examples:**
-  - Active: `## 5. Add User Authentication`
-  - Done: `## 3. ~~Fix Login Bug~~ ✅ DONE`
+  - `"Add User Authentication"`
+  - `"Fix Login Bug"`
+  - `"Refactor Database Layer"`
 
-#### 3. Priority
-- **Options:** `Critical`, `High`, `Medium`, `Low`
-- **Format:** Bold in table: `**Critical**`
+#### priority
+- **Type:** `Critical` | `High` | `Medium` | `Low`
+- **Required:** Yes
 - **Definitions:**
   - **Critical:** Blocks other work, production issue, or security vulnerability
   - **High:** Important for current milestone, impacts user experience
   - **Medium:** Should be done soon, but not urgent
   - **Low:** Nice to have, can be deferred
 
-#### 4. Complexity
-- **Options:** `Low`, `Medium`, `High`
-- **Format:** Plain text in table
+#### complexity
+- **Type:** `Low` | `Medium` | `High`
+- **Required:** Yes
 - **Definitions:**
   - **Low:** Straightforward, well-understood, minimal unknowns
   - **Medium:** Some complexity, may require design decisions
   - **High:** Complex problem, significant unknowns, architectural impact
 
-#### 5. Size
-- **Options:** `XS`, `S`, `M`, `L`, `XL`
-- **Format:** Plain text in table
+#### size
+- **Type:** `XS` | `S` | `M` | `L` | `XL`
+- **Required:** Yes
 - **Definitions:**
   - **XS:** < 1 hour, 1-2 files, < 50 lines changed
   - **S:** 1-4 hours, 2-5 files, 50-100 lines changed
@@ -87,170 +115,255 @@ Technical details, code snippets, API references, or implementation approach.
   - **L:** 1-3 days, 15-30 files, 500-1000 lines changed
   - **XL:** 3+ days, 30+ files, 1000+ lines changed
 
-#### 6. Status
-- **Options:** `TODO`, `In Progress`, `Blocked`, `✅ DONE`
-- **Format:**
-  - Active tasks: plain text
-  - Done tasks: `✅ **DONE**` in bold
+#### status
+- **Type:** `TODO` | `In Progress` | `Blocked` | `Done`
+- **Required:** Yes
+- **Default:** `TODO` for new tasks
 - **Definitions:**
   - **TODO:** Not started, ready to work on
   - **In Progress:** Currently being worked on
   - **Blocked:** Cannot proceed due to dependency or issue
-  - **✅ DONE:** Completed and verified
+  - **Done:** Completed and verified
 
-#### 7. Date Added
-- **Format:** `**Date Added:** YYYY-MM-DD`
-- **Rules:** Required for all tasks
-- **Example:** `**Date Added:** 2026-01-24`
+#### dateAdded
+- **Type:** String (YYYY-MM-DD format)
+- **Required:** Yes
+- **Auto-set:** By library to current date
 
-#### 8. Summary
-- **Format:** `**Summary:** One clear sentence describing what needs to be done.`
-- **Rules:**
-  - Must be one sentence
-  - Describe the problem or desired outcome
-  - Should be understandable without reading full details
+#### dateUpdated
+- **Type:** String (YYYY-MM-DD format)
+- **Required:** No
+- **Auto-set:** By library when task is modified
 
-### Optional Fields
+#### dateCompleted
+- **Type:** String (YYYY-MM-DD format)
+- **Required:** No (only for completed tasks)
+- **Auto-set:** By library when marking task as done
 
-#### 9. Date Updated
-- **Format:** `**Date Updated:** YYYY-MM-DD`
-- **When to use:** Add this field when task is significantly modified (not for typo fixes)
-- **Example:** `**Date Updated:** 2026-01-25`
+#### completionCommit
+- **Type:** String (git commit hash)
+- **Required:** No (optional for completed tasks)
+- **Set by:** User when marking task as done
 
-#### 10. Details
-- **Format:** `**Details:** [Multi-paragraph explanation]`
-- **When to use:** When summary isn't sufficient for full context
-- **Content:** Problem statement, background, user impact, current state
+#### planFile
+- **Type:** String (file path)
+- **Required:** No
+- **Format:** Path to implementation plan file (e.g., `task-manager/plans/task-5-plan.md`)
+- **Set by:** `/plan-task` command or manually
+- **Usage:** When present, `/start-task` will use this plan instead of creating a new one
 
-#### 11. Implementation Notes
-- **Format:** `**Implementation Notes:** [Technical details]`
-- **When to use:** When you have specific technical approach or code examples
-- **Content:** Code snippets, API references, technical decisions, approach
+### Markdown Body (Optional Sections)
 
-#### 12. Files to Modify
-- **Format:** Bulleted list with file paths and descriptions
-- **When to use:** When you know which files need changes
+#### Summary
+- **Required:** Yes
+- **Format:** `**Summary:** One-sentence description`
+- **Rules:** Keep concise, describe the goal/outcome
+
+#### Details
+- **Required:** No
+- **Format:** Markdown section with heading `## Details`
+- **Content:** Extended description, problem statement, background
+
+#### Implementation Notes
+- **Required:** No
+- **Format:** Markdown section with heading `## Implementation Notes`
+- **Content:** Technical approach, code examples, API references
+
+#### Files to Modify
+- **Required:** No
+- **Format:** Markdown section with bulleted list
 - **Example:**
   ```markdown
-  **Files to Modify:**
-  - `src/client/features/auth/store.ts` - Add new authentication state
-  - `src/apis/auth/handlers/login.ts` - Implement login validation
+  ## Files to Modify
+
+  - `src/auth/index.ts` - Add JWT middleware
+  - `src/routes/users.ts` - Add authentication check
   ```
 
-#### 13. Dependencies
-- **Format:** `**Dependencies:** [Bulleted list]`
-- **When to use:** When task depends on other tasks or external factors
+#### Dependencies
+- **Required:** No
+- **Format:** Markdown section with bulleted list
 - **Example:**
   ```markdown
-  **Dependencies:**
-  - Task #5 must be completed first
-  - Requires MongoDB migration to be deployed
+  ## Dependencies
+
+  - Task #3 must be completed first
+  - Requires MongoDB migration
   ```
 
-#### 14. Risks/Blockers
-- **Format:** `**Risks/Blockers:** [Bulleted list]`
-- **When to use:** When there are known challenges or potential issues
+#### Risks
+- **Required:** No
+- **Format:** Markdown section with bulleted list
 - **Example:**
   ```markdown
-  **Risks/Blockers:**
-  - API may have rate limits that affect implementation
-  - Unclear if this approach works on Safari iOS
+  ## Risks
+
+  - May require database schema change
+  - Performance impact on login endpoint
   ```
 
-#### 15. Notes
-- **Format:** `**Notes:** [Free-form text]`
-- **When to use:** For additional context that doesn't fit elsewhere
-- **Content:** Historical decisions, alternative approaches considered, links to discussions
+#### Notes
+- **Required:** No
+- **Format:** Markdown section with free-form text
+- **Content:** Additional context, historical decisions
 
-## Completed Tasks
+## Auto-Generated Summary Index
 
-When marking a task as done:
-
-1. **Update title:** Add strikethrough and done marker
-   ```markdown
-   ## 3. ~~Task Title~~ ✅ DONE
-   ```
-
-2. **Update status in table:** `✅ **DONE**`
-
-3. **Add completion info after table:**
-   ```markdown
-   > **Completed:** YYYY-MM-DD - Brief note about completion (commit hash, PR number, etc.)
-   ```
-
-4. **Optional: Add implementation notes if different from plan:**
-   ```markdown
-   > **Implementation Note:** Implemented differently than originally proposed - [explanation]
-   ```
-
-## Complete Example
+The `tasks.md` file is automatically generated by the library:
 
 ```markdown
-## 7. Add Dark Mode Support
+# Tasks
 
-| Priority | Complexity | Size | Status |
-|----------|------------|------|--------|
-| **High** | Medium | M | In Progress |
+> **Note:** This file is auto-generated. Edit individual files in tasks/
 
-**Date Added:** 2026-01-20
-**Date Updated:** 2026-01-24
+## Summary
+- **Total Tasks:** 20
+- **Open:** 10
+- **In Progress:** 2
+- **Done:** 8
 
-**Summary:** Add dark mode theme toggle with persistent user preference and semantic color tokens.
+## 📋 Open Tasks (10)
 
-**Details:**
-Users have requested dark mode support for better viewing in low-light environments. The implementation should use semantic color tokens defined in the theming system and persist the user's choice across sessions.
+### 🟠 High Priority
+| # | Title | Size | Complexity |
+|---|-------|------|------------|
+| 5 | Add User Authentication | M | Medium |
 
-**Implementation Notes:**
-- Use existing theming infrastructure with `next-themes`
-- All colors must use semantic tokens (no hardcoded colors)
-- Preference stored in localStorage via settings store
-- Should respect system preference on first visit
-
-**Files to Modify:**
-- `src/client/features/settings/store.ts` - Add theme preference
-- `src/client/components/layout/Header.tsx` - Add theme toggle button
-- `tailwind.config.ts` - Verify dark mode color definitions
-
-**Dependencies:**
-- Requires Task #6 (Settings UI) to be completed first
-
-**Risks/Blockers:**
-- Some third-party components may not support dark mode
-- Need to audit all custom colors to ensure they use semantic tokens
-
-**Notes:**
-Originally considered adding auto-schedule (dark at night, light during day) but decided to keep it simple with manual toggle for v1.
+## ✅ Completed Tasks (8)
+| # | Title | Completed | Commit |
+|---|-------|-----------|--------|
+| 1 | ~~Fix Login Bug~~ | 2026-01-24 | `abc1234` |
 ```
 
-## Task Ordering
+**Important:**
+- **DO NOT** manually edit `tasks.md`
+- It is rebuilt automatically by the library after any task modification
+- To modify tasks, edit individual files in `tasks/task-N.md`
+- Or use the CLI: `yarn task --help`
 
-Tasks in `tasks.md` should be ordered by:
-1. **Primary:** Priority (Critical → High → Medium → Low)
-2. **Secondary:** Date Added (oldest first within each priority)
-3. **Completed tasks:** Move to bottom of file, separated by `---`
+## Creating Tasks
 
-## Adding New Tasks
+### Using the Library
 
-When adding a new task:
+```typescript
+import { createTask } from './task-manager/lib';
 
-1. Assign the next sequential number
-2. Fill in all required fields
-3. Place it in the correct priority section
-4. Run `yarn task list` to verify formatting
+const task = createTask({
+    title: "Add User Authentication",
+    priority: "High",
+    complexity: "Medium",
+    size: "M",
+    summary: "Add JWT-based authentication",
+    details: "Users need secure login...",
+    filesToModify: ["src/auth/index.ts"]
+});
+// Creates: task-manager/tasks/task-{N}.md
+// Updates: task-manager/tasks.md (auto)
+```
 
-## Modifying Existing Tasks
+### Using the CLI
 
-When modifying a task:
+```bash
+# Use the interactive slash command
+/add-task
 
-1. Update relevant fields
-2. Add/update `**Date Updated:**` field
-3. If changing priority, move to correct section
-4. Add note in `**Notes:**` explaining major changes
+# Or manually create task-{N}.md in tasks/
+# Then rebuild index:
+yarn task rebuild-index
+```
 
-## Validation
+## Updating Tasks
 
-Use `/task-list` slash command or `yarn task list` to verify:
-- All required fields are present
-- Tasks are ordered correctly
-- Status values are valid
-- Dates are in correct format
+### Using the Library
+
+```typescript
+import { updateTask, markTaskInProgress, markTaskDone } from './task-manager/lib';
+
+// Update any fields
+updateTask(5, { title: "New Title", details: "Updated details" });
+
+// Mark as in progress
+markTaskInProgress(5);
+
+// Mark as done
+markTaskDone(5, "abc1234"); // optional commit hash
+```
+
+### Using the CLI
+
+```bash
+# Mark as in progress
+yarn task mark-in-progress --task 5
+
+# Mark as done
+yarn task mark-done --task 5 --commit abc1234
+
+# Or manually edit tasks/task-5.md
+# Then rebuild index:
+yarn task rebuild-index
+```
+
+## Migration from Legacy Format
+
+To migrate from the old monolithic `tasks.md` to individual files:
+
+```bash
+# Preview migration
+yarn task migrate --dry-run
+
+# Execute migration
+yarn task migrate
+
+# Verify
+yarn task list
+```
+
+The migration:
+1. Backs up `tasks.md` to `tasks.md.backup`
+2. Creates `tasks/` directory
+3. Writes individual `task-N.md` files with YAML frontmatter
+4. Regenerates `tasks.md` as auto-summary
+
+## Best Practices
+
+1. **Always use the library or CLI** - Don't manually manipulate files
+2. **Task numbers are sequential** - Never reuse numbers
+3. **Summary index is auto-generated** - Don't edit `tasks.md` directly
+4. **Use meaningful titles** - Start with action verbs
+5. **Include summaries** - One-sentence description required
+6. **Document dependencies** - Help planning and prioritization
+7. **Track completion** - Include commit hash when marking done
+
+## Tools & Commands
+
+```bash
+# View all tasks
+yarn task list
+
+# View specific task
+yarn task view --task 5
+
+# Work on task
+yarn task work --task 5
+
+# Create worktree
+yarn task worktree --task 5
+
+# Mark in progress
+yarn task mark-in-progress --task 5
+
+# Mark done
+yarn task mark-done --task 5 --commit abc1234
+
+# Rebuild index
+yarn task rebuild-index
+
+# Migrate from legacy
+yarn task migrate
+```
+
+## See Also
+
+- `task-manager/lib/README.md` - Library documentation
+- `task-manager/README.md` - Task management overview
+- `.claude/commands/add-task.md` - Interactive task creation

@@ -2,6 +2,7 @@
  * Prompt Templates for Agent Scripts
  *
  * Contains prompt templates for:
+ * - Product Development (optional phase for vague feature ideas)
  * - Product Design generation
  * - Technical Design generation
  * - Implementation
@@ -112,21 +113,22 @@ This applies to ALL markdown output: designs, technical documents, PR summaries.
 `;
 
 // ============================================================
-// PRODUCT DESIGN PROMPTS
+// PRODUCT DEVELOPMENT PROMPTS (OPTIONAL PHASE)
 // ============================================================
 
 /**
- * Build prompt for generating a new product design
+ * Build prompt for generating a new product development document
+ *
+ * Product Development is an OPTIONAL phase that transforms vague feature ideas
+ * into concrete product specifications. It focuses on WHAT to build and WHY,
+ * NOT how it looks (that's Product Design) or how to implement (that's Tech Design).
  */
-export function buildProductDesignPrompt(issue: ProjectItemContent, comments?: GitHubComment[]): string {
+export function buildProductDevelopmentPrompt(issue: ProjectItemContent, comments?: GitHubComment[]): string {
     const commentsSection = comments && comments.length > 0
         ? `\n## Comments on Issue\n\nThe following comments have been added to the issue. Consider them as additional context:\n\n${comments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
         : '';
 
-    return `You are creating a Product Design document for a GitHub issue. Your task is to:
-1. Understand the feature from the issue description
-2. Explore the codebase to understand existing patterns and architecture
-3. Create a Product Design document
+    return `You are creating a Product Development document for a GitHub issue. This is an OPTIONAL phase for vague feature ideas that need to be transformed into concrete product specifications.
 
 IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
 
@@ -141,7 +143,295 @@ ${issue.body || 'No description provided'}
 ${commentsSection}
 ## Your Task
 
-Create a Product Design document. The size of your output should match the complexity of the feature - simple features get simple designs, complex features get detailed designs.
+Create a Product Development document that transforms the vague feature idea into a concrete product specification. Your document should answer: **WHAT** are we building and **WHY**?
+
+**CRITICAL - PRODUCT DEVELOPMENT vs PRODUCT DESIGN:**
+
+This is a PRODUCT DEVELOPMENT document, NOT a product design document:
+- Product Development: WHAT to build & WHY (requirements, business value, acceptance criteria)
+- Product Design: HOW it looks & feels (UI/UX, user flows, interface elements)
+
+Do NOT include:
+- UI mockups or interface descriptions
+- Visual design decisions
+- Specific component layouts
+- Color schemes or styling
+
+Focus ONLY on:
+- Business requirements and objectives
+- User needs and target audience
+- Acceptance criteria (what "done" looks like)
+- Scope boundaries (what's in and what's out)
+- Success metrics
+
+**Required sections:**
+1. **Size Estimate** - S (small, few hours) / M (medium, 1-2 days) / L (large, multiple days) / XL (epic, weeks)
+2. **Problem Statement** - What problem does this solve? Why is it important?
+3. **Target Users** - Who will use this? What are their needs?
+4. **Requirements** - Clear, numbered list of what the feature must do
+   - Each requirement should have acceptance criteria (testable conditions)
+5. **Success Metrics** - How will we measure if this feature is successful?
+6. **Scope**
+   - **In scope**: What IS included in this feature
+   - **Out of scope**: What is explicitly NOT included (to prevent scope creep)
+
+**Optional sections (include only when relevant):**
+- **Dependencies** - Other features, APIs, or systems this depends on
+- **Risks & Mitigations** - Known risks and how to address them
+- **Open Questions** - Questions that still need answers from stakeholders
+
+## Research Strategy
+
+Before writing the document, explore the codebase:
+1. Understand existing similar features for context
+2. Check what data/APIs already exist that could support this feature
+3. Look for any existing partial implementations
+
+## Output Format
+
+Provide your response as structured JSON with these fields:
+- **document**: Complete Product Development document in markdown format
+- **comment**: High-level summary to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+
+Keep the document concise but complete. The goal is clarity, not length.
+
+Example structure:
+
+\`\`\`markdown
+# Product Development: [Feature Title]
+
+**Size: M**
+
+## Problem Statement
+[1-2 paragraphs explaining the problem and why it matters]
+
+## Target Users
+[Who are the users? What are their key needs?]
+
+## Requirements
+
+### R1: [First requirement]
+**Acceptance Criteria:**
+- [ ] [Testable condition 1]
+- [ ] [Testable condition 2]
+
+### R2: [Second requirement]
+**Acceptance Criteria:**
+- [ ] [Testable condition 1]
+
+[Continue for all requirements...]
+
+## Success Metrics
+- [Metric 1]: [How to measure]
+- [Metric 2]: [How to measure]
+
+## Scope
+
+### In Scope
+- [Feature/capability 1]
+- [Feature/capability 2]
+
+### Out of Scope
+- [Feature NOT included 1] - [Why/when it might be added]
+- [Feature NOT included 2]
+\`\`\`
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
+${AMBIGUITY_INSTRUCTIONS}
+
+Now explore the codebase and create the Product Development document.`;
+}
+
+/**
+ * Build prompt for revising product development document based on feedback
+ */
+export function buildProductDevelopmentRevisionPrompt(
+    issue: ProjectItemContent,
+    existingDocument: string,
+    feedbackComments: GitHubComment[]
+): string {
+    const feedbackSection = feedbackComments
+        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
+        .join('\n\n---\n\n');
+
+    return `You are revising a Product Development document based on admin feedback.
+
+IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
+
+## Issue Details
+
+**Title:** ${issue.title}
+**Number:** #${issue.number || 'Draft'}
+
+**Original Description:**
+${issue.body || 'No description provided'}
+
+## Existing Product Development Document
+
+${existingDocument}
+
+## Admin Feedback
+
+The admin has requested changes. Please address ALL of the following feedback:
+
+${feedbackSection}
+
+## Your Task
+
+1. Carefully read and understand all feedback comments
+2. Research any areas mentioned in the feedback
+3. Revise the Product Development document to address ALL feedback points
+4. Keep the document focused on WHAT and WHY (not UI/UX or implementation)
+
+**CRITICAL - PRODUCT DEVELOPMENT vs PRODUCT DESIGN:**
+
+This is a PRODUCT DEVELOPMENT document. Do NOT include:
+- UI mockups or interface descriptions
+- Visual design decisions
+- Technical implementation details
+
+Focus ONLY on:
+- Business requirements and objectives
+- User needs and target audience
+- Acceptance criteria
+- Scope boundaries
+- Success metrics
+
+## Output Format
+
+Provide your response as structured JSON with these fields:
+- **document**: COMPLETE revised Product Development document in markdown format (entire document, not just changes)
+- **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+
+Do NOT output just the changes - output the entire revised document. Keep it concise.
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
+${AMBIGUITY_INSTRUCTIONS}
+
+Now revise the Product Development document based on the feedback.`;
+}
+
+/**
+ * Build prompt for continuing product development after clarification
+ */
+export function buildProductDevelopmentClarificationPrompt(
+    content: { title: string; number: number; body: string; labels?: string[] },
+    issueComments: Array<{ body: string; author: string; createdAt: string }>,
+    clarification: { body: string; author: string; createdAt: string }
+): string {
+    const commentsSection = issueComments.length > 0
+        ? `\n## All Issue Comments\n\n${issueComments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
+        : '';
+
+    return `You previously asked for clarification while working on the product development document for this feature.
+
+## Issue
+**Title:** ${content.title}
+**Number:** ${content.number}
+**Labels:** ${content.labels?.join(', ') || 'None'}
+
+**Description:**
+${content.body}
+${commentsSection}
+## Your Question
+You asked for clarification because you encountered ambiguity. Review the GitHub issue comments above to see your question.
+
+## Admin's Clarification
+**From:** ${clarification.author}
+**Date:** ${clarification.createdAt}
+
+${clarification.body}
+
+## Task
+Continue your product development work using the admin's clarification as guidance. Complete the product development document.
+
+If the admin's response is still unclear or raises new ambiguities, you may ask another clarification question using the same format.
+
+**CRITICAL - PRODUCT DEVELOPMENT Focus:**
+
+This is a PRODUCT DEVELOPMENT document. Focus ONLY on:
+- Business requirements and objectives
+- User needs and target audience
+- Acceptance criteria (testable conditions)
+- Scope boundaries
+- Success metrics
+
+Do NOT include UI/UX design or technical implementation details.
+
+**Required sections:**
+1. **Size Estimate** - S/M/L/XL
+2. **Problem Statement** - What problem does this solve?
+3. **Target Users** - Who will use this?
+4. **Requirements** - Clear, numbered list with acceptance criteria
+5. **Success Metrics** - How will we measure success?
+6. **Scope** - What's in scope and out of scope
+
+## Output Format
+
+Provide your response as structured JSON with these fields:
+- **document**: Complete Product Development document in markdown format
+- **comment**: High-level summary to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
+${AMBIGUITY_INSTRUCTIONS}
+
+Now complete the Product Development document using the clarification provided.`;
+}
+
+// ============================================================
+// PRODUCT DESIGN PROMPTS
+// ============================================================
+
+/**
+ * Build prompt for generating a new product design
+ *
+ * @param issue - The GitHub issue content
+ * @param productDevelopmentDoc - Optional Product Development Document (if this feature went through that phase)
+ * @param comments - Optional issue comments for additional context
+ */
+export function buildProductDesignPrompt(
+    issue: ProjectItemContent,
+    productDevelopmentDoc?: string | null,
+    comments?: GitHubComment[]
+): string {
+    const commentsSection = comments && comments.length > 0
+        ? `\n## Comments on Issue\n\nThe following comments have been added to the issue. Consider them as additional context:\n\n${comments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
+        : '';
+
+    const pddSection = productDevelopmentDoc
+        ? `\n## Approved Product Development Document
+
+This feature went through the Product Development phase. The following document defines WHAT to build and WHY.
+Your Product Design should address the UI/UX aspects of the requirements defined here.
+
+${productDevelopmentDoc}
+
+---
+`
+        : '';
+
+    return `You are creating a Product Design document for a GitHub issue.${productDevelopmentDoc ? ' The Product Development document has been approved, defining WHAT to build. Now you need to design HOW it will look and feel.' : ''} Your task is to:
+1. Understand the feature from the issue description
+2. Explore the codebase to understand existing patterns and architecture
+3. Create a Product Design document
+
+IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
+
+## Issue Details
+
+**Title:** ${issue.title}
+**Number:** #${issue.number || 'Draft'}
+**Labels:** ${issue.labels?.join(', ') || 'None'}
+
+**Description:**
+${issue.body || 'No description provided'}
+${commentsSection}${pddSection}
+## Your Task
+
+Create a Product Design document. The size of your output should match the complexity of the feature - simple features get simple designs, complex features get detailed designs.${productDevelopmentDoc ? '\n\n**Important:** The Product Development Document above defines the requirements and acceptance criteria. Your design should address those requirements from a UI/UX perspective.' : ''}
 
 **CRITICAL - PRODUCT DESIGN ONLY:**
 This is a PRODUCT design, NOT a technical design. Do NOT include:
@@ -474,7 +764,7 @@ Provide your response as structured JSON with these fields:
   "order": 1,                    // Phase number (1, 2, 3, etc.)
   "name": "Database Schema",     // Short phase name
   "description": "...",          // What this phase implements
-  "files": ["src/...", "docs/...", ".cursor/rules/..."],  // Source files to modify + relevant docs
+  "files": ["src/...", "docs/...", ".ai/skills/..."],  // Source files to modify + relevant docs
   "estimatedSize": "S"           // S or M (never L/XL for a single phase)
 }
 \`\`\`
@@ -484,17 +774,71 @@ The \`files\` array should include BOTH:
 1. **Source files to create/modify** - The actual implementation files (e.g., \`src/apis/...\`, \`src/client/...\`)
 2. **Relevant documentation** - Docs the implementor should read before implementing this phase:
    - \`docs/\` files for detailed patterns (e.g., \`docs/mongodb-usage.md\`, \`docs/theming.md\`)
-   - \`.cursor/rules/\` files for coding guidelines (e.g., \`.cursor/rules/state-management-guidelines.mdc\`)
+   - \`.ai/skills/\` files for coding guidelines (e.g., \`.ai/skills/state-management-guidelines/SKILL.md\`)
 
 Select docs based on what the phase touches:
-- Database work → \`docs/mongodb-usage.md\`, \`.cursor/rules/mongodb-usage.mdc\`
-- API endpoints → \`docs/api-endpoint-format.md\`, \`.cursor/rules/client-server-communications.mdc\`
-- UI components → \`docs/theming.md\`, \`.cursor/rules/react-component-organization.mdc\`, \`.cursor/rules/shadcn-usage.mdc\`
-- State management → \`docs/state-management.md\`, \`.cursor/rules/state-management-guidelines.mdc\`
-- Authentication → \`docs/authentication.md\`, \`.cursor/rules/user-access.mdc\`
+- Database work → \`docs/mongodb-usage.md\`, \`.ai/skills/mongodb-usage/SKILL.md\`
+- API endpoints → \`docs/api-endpoint-format.md\`, \`.ai/skills/client-server-communications/SKILL.md\`
+- UI components → \`docs/theming.md\`, \`.ai/skills/react-component-organization/SKILL.md\`, \`.ai/skills/shadcn-usage/SKILL.md\`
+- State management → \`docs/state-management.md\`, \`.ai/skills/state-management-guidelines/SKILL.md\`
+- Authentication → \`docs/authentication.md\`, \`.ai/skills/user-access/SKILL.md\`
 - Offline/PWA → \`docs/offline-pwa-support.md\`, \`docs/react-query-mutations.md\`
 
 Keep the design concise. A small feature might only need a short list of files. A large feature needs more detail.
+
+## Implementation Plan Section (REQUIRED)
+
+Your technical design MUST include a "## Implementation Plan" section with high-level, actionable steps.
+
+**For S/M features (single-phase):**
+- Provide a single numbered list of implementation steps
+- Each step should be a clear, actionable task
+- Include file paths and what to do with them
+- Order steps so each builds on the previous
+
+**For L/XL features (multi-phase):**
+- Organize steps by phase
+- Each phase should have its own numbered list
+- Steps within a phase should be self-contained
+
+**Step guidelines:**
+- Keep steps high-level (not line-by-line detailed)
+- Each step should be actionable: "Create X", "Add Y to Z", "Update W"
+- Include relevant file paths
+- Order steps logically (dependencies first)
+
+Example Implementation Plan for S/M feature:
+\`\`\`markdown
+## Implementation Plan
+
+1. Create auth types file at \`src/apis/auth/types.ts\`
+2. Create login handler at \`src/apis/auth/handlers/login.ts\`
+3. Add API route at \`src/pages/api/process/auth_login.ts\`
+4. Create useLogin hook in \`src/client/features/auth/hooks.ts\`
+5. Update auth feature exports in \`src/client/features/auth/index.ts\`
+6. Run yarn checks to verify
+\`\`\`
+
+Example Implementation Plan for L/XL feature:
+\`\`\`markdown
+## Implementation Plan
+
+### Phase 1: Database Schema
+1. Create users collection at \`src/server/database/collections/users.ts\`
+2. Add indexes for email field
+3. Export types from collection file
+
+### Phase 2: API Endpoints
+1. Create auth types at \`src/apis/auth/types.ts\`
+2. Create login handler at \`src/apis/auth/handlers/login.ts\`
+3. Create register handler at \`src/apis/auth/handlers/register.ts\`
+4. Add API routes in \`src/pages/api/process/\`
+
+### Phase 3: UI Components
+1. Create LoginForm component at \`src/client/features/auth/LoginForm.tsx\`
+2. Create auth store at \`src/client/features/auth/store.ts\`
+3. Add route in \`src/client/routes/index.ts\`
+\`\`\`
 
 Example for a SMALL feature (S):
 
@@ -511,6 +855,13 @@ Add logout menu item that calls existing auth API and redirects.
 |------|---------|
 | \`src/client/components/UserMenu.tsx\` | Add logout menu item with onClick handler |
 | \`src/client/features/auth/hooks.ts\` | Add useLogout hook (calls auth/logout API) |
+
+## Implementation Plan
+
+1. Create useLogout hook in \`src/client/features/auth/hooks.ts\`
+2. Export hook from \`src/client/features/auth/index.ts\`
+3. Add logout menu item to UserMenu.tsx with onClick calling useLogout
+4. Run yarn checks to verify
 \`\`\`
 
 Example for a MEDIUM/LARGE feature:
@@ -549,6 +900,15 @@ interface FeatureDocument {
 
 ## Implementation Notes (if needed)
 [Only for complex logic]
+
+## Implementation Plan
+
+1. Create types file at \`src/apis/feature-name/types.ts\`
+2. Create handler at \`src/apis/feature-name/handlers/create.ts\`
+3. Add API route at \`src/pages/api/process/feature-name_create.ts\`
+4. Create main component at \`src/client/routes/FeatureName/index.tsx\`
+5. Add route in \`src/client/routes/index.ts\`
+6. Run yarn checks to verify
 \`\`\`
 
 Example for a LARGE feature (L/XL) with phases:
@@ -585,6 +945,31 @@ This feature will be split into 3 PRs:
 
 ## Files to Modify
 [List all modifications across all phases]
+
+## Implementation Plan
+
+### Phase 1: Database & Models
+1. Create users collection at \`src/server/database/collections/users.ts\`
+2. Add User interface with email, passwordHash, createdAt fields
+3. Create sessions collection at \`src/server/database/collections/sessions.ts\`
+4. Add indexes for email and session token
+5. Export types from collection files
+
+### Phase 2: API Endpoints
+1. Create auth types at \`src/apis/auth/types.ts\`
+2. Create login handler at \`src/apis/auth/handlers/login.ts\`
+3. Create register handler at \`src/apis/auth/handlers/register.ts\`
+4. Create logout handler at \`src/apis/auth/handlers/logout.ts\`
+5. Add API routes in \`src/pages/api/process/\`
+6. Test endpoints with curl or API client
+
+### Phase 3: UI Components
+1. Create auth store at \`src/client/features/auth/store.ts\`
+2. Create LoginForm component at \`src/client/features/auth/LoginForm.tsx\`
+3. Create RegisterForm component at \`src/client/features/auth/RegisterForm.tsx\`
+4. Create ProtectedRoute wrapper at \`src/client/features/auth/ProtectedRoute.tsx\`
+5. Add routes in \`src/client/routes/index.ts\`
+6. Wire up forms to auth APIs
 \`\`\`
 
 **phases JSON output for L/XL example:**
@@ -598,7 +983,7 @@ This feature will be split into 3 PRs:
       "src/server/database/collections/users.ts",
       "src/server/database/collections/sessions.ts",
       "docs/mongodb-usage.md",
-      ".cursor/rules/mongodb-usage.mdc"
+      ".ai/skills/mongodb-usage/SKILL.md"
     ],
     "estimatedSize": "S"
   },
@@ -610,7 +995,7 @@ This feature will be split into 3 PRs:
       "src/apis/auth/types.ts",
       "src/apis/auth/handlers/login.ts",
       "docs/api-endpoint-format.md",
-      ".cursor/rules/client-server-communications.mdc"
+      ".ai/skills/client-server-communications/SKILL.md"
     ],
     "estimatedSize": "M"
   },
@@ -621,8 +1006,8 @@ This feature will be split into 3 PRs:
     "files": [
       "src/client/features/auth/components/LoginForm.tsx",
       "docs/theming.md",
-      ".cursor/rules/react-component-organization.mdc",
-      ".cursor/rules/shadcn-usage.mdc"
+      ".ai/skills/react-component-organization/SKILL.md",
+      ".ai/skills/shadcn-usage/SKILL.md"
     ],
     "estimatedSize": "M"
   }
@@ -838,26 +1223,26 @@ Implement the feature as specified in ${implementationSource}:
 
 If this is a multi-phase feature, the phase's \`files\` list contains TWO types of files:
 1. **Source files to create/modify** - Files in \`src/\` that you will implement
-2. **Relevant documentation** - Files in \`docs/\` and \`.cursor/rules/\` that you should READ FIRST
+2. **Relevant documentation** - Files in \`docs/\` and \`.ai/skills/\` that you should READ FIRST
 
 **CRITICAL**: Before implementing, identify and READ all documentation files from the phase's file list. These were specifically selected by the tech design as relevant to this phase's implementation.
 
 ## Implementation Guidelines
 
-**CRITICAL**: Before implementing, read the project guidelines in \`.cursor/rules/\`:
-- \`.cursor/rules/typescript-guidelines.mdc\` - TypeScript coding standards
-- \`.cursor/rules/react-component-organization.mdc\` - Component structure and patterns
-- \`.cursor/rules/react-hook-organization.mdc\` - Custom hook patterns
-- \`.cursor/rules/state-management-guidelines.mdc\` - Zustand and React Query usage
-- \`.cursor/rules/feature-based-structure.mdc\` - File organization by feature
-- \`.cursor/rules/ui-design-guidelines.mdc\` - UI/UX patterns
-- \`.cursor/rules/shadcn-usage.mdc\` - shadcn/ui component usage
-- \`.cursor/rules/theming-guidelines.mdc\` - **CRITICAL** Theming and color usage
-- \`.cursor/rules/client-server-communications.mdc\` - API patterns
-- \`.cursor/rules/mongodb-usage.mdc\` - Database operations (if applicable)
-- \`.cursor/rules/app-guidelines-checklist.mdc\` - Comprehensive checklist
+**CRITICAL**: Before implementing, read the project guidelines in \`.ai/skills/\`:
+- \`.ai/skills/typescript-guidelines/SKILL.md\` - TypeScript coding standards
+- \`.ai/skills/react-component-organization/SKILL.md\` - Component structure and patterns
+- \`.ai/skills/react-hook-organization/SKILL.md\` - Custom hook patterns
+- \`.ai/skills/state-management-guidelines/SKILL.md\` - Zustand and React Query usage
+- \`.ai/skills/feature-based-structure/SKILL.md\` - File organization by feature
+- \`.ai/skills/ui-design-guidelines/SKILL.md\` - UI/UX patterns
+- \`.ai/skills/shadcn-usage/SKILL.md\` - shadcn/ui component usage
+- \`.ai/skills/theming-guidelines/SKILL.md\` - **CRITICAL** Theming and color usage
+- \`.ai/skills/client-server-communications/SKILL.md\` - API patterns
+- \`.ai/skills/mongodb-usage/SKILL.md\` - Database operations (if applicable)
+- \`.ai/skills/app-guidelines-checklist/SKILL.md\` - Comprehensive checklist
 
-**THEMING (Read \`docs/theming.md\` and \`.cursor/rules/theming-guidelines.mdc\` before styling)**:
+**THEMING (Read \`docs/theming.md\` and \`.ai/skills/theming-guidelines/SKILL.md\` before styling)**:
 - **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
 - **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
 - For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`
@@ -960,7 +1345,7 @@ ${reviewComments || 'No PR review comments'}
 You have received feedback from two different reviewers with distinct roles:
 
 **1. PR Review Agent** (author: "Agent (PR Review)")
-- **Focus**: Project-specific guidelines compliance from \`.cursor/rules/\`
+- **Focus**: Project-specific guidelines compliance from \`.ai/skills/\`
 - **Checks**: TypeScript patterns, React patterns, state management, file organization, API structure
 - **Priority**: HIGH - These are project standards that MUST be followed
 - **Expertise**: This project's architecture and coding conventions
@@ -985,7 +1370,7 @@ You have received feedback from two different reviewers with distinct roles:
 
 ### When Reviewer Feedback Conflicts with Project Rules
 
-**Project docs and rules are the source of truth.** Claude reviewers may not be fully aware of all project-specific patterns documented in \`docs/\` and \`.cursor/rules/\`.
+**Project docs and rules are the source of truth.** Claude reviewers may not be fully aware of all project-specific patterns documented in \`docs/\` and \`.ai/skills/\`.
 
 If a reviewer suggests a change that **contradicts** project documentation:
 1. **Follow the project docs/rules** - they take precedence
@@ -1008,9 +1393,9 @@ The reviewer will see your explanation and understand the project convention in 
 
 ## Guidelines
 
-**Follow project guidelines in \`.cursor/rules/\`** (same as initial implementation)
+**Follow project guidelines in \`.ai/skills/\`** (same as initial implementation)
 
-**THEMING (Read \`docs/theming.md\` and \`.cursor/rules/theming-guidelines.mdc\` if fixing styling issues)**:
+**THEMING (Read \`docs/theming.md\` and \`.ai/skills/theming-guidelines/SKILL.md\` if fixing styling issues)**:
 - **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
 - **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
 - For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`
@@ -1023,7 +1408,7 @@ Key principles:
 - Keep changes focused on the feedback
 - Don't add extra features or refactoring
 - Test your changes make sense in context
-- Follow TypeScript, React, and state management patterns from \`.cursor/rules/\`
+- Follow TypeScript, React, and state management patterns from \`.ai/skills/\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
@@ -1159,7 +1544,7 @@ ${productDesign}
         ? `\n**Stack Trace:**\n\`\`\`\n${diagnostics.stackTrace}\n\`\`\``
         : '';
 
-    return `You are analyzing a BUG REPORT and creating a Technical Design for the fix.${productDesign ? ' A Product Design has been approved that addresses the UX/UI aspects of this bug.' : ''}
+    return `You are analyzing a BUG REPORT and creating a Technical Design document that will guide the implementation agent to fix this bug.${productDesign ? ' A Product Design has been approved that addresses the UX/UI aspects of this bug.' : ''}
 
 IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
 
@@ -1177,73 +1562,152 @@ ${productDesignSection}## Bug Diagnostics
 ${diagnostics.errorMessage ? `**Error Message:** ${diagnostics.errorMessage}\n` : ''}${diagnostics.route ? `**Route:** ${diagnostics.route}\n` : ''}${diagnostics.networkStatus ? `**Network Status:** ${diagnostics.networkStatus}\n` : ''}${diagnostics.browserInfo ? `**Browser:** ${diagnostics.browserInfo.userAgent}
 **Viewport:** ${diagnostics.browserInfo.viewport.width}x${diagnostics.browserInfo.viewport.height}\n` : ''}${stackTraceSection}${sessionLogsSection}
 
-## Your Task
+---
 
-Analyze this bug and create a Technical Design for the fix:
+## CRITICAL: Bug Fix Design Process
 
-**Required sections:**
-1. **Root Cause Analysis** - What's causing this bug? Be specific.
-2. **Affected Components** - Which files/modules are involved?
-3. **Fix Approach** - How should this be fixed? Provide clear steps.
-4. **Files to Create/Modify** - List files with specific changes needed
+For bug fixes, you MUST follow these steps IN ORDER. Do not skip steps.
+
+### Step 1: INVESTIGATE - Find the Root Cause (Required - Cannot Skip)
+
+Before designing ANY fix, you MUST:
+1. **Trace the exact failure path** - Use stack trace, logs, and code inspection
+2. **Identify what input/state triggers the bug** - What condition causes the failure?
+3. **Find the actual root cause** - The specific code that behaves incorrectly
+
+**What counts as "root cause" (be this specific):**
+- "The handler expects \`parts[1]\` to be a valid integer, but whitespace in the callback data causes \`parseInt\` to return \`NaN\`"
+- "The validation \`!val\` incorrectly rejects \`0\` as invalid when \`0\` is a legitimate value"
+- "The comparison uses \`message.text\` (plain text) against an HTML-formatted string, so it never matches"
+
+**What is NOT root cause (these are symptoms or secondary concerns):**
+- "Unknown action error appears" ← This is the SYMPTOM, not the cause
+- "Error handling is missing" ← This is observability improvement, not root cause
+- "Logging should be added" ← This helps debugging but doesn't explain WHY the bug occurs
+
+### Step 2: SCOPE - Check for Similar Patterns (Required)
+
+After identifying the root cause, you MUST check if the same pattern exists elsewhere:
+1. **Search for similar code** - Use Grep to find similar patterns in the codebase
+2. **List ALL affected locations** - A partial fix that only fixes 2 of 13 similar handlers is incomplete
+3. **Note the scope** - "This bug affects N locations that all need the same fix"
+
+**Example**: If a bug is in the \`design_approve\` handler's parsing logic, check ALL handlers in that file for the same parsing pattern. If 13 handlers have the same vulnerable code, ALL 13 must be fixed.
+
+### Step 3: DESIGN - Plan the Fix (Only after Steps 1-2)
+
+Now design the fix:
+1. **Primary: Fix the root cause** - The main goal
+2. **Primary: Fix ALL similar patterns** - If found in Step 2
+3. **Secondary: Improve error handling** - Helps future debugging, but is NOT the primary fix
+
+**Important distinction:**
+- Adding logging/error messages is valuable for OBSERVABILITY but does not FIX the bug
+- The implementation agent needs to know WHAT CODE TO CHANGE to make the bug stop happening
+- "Add better error logging" is a secondary improvement, not the fix
+
+---
+
+## Required Output Sections
+
+Your Technical Design document MUST include:
+
+1. **Root Cause Analysis** (from Step 1)
+   - What exact code path fails?
+   - What input/condition triggers it?
+   - Why does the current code not handle it correctly?
+
+2. **Scope Assessment** (from Step 2)
+   - How many similar patterns exist? List them.
+   - Which files/locations need the same fix?
+
+3. **Fix Approach** (from Step 3)
+   - Specific code changes to fix the root cause
+   - Changes to ALL affected locations (not just the one mentioned in the bug report)
+
+4. **Files to Modify**
+   - Complete list with specific changes for each file
 
 **Optional sections (include when relevant):**
-- **Testing Strategy** - How to verify the fix and prevent regression
-- **Risk Assessment** - Any side effects or edge cases to consider
-- **Implementation Notes** - Complex logic that needs explanation
+- **Testing Strategy** - How to verify the fix
+- **Risk Assessment** - Side effects or edge cases
+- **Secondary Improvements** - Error handling/logging improvements (clearly marked as secondary)
 
-## Research Strategy
-
-1. Use the stack trace and session logs to identify where the error occurs
-2. Read the affected files to understand the current implementation
-3. Look for similar patterns in the codebase
-4. Consider edge cases that might trigger this bug
+---
 
 ## Output Format
 
 Provide your response as structured JSON with these fields:
-- **design**: Complete Technical Design document in markdown format (same structure as shown in example below)
-- **comment**: High-level implementation plan for the fix to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+- **design**: Complete Technical Design document in markdown format (structure shown below)
+- **comment**: High-level summary for GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
-Example design structure:
+**Example design structure:**
 
 \`\`\`markdown
 # Bug Fix: [Issue Title]
 
 ## Root Cause Analysis
 
-The error occurs in \`ComponentName.tsx\` when [specific condition]. The code assumes [incorrect assumption], but [actual situation].
+**The Bug:** [One sentence describing what goes wrong]
 
-## Affected Components
+**Root Cause:** The error occurs in \`telegram-webhook.ts\` at line 1650 when parsing callback data. The code uses:
+\`\`\`typescript
+const issueNumber = parseInt(parts[1], 10);
+\`\`\`
+This fails when \`parts[1]\` contains whitespace (e.g., " 123") because \`parseInt\` returns \`NaN\`, causing the validation \`!issueNumber\` to incorrectly reject valid data.
 
-- \`src/client/routes/RouteName/ComponentName.tsx\` - Contains the buggy logic
-- \`src/client/hooks/useHook.ts\` - Needs null check added
+**Trigger Condition:** Callback data with leading/trailing whitespace in numeric fields.
+
+## Scope Assessment
+
+**Similar patterns found:** 13 handlers in \`telegram-webhook.ts\` use the same parsing pattern:
+- \`design_approve\` (line 1650)
+- \`design_changes\` (line 1680)
+- \`merge\` (line 1594) ← Mentioned in bug report
+- \`approve_request\` (line 1432)
+- ... [list all 13]
+
+**All 13 handlers need the same fix applied.**
 
 ## Fix Approach
 
-1. Add null/undefined check in ComponentName before accessing property
-2. Add loading state handling in useHook
-3. Update error boundary to catch this specific error
+### Primary Fix (Root Cause)
+1. Add \`.trim()\` to all parsed values: \`parseInt(parts[1]?.trim() || '', 10)\`
+2. Add explicit \`isNaN()\` check: \`if (isNaN(issueNumber) || isNaN(prNumber))\`
+3. Apply to ALL 13 handlers, not just the one mentioned
+
+### Secondary Improvements (Observability)
+4. Add error logging when validation fails (helps future debugging)
+5. Improve error message shown to user
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| \`src/client/routes/RouteName/ComponentName.tsx\` | Add null check: \`if (!data?.property) return <LoadingState />\` |
-| \`src/client/hooks/useHook.ts\` | Add early return if data is null |
+| \`src/pages/api/telegram-webhook.ts\` | Update ALL 13 handlers with defensive parsing (.trim(), isNaN check) |
 
 ## Testing Strategy
 
-1. Reproduce the bug by [specific steps]
-2. Verify fix by [verification steps]
-3. Test edge case: [edge case description]
+1. Test with callback data containing whitespace
+2. Test with callback data containing invalid numbers
+3. Verify all 13 handlers reject malformed data gracefully
+
+## Implementation Plan
+
+1. Open \`src/pages/api/telegram-webhook.ts\`
+2. Find all 13 handlers that use parseInt for callback parsing
+3. Update each handler to use \`.trim()\` on parsed values
+4. Add \`isNaN()\` check after parseInt in each handler
+5. Add error logging for debugging when validation fails
+6. Run yarn checks to verify no type errors
+7. Test the affected handlers manually
 \`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
-Now explore the codebase and create the Technical Design for this bug fix.`;
+Now explore the codebase, find the root cause, check for similar patterns, and create the Technical Design for this bug fix.`;
 }
 
 /**
@@ -1328,7 +1792,7 @@ Implement the bug fix as specified in ${implementationSource}:
 
 ## Implementation Guidelines
 
-**Follow project guidelines in \`.cursor/rules/\`** (TypeScript, React, state management patterns)
+**Follow project guidelines in \`.ai/skills/\`** (TypeScript, React, state management patterns)
 
 Key principles for bug fixes:
 - **Be minimal**: Bug fixes should change as little code as possible
@@ -1402,12 +1866,31 @@ The admin has requested changes. Please address ALL of the following feedback:
 
 ${feedbackSection}
 
+---
+
+## REMINDER: Bug Fix Design Principles
+
+When revising, ensure your design still follows these principles:
+
+1. **Root Cause is Identified** - The design must explain WHAT specific code causes the bug and WHY
+   - "The bug occurs because X" not just "add error handling"
+
+2. **Scope is Complete** - If similar patterns exist, ALL must be listed for fixing
+   - If feedback says "you only fixed 2 of 13 handlers", find and list ALL 13
+
+3. **Fix vs Observability** - The primary fix addresses the root cause; logging/error handling is secondary
+   - Primary: "Add .trim() to prevent whitespace parsing issues"
+   - Secondary: "Add error logging for debugging"
+
+---
+
 ## Your Task
 
 1. Carefully read and understand all feedback comments
-2. Re-analyze the bug if needed (diagnostics are still available)
-3. Research any areas mentioned in the feedback
+2. If feedback indicates incomplete root cause analysis → Re-investigate the code
+3. If feedback indicates incomplete scope → Use Grep to find ALL similar patterns
 4. Revise the Technical Design to address ALL feedback points
+5. Ensure the revised design follows the bug fix principles above
 
 ## Output Format
 

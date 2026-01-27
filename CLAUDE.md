@@ -61,7 +61,7 @@ const useMyStore = createStore<MyState>({
 
 **Docs:** [docs/state-management.md](docs/state-management.md), [docs/react-query-mutations.md](docs/react-query-mutations.md), [docs/zustand-stores.md](docs/zustand-stores.md)
 
-**Rules:** [.cursor/rules/state-management-guidelines.mdc](.cursor/rules/state-management-guidelines.mdc)
+**Rules:** [.ai/skills/state-management-guidelines/SKILL.md](.ai/skills/state-management-guidelines/SKILL.md)
 
 ---
 
@@ -223,7 +223,7 @@ export function useTodos() {
 ```
 
 **Docs:** [docs/api-endpoint-format.md](docs/api-endpoint-format.md)
-**Rules:** [.cursor/rules/client-server-communications.mdc](.cursor/rules/client-server-communications.mdc)
+**Rules:** [.ai/skills/client-server-communications/SKILL.md](.ai/skills/client-server-communications/SKILL.md)
 
 ---
 
@@ -248,7 +248,7 @@ if (items.length === 0) return <EmptyState />;
 return <ItemList items={items} />;
 ```
 
-**Rules:** [.cursor/rules/react-component-organization.mdc](.cursor/rules/react-component-organization.mdc), [.cursor/rules/react-hook-organization.mdc](.cursor/rules/react-hook-organization.mdc), [.cursor/rules/feature-based-structure.mdc](.cursor/rules/feature-based-structure.mdc)
+**Rules:** [.ai/skills/react-component-organization/SKILL.md](.ai/skills/react-component-organization/SKILL.md), [.ai/skills/react-hook-organization/SKILL.md](.ai/skills/react-hook-organization/SKILL.md), [.ai/skills/feature-based-structure/SKILL.md](.ai/skills/feature-based-structure/SKILL.md)
 
 ---
 
@@ -303,7 +303,7 @@ Adding routes and keeping navigation menus in sync.
 - Public share pages - accessed via direct links
 - Auth callback routes - redirect-only
 
-**Rules:** [.cursor/rules/pages-and-routing-guidelines.mdc](.cursor/rules/pages-and-routing-guidelines.mdc)
+**Rules:** [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md)
 
 ---
 
@@ -329,7 +329,7 @@ shadcn/ui components with semantic theming.
 | `border-border` | `border-gray-200` |
 
 **Docs:** [docs/shadcn-component-library.md](docs/shadcn-component-library.md), [docs/theming.md](docs/theming.md)
-**Rules:** [.cursor/rules/shadcn-usage.mdc](.cursor/rules/shadcn-usage.mdc), [.cursor/rules/theming-guidelines.mdc](.cursor/rules/theming-guidelines.mdc), [.cursor/rules/ui-design-guidelines.mdc](.cursor/rules/ui-design-guidelines.mdc)
+**Rules:** [.ai/skills/shadcn-usage/SKILL.md](.ai/skills/shadcn-usage/SKILL.md), [.ai/skills/theming-guidelines/SKILL.md](.ai/skills/theming-guidelines/SKILL.md), [.ai/skills/ui-design-guidelines/SKILL.md](.ai/skills/ui-design-guidelines/SKILL.md)
 
 ---
 
@@ -453,7 +453,7 @@ Strict TypeScript guidelines.
 - Keep types simple - avoid complex type structures
 - Always type function parameters and return values
 
-**Rules:** [.cursor/rules/typescript-guidelines.mdc](.cursor/rules/typescript-guidelines.mdc)
+**Rules:** [.ai/skills/typescript-guidelines/SKILL.md](.ai/skills/typescript-guidelines/SKILL.md)
 
 ---
 
@@ -546,7 +546,7 @@ Systematic verification of codebase compliance.
 
 **Docs:** [app-guildelines/app-guidelines-checklist.md](app-guildelines/app-guidelines-checklist.md)
 
-**Rules:** [.cursor/rules/app-guidelines-checklist.mdc](.cursor/rules/app-guidelines-checklist.mdc)
+**Rules:** [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md)
 
 ---
 
@@ -591,7 +591,7 @@ const createdAt = doc.createdAt.toISOString();  // Crashes on legacy docs
 4. Consider writing a migration script for critical fields
 
 **Docs:** [docs/mongodb-usage.md](docs/mongodb-usage.md)
-**Rules:** [.cursor/rules/mongodb-usage.mdc](.cursor/rules/mongodb-usage.mdc)
+**Rules:** [.ai/skills/mongodb-usage/SKILL.md](.ai/skills/mongodb-usage/SKILL.md)
 
 ---
 
@@ -850,7 +850,7 @@ yarn vercel-cli env:push --overwrite
 - Use `--cloud-proxy` flag in Claude Code cloud environment
 
 **Docs:** [docs/vercel-cli-guide.md](docs/vercel-cli-guide.md)
-**Rules:** [.cursor/rules/vercel-cli-usage.mdc](.cursor/rules/vercel-cli-usage.mdc)
+**Rules:** [.ai/skills/vercel-cli-usage/SKILL.md](.ai/skills/vercel-cli-usage/SKILL.md)
 
 ---
 
@@ -892,12 +892,12 @@ Common pitfalls when deploying to production.
 
 | Topic | Rule File |
 |-------|-----------|
-| AI Model API Usage | [.cursor/rules/ai-models-api-usage.mdc](.cursor/rules/ai-models-api-usage.mdc) |
-| ESLint Custom Rules | [.cursor/rules/eslint-custom-guidelines.mdc](.cursor/rules/eslint-custom-guidelines.mdc) |
-| Feature Planning | [.cursor/rules/feature-planning.mdc](.cursor/rules/feature-planning.mdc) |
-| MongoDB Usage | [.cursor/rules/mongodb-usage.mdc](.cursor/rules/mongodb-usage.mdc) |
-| Pages & Routing | [.cursor/rules/pages-and-routing-guidelines.mdc](.cursor/rules/pages-and-routing-guidelines.mdc) |
-| Settings Usage | [.cursor/rules/settings-usage-guidelines.mdc](.cursor/rules/settings-usage-guidelines.mdc) |
-| User Access | [.cursor/rules/user-access.mdc](.cursor/rules/user-access.mdc) |
-| Mobile-First UI | [.cursor/rules/ui-mobile-first-shadcn.mdc](.cursor/rules/ui-mobile-first-shadcn.mdc) |
-| App Guidelines Checklist | [.cursor/rules/app-guidelines-checklist.mdc](.cursor/rules/app-guidelines-checklist.mdc) |
+| AI Model API Usage | [.ai/skills/ai-models-api-usage/SKILL.md](.ai/skills/ai-models-api-usage/SKILL.md) |
+| ESLint Custom Rules | [.ai/skills/eslint-custom-guidelines/SKILL.md](.ai/skills/eslint-custom-guidelines/SKILL.md) |
+| Feature Planning | [.ai/skills/feature-planning/SKILL.md](.ai/skills/feature-planning/SKILL.md) |
+| MongoDB Usage | [.ai/skills/mongodb-usage/SKILL.md](.ai/skills/mongodb-usage/SKILL.md) |
+| Pages & Routing | [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md) |
+| Settings Usage | [.ai/skills/settings-usage-guidelines/SKILL.md](.ai/skills/settings-usage-guidelines/SKILL.md) |
+| User Access | [.ai/skills/user-access/SKILL.md](.ai/skills/user-access/SKILL.md) |
+| Mobile-First UI | [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md) |
+| App Guidelines Checklist | [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md) |

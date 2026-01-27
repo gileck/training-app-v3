@@ -1,0 +1,190 @@
+---
+name: client-server-communications
+description: Client-Server Communication Guidelines
+---
+# Client-Server Communication Guidelines
+
+## Simplified API Architecture
+
+This project uses a simplified client-server communication pattern with a single API endpoint that handles all server-side operations:
+
+```
+/src
+  /apis
+    /apis.ts           - Registry of all API handlers (imports directly from server.ts files)
+    /processApiCall.ts - Central processing logic with caching 
+    /types.ts          - Shared API types (like ApiHandlerContext)
+    /<domain>
+      /types.ts        - Shared request/response types and DTOs for this domain
+      /server.ts       - Server-side logic coordinator (imports handlers, re-exports from index.ts)
+      /client.ts       - Client-side function(s) to call the API
+      /index.ts        - Exports API name constants and the domain 'name' constant
+      /handlers/       - Subdirectory for individual API operation handlers (if implementing more than 1 api hanler.ts
+        operation2Handler.ts
+  /pages
+    /api
+      /process.ts      - Single Next.js API route handler for all requests
+```
+
+## Creating a New API Endpoint
+
+**Important Note on Multiple Handlers per Domain:** If your API domain (e.g., 'activity', 'userProfile') requires multiple distinct operations (e.g., create, get, update, delete), it is **strongly recommended** to organize thesewithin a `handlers/` subdirectory. See details below in point 3.
+
+1.  **Define ALL Domain Types in `types.ts`** (`/src/apis/<domain>/types.ts`)
+    *   Define request payload interfaces (e.g., `CreateActivityPayload`).
+    *   Define response payload interfaces (e.g., `CreateActivityResponse`).
+    *   Define client-facing Data Transfer Objects (DTOs) if the database schema contains types (like `ObjectId` or `Date` objects) that need conversion for client consumption (e.g., `ActivityClient` with string IDs and ISO date strings).
+    *   Keep types simple and focused on the specific domain.
+    *   **CRITICAL: ALL domain-related types MUST be defined in this `types.ts` and imported from there.**
+    *   **NEVER duplicate or redefine types in React components or other files.**
+
+2.  **Define API Names and Domain Name in `index.ts`** (`/src/apis/<domain>/index.ts`)
+    *   Export a `name` constant for the domain (e.g., `export const name = 'activity';`).
+    *   For each operation, define and export a unique API name constant (e.g., `export const API_CREATE_ACTIVITY_TYPE = 'activity/createActivityType';`).
+    *   **IMPORTANT: Do NOT export handler functions or client functions from this file.**
+
+3.  **Implement Server Logic (Handlers and Server Coordinator)**
+    *   **A. Create `handlers/` Subdirectory** (`/src/apis/<domain>/handlers/`)
+        *   For each distinct API operation, create a separate handler file (e.g., `createActivityTypeHandler.ts`, `getActivityTypesHandler.ts`).
+        *   Each handler file should:
+            *   Import necessary types (payloads, responses, `ApiHandlerContext`, `ObjectId`, collection types).
+            *   Implement and export a `process` function:
+                *   Signature: `async (payload: SpecificPayload, context: ApiHandlerContext): Promise<SpecificResponse>`
+                *   Handle business logic, validation, database interactions, and error cases for that specific operation.
+                *   Use `context.userId` (after converting to `ObjectId` if needed) for user-specific operations and authorization. Throw an error if `context.userId` is required but missing.
+                *   Convert database entities to client-facing DTOs before returning (e.g., `ObjectId` to string, `Date` to ISO string).
+    *   **B. Implement Server Coordinator in `server.ts`** (`)
+        *   **MUST re-export all exports from `index.ts`**: Add `export * from './index';` at the top.
+        *   Import all API name constants from `./index.ts`.
+        *   Import the `process` function from each handler file in the `handlers/` subdirectory (e.g., `import { process as createActivityTypeProcess } from './handlers/createActivityTypeHandler';`).
+        *   Construct and export a consolidated handlers object (e.g., `activityApiHandlers`). This object maps the API name constants to an object containing thn:
+            ```typescript
+            // Example for 'activity' domain in src/apis/activity/server.ts
+            export const activityApiHandlers = {
+              [API_CREATE_ACTIVITY_TYPE]: { process: createActivityTyp        [API_GET_ACTIVITY_TYPES]: { process: getActivityTypesProcess },
+              // ... other mappings for other activity operations
+            };
+            ```
+        *   **NEVER import any client-side code or `client.ts` functions here.**
+
+4.  **Create Client Function(s) in `client.ts`** (`/src/apis/<domain>/client.ts`)
+    *   For each operation, implement a client function that calls the API.
+    *   Import `apiClient` (default import) from `@/client/utils/apiClient` (or relative path).
+    *   Import `CacheResult` from `@/server/cache/types` (or relative path).
+    *   Import API name constants from `./index.ts` (NEVER from `server.ts`).
+    *   Import request/response types from `./types.ts`.
+    *   The function should take the defined request payload type and return `Promise<CacheResult<DefinedResponseType>>`.
+    *   Use `apiClient.call(API_NAME_CONSTANT, payloadObject)`.
+    *   **IMPORTANT: This is the ONLY place that should call `apiClient.call` with these API names.**
+    *   **NEVER import any server-side code or `server.ts` functions here.**
+
+5.  **Register the API Handlers in `apis.ts`** (`/src/apis/apis.ts`)
+    *   Import the consolidated handlers object (e.g., `activityApiHandlers`) from the domain's `server.ts` file (e.g., `import { activityApiHandlers } from "./activity/server";`).
+    *   Spread this object into the main `apiHandlers` registry.
+    *   Ensure each `process` function within the spread object is cast to the generic signature `(params: unknown, context: ApiHandlerContext) => Promise<unknown>` if type errors occur, for example:
+        ```typescript
+        const typedDomainApiHandlers = Object.entries(domainApiHandlers).reduce(
+          (acc, [key, handler]) => {
+            acc[key] = {
+              process: handler.process as (params: unknown, context: ApiHandlerContext) => Promise<unknown>,
+            };
+            return acc;
+          },
+          {} as ApiHandlers // ApiHandlers is the type for the main registry
+        );
+        // Then spread ...typedDomainApiHandlers into the main apiHandlers object
+        ```
+
+## Data Fetching with React Query
+
+Components should **NOT** call API client functions directly. Instead, use React Query hooks for all data fetching.
+
+### Query Hooks (GET requests)
+
+Create query hooks in `src/client/routes/[ROUTE_NAME]/hooks.ts` or `src/client/hooks/queries/`:
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { getTodos } from '@/apis/todos/client';
+import type { GetTodosResponse } from '@/apis/todos/types';
+
+export const todosQueryKey = ['todos'] as const;
+
+export function useTodos() {
+    return useQuery({
+        queryKey: todosQueryKey,
+        queryFn: async (): Promise<GetTodosResponse> => {
+            const response = await getTodos({});
+            if (response.data?.error) throw new Error(response.data.error);
+            return response.data;
+        },
+    });
+}
+```
+
+### Mutation Hooks (POST requests)
+
+Create mutation hooks with optimistic updates.
+
+📚 **Mutation Guidelines (Required)**: [docs/react-query-mutations.md](mdc:docs/react-query-mutations.md)
+
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateTodo } from '@/apis/todos/client';
+
+export function useUpdateTodo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: UpdateTodoRequest) => {
+            const response = await updateTodo(data);
+            if (response.data?.error) throw new Error(response.data.error);
+            return response.data?.todo;
+        },
+        // Optimistic update
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: todosQueryKey });
+            const previousTodos = queryClient.getQueryData(todosQueryKey);
+            
+            queryClient.setQueryData(todosQueryKey, (old) => {
+                // Apply optimistic update...
+            });
+            
+            return { previousTodos };
+        },
+        // Rollback on error
+        onError: (_err, _variables, context) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(todosQueryKey, context.previousTodos);
+            }
+        },
+        // Optimistic-only: never update from server response, never invalidate from mutations
+        onSuccess: () => {},
+        onSettled: () => {},
+    });
+}
+```
+
+### ⚠️ Offline Mode Behavior
+
+When offline, `apiClient.post` returns `{ data: {}, isFromCache: false }` (empty object).
+Prefer `onSuccess: () => {}` (optimistic-only).  
+If you have a special-case `onSuccess` (e.g., non-optimistic create), it must guard against empty/undefined data.
+
+## Key Guidelines Summary (Reiteration)
+
+*   **Single API Entry Point**: Use `/pages/api/process.ts` for all requests. `processApiCall.ts` routes to handlers.
+*   **API Name Flow & Exports**:
+    1.  `/<domain>/index.ts`: Exports API name constants (e.g., `API_CREATE_X`) and the domain `name` (e.g., `name = 'activity';`). **No functions.**
+    2.  `/<domain>/handlers/someHandler.ts`: Exports a `process` function.
+    3.  `/<domain>/server.ts`: **Must `export * from './index';`**. Imports `process` functions from `handlers/` and API names from `./index.ts`. Exports a consolidated `domainApiHandlers` object.
+    4.  `/<domain>/client.ts`: Imports API names from `./index.ts`. Imports types from `./types.ts`. Exports client-callable functions.
+    5.  `/apis/apis.ts`: Imports `domainApiHandlers` object from `/<domain>/server.ts`.
+*   **Client Access**: Components use **React Query hooks** that wrap client functions. Never call client functions directly in components.
+*   **Caching**: React Query handles caching with localStorage persistence. Client functions return `CacheResult<T>`.
+*   **Error Handling**: Server handlers should throw errors for issues; `processApiCall.ts` and `apiClient` handle packaging these.
+*   **Type Safety**: Strict typing, no `any`. Types defined in `/<domain>/types.ts`.
+*   **Separation of Concerns**: No client code in server files, no server code in client files. `index.ts` is for names/types only.
+*   **Offline Mode**: Mutations return `{}` when offline. Always guard against empty data in `onSuccess`.
+
+This structured approach ensures maintainability, type safety, and a clear separation of concerns.

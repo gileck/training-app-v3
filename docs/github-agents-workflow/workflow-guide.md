@@ -80,6 +80,7 @@ Issue #123
 
 Choose starting phase:
 
+[📋 Product Dev]
 [🎨 Product Design]
 [🔧 Tech Design]
 [⚡ Ready for Development]
@@ -90,10 +91,13 @@ Choose starting phase:
 
 | Button | When to Use | Next Step |
 |--------|-------------|-----------|
+| 📋 **Product Dev** | Vague idea, needs product spec | Product Development Agent runs |
 | 🎨 **Product Design** | Needs UX/UI design | Product Design Agent runs |
 | 🔧 **Tech Design** | Needs architecture planning | Tech Design Agent runs |
 | ⚡ **Ready for Dev** | Simple, clear requirements | Implementation Agent runs |
 | 📋 **Stay in Backlog** | Defer for now | Stays in Backlog |
+
+> **Note:** Product Development is **OPTIONAL** and only for features (not bugs). Use it when the feature idea is vague and needs to be transformed into concrete requirements before design work.
 
 ### Step 5: Item Moves to Selected Phase
 
@@ -117,8 +121,22 @@ await adapter.updateStatus(projectItemId, 'backlog');
 
 Based on the selected phase, the appropriate agent processes the item:
 
+**Product Development Phase (OPTIONAL - Features Only):**
+- Agent reads vague feature idea
+- Explores codebase for context (READ-ONLY mode)
+- Generates Product Development Document (PDD) with:
+  - Size estimate (S/M/L/XL)
+  - Problem statement
+  - Target users
+  - Requirements with acceptance criteria
+  - Success metrics
+  - Scope (in/out)
+- Creates PR with PDD file at `design-docs/issue-{N}/product-development.md`
+- Sets GitHub Projects status to "Product Development"
+- On approval: auto-advances to Product Design
+
 **Product Design Phase:**
-- Agent reads feature/bug details
+- Agent reads feature/bug details (and PDD if exists from Product Development phase)
 - Generates design document (markdown/screenshots)
 - Creates PR with design file
 - Sets GitHub Projects status to "Product Design"
@@ -324,6 +342,7 @@ When implementation is complete:
 |----------|--------|--------|
 | New submission received | Click **Approve** | Creates GitHub Issue + routing notification |
 | New submission received | Click **Reject** | MongoDB status → `rejected`, workflow ends |
+| Routing notification | Click **📋 Product Dev** | Status → Product Development, agent runs (features only) |
 | Routing notification | Click **🎨 Product Design** | Status → Product Design, agent runs |
 | Routing notification | Click **🔧 Tech Design** | Status → Tech Design, agent runs |
 | Routing notification | Click **⚡ Ready for Dev** | Status → Ready for Dev, agent runs |

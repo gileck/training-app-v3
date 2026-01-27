@@ -81,7 +81,7 @@ Use `--cloud-proxy` when running in Claude Code cloud environment.
 
 ## Related Rules
 
-[.cursor/rules/vercel-cli-usage.mdc](../.cursor/rules/vercel-cli-usage.mdc)
+[.ai/skills/vercel-cli-usage/SKILL.md](../.ai/skills/vercel-cli-usage/SKILL.md)
 
 ---
 

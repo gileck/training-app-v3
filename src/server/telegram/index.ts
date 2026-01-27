@@ -256,7 +256,7 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
 
 /**
  * Send routing notification after feature request is synced to GitHub
- * Asks admin where the feature should start (Product Design, Tech Design, Implementation, or Backlog)
+ * Asks admin where the feature should start (Product Dev, Product Design, Tech Design, Implementation, or Backlog)
  */
 export async function sendFeatureRoutingNotification(
     request: FeatureRequestDocument,
@@ -273,6 +273,7 @@ export async function sendFeatureRoutingNotification(
         '',
         '<b>Where should this feature start?</b>',
         '',
+        '• <b>Product Dev</b> - Vague idea, needs product spec',
         '• <b>Product Design</b> - Needs UX/UI design',
         '• <b>Tech Design</b> - Needs architecture planning',
         '• <b>Implementation</b> - Simple feature, go straight to coding',
@@ -281,14 +282,15 @@ export async function sendFeatureRoutingNotification(
 
     const inlineKeyboard: InlineKeyboardButton[][] = [
         [
+            { text: '📋 Product Dev', callback_data: `route_feature:${request._id}:product-dev` },
             { text: '🎨 Product Design', callback_data: `route_feature:${request._id}:product-design` },
+        ],
+        [
             { text: '🔧 Tech Design', callback_data: `route_feature:${request._id}:tech-design` },
-        ],
-        [
             { text: '⚡ Implementation', callback_data: `route_feature:${request._id}:implementation` },
-            { text: '📋 Keep in Backlog', callback_data: `route_feature:${request._id}:backlog` },
         ],
         [
+            { text: '📋 Keep in Backlog', callback_data: `route_feature:${request._id}:backlog` },
             { text: '🔗 View Issue', url: issueResult.url },
         ],
     ];

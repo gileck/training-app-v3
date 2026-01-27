@@ -2,8 +2,40 @@
  * Output Schemas for Agent Structured Outputs
  *
  * Defines TypeScript interfaces and JSON schemas for structured outputs
- * from product-design, tech-design, and implement agents.
+ * from product-development, product-design, tech-design, and implement agents.
  */
+
+// ============================================================
+// PRODUCT DEVELOPMENT OUTPUT
+// ============================================================
+
+export interface ProductDevelopmentOutput {
+    document: string;
+    comment: string;
+}
+
+export const PRODUCT_DEVELOPMENT_OUTPUT_FORMAT = {
+    type: 'json_schema' as const,
+    schema: {
+        type: 'object',
+        properties: {
+            document: {
+                type: 'string',
+                description: 'Complete product development document in markdown format. ' +
+                    'Should include: size estimate, problem statement, target users, ' +
+                    'requirements with acceptance criteria, success metrics, scope (in/out).',
+            },
+            comment: {
+                type: 'string',
+                description:
+                    'High-level summary to post as GitHub comment. ' +
+                    'For new documents: "Here\'s the product spec overview: 1. ... 2. ..." (3-5 items). ' +
+                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+            },
+        },
+        required: ['document', 'comment'],
+    },
+};
 
 // ============================================================
 // PRODUCT DESIGN OUTPUT

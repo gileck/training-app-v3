@@ -65,10 +65,19 @@ export function logExecutionStart(ctx: LogContext): void {
         ? `**Current Status:** ${ctx.currentStatus}${ctx.currentReviewStatus ? ` | **Review Status:** ${ctx.currentReviewStatus}` : ''}\n`
         : '';
 
+    // Build library and model line if info is available
+    const libraryInfo = ctx.library
+        ? ctx.model
+            ? `**Library:** ${ctx.library} | **Model:** ${ctx.model}\n`
+            : `**Library:** ${ctx.library}\n`
+        : ctx.model
+            ? `**Model:** ${ctx.model}\n`
+            : '';
+
     const content = `## [LOG:PHASE_START] Phase: ${ctx.phase}
 
 **Agent:** ${ctx.workflow}
-${ctx.mode ? `**Mode:** ${ctx.mode}\n` : ''}${statusLine}**Started:** ${formatTime(ctx.startTime)}
+${ctx.mode ? `**Mode:** ${ctx.mode}\n` : ''}${libraryInfo}${statusLine}**Started:** ${formatTime(ctx.startTime)}
 
 `;
 
@@ -223,6 +232,23 @@ export function logGitHubAction(
                 : '🏷️';
 
     const content = `**[${timestamp}]** [LOG:GITHUB] ${emoji} ${action.replace('_', ' ')}: ${details}
+
+`;
+
+    appendToLog(ctx.issueNumber, content);
+}
+
+/**
+ * Log info message
+ */
+export function logInfo(
+    ctx: LogContext,
+    message: string,
+    emoji = 'ℹ️'
+): void {
+    const timestamp = formatTime(new Date());
+
+    const content = `**[${timestamp}]** [LOG:INFO] ${emoji} ${message}
 
 `;
 

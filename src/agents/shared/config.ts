@@ -37,6 +37,16 @@ export interface AgentConfig {
         /** Timeout in seconds for agent execution */
         timeoutSeconds: number;
     };
+    localTesting: {
+        /** Whether to run local testing with Playwright MCP before creating PR */
+        enabled: boolean;
+        /** Timeout for dev server startup in seconds */
+        devServerStartupTimeout: number;
+        /** Timeout for test execution in seconds */
+        testTimeout: number;
+        /** Maximum agent turns for local testing */
+        maxTurns: number;
+    };
 }
 
 /**
@@ -62,6 +72,12 @@ export const agentConfig: AgentConfig = {
         model: 'sonnet',
         maxTurns: 100,
         timeoutSeconds: 600,
+    },
+    localTesting: {
+        enabled: true,
+        devServerStartupTimeout: 90,
+        testTimeout: 120,
+        maxTurns: 30,
     },
 };
 

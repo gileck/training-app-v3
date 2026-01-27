@@ -15,8 +15,8 @@
  *    - Updated: On approval (→ in_progress) and PR merge (→ done)
  *    - Simplified view for end users
  *
- * 2. GitHub Projects (detailed): Backlog → Product Design → Tech Design →
- *    Implementation → PR Review → Done
+ * 2. GitHub Projects (detailed): Backlog → [Product Development] → Product Design →
+ *    Tech Design → Implementation → PR Review → Done
  *    - Purpose: Agent workflow, detailed progress tracking
  *    - Source of truth for: Current workflow phase
  *    - Detailed view for agents/admins
@@ -35,9 +35,10 @@
 /**
  * Main status values (GitHub Project board columns)
  *
- * 6-column workflow:
+ * 7-column workflow:
  * - Backlog: New items, not yet started
- * - Product Design: AI generates product design, human reviews
+ * - Product Development: (OPTIONAL) AI transforms vague ideas into product specs
+ * - Product Design: AI generates UX/UI design, human reviews
  * - Technical Design: AI generates tech design, human reviews
  * - Implementation: AI implements and creates PR, human reviews
  * - PR Review: PR created, awaiting human review/merge
@@ -52,6 +53,7 @@
  */
 export const STATUSES = {
     backlog: 'Backlog',
+    productDevelopment: 'Product Development',
     productDesign: 'Product Design',
     techDesign: 'Technical Design',
     implementation: 'Ready for development',

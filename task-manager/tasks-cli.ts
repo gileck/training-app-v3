@@ -4,27 +4,30 @@ import '../src/agents/shared/loadEnv';
 /**
  * Tasks Management CLI
  *
- * A CLI tool for managing tasks from tasks.md
+ * A CLI tool for managing tasks using the centralized task library.
  *
  * Usage:
  *   yarn task <command> [options]
  *
  * Commands:
- *   list [filter]       List tasks (filter: open, in-progress, done, all)
+ *   list [filter]       List tasks (filter: open, in-progress, blocked, done, all)
+ *   view                View a specific task
  *   work                Work on a specific task
  *   worktree            Create worktree and work on task
  *   plan                Plan implementation for a task
+ *   mark-in-progress    Mark task as in progress
  *   mark-done           Mark task as completed
+ *   migrate             Migrate from legacy to new format
+ *   rebuild-index       Rebuild tasks.md summary index
  *
  * Examples:
  *   yarn task list              # All tasks grouped by status
  *   yarn task list open         # Only open tasks
- *   yarn task list in-progress  # Only in-progress tasks
- *   yarn task list done         # Only completed tasks
+ *   yarn task view --task 1     # View task details
  *   yarn task work --task 1
  *   yarn task worktree --task 3
- *   yarn task plan --task 5
- *   yarn task mark-done --task 1
+ *   yarn task migrate --dry-run # Preview migration
+ *   yarn task migrate           # Execute migration
  */
 
 import { Command } from 'commander';
@@ -32,117 +35,45 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Import task library
+import {
+    Task,
+    TaskPriority,
+    getAllTasks,
+    getTask,
+    getTasksByStatus,
+    markTaskInProgress as libMarkTaskInProgress,
+    markTaskDone as libMarkTaskDone,
+    detectFormat,
+    writeTaskFile,
+    rebuildTasksFile,
+    clearCache,
+} from './lib/index';
+
 // ============================================================================
-// Types
+// Helper Functions
 // ============================================================================
 
-type TaskStatus = 'Open' | 'In Progress' | 'Done';
+const priorityEmoji: Record<TaskPriority, string> = {
+    Critical: '🔴',
+    High: '🟠',
+    Medium: '🟡',
+    Low: '🟢',
+};
 
-interface Task {
-    number: number;
-    title: string;
-    priority: 'Critical' | 'High' | 'Medium' | 'Low';
-    complexity: string;
-    size: string;
-    status: TaskStatus;
-    startLine: number;
-    endLine: number;
-    content: string;
+/**
+ * Convert library status to CLI-friendly status
+ */
+function normalizeStatus(status: Task['status']): string {
+    if (status === 'TODO') return 'Open';
+    return status;
 }
 
-// ============================================================================
-// Task Parser
-// ============================================================================
-
-const TASKS_FILE = path.join(process.cwd(), 'task-manager', 'tasks.md');
-
-function parseTasks(): Task[] {
-    if (!fs.existsSync(TASKS_FILE)) {
-        console.error('❌ tasks.md not found');
-        process.exit(1);
-    }
-
-    const content = fs.readFileSync(TASKS_FILE, 'utf-8');
-    const lines = content.split('\n');
-    const tasks: Task[] = [];
-
-    let currentTask: Partial<Task> | null = null;
-    let taskContent: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // Detect task header: ## 1. Task Title or ## 1. ~~Task Title~~ ✅ DONE
-        const headerMatch = line.match(/^## (\d+)\.\s+(.+)/);
-        if (headerMatch) {
-            // Save previous task
-            if (currentTask) {
-                tasks.push({
-                    ...currentTask,
-                    endLine: i - 1,
-                    content: taskContent.join('\n'),
-                } as Task);
-            }
-
-            // Check if task is done (header contains ✅ DONE)
-            const isDone = line.includes('✅ DONE');
-            // Clean up title (remove strikethrough and DONE marker)
-            let title = headerMatch[2];
-            title = title.replace(/~~(.+?)~~/g, '$1').replace(/✅ DONE/g, '').trim();
-
-            // Start new task
-            currentTask = {
-                number: parseInt(headerMatch[1]),
-                title,
-                startLine: i,
-                status: isDone ? 'Done' : 'Open', // Will be updated if "In Progress" found
-            };
-            taskContent = [line];
-            continue;
-        }
-
-        // Parse metadata table
-        if (currentTask && line.includes('| Priority |')) {
-            // Next line has the values (skip separator line)
-            const nextLine = lines[i + 2];
-            if (nextLine) {
-                // Parse: | **Priority** | Complexity | Size | Status (optional) |
-                const cells = nextLine.split('|').map(c => c.trim()).filter(c => c);
-                if (cells.length >= 3) {
-                    currentTask.priority = cells[0].replace(/\*\*/g, '').trim() as Task['priority'];
-                    currentTask.complexity = cells[1].trim();
-                    currentTask.size = cells[2].trim();
-                    // Check for status in 4th column (if exists and not already Done)
-                    if (cells.length >= 4 && currentTask.status !== 'Done') {
-                        const statusCell = cells[3].toLowerCase();
-                        if (statusCell.includes('in progress')) {
-                            currentTask.status = 'In Progress';
-                        }
-                    }
-                }
-            }
-        }
-
-        if (currentTask) {
-            taskContent.push(line);
-        }
-    }
-
-    // Save last task
-    if (currentTask) {
-        tasks.push({
-            ...currentTask,
-            endLine: lines.length - 1,
-            content: taskContent.join('\n'),
-        } as Task);
-    }
-
-    return tasks;
-}
-
-function getTask(taskNumber: number): Task {
-    const tasks = parseTasks();
-    const task = tasks.find((t) => t.number === taskNumber);
+/**
+ * Get task or exit with error
+ */
+function getTaskOrExit(taskNumber: number): Task {
+    const task = getTask(taskNumber);
     if (!task) {
         console.error(`❌ Task ${taskNumber} not found`);
         process.exit(1);
@@ -154,22 +85,17 @@ function getTask(taskNumber: number): Task {
 // Commands
 // ============================================================================
 
-function listTasks(filter?: 'open' | 'in-progress' | 'done' | 'all') {
-    const tasks = parseTasks();
-    const priorityOrder: Task['priority'][] = ['Critical', 'High', 'Medium', 'Low'];
-    const priorityEmoji: Record<Task['priority'], string> = {
-        Critical: '🔴',
-        High: '🟠',
-        Medium: '🟡',
-        Low: '🟢',
-    };
+function listTasks(filter?: 'open' | 'in-progress' | 'blocked' | 'done' | 'all') {
+    const allTasks = getAllTasks();
+    const priorityOrder: TaskPriority[] = ['Critical', 'High', 'Medium', 'Low'];
 
-    // Filter tasks by status if specified
-    const openTasks = tasks.filter(t => t.status === 'Open');
-    const inProgressTasks = tasks.filter(t => t.status === 'In Progress');
-    const doneTasks = tasks.filter(t => t.status === 'Done');
+    // Group tasks by status
+    const openTasks = allTasks.filter(t => t.status === 'TODO');
+    const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
+    const blockedTasks = allTasks.filter(t => t.status === 'Blocked');
+    const doneTasks = allTasks.filter(t => t.status === 'Done');
 
-    // Helper to print tasks grouped by priority (for Open tasks)
+    // Helper to print tasks grouped by priority
     const printTasksByPriority = (taskList: Task[], indent = '  ') => {
         priorityOrder.forEach((priority) => {
             const tasksInPriority = taskList.filter((t) => t.priority === priority);
@@ -182,7 +108,7 @@ function listTasks(filter?: 'open' | 'in-progress' | 'done' | 'all') {
         });
     };
 
-    // Helper to print tasks sorted by task number descending (for Done/In Progress)
+    // Helper to print tasks sorted by number descending
     const printTasksByNumber = (taskList: Task[], indent = '  ') => {
         const sorted = [...taskList].sort((a, b) => b.number - a.number);
         sorted.forEach((task) => {
@@ -205,6 +131,13 @@ function listTasks(filter?: 'open' | 'in-progress' | 'done' | 'all') {
         } else {
             printTasksByNumber(inProgressTasks);
         }
+    } else if (filter === 'blocked') {
+        console.log('\n🚫 Blocked Tasks\n');
+        if (blockedTasks.length === 0) {
+            console.log('  No blocked tasks');
+        } else {
+            printTasksByNumber(blockedTasks);
+        }
     } else if (filter === 'done') {
         console.log('\n✅ Done Tasks\n');
         if (doneTasks.length === 0) {
@@ -226,6 +159,11 @@ function listTasks(filter?: 'open' | 'in-progress' | 'done' | 'all') {
             printTasksByNumber(inProgressTasks);
         }
 
+        if (blockedTasks.length > 0) {
+            console.log('\n━━━ 🚫 Blocked ━━━\n');
+            printTasksByNumber(blockedTasks);
+        }
+
         if (doneTasks.length > 0) {
             console.log('\n━━━ ✅ Done ━━━\n');
             printTasksByNumber(doneTasks);
@@ -235,15 +173,66 @@ function listTasks(filter?: 'open' | 'in-progress' | 'done' | 'all') {
     console.log('');
 }
 
+function viewTask(taskNumber: number) {
+    const task = getTaskOrExit(taskNumber);
+
+    console.log(`\n# Task ${task.number}: ${task.title}\n`);
+    console.log(`**Status:** ${normalizeStatus(task.status)}`);
+    console.log(`**Priority:** ${task.priority}`);
+    console.log(`**Size:** ${task.size}`);
+    console.log(`**Complexity:** ${task.complexity}`);
+    console.log(`**Added:** ${task.dateAdded}`);
+    if (task.dateCompleted) {
+        console.log(`**Completed:** ${task.dateCompleted}`);
+        if (task.completionCommit) {
+            console.log(`**Commit:** \`${task.completionCommit}\``);
+        }
+    }
+    console.log('');
+    console.log(`**Summary:** ${task.summary}`);
+
+    if (task.details) {
+        console.log('\n## Details\n');
+        console.log(task.details);
+    }
+
+    if (task.implementationNotes) {
+        console.log('\n## Implementation Notes\n');
+        console.log(task.implementationNotes);
+    }
+
+    if (task.filesToModify && task.filesToModify.length > 0) {
+        console.log('\n## Files to Modify\n');
+        task.filesToModify.forEach(file => console.log(`- ${file}`));
+    }
+
+    if (task.dependencies && task.dependencies.length > 0) {
+        console.log('\n## Dependencies\n');
+        task.dependencies.forEach(dep => console.log(`- ${dep}`));
+    }
+
+    if (task.risks && task.risks.length > 0) {
+        console.log('\n## Risks\n');
+        task.risks.forEach(risk => console.log(`- ${risk}`));
+    }
+
+    if (task.notes) {
+        console.log('\n## Notes\n');
+        console.log(task.notes);
+    }
+
+    console.log('');
+}
+
 function workOnTask(taskNumber: number) {
-    const task = getTask(taskNumber);
+    const task = getTaskOrExit(taskNumber);
 
     console.log(`\n🚀 Working on Task ${taskNumber}: ${task.title}\n`);
     console.log(`Priority: ${task.priority}`);
     console.log(`Size: ${task.size}`);
     console.log(`Complexity: ${task.complexity}\n`);
 
-    // Show current branch (no branch creation)
+    // Show current branch
     const currentBranch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
     console.log(`📌 Current branch: ${currentBranch}`);
 
@@ -253,9 +242,10 @@ function workOnTask(taskNumber: number) {
         console.log('✅ Working on main branch\n');
     }
 
-    console.log('📝 Task details:\n');
-    console.log(task.content);
-    console.log('\n💡 Next steps:');
+    console.log('📝 Task summary:');
+    console.log(`   ${task.summary}\n`);
+
+    console.log('💡 Next steps:');
     console.log('  1. Implement the task');
     console.log('  2. Run: yarn checks');
     console.log('  3. Request user approval (MANDATORY)');
@@ -268,10 +258,12 @@ function workOnTask(taskNumber: number) {
         console.log('  5. Create a PR');
         console.log(`  6. After merge: yarn task mark-done --task ${taskNumber}`);
     }
+
+    console.log(`\n📄 View full details: yarn task view --task ${taskNumber}\n`);
 }
 
 function createWorktree(taskNumber: number) {
-    const task = getTask(taskNumber);
+    const task = getTaskOrExit(taskNumber);
 
     console.log(`\n🔧 Creating worktree for Task ${taskNumber}: ${task.title}\n`);
 
@@ -325,121 +317,144 @@ function createWorktree(taskNumber: number) {
 }
 
 function planTask(taskNumber: number) {
-    const task = getTask(taskNumber);
+    const task = getTaskOrExit(taskNumber);
 
     console.log(`\n📐 Planning Task ${taskNumber}: ${task.title}\n`);
     console.log(`Priority: ${task.priority}`);
     console.log(`Size: ${task.size}`);
     console.log(`Complexity: ${task.complexity}\n`);
+    console.log(`Summary: ${task.summary}\n`);
 
-    console.log('📝 Task details:\n');
-    console.log(task.content);
-
-    console.log('\n\n🤖 Launching Plan Agent...\n');
-
-    // TODO: Integrate with actual plan agent when available
-    // For now, just display the task content for manual planning
+    console.log('🤖 Launching Plan Agent...\n');
     console.log('⚠️  Plan agent integration not yet implemented.');
-    console.log('💡 For now, please review the task details above and create a plan manually.');
+    console.log('💡 For now, please review the task details and create a plan manually.');
+    console.log(`\n📄 View full details: yarn task view --task ${taskNumber}\n`);
 }
 
 function markTaskInProgress(taskNumber: number) {
-    const task = getTask(taskNumber);
+    const task = getTaskOrExit(taskNumber);
 
     console.log(`\n🔄 Marking Task ${taskNumber} as in progress: ${task.title}\n`);
 
-    // Check if already done
     if (task.status === 'Done') {
         console.log('⚠️  Task is already marked as done, cannot mark as in progress');
         return;
     }
 
-    // Check if already in progress
     if (task.status === 'In Progress') {
         console.log('ℹ️  Task is already in progress');
         return;
     }
 
-    // Read the file
+    const format = detectFormat();
+    if (format === 'new') {
+        libMarkTaskInProgress(taskNumber);
+        console.log('✅ Task marked as in progress');
+    } else {
+        // Legacy format - update in place
+        markTaskInProgressLegacy(taskNumber, task);
+    }
+}
+
+function markTaskInProgressLegacy(taskNumber: number, task: Task) {
+    const TASKS_FILE = path.join(process.cwd(), 'task-manager', 'tasks.md');
     const content = fs.readFileSync(TASKS_FILE, 'utf-8');
     const lines = content.split('\n');
 
-    // Find and update the status in the metadata table
-    // Look for the line with | Priority | Complexity | Size | (with optional Status column)
-    for (let i = task.startLine; i <= task.endLine; i++) {
+    // Find task header and update status in metadata table
+    let foundTask = false;
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        // Match the data row (not header row) - contains actual values like "High", "Mid", etc.
-        if (line.includes('|') && (line.includes('High') || line.includes('Medium') || line.includes('Low') || line.includes('Critical'))) {
+
+        // Find task header
+        if (line.match(new RegExp(`^## ${taskNumber}\\.\\s+`))) {
+            foundTask = true;
+            continue;
+        }
+
+        // If we found the task, look for the metadata table
+        if (foundTask && line.includes('|') && (line.includes('High') || line.includes('Medium') || line.includes('Low') || line.includes('Critical'))) {
             const cells = line.split('|').map(c => c.trim());
-            // Check if there's already a Status column (4th data column after empty first)
             if (cells.length >= 5) {
-                // Has Status column - update it
                 cells[4] = ' In Progress ';
                 lines[i] = '|' + cells.slice(1).join('|');
             } else if (cells.length === 4) {
-                // No Status column - add it
-                // First, update the header row (should be 2 lines above)
+                // Add Status column
                 const headerLine = i - 2;
                 if (lines[headerLine] && lines[headerLine].includes('| Priority |')) {
                     lines[headerLine] = lines[headerLine].replace(/\|(\s*)$/, '| Status |');
                 }
-                // Update separator line
                 const separatorLine = i - 1;
                 if (lines[separatorLine] && lines[separatorLine].includes('|---')) {
                     lines[separatorLine] = lines[separatorLine].replace(/\|(\s*)$/, '|--------|');
                 }
-                // Add status to data row
                 lines[i] = line.replace(/\|(\s*)$/, '| In Progress |');
             }
             break;
         }
     }
 
-    // Write back
     fs.writeFileSync(TASKS_FILE, lines.join('\n'), 'utf-8');
-
     console.log('✅ Task marked as in progress in tasks.md');
 }
 
-function markTaskDone(taskNumber: number) {
-    const task = getTask(taskNumber);
+function markTaskDone(taskNumber: number, commit?: string) {
+    const task = getTaskOrExit(taskNumber);
 
     console.log(`\n✅ Marking Task ${taskNumber} as done: ${task.title}\n`);
 
-    // Read the file
+    const format = detectFormat();
+    if (format === 'new') {
+        libMarkTaskDone(taskNumber, commit);
+        console.log('✅ Task marked as done');
+        console.log('\n💡 Remember to commit the change:');
+        console.log(`  git add task-manager/`);
+        console.log(`  git commit -m "docs: mark task ${taskNumber} as done"`);
+        console.log(`  git push`);
+    } else {
+        // Legacy format - update in place
+        markTaskDoneLegacy(taskNumber, commit);
+    }
+}
+
+function markTaskDoneLegacy(taskNumber: number, commit?: string) {
+    const TASKS_FILE = path.join(process.cwd(), 'task-manager', 'tasks.md');
     const content = fs.readFileSync(TASKS_FILE, 'utf-8');
     const lines = content.split('\n');
 
-    // Add DONE marker to the task header
-    const taskHeaderLine = task.startLine;
-    const currentHeader = lines[taskHeaderLine];
+    let taskHeaderIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(new RegExp(`^## ${taskNumber}\\.\\s+`))) {
+            taskHeaderIndex = i;
+            break;
+        }
+    }
 
+    if (taskHeaderIndex === -1) {
+        console.error('❌ Failed to find task header');
+        return;
+    }
+
+    const currentHeader = lines[taskHeaderIndex];
     if (currentHeader.includes('✅ DONE')) {
         console.log('⚠️  Task already marked as done');
         return;
     }
 
-    // Add strikethrough and ✅ DONE to the header
-    // Pattern: ## N. Title -> ## N. ~~Title~~ ✅ DONE
+    // Update header
     const headerMatch = currentHeader.match(/^(## \d+\.\s+)(.+)/);
     if (headerMatch) {
-        const prefix = headerMatch[1]; // "## N. "
-        const title = headerMatch[2];  // "Title"
-        lines[taskHeaderLine] = `${prefix}~~${title}~~ ✅ DONE`;
-    } else {
-        // Fallback if pattern doesn't match
-        lines[taskHeaderLine] = currentHeader + ' ✅ DONE';
+        const prefix = headerMatch[1];
+        const title = headerMatch[2];
+        lines[taskHeaderIndex] = `${prefix}~~${title}~~ ✅ DONE`;
     }
 
-    // Update Status column in the metadata table to ✅ **DONE**
-    for (let i = task.startLine; i <= task.endLine; i++) {
+    // Update status in metadata table
+    for (let i = taskHeaderIndex; i < Math.min(taskHeaderIndex + 20, lines.length); i++) {
         const line = lines[i];
-        // Match the data row (contains priority values)
         if (line.includes('|') && (line.includes('High') || line.includes('Medium') || line.includes('Low') || line.includes('Critical'))) {
             const cells = line.split('|').map(c => c.trim());
-            // Check if there's a Status column (4th data column after empty first)
             if (cells.length >= 5) {
-                // Has Status column - update it to ✅ **DONE**
                 cells[4] = ' ✅ **DONE** ';
                 lines[i] = '|' + cells.slice(1).join('|');
             }
@@ -447,14 +462,107 @@ function markTaskDone(taskNumber: number) {
         }
     }
 
-    // Write back
     fs.writeFileSync(TASKS_FILE, lines.join('\n'), 'utf-8');
-
     console.log('✅ Task marked as done in tasks.md');
     console.log('\n💡 Remember to commit the change:');
-    console.log(`  git add tasks.md`);
+    console.log(`  git add task-manager/tasks.md`);
     console.log(`  git commit -m "docs: mark task ${taskNumber} as done"`);
     console.log(`  git push`);
+}
+
+function migrate(dryRun: boolean) {
+    const format = detectFormat();
+
+    if (format === 'new') {
+        console.log('✅ Already using new format (tasks/ directory exists)');
+        return;
+    }
+
+    console.log('\n🔄 Migrating from legacy to new format\n');
+
+    if (dryRun) {
+        console.log('📋 DRY RUN - No changes will be made\n');
+    }
+
+    // Parse all tasks from legacy file
+    const tasks = getAllTasks();
+    console.log(`Found ${tasks.length} tasks to migrate\n`);
+
+    if (dryRun) {
+        console.log('Migration plan:');
+        console.log(`1. Create backup: task-manager/tasks.md.backup`);
+        console.log(`2. Create directory: task-manager/tasks/`);
+        console.log(`3. Write ${tasks.length} individual task files:`);
+        tasks.forEach(task => {
+            console.log(`   - task-manager/tasks/task-${task.number}.md`);
+        });
+        console.log(`4. Generate new summary index: task-manager/tasks.md`);
+        console.log('\n💡 Run without --dry-run to execute migration');
+        return;
+    }
+
+    // Execute migration
+    try {
+        // 1. Backup
+        const TASKS_FILE = path.join(process.cwd(), 'task-manager', 'tasks.md');
+        const BACKUP_FILE = path.join(process.cwd(), 'task-manager', 'tasks.md.backup');
+        console.log('📦 Creating backup...');
+        fs.copyFileSync(TASKS_FILE, BACKUP_FILE);
+        console.log(`   ✅ Backup created: ${BACKUP_FILE}`);
+
+        // 2. Create tasks directory
+        const TASKS_DIR = path.join(process.cwd(), 'task-manager', 'tasks');
+        console.log('\n📁 Creating tasks directory...');
+        if (!fs.existsSync(TASKS_DIR)) {
+            fs.mkdirSync(TASKS_DIR, { recursive: true });
+        }
+        console.log(`   ✅ Directory created: ${TASKS_DIR}`);
+
+        // 3. Write individual task files
+        console.log('\n📝 Writing individual task files...');
+        for (const task of tasks) {
+            writeTaskFile(task);
+            console.log(`   ✅ task-${task.number}.md`);
+        }
+
+        // 4. Clear cache and rebuild index
+        console.log('\n🔨 Rebuilding summary index...');
+        clearCache();
+        rebuildTasksFile();
+        console.log('   ✅ tasks.md regenerated');
+
+        console.log('\n✅ Migration complete!');
+        console.log('\n💡 Next steps:');
+        console.log('  1. Verify migration: yarn task list');
+        console.log('  2. Commit changes: git add task-manager/ && git commit -m "refactor: migrate to individual task files"');
+        console.log('  3. If satisfied, delete backup: rm task-manager/tasks.md.backup');
+        console.log('\n⚠️  Rollback: cp task-manager/tasks.md.backup task-manager/tasks.md && rm -rf task-manager/tasks/');
+
+    } catch (error) {
+        console.error('\n❌ Migration failed:', error);
+        console.log('\n🔙 Restore backup: cp task-manager/tasks.md.backup task-manager/tasks.md');
+        process.exit(1);
+    }
+}
+
+function rebuildIndex() {
+    console.log('\n🔨 Rebuilding tasks.md summary index...\n');
+
+    const format = detectFormat();
+    if (format === 'legacy') {
+        console.log('⚠️  Cannot rebuild index in legacy format');
+        console.log('💡 Run: yarn task migrate');
+        return;
+    }
+
+    try {
+        clearCache();
+        rebuildTasksFile();
+        console.log('✅ tasks.md rebuilt successfully\n');
+    } catch (error) {
+        console.error('❌ Failed to rebuild index:', error);
+        process.exit(1);
+    }
 }
 
 // ============================================================================
@@ -463,24 +571,32 @@ function markTaskDone(taskNumber: number) {
 
 const program = new Command();
 
-program.name('task').description('Tasks Management CLI').version('1.0.0');
+program.name('task').description('Tasks Management CLI').version('2.0.0');
 
 program
     .command('list [filter]')
-    .description('List tasks (filter: open, in-progress, done, or all)')
+    .description('List tasks (filter: open, in-progress, blocked, done, or all)')
     .action((filter?: string) => {
-        const validFilters = ['open', 'in-progress', 'done', 'all'];
+        const validFilters = ['open', 'in-progress', 'blocked', 'done', 'all'];
         if (filter && !validFilters.includes(filter)) {
             console.error(`❌ Invalid filter: ${filter}`);
             console.log(`   Valid filters: ${validFilters.join(', ')}`);
             process.exit(1);
         }
-        listTasks(filter as 'open' | 'in-progress' | 'done' | 'all' | undefined);
+        listTasks(filter as any);
+    });
+
+program
+    .command('view')
+    .description('View a specific task')
+    .requiredOption('--task <number>', 'Task number to view')
+    .action((options) => {
+        viewTask(parseInt(options.task));
     });
 
 program
     .command('work')
-    .description('Work on a specific task (creates/switches to branch)')
+    .description('Work on a specific task')
     .requiredOption('--task <number>', 'Task number to work on')
     .action((options) => {
         workOnTask(parseInt(options.task));
@@ -514,8 +630,24 @@ program
     .command('mark-done')
     .description('Mark task as completed')
     .requiredOption('--task <number>', 'Task number to mark as done')
+    .option('--commit <hash>', 'Git commit hash where task was completed')
     .action((options) => {
-        markTaskDone(parseInt(options.task));
+        markTaskDone(parseInt(options.task), options.commit);
+    });
+
+program
+    .command('migrate')
+    .description('Migrate from legacy to new format')
+    .option('--dry-run', 'Preview migration without executing')
+    .action((options) => {
+        migrate(options.dryRun || false);
+    });
+
+program
+    .command('rebuild-index')
+    .description('Rebuild tasks.md summary index')
+    .action(() => {
+        rebuildIndex();
     });
 
 program.parse();

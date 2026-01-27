@@ -487,7 +487,7 @@ export const routes = createRoutes({
 
 **Note:** Public routes are defined via route metadata, NOT a hardcoded list in `AuthWrapper`. The router computes `isPublicRoute` and provides it via context, keeping auth logic clean and ensuring proper re-rendering on navigation.
 
-📚 See: [pages-and-routing-guidelines.mdc](../.cursor/rules/pages-and-routing-guidelines.mdc) for route configuration details.
+📚 See: [pages-and-routing-guidelines.mdc](../.ai/skills/pages-and-routing-guidelines/SKILL.md) for route configuration details.
 
 **Loading Skeleton**: Instead of a blank screen, `AuthWrapper` now shows a polished loading skeleton that mimics the app layout (nav bar, progress card, exercise cards, bottom nav). This provides a better experience for new users.
 

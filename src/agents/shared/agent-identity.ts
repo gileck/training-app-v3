@@ -6,6 +6,7 @@
  */
 
 export type AgentName =
+    | 'product-dev'
     | 'product-design'
     | 'tech-design'
     | 'implementor'
@@ -16,6 +17,7 @@ export type AgentName =
  * Agent display names and emojis
  */
 const AGENT_INFO: Record<AgentName, { name: string; emoji: string }> = {
+    'product-dev': { name: 'Product Development Agent', emoji: '📋' },
     'product-design': { name: 'Product Design Agent', emoji: '🎨' },
     'tech-design': { name: 'Tech Design Agent', emoji: '🏗️' },
     'implementor': { name: 'Implementor Agent', emoji: '⚙️' },
@@ -43,7 +45,7 @@ export function getAgentPrefix(agent: AgentName): string {
  * Check if content has an agent prefix
  */
 export function hasAgentPrefix(content: string): boolean {
-    return /^[🎨🏗️⚙️👀⏭️]\s*\*\*\[.*Agent\]\*\*/.test(content);
+    return /^[📋🎨🏗️⚙️👀⏭️]\s*\*\*\[.*Agent\]\*\*/.test(content);
 }
 
 /**
@@ -54,6 +56,7 @@ export function extractAgentName(content: string): AgentName | null {
     if (!match) return null;
 
     const name = match[1].toLowerCase().replace(/\s+/g, '-');
+    if (name.includes('product-development')) return 'product-dev';
     if (name.includes('product')) return 'product-design';
     if (name.includes('tech')) return 'tech-design';
     if (name.includes('implement')) return 'implementor';

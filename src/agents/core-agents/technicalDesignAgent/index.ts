@@ -41,6 +41,8 @@ import {
     type ProjectItem,
     // Claude
     runAgent,
+    getLibraryForWorkflow,
+    getModelForWorkflow,
     extractMarkdown,
     extractProductDesign,
     // Notifications
@@ -216,6 +218,10 @@ async function processItem(
     // Detect issue type and load bug diagnostics if applicable
     const issueType = getIssueType(content.labels);
 
+    // Get library and model for logging
+    const library = getLibraryForWorkflow('tech-design');
+    const model = await getModelForWorkflow('tech-design');
+
     // Create log context
     const logCtx = createLogContext({
         issueNumber,
@@ -226,6 +232,8 @@ async function processItem(
         issueType,
         currentStatus: item.status,
         currentReviewStatus: item.reviewStatus,
+        library,
+        model,
     });
 
     return runWithLogContext(logCtx, async () => {

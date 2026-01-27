@@ -25,6 +25,7 @@ import {
     logToolCall,
     logTokenUsage,
 } from '../logging';
+import { getModelForLibrary } from '../config';
 
 // ============================================================
 // CONSTANTS
@@ -35,12 +36,6 @@ const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', 
 const PROJECT_ROOT = process.cwd();
 const DEFAULT_TIMEOUT_SECONDS = 300; // 5 minutes
 
-/**
- * Default model for Cursor CLI
- * Claude Opus 4.5 - Anthropic's flagship model for coding and agentic tasks
- */
-const DEFAULT_MODEL = 'opus-4.5';
-
 // ============================================================
 // TYPES
 // ============================================================
@@ -49,7 +44,8 @@ const DEFAULT_MODEL = 'opus-4.5';
  * Cursor CLI stream event types
  */
 interface CursorStreamEvent {
-    type: 'start' | 'text' | 'tool_use' | 'tool_result' | 'result' | 'error';
+    type: 'system' | 'user' | 'assistant' | 'start' | 'text' | 'tool_use' | 'tool_result' | 'result' | 'error';
+    subtype?: string;       // For system events (e.g., 'init')
     content?: string;
     name?: string;          // Tool name for tool_use events
     path?: string;          // File path for read_file tool
@@ -64,6 +60,16 @@ interface CursorStreamEvent {
         input_tokens?: number;
         output_tokens?: number;
         total_cost_usd?: number;
+    };
+    // For assistant/user message events (--stream-partial-output)
+    message?: {
+        role?: string;
+        content?: Array<{
+            type: string;
+            text?: string;
+            name?: string;      // Tool name
+            input?: Record<string, unknown>; // Tool input
+        }>;
     };
 }
 
@@ -83,6 +89,11 @@ interface CursorExecutionResult {
 
 class CursorAdapter implements AgentLibraryAdapter {
     readonly name = 'cursor';
+
+    get model(): string {
+        return getModelForLibrary('cursor');
+    }
+
     readonly capabilities: AgentLibraryCapabilities = {
         streaming: true,
         fileRead: true,
@@ -90,6 +101,7 @@ class CursorAdapter implements AgentLibraryAdapter {
         webFetch: false, // Cursor CLI does not support web fetch
         customTools: false, // Cursor uses its own tool set
         timeout: true,
+        planMode: true, // Cursor supports --mode=plan
     };
 
     private initialized = false;
@@ -102,15 +114,15 @@ class CursorAdapter implements AgentLibraryAdapter {
                 suppressOutput: true,
             });
             if (exitCode !== 0) {
-                throw new Error('cursor-agent command returned non-zero exit code');
+                throw new Error('CLI not installed (cursor-agent --version failed)');
             }
         } catch (error) {
-            throw new Error(
-                `Cursor CLI not available. Please install it:\n` +
-                `  curl https://cursor.com/install -fsS | bash\n` +
-                `Then login: cursor-agent login\n` +
-                `Error: ${error instanceof Error ? error.message : String(error)}`
-            );
+            const innerError = error instanceof Error ? error.message : String(error);
+            // Check if it's our own error or a spawn error
+            if (innerError.includes('CLI not installed')) {
+                throw error;
+            }
+            throw new Error(`CLI not installed (${innerError}). Run: curl https://cursor.com/install -fsS | bash`);
         }
 
         // Verify authentication status
@@ -120,15 +132,12 @@ class CursorAdapter implements AgentLibraryAdapter {
                 suppressOutput: true,
             });
             if (stdout.toLowerCase().includes('not logged in')) {
-                throw new Error(
-                    `Cursor CLI not authenticated. Please login:\n` +
-                    `  cursor-agent login`
-                );
+                throw new Error('Not authenticated. Run: cursor-agent login');
             }
             this.initialized = true;
         } catch (error) {
             // If status check fails with auth error, throw it
-            if (error instanceof Error && error.message.includes('not authenticated')) {
+            if (error instanceof Error && error.message.includes('Not authenticated')) {
                 throw error;
             }
             // Otherwise, assume status command isn't available and proceed
@@ -147,6 +156,7 @@ class CursorAdapter implements AgentLibraryAdapter {
             stream = false,
             timeout = DEFAULT_TIMEOUT_SECONDS,
             progressLabel = 'Processing',
+            planMode = false,
         } = options;
 
         const startTime = Date.now();
@@ -161,6 +171,7 @@ class CursorAdapter implements AgentLibraryAdapter {
         const args = this.buildArgs(prompt, {
             allowWrite,
             stream,
+            planMode,
         });
 
         // Log prompt if context is available
@@ -397,20 +408,29 @@ class CursorAdapter implements AgentLibraryAdapter {
     private buildArgs(prompt: string, options: {
         allowWrite?: boolean;
         stream?: boolean;
+        planMode?: boolean;
     }): string[] {
         const args = [prompt];
 
         // Use -p (print) for non-interactive mode
         args.push('-p');
 
-        // Specify model
-        args.push('--model', DEFAULT_MODEL);
+        // Specify model from config
+        args.push('--model', this.model);
 
         // Output format: stream-json for streaming, json for non-streaming
         args.push('--output-format', options.stream ? 'stream-json' : 'json');
 
-        // Allow write operations
-        if (options.allowWrite) {
+        // Enable partial output streaming for real-time text output
+        if (options.stream) {
+            args.push('--stream-partial-output');
+        }
+
+        // Plan mode for read-only exploration (overrides allowWrite)
+        if (options.planMode) {
+            args.push('--mode=plan');
+        } else if (options.allowWrite) {
+            // Allow write operations (only if not in plan mode)
             args.push('--force');
         }
 
@@ -600,6 +620,24 @@ class CursorAdapter implements AgentLibraryAdapter {
         try {
             const event = JSON.parse(line) as CursorStreamEvent;
             if (event && typeof event === 'object' && 'type' in event) {
+                // Transform assistant message events to text events for easier handling
+                if (event.type === 'assistant' && event.message?.content) {
+                    for (const block of event.message.content) {
+                        if (block.type === 'text' && block.text) {
+                            // Emit as text event
+                            onEvent({ type: 'text', content: block.text, session_id: event.session_id });
+                        } else if (block.type === 'tool_use' && block.name) {
+                            // Emit as tool_use event
+                            onEvent({
+                                type: 'tool_use',
+                                name: block.name,
+                                input: block.input,
+                                session_id: event.session_id,
+                            });
+                        }
+                    }
+                    return;
+                }
                 onEvent(event);
             }
         } catch {

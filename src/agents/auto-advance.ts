@@ -6,6 +6,7 @@
  * This is simple JavaScript - no AI/Claude involved.
  *
  * Transitions:
+ *   - Product Development (Approved) → Product Design
  *   - Product Design (Approved) → Technical Design
  *   - Technical Design (Approved) → Implementation
  *   - Implementation (Approved) → Done
@@ -34,6 +35,7 @@ import { notifyAutoAdvance } from './shared/notifications';
  * Status transitions when Review Status = Approved
  */
 const STATUS_TRANSITIONS: Record<string, string> = {
+    [STATUSES.productDevelopment]: STATUSES.productDesign,
     [STATUSES.productDesign]: STATUSES.techDesign,
     [STATUSES.techDesign]: STATUSES.implementation,
     [STATUSES.implementation]: STATUSES.done,

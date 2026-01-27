@@ -40,6 +40,8 @@ import {
     type ProjectItem,
     // Claude
     runAgent,
+    getLibraryForWorkflow,
+    getModelForWorkflow,
     extractProductDesign,
     extractTechDesign,
     // Notifications
@@ -88,6 +90,14 @@ import {
     readDesignDoc,
 } from '../../lib/design-files';
 import {
+    PLAYWRIGHT_MCP_CONFIG,
+    PLAYWRIGHT_TOOLS,
+    isPlaywrightMCPAvailable,
+    startDevServer,
+    stopDevServer,
+    type DevServerState,
+} from '../../lib';
+import {
     createLogContext,
     runWithLogContext,
     logExecutionStart,
@@ -124,6 +134,7 @@ interface ProcessableItem {
 interface ImplementOptions extends CommonCLIOptions {
     skipPush?: boolean;
     skipPull?: boolean;
+    skipLocalTest?: boolean;
 }
 
 // ============================================================
@@ -295,6 +306,10 @@ async function processItem(
     // Detect issue type and load bug diagnostics if applicable
     const issueType = getIssueType(content.labels);
 
+    // Get library and model for logging
+    const library = getLibraryForWorkflow('implementation');
+    const model = await getModelForWorkflow('implementation');
+
     // Create log context
     const logCtx = createLogContext({
         issueNumber,
@@ -305,6 +320,8 @@ async function processItem(
         issueType,
         currentStatus: item.status,
         currentReviewStatus: item.reviewStatus,
+        library,
+        model,
     });
 
     return runWithLogContext(logCtx, async () => {
@@ -531,6 +548,8 @@ ${currentPhase > 1 ? `\n**Note:** This builds on previous phases that have alrea
 `;
                 prompt = prompt + phaseContext;
             }
+
+            // Local testing instructions are added later after dev server is started
         } else if (mode === 'feedback') {
             // Flow B: Address feedback
             if (!processable.prNumber) {
@@ -614,6 +633,72 @@ ${currentPhase > 1 ? `\n**Note:** This builds on previous phases that have alrea
             }
         }
 
+        // Determine if local testing is enabled for this run
+        // Check: config enabled + not skipped + new mode + Playwright MCP available
+        const playwrightAvailable = isPlaywrightMCPAvailable();
+        const enableLocalTesting = agentConfig.localTesting.enabled &&
+            !options.skipLocalTest &&
+            mode === 'new' &&
+            playwrightAvailable;
+
+        if (agentConfig.localTesting.enabled && !options.skipLocalTest && mode === 'new' && !playwrightAvailable) {
+            const mcpWarning = 'Local testing disabled: @playwright/mcp not installed. To enable: yarn add -D @playwright/mcp';
+            console.log(`  ⚠️ ${mcpWarning}`);
+            // Log to issue logger (non-fatal)
+            logError(logCtx, mcpWarning, false);
+        }
+
+        // Start dev server for local testing (if enabled)
+        let devServer: DevServerState | null = null;
+        if (enableLocalTesting && !options.dryRun) {
+            console.log('\n  🧪 Starting dev server for local testing...');
+            try {
+                devServer = await startDevServer({
+                    cwd: process.cwd(),
+                    startupTimeout: agentConfig.localTesting.devServerStartupTimeout,
+                });
+
+                // Add local testing instructions with the dev server URL
+                // Language is deliberately soft - if MCP tools fail, agent can still complete
+                const localTestContext = `
+
+## LOCAL TESTING (Optional but Recommended)
+
+A dev server is running at: **${devServer.url}**
+
+After implementing the feature and running \`yarn checks\`, try to verify your implementation using Playwright MCP tools if they are available:
+
+1. **Navigate to the app**: Use \`mcp__playwright__browser_navigate\` to go to ${devServer.url}
+2. **Take a snapshot**: Use \`mcp__playwright__browser_snapshot\` to see the page structure
+3. **Test the feature**: Interact with the feature you implemented
+4. **Verify it works**: Confirm the expected behavior occurs
+5. **Close browser**: Use \`mcp__playwright__browser_close\` when done
+
+**Playwright MCP Tools (if available):**
+- \`mcp__playwright__browser_navigate\` - Navigate to URLs
+- \`mcp__playwright__browser_snapshot\` - Capture page DOM/accessibility tree
+- \`mcp__playwright__browser_click\` - Click elements
+- \`mcp__playwright__browser_type\` - Type text into inputs
+- \`mcp__playwright__browser_close\` - Close browser
+
+**IMPORTANT:**
+- The dev server is already running - do NOT run \`yarn dev\`
+- The browser runs in headless mode (no visible window)
+- Focus on happy-path verification only
+- **If MCP tools fail or are unavailable, proceed without local testing** - this is not a blocker
+- If you can test and it passes, include test results in your PR summary
+- If you cannot test (tools unavailable), mention that in PR summary
+`;
+                prompt = prompt + localTestContext;
+            } catch (error) {
+                const devServerError = `Failed to start dev server: ${error instanceof Error ? error.message : String(error)}`;
+                console.log(`  ⚠️ ${devServerError}`);
+                console.log('  Continuing without local testing...');
+                // Log to issue logger (non-fatal - implementation continues)
+                logError(logCtx, `Local testing skipped: ${devServerError}`, false);
+            }
+        }
+
         // Run the agent (WRITE mode)
         console.log('');
         const progressLabel = mode === 'new'
@@ -622,16 +707,29 @@ ${currentPhase > 1 ? `\n**Note:** This builds on previous phases that have alrea
             ? 'Addressing feedback'
             : 'Continuing with clarification';
 
-        const result = await runAgent({
-            prompt,
-            stream: options.stream,
-            verbose: options.verbose,
-            timeout: options.timeout,
-            progressLabel,
-            allowWrite: true, // Enable write mode
-            workflow: 'implementation',
-            outputFormat: IMPLEMENTATION_OUTPUT_FORMAT,
-        });
+        let result;
+        try {
+            result = await runAgent({
+                prompt,
+                stream: options.stream,
+                verbose: options.verbose,
+                timeout: options.timeout,
+                progressLabel,
+                allowWrite: true, // Enable write mode
+                workflow: 'implementation',
+                outputFormat: IMPLEMENTATION_OUTPUT_FORMAT,
+                // Add Playwright MCP for local testing (only if dev server is running)
+                ...(devServer ? {
+                    mcpServers: PLAYWRIGHT_MCP_CONFIG,
+                    additionalTools: PLAYWRIGHT_TOOLS,
+                } : {}),
+            });
+        } finally {
+            // Always stop dev server if it was started
+            if (devServer) {
+                stopDevServer(devServer);
+            }
+        }
 
         if (!result.success) {
             const error = result.error || 'Implementation failed';
@@ -1062,6 +1160,7 @@ async function main(): Promise<void> {
         .option('--verbose', 'Show additional debug output', false)
         .option('--skip-push', 'Skip pushing to remote (for testing)', false)
         .option('--skip-pull', 'Skip pulling latest changes from master', false)
+        .option('--skip-local-test', 'Skip local testing with Playwright MCP', false)
         .parse(process.argv);
 
     const opts = program.opts();
@@ -1074,6 +1173,7 @@ async function main(): Promise<void> {
         stream: Boolean(opts.stream),
         skipPush: Boolean(opts.skipPush),
         skipPull: Boolean(opts.skipPull),
+        skipLocalTest: Boolean(opts.skipLocalTest),
     };
 
     console.log('\n========================================');

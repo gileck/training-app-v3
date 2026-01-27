@@ -14,7 +14,7 @@ import type { UsageStats } from '../shared/types';
 /**
  * Available workflow names for library selection
  */
-export type WorkflowName = 'product-design' | 'tech-design' | 'implementation' | 'pr-review';
+export type WorkflowName = 'product-dev' | 'product-design' | 'tech-design' | 'implementation' | 'pr-review';
 
 // ============================================================
 // AGENT LIBRARY ADAPTER INTERFACE
@@ -36,6 +36,17 @@ export interface AgentLibraryCapabilities {
     customTools: boolean;
     /** Supports timeout configuration */
     timeout: boolean;
+    /** Supports plan mode for creating implementation plans */
+    planMode?: boolean;
+}
+
+/**
+ * MCP Server configuration
+ */
+export interface MCPServerConfig {
+    command: string;
+    args: string[];
+    env?: Record<string, string>;
 }
 
 /**
@@ -65,6 +76,14 @@ export interface AgentRunOptions {
         type: 'json_schema';
         schema: Record<string, unknown>;
     };
+    /** Run in plan mode (read-only exploration to create implementation plan) */
+    planMode?: boolean;
+    /** MCP servers to connect to (e.g., Playwright MCP for browser automation) */
+    mcpServers?: Record<string, MCPServerConfig>;
+    /** Additional tools to allow (added to default tools) */
+    additionalTools?: string[];
+    /** Maximum number of agent turns (overrides default) */
+    maxTurns?: number;
 }
 
 /**
@@ -96,6 +115,9 @@ export interface AgentRunResult {
 export interface AgentLibraryAdapter {
     /** Library name (e.g., "claude-code-sdk", "cursor", "gemini") */
     readonly name: string;
+
+    /** LLM model used by this adapter (e.g., "sonnet", "opus-4.5", "gemini-pro") */
+    readonly model: string;
 
     /** Library capabilities */
     readonly capabilities: AgentLibraryCapabilities;

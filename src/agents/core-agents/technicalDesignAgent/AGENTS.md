@@ -137,11 +137,44 @@ The agent processes items that match:
 
 ### Flow B: New Design (Bugs)
 
-Same as Flow A, but:
-- Uses `buildBugTechDesignPrompt()` instead
-- Includes bug diagnostics in prompt
-- Warns if diagnostics are missing
+Same as Flow A, but with a **different prompt structure** focused on root cause analysis:
+
+**Key Differences:**
+- Uses `buildBugTechDesignPrompt()` instead of `buildTechDesignPrompt()`
+- Includes bug diagnostics (session logs, stack trace, browser info) in prompt
+- Warns admin if diagnostics are missing
 - Usually single-phase (no phase breakdown)
+
+**Bug Design 3-Step Process:**
+
+The bug prompt enforces a strict 3-step process:
+
+1. **Step 1: INVESTIGATE** (Required - Cannot Skip)
+   - Trace the exact failure path using stack trace and logs
+   - Identify what input/state triggers the bug
+   - Find the actual root cause (specific code that behaves incorrectly)
+   - **Gate:** Must identify root cause before proceeding
+
+2. **Step 2: SCOPE** (Required)
+   - Search for similar patterns in codebase using Grep
+   - List ALL affected locations (not just the one in bug report)
+   - Note: "This bug affects N locations that need the same fix"
+
+3. **Step 3: DESIGN** (Only after Steps 1-2)
+   - Primary: Plan fix for the root cause
+   - Primary: Plan fix for ALL similar patterns found in Step 2
+   - Secondary: Improve error handling/logging (observability, not the fix)
+
+**Important Distinction:**
+- Adding logging/error messages is valuable for OBSERVABILITY but does not FIX the bug
+- The design must explain WHAT CODE TO CHANGE to make the bug stop happening
+- "Add better error logging" is a secondary improvement, not the primary fix
+
+**Required Output Sections for Bugs:**
+1. Root Cause Analysis (from Step 1)
+2. Scope Assessment (from Step 2)
+3. Fix Approach (from Step 3)
+4. Files to Modify
 
 ### Flow C: Address Feedback
 
@@ -618,12 +651,14 @@ import {
 
 ### Prompts Location
 
-**Files:**
-- `src/agents/shared/prompts/tech-design.ts` - buildTechDesignPrompt()
-- `src/agents/shared/prompts/tech-design-revision.ts` - buildTechDesignRevisionPrompt()
-- `src/agents/shared/prompts/tech-design-clarification.ts` - buildTechDesignClarificationPrompt()
-- `src/agents/shared/prompts/bug-tech-design.ts` - buildBugTechDesignPrompt()
-- `src/agents/shared/prompts/bug-tech-design-revision.ts` - buildBugTechDesignRevisionPrompt()
+**File:** `src/agents/shared/prompts.ts`
+
+**Functions:**
+- `buildTechDesignPrompt()` - Feature tech design (standard flow)
+- `buildTechDesignRevisionPrompt()` - Feature revision based on feedback
+- `buildTechDesignClarificationPrompt()` - Continue after admin clarification
+- `buildBugTechDesignPrompt()` - Bug tech design (3-step process: Investigate → Scope → Design)
+- `buildBugTechDesignRevisionPrompt()` - Bug revision with principles reminder
 
 ### Phase Utilities Location
 

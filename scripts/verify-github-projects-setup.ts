@@ -519,6 +519,47 @@ async function checkGitHubProject(): Promise<CategoryResults> {
         details: [`Project: ${owner}/projects/${projectNumber}`]
     });
 
+    // Verify Status field (columns) has all required options
+    if (token) {
+        try {
+            // Use dynamic import to avoid loading server code at script load time
+            const { getProjectManagementAdapter } = await import('../src/server/project-management/index.js');
+            const { STATUSES } = await import('../src/server/project-management/config.js');
+
+            const adapter = getProjectManagementAdapter();
+            await adapter.init();
+
+            const availableStatuses = await adapter.getAvailableStatuses();
+            const requiredStatuses = Object.values(STATUSES);
+            const missingStatuses = requiredStatuses.filter(s => !availableStatuses.includes(s));
+
+            if (missingStatuses.length === 0) {
+                checks.push({
+                    passed: true,
+                    message: `Status field has all 7 columns ✓`,
+                    details: availableStatuses.map(s => `  - ${s}`)
+                });
+            } else {
+                checks.push({
+                    passed: false,
+                    message: `Status field missing ${missingStatuses.length} column(s)`,
+                    details: [
+                        'Missing columns:',
+                        ...missingStatuses.map(s => `  - ${s}`),
+                        '',
+                        'Go to your GitHub Project → Add missing columns with exact names above'
+                    ]
+                });
+            }
+        } catch (error) {
+            checks.push({
+                passed: false,
+                message: 'Could not verify Status field columns',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`]
+            });
+        }
+    }
+
     // Verify Review Status field has all required options
     if (token) {
         try {

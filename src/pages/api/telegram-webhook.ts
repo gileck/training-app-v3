@@ -139,8 +139,8 @@ async function editMessageTextWithExtra(
     const emoji = ACTION_EMOJIS[action];
     const label = ACTION_LABELS[action];
 
-    // Append the action to the original message
-    const newText = `${originalText}\n\n${emoji} <b>${label}</b>${extraInfo}`;
+    // Append the action to the original message (escape originalText for HTML safety)
+    const newText = `${escapeHtml(originalText)}\n\n${emoji} <b>${label}</b>${extraInfo}`;
 
     await fetch(`${TELEGRAM_API_URL}${botToken}/editMessageText`, {
         method: 'POST',
@@ -172,7 +172,8 @@ async function editMessageWithResult(
     const emoji = success ? '✅' : '❌';
     const status = success ? 'Approved' : 'Error';
 
-    let newText = `${originalText}\n\n${emoji} <b>${status}</b>\n${resultMessage}`;
+    // Escape originalText for HTML safety
+    let newText = `${escapeHtml(originalText)}\n\n${emoji} <b>${status}</b>\n${resultMessage}`;
     if (linkUrl) {
         newText += `\n\n🔗 <a href="${linkUrl}">View GitHub Issue</a>`;
     }
@@ -212,6 +213,46 @@ async function editMessageText(
             disable_web_page_preview: true,
         }),
     });
+}
+
+/**
+ * Escape HTML special characters for Telegram HTML mode
+ */
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Parse and validate callback data with defensive parsing
+ * Handles whitespace, case normalization, and type validation
+ */
+function parseCallbackData(callbackData: string) {
+    const trimmed = callbackData.trim();
+    const parts = trimmed.split(':').map(p => p.trim());
+    const action = parts[0]?.toLowerCase() || '';
+
+    return {
+        action,
+        parts,
+        /**
+         * Safely parse an integer from a callback data part
+         * Returns null if the value is invalid, NaN, or missing
+         */
+        getInt: (index: number): number | null => {
+            const val = parseInt(parts[index]?.trim() || '', 10);
+            return isNaN(val) || !val ? null : val;
+        },
+        /**
+         * Safely get a string from a callback data part
+         * Returns empty string if missing
+         */
+        getString: (index: number): string => parts[index]?.trim() || '',
+    };
 }
 
 /**
@@ -404,7 +445,8 @@ async function editMessageWithRouting(
     originalText: string,
     destination: string
 ): Promise<void> {
-    const newText = `${originalText}\n\n✅ <b>Routed to: ${destination}</b>`;
+    // Escape originalText for HTML safety
+    const newText = `${escapeHtml(originalText)}\n\n✅ <b>Routed to: ${destination}</b>`;
 
     await fetch(`${TELEGRAM_API_URL}${botToken}/editMessageText`, {
         method: 'POST',
@@ -437,7 +479,9 @@ async function handleFeatureRouting(
     }
 
     // Map destination to GitHub Project status
+    // Note: 'product-dev' is only for features, bugs skip this phase
     const statusMap: Record<string, string> = {
+        'product-dev': STATUSES.productDevelopment,
         'product-design': STATUSES.productDesign,
         'tech-design': STATUSES.techDesign,
         'implementation': STATUSES.implementation,
@@ -461,6 +505,7 @@ async function handleFeatureRouting(
 
     // Acknowledge callback
     const destinationLabels: Record<string, string> = {
+        'product-dev': 'Product Development',
         'product-design': 'Product Design',
         'tech-design': 'Technical Design',
         'implementation': 'Ready for Development',
@@ -741,7 +786,7 @@ async function handleClarificationReceived(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
-                originalText + statusUpdate,
+                escapeHtml(originalText) + statusUpdate,
                 'HTML'
             );
         }
@@ -1041,7 +1086,7 @@ async function handleMergeCallback(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
-                originalText + statusUpdate,
+                escapeHtml(originalText) + statusUpdate,
                 'HTML'
             );
         }
@@ -1078,7 +1123,7 @@ Run <code>yarn agent:implement</code> to continue.`;
 /**
  * Handle design PR approval callback
  * Callback format: "design_approve:prNumber:issueNumber:type"
- * where type is "product" or "tech"
+ * where type is "product-dev", "product", or "tech"
  *
  * Actions:
  * 1. Merge the design PR (squash)
@@ -1091,21 +1136,26 @@ async function handleDesignPRApproval(
     callbackQuery: TelegramCallbackQuery,
     prNumber: number,
     issueNumber: number,
-    designType: 'product' | 'tech'
+    designType: 'product-dev' | 'product' | 'tech'
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const adapter = getProjectManagementAdapter();
         await adapter.init();
 
         // Log phase start
-        const designLabel = designType === 'product' ? 'Product Design' : 'Technical Design';
+        const designLabel = designType === 'product-dev'
+            ? 'Product Development'
+            : designType === 'product'
+                ? 'Product Design'
+                : 'Technical Design';
         if (logExists(issueNumber)) {
             logWebhookPhaseStart(issueNumber, `${designLabel} PR Merge`, 'telegram');
         }
 
         // 1. Generate commit message for design PR
-        const commitTitle = `docs: ${designType} design for issue #${issueNumber}`;
-        const commitBody = `Approved ${designType} design document.\n\nPart of #${issueNumber}`;
+        const docType = designType === 'product-dev' ? 'product development' : designType;
+        const commitTitle = `docs: ${docType} for issue #${issueNumber}`;
+        const commitBody = `Approved ${docType} document.\n\nPart of #${issueNumber}`;
 
         // 2. Merge the design PR
         await adapter.mergePullRequest(prNumber, commitTitle, commitBody);
@@ -1118,20 +1168,31 @@ async function handleDesignPRApproval(
             });
         }
 
-        // 3. Update artifact comment on issue
-        const isProductDesign = designType === 'product';
-        await updateDesignArtifact(adapter, issueNumber, {
-            type: isProductDesign ? 'product-design' : 'tech-design',
-            path: getDesignDocLink(issueNumber, designType),
-            status: 'approved',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            prNumber,
-        });
-        console.log(`Telegram webhook: updated design artifact for issue #${issueNumber}`);
+        // 3. Update artifact comment on issue (only for product/tech, not product-dev)
+        // Product Development documents don't need artifact tracking - they're just context for Product Design
+        if (designType !== 'product-dev') {
+            const isProductDesign = designType === 'product';
+            await updateDesignArtifact(adapter, issueNumber, {
+                type: isProductDesign ? 'product-design' : 'tech-design',
+                path: getDesignDocLink(issueNumber, designType),
+                status: 'approved',
+                lastUpdated: new Date().toISOString().split('T')[0],
+                prNumber,
+            });
+            console.log(`Telegram webhook: updated design artifact for issue #${issueNumber}`);
+        }
 
         // 4. Advance status to next phase
-        const nextPhase = designType === 'product' ? STATUSES.techDesign : STATUSES.implementation;
-        const nextPhaseLabel = designType === 'product' ? 'Tech Design' : 'Implementation';
+        const nextPhase = designType === 'product-dev'
+            ? STATUSES.productDesign
+            : designType === 'product'
+                ? STATUSES.techDesign
+                : STATUSES.implementation;
+        const nextPhaseLabel = designType === 'product-dev'
+            ? 'Product Design'
+            : designType === 'product'
+                ? 'Tech Design'
+                : 'Implementation';
 
         // Find and update the project item
         const item = await findItemByIssueNumber(adapter, issueNumber);
@@ -1219,7 +1280,7 @@ async function handleDesignPRApproval(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
-                originalText + statusUpdate,
+                escapeHtml(originalText) + statusUpdate,
                 'HTML'
             );
         }
@@ -1238,7 +1299,7 @@ async function handleDesignPRApproval(
 /**
  * Handle design PR request changes callback
  * Callback format: "design_changes:prNumber:issueNumber:type"
- * where type is "product" or "tech"
+ * where type is "product-dev", "product", or "tech"
  *
  * Actions:
  * 1. Update review status to "Request Changes"
@@ -1249,7 +1310,7 @@ async function handleDesignPRRequestChanges(
     callbackQuery: TelegramCallbackQuery,
     prNumber: number,
     issueNumber: number,
-    designType: 'product' | 'tech'
+    designType: 'product-dev' | 'product' | 'tech'
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const adapter = getProjectManagementAdapter();
@@ -1265,7 +1326,11 @@ async function handleDesignPRRequestChanges(
         await adapter.updateItemReviewStatus(item.itemId, REVIEW_STATUSES.requestChanges);
 
         // Log the request changes action
-        const designLabel = designType === 'product' ? 'Product Design' : 'Technical Design';
+        const designLabel = designType === 'product-dev'
+            ? 'Product Development'
+            : designType === 'product'
+                ? 'Product Design'
+                : 'Technical Design';
         if (logExists(issueNumber)) {
             logWebhookAction(issueNumber, 'design_changes_requested', `Changes requested on ${designLabel} PR #${prNumber}`, {
                 prNumber,
@@ -1294,7 +1359,7 @@ async function handleDesignPRRequestChanges(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
-                originalText + statusUpdate,
+                escapeHtml(originalText) + statusUpdate,
                 'HTML'
             );
         }
@@ -1363,7 +1428,7 @@ async function handleRequestChangesCallback(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
-                originalText + statusUpdate,
+                escapeHtml(originalText) + statusUpdate,
                 'HTML'
             );
         }
@@ -1409,17 +1474,24 @@ export default async function handler(
         return res.status(200).json({ ok: true });
     }
 
-    // Parse callback data - supports multiple formats:
-    // - "approve_request:requestId" - Initial feature request approval
-    // - "action:issueNumber" - Design review actions
-    const parts = callbackData.split(':');
-    const action = parts[0];
+    // Parse callback data with defensive parsing
+    const parsed = parseCallbackData(callbackData);
+    const { action, parts } = parsed;
 
     try {
         // Route to appropriate handler based on action type
         if (action === 'approve_request' && parts.length === 2) {
             // Initial feature request approval: "approve_request:requestId"
-            const [, requestId] = parts;
+            const requestId = parsed.getString(1);
+
+            if (!requestId) {
+                console.error('Telegram webhook: Invalid approve_request callback data', {
+                    callbackData,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid request ID');
+                return res.status(200).json({ ok: true });
+            }
             const result = await handleFeatureRequestApproval(
                 botToken,
                 callback_query,
@@ -1452,7 +1524,16 @@ export default async function handler(
 
         // Bug report approval: "approve_bug:reportId"
         if (action === 'approve_bug' && parts.length === 2) {
-            const [, reportId] = parts;
+            const reportId = parsed.getString(1);
+
+            if (!reportId) {
+                console.error('Telegram webhook: Invalid approve_bug callback data', {
+                    callbackData,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid report ID');
+                return res.status(200).json({ ok: true });
+            }
             const result = await handleBugReportApproval(
                 botToken,
                 callback_query,
@@ -1485,7 +1566,19 @@ export default async function handler(
 
         // Feature routing: "route_feature:requestId:destination"
         if (action === 'route_feature' && parts.length === 3) {
-            const [, requestId, destination] = parts;
+            const requestId = parsed.getString(1);
+            const destination = parsed.getString(2);
+
+            if (!requestId || !destination) {
+                console.error('Telegram webhook: Invalid route_feature callback data', {
+                    callbackData,
+                    requestId,
+                    destination,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid routing data');
+                return res.status(200).json({ ok: true });
+            }
             const result = await handleFeatureRouting(
                 botToken,
                 callback_query,
@@ -1506,7 +1599,19 @@ export default async function handler(
 
         // Bug routing: "route_bug:reportId:destination"
         if (action === 'route_bug' && parts.length === 3) {
-            const [, reportId, destination] = parts;
+            const reportId = parsed.getString(1);
+            const destination = parsed.getString(2);
+
+            if (!reportId || !destination) {
+                console.error('Telegram webhook: Invalid route_bug callback data', {
+                    callbackData,
+                    reportId,
+                    destination,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid routing data');
+                return res.status(200).json({ ok: true });
+            }
             const result = await handleBugRouting(
                 botToken,
                 callback_query,
@@ -1527,9 +1632,14 @@ export default async function handler(
 
         // Design review actions: "approve:123", "changes:123", "reject:123"
         if (['approve', 'changes', 'reject'].includes(action) && parts.length === 2) {
-            const issueNumber = parseInt(parts[1], 10);
+            const issueNumber = parsed.getInt(1);
 
             if (!issueNumber) {
+                console.error('Telegram webhook: Invalid design review callback data', {
+                    callbackData,
+                    action,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue number');
                 return res.status(200).json({ ok: true });
             }
@@ -1554,9 +1664,13 @@ export default async function handler(
 
         // Clarification received: "clarified:123"
         if (action === 'clarified' && parts.length === 2) {
-            const issueNumber = parseInt(parts[1], 10);
+            const issueNumber = parsed.getInt(1);
 
             if (!issueNumber) {
+                console.error('Telegram webhook: Invalid clarified callback data', {
+                    callbackData,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue number');
                 return res.status(200).json({ ok: true });
             }
@@ -1580,10 +1694,16 @@ export default async function handler(
 
         // Merge PR: "merge:issueNumber:prNumber"
         if (action === 'merge' && parts.length === 3) {
-            const issueNumber = parseInt(parts[1], 10);
-            const prNumber = parseInt(parts[2], 10);
+            const issueNumber = parsed.getInt(1);
+            const prNumber = parsed.getInt(2);
 
             if (!issueNumber || !prNumber) {
+                console.error('Telegram webhook: Invalid merge callback data', {
+                    callbackData,
+                    issueNumber,
+                    prNumber,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue or PR number');
                 return res.status(200).json({ ok: true });
             }
@@ -1610,10 +1730,16 @@ export default async function handler(
 
         // Request changes (admin requests changes after approval): "reqchanges:issueNumber:prNumber"
         if (action === 'reqchanges' && parts.length === 3) {
-            const issueNumber = parseInt(parts[1], 10);
-            const prNumber = parseInt(parts[2], 10);
+            const issueNumber = parsed.getInt(1);
+            const prNumber = parsed.getInt(2);
 
             if (!issueNumber || !prNumber) {
+                console.error('Telegram webhook: Invalid reqchanges callback data', {
+                    callbackData,
+                    issueNumber,
+                    prNumber,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue or PR number');
                 return res.status(200).json({ ok: true });
             }
@@ -1640,11 +1766,18 @@ export default async function handler(
 
         // Design PR approval: "design_approve:prNumber:issueNumber:type"
         if (action === 'design_approve' && parts.length === 4) {
-            const prNumber = parseInt(parts[1], 10);
-            const issueNumber = parseInt(parts[2], 10);
-            const designType = parts[3] as 'product' | 'tech';
+            const prNumber = parsed.getInt(1);
+            const issueNumber = parsed.getInt(2);
+            const designType = parsed.getString(3).toLowerCase() as 'product-dev' | 'product' | 'tech';
 
-            if (!prNumber || !issueNumber || !['product', 'tech'].includes(designType)) {
+            if (!prNumber || !issueNumber || !['product-dev', 'product', 'tech'].includes(designType)) {
+                console.error('Telegram webhook: Invalid design_approve callback data', {
+                    callbackData,
+                    prNumber,
+                    issueNumber,
+                    designType,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid callback data');
                 return res.status(200).json({ ok: true });
             }
@@ -1672,11 +1805,18 @@ export default async function handler(
 
         // Design PR request changes: "design_changes:prNumber:issueNumber:type"
         if (action === 'design_changes' && parts.length === 4) {
-            const prNumber = parseInt(parts[1], 10);
-            const issueNumber = parseInt(parts[2], 10);
-            const designType = parts[3] as 'product' | 'tech';
+            const prNumber = parsed.getInt(1);
+            const issueNumber = parsed.getInt(2);
+            const designType = parsed.getString(3).toLowerCase() as 'product-dev' | 'product' | 'tech';
 
-            if (!prNumber || !issueNumber || !['product', 'tech'].includes(designType)) {
+            if (!prNumber || !issueNumber || !['product-dev', 'product', 'tech'].includes(designType)) {
+                console.error('Telegram webhook: Invalid design_changes callback data', {
+                    callbackData,
+                    prNumber,
+                    issueNumber,
+                    designType,
+                    parts,
+                });
                 await answerCallbackQuery(botToken, callback_query.id, 'Invalid callback data');
                 return res.status(200).json({ ok: true });
             }
@@ -1702,8 +1842,63 @@ export default async function handler(
             return res.status(200).json({ ok: true });
         }
 
-        // Unknown action
-        await answerCallbackQuery(botToken, callback_query.id, 'Unknown action');
+        // Unknown action - log for debugging
+        console.error('Telegram webhook: Unknown action received', {
+            callbackData: callbackData,
+            action: action,
+            parts: parts,
+            partsLength: parts.length,
+            callbackQueryId: callback_query.id,
+            userId: callback_query.from.id,
+            username: callback_query.from.username,
+            messageId: callback_query.message?.message_id,
+            timestamp: new Date().toISOString(),
+        });
+
+        await answerCallbackQuery(
+            botToken,
+            callback_query.id,
+            `⚠️ Unknown action: ${callbackData.length > 50 ? `${callbackData.slice(0, 50)}...` : callbackData}`
+        );
+
+        // Edit message to show error details
+        if (callback_query.message) {
+            const originalText = callback_query.message.text || '';
+            const errorMarkerPlainText = '⚠️ Unknown Action';
+
+            // Prevent duplicate error messages if user clicks multiple times
+            if (originalText.includes(errorMarkerPlainText)) {
+                return res.status(200).json({ ok: true });
+            }
+
+            const errorDetails = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '⚠️ <b>Unknown Action</b>',
+                '',
+                `Received callback: <code>${escapeHtml(callbackData)}</code>`,
+                `Action parsed: <code>${escapeHtml(action)}</code>`,
+                '',
+                'This action is not recognized by the webhook handler.',
+                'Please try again or contact support if the issue persists.',
+            ].join('\n');
+
+            try {
+                await editMessageText(
+                    botToken,
+                    callback_query.message.chat.id,
+                    callback_query.message.message_id,
+                    escapeHtml(originalText) + errorDetails,
+                    'HTML'
+                );
+            } catch (editError) {
+                console.error('Failed to edit message for unknown action:', {
+                    error: editError instanceof Error ? editError.message : editError,
+                    callbackData: callbackData,
+                });
+            }
+        }
+
         return res.status(200).json({ ok: true });
     } catch (error) {
         console.error('Telegram webhook error:', error);

@@ -6,6 +6,7 @@
  * This ensures agents always run with the latest code and status configurations.
  *
  * Usage:
+ *   yarn github-workflows-agent --product-dev [options]       # Run product development agent (OPTIONAL)
  *   yarn github-workflows-agent --product-design [options]    # Run product design agent
  *   yarn github-workflows-agent --tech-design [options]       # Run technical design agent
  *   yarn github-workflows-agent --implement [options]         # Run implementation agent
@@ -22,6 +23,7 @@
  *   --stream          Stream Claude output (passed to agents only)
  *
  * Examples:
+ *   yarn github-workflows-agent --product-dev --dry-run
  *   yarn github-workflows-agent --product-design --dry-run
  *   yarn github-workflows-agent --tech-design --id PVTI_xxx
  *   yarn github-workflows-agent --all --dry-run
@@ -33,6 +35,7 @@ import { spawn, execSync } from 'child_process';
 import { resolve } from 'path';
 
 const SCRIPTS = {
+    'product-dev': resolve(__dirname, 'core-agents/productDevelopmentAgent/index.ts'),
     'product-design': resolve(__dirname, 'core-agents/productDesignAgent/index.ts'),
     'tech-design': resolve(__dirname, 'core-agents/technicalDesignAgent/index.ts'),
     'implement': resolve(__dirname, 'core-agents/implementAgent/index.ts'),
@@ -41,7 +44,7 @@ const SCRIPTS = {
 };
 
 // Order for --all flag
-const ALL_ORDER = ['auto-advance', 'product-design', 'tech-design', 'implement', 'pr-review'];
+const ALL_ORDER = ['auto-advance', 'product-dev', 'product-design', 'tech-design', 'implement', 'pr-review'];
 
 // ============================================================
 // GIT UTILITIES
@@ -113,6 +116,7 @@ function printUsage() {
 GitHub Workflows Agent - Master script for running all agent workflows
 
 Usage:
+  yarn github-workflows-agent --product-dev [options]       Run product development agent (OPTIONAL)
   yarn github-workflows-agent --product-design [options]    Run product design agent
   yarn github-workflows-agent --tech-design [options]       Run technical design agent
   yarn github-workflows-agent --implement [options]         Run implementation agent
@@ -129,6 +133,7 @@ Options:
   --stream          Stream Claude output (passed to agents only)
 
 Examples:
+  yarn github-workflows-agent --product-dev --dry-run
   yarn github-workflows-agent --product-design --dry-run
   yarn github-workflows-agent --tech-design --id PVTI_xxx
   yarn github-workflows-agent --all --dry-run
@@ -193,6 +198,8 @@ async function main() {
 
         if (arg === '--all') {
             scriptsToRun.push(...ALL_ORDER);
+        } else if (arg === '--product-dev') {
+            scriptsToRun.push('product-dev');
         } else if (arg === '--product-design') {
             scriptsToRun.push('product-design');
         } else if (arg === '--tech-design') {
@@ -214,7 +221,7 @@ async function main() {
     }
 
     if (scriptsToRun.length === 0) {
-        console.error('Error: No agent specified. Use --product-design, --tech-design, --implement, --pr-review, --auto-advance, or --all\n');
+        console.error('Error: No agent specified. Use --product-dev, --product-design, --tech-design, --implement, --pr-review, --auto-advance, or --all\n');
         printUsage();
         process.exit(1);
     }

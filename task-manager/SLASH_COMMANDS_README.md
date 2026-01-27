@@ -82,6 +82,64 @@ Output:
 
 ---
 
+### `/plan-task N`
+
+**Create an implementation plan for a task using the background Plan agent.**
+
+```
+In Claude Code:
+> /plan-task 17
+
+What Claude does:
+✅ Loads task details from task-manager/tasks/task-17.md
+✅ Reads CLAUDE.md and project guidelines for context
+✅ Launches a background Plan agent to explore the codebase
+✅ Creates detailed implementation plan with sub-tasks
+✅ Saves plan to task-manager/plans/task-17-plan.md
+✅ Updates task frontmatter with planFile reference
+✅ Displays plan summary and next steps
+
+Example:
+You: /plan-task 17
+
+Claude: Planning Task #17: Add QA Verification Step Using Playwright MCP
+
+[Plan agent explores codebase, identifies patterns, breaks down work...]
+
+✅ Plan created for Task #17!
+
+📋 Plan saved to: task-manager/plans/task-17-plan.md
+📝 Task updated with plan reference
+
+## Plan Summary
+Objective: Add automated QA step after PR merge...
+
+## Sub-tasks (7)
+- [ ] Research Playwright MCP tool capabilities
+- [ ] Add QA status to project types
+- [ ] Create QA agent with Playwright tools
+...
+
+💡 Next Steps:
+- Review the plan: cat task-manager/plans/task-17-plan.md
+- Start implementation: /start-task 17
+- The /start-task command will automatically use this plan
+```
+
+**When to use:**
+- Before starting M/L/XL tasks (recommended)
+- When you want a thorough plan before implementation
+- When task has significant unknowns
+- When exploring architecture is needed
+
+**Benefits over inline planning:**
+- Plan agent thoroughly explores codebase
+- Plan is saved to file for reference
+- `/start-task` will use the plan automatically
+- Plan can be reviewed and edited before implementation
+
+---
+
 ### `/start-task N`
 
 **Claude implements task N with complete workflow.**
@@ -235,7 +293,26 @@ Now you have:
 - Worktree: Task 2 implementation
 ```
 
-### Example 3: Review Before Implementing
+### Example 3: Plan Before Implementing (Recommended for M/L/XL tasks)
+
+```
+You: /task-list
+Claude: [Shows Task 17 is High priority, M size]
+
+You: /plan-task 17
+Claude: [Creates thorough plan with Plan agent]
+
+✅ Plan created for Task #17!
+📋 Plan saved to: task-manager/plans/task-17-plan.md
+
+[You review and optionally edit the plan]
+
+You: /start-task 17
+Claude: 📋 Using existing plan: task-manager/plans/task-17-plan.md
+[Implements following the plan's sub-tasks]
+```
+
+### Example 4: Review Before Implementing
 
 ```
 You: /task-list
@@ -260,6 +337,7 @@ Slash commands are markdown files in `.claude/commands/`:
 .claude/commands/
 ├── add-task.md            (/add-task)
 ├── task-list.md           (/task-list)
+├── plan-task.md           (/plan-task)
 ├── start-task.md          (/start-task)
 ├── start-task-worktree.md (/start-task-worktree)
 └── mark-task-as-done.md   (/mark-task-as-done)
@@ -433,6 +511,20 @@ yarn sync-children
 
 **Always** - Start every session with this to see priorities
 
+### Use `/plan-task`
+
+When:
+- ✅ Task is M, L, or XL size
+- ✅ Task has significant unknowns
+- ✅ You want a thorough codebase exploration first
+- ✅ You want to review the plan before implementation
+- ✅ Task touches multiple systems or files
+
+Avoid when:
+- ❌ Task is XS or S size (just use `/start-task`)
+- ❌ Task is well-understood and straightforward
+- ❌ You need implementation ASAP
+
 ### Use `/start-task`
 
 When:
@@ -441,6 +533,7 @@ When:
 - ✅ You want automated implementation
 - ✅ Task size is XS, S, or M
 - ✅ You trust Claude to implement
+- ✅ A plan already exists (from `/plan-task`)
 
 Avoid when:
 - ❌ Requirements are ambiguous

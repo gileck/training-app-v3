@@ -40,6 +40,8 @@ import {
     type ProjectItem,
     // Claude
     runAgent,
+    getLibraryForWorkflow,
+    getModelForWorkflow,
     extractMarkdown,
     // Notifications
     notifyDesignPRReady,
@@ -210,6 +212,10 @@ async function processItem(
         return { success: false, error: 'Bug reports skip Product Design by default' };
     }
 
+    // Get library and model for logging
+    const library = getLibraryForWorkflow('product-design');
+    const model = await getModelForWorkflow('product-design');
+
     // Create log context
     const logCtx = createLogContext({
         issueNumber,
@@ -220,6 +226,8 @@ async function processItem(
         issueType,
         currentStatus: item.status,
         currentReviewStatus: item.reviewStatus,
+        library,
+        model,
     });
 
     return runWithLogContext(logCtx, async () => {
@@ -250,6 +258,12 @@ async function processItem(
             // Check for existing design in file (for idempotency)
             const existingDesign = readDesignDoc(issueNumber, 'product');
 
+            // Check for Product Development Document (PDD) if this feature went through that phase
+            const productDevelopmentDoc = readDesignDoc(issueNumber, 'product-dev');
+            if (productDevelopmentDoc) {
+                console.log('  Found Product Development Document (PDD) - will use as context');
+            }
+
             let prompt: string;
 
             if (mode === 'new') {
@@ -260,7 +274,7 @@ async function processItem(
                     console.log('  If you want to regenerate, use feedback mode or manually remove the existing design');
                     return { success: false, error: 'Product design file already exists (idempotency check)' };
                 }
-                prompt = buildProductDesignPrompt(content, issueComments);
+                prompt = buildProductDesignPrompt(content, productDevelopmentDoc, issueComments);
             } else if (mode === 'feedback') {
                 // Flow B: Address feedback
                 if (!existingDesign) {

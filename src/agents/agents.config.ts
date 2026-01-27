@@ -1,8 +1,8 @@
 /**
  * Agents Configuration
  *
- * Single source of truth for agent library selection.
- * Modify this file to configure which library each workflow uses.
+ * Single source of truth for agent library and model selection.
+ * Modify this file to configure which library and model each workflow uses.
  */
 
 import type { WorkflowName } from './lib/types';
@@ -12,6 +12,24 @@ import type { WorkflowName } from './lib/types';
 // ============================================================
 
 /**
+ * Model configuration for a specific library
+ */
+export interface LibraryModelConfig {
+    /** Default model for this library */
+    model: string;
+}
+
+/**
+ * Plan Subagent configuration
+ */
+export interface PlanSubagentConfig {
+    /** Enable Plan Subagent for implementation workflow (default: true) */
+    enabled: boolean;
+    /** Timeout in seconds for plan generation (default: 120) */
+    timeout: number;
+}
+
+/**
  * Configuration structure for agents
  */
 export interface AgentsConfig {
@@ -19,6 +37,10 @@ export interface AgentsConfig {
     defaultLibrary: string;
     /** Per-workflow library overrides */
     workflowOverrides: Partial<Record<WorkflowName, string>>;
+    /** Model configuration per library */
+    libraryModels: Record<string, LibraryModelConfig>;
+    /** Plan Subagent configuration */
+    planSubagent: PlanSubagentConfig;
 }
 
 // ============================================================
@@ -31,7 +53,14 @@ export interface AgentsConfig {
  * Available libraries:
  * - 'claude-code-sdk' - Claude Code SDK (default, fully implemented)
  * - 'cursor' - Cursor CLI (requires cursor-agent CLI to be installed)
- * - 'gemini' - Google Gemini (stub, not yet implemented)
+ * - 'gemini' - Gemini CLI (requires @google/gemini-cli to be installed)
+ * - 'openai-codex' - OpenAI Codex CLI (requires @openai/codex to be installed)
+ *
+ * Available models:
+ * - claude-code-sdk: 'sonnet', 'opus', 'haiku'
+ * - cursor: 'opus-4.5', 'sonnet-4', etc.
+ * - gemini: 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', etc.
+ * - openai-codex: 'gpt-5-codex', 'gpt-5', etc.
  *
  * To use a different library for a specific workflow, add it to workflowOverrides.
  */
@@ -42,9 +71,32 @@ export const agentsConfig: AgentsConfig = {
     // Per-workflow overrides
     // Uncomment to use different libraries for specific workflows
     workflowOverrides: {
-        // 'product-design': 'claude-code-sdk',
+        'product-design': 'cursor',
         // 'tech-design': 'claude-code-sdk',
-        // 'implementation': 'cursor',
+        'implementation': 'cursor',
         // 'pr-review': 'claude-code-sdk',
+    },
+
+    // Model configuration per library
+    libraryModels: {
+        'claude-code-sdk': {
+            model: 'sonnet',
+        },
+        'cursor': {
+            model: 'opus-4.5',
+        },
+        'gemini': {
+            model: 'gemini-3-flash-preview',
+        },
+        'openai-codex': {
+            model: 'gpt-5-codex',
+        },
+    },
+
+    // Plan Subagent configuration
+    // Runs before implementation to create detailed step-by-step plans
+    planSubagent: {
+        enabled: true,    // Set to false to disable Plan Subagent
+        timeout: 120,     // 2 minutes for plan generation
     },
 };

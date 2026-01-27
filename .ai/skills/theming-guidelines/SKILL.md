@@ -1,0 +1,174 @@
+---
+name: theming-guidelines
+description: Theming and styling guidelines for components
+---
+
+# Theming Guidelines
+
+When styling components, **ALWAYS use semantic CSS variables**. **NEVER use hardcoded colors** like `bg-white`, `text-black`, `bg-blue-500`, or hex values.
+
+**Exception**: Dialog/modal overlays may use `bg-black/60` for backdrop opacity (standard shadcn/ui pattern).
+
+## Required: Use Semantic Color Tokens
+
+| Use This (Tailwind)       | NOT This                              |
+|---------------------------|---------------------------------------|
+| `bg-background`           | `bg-white`, `bg-slate-950`            |
+| `bg-card`                 | `bg-gray-100`, `bg-zinc-900`          |
+| `bg-primary`              | `bg-blue-500`, `#3b82f6`              |
+| `bg-secondary`            | `bg-purple-500`, `bg-violet-600`      |
+| `bg-muted`                | `bg-gray-100`, `bg-slate-800`         |
+| `bg-accent`               | `bg-blue-100`, `bg-indigo-900`        |
+| `bg-destructive`          | `bg-red-500`, `bg-red-600`            |
+| `text-foreground`         | `text-black`, `text-white`            |
+| `text-muted-foreground`   | `text-gray-500`, `text-slate-400`     |
+| `text-primary`            | `text-blue-500`, `text-blue-600`      |
+| `text-destructive`        | `text-red-500`, `text-red-600`        |
+| `text-success`            | `text-green-500`, `text-emerald-600`  |
+| `text-warning`            | `text-yellow-500`, `text-amber-600`   |
+| `text-info`               | `text-blue-500`, `text-sky-600`       |
+| `border-border`           | `border-gray-200`, `border-slate-700` |
+| `border-input`            | `border-gray-300`                     |
+| `ring-ring`               | `ring-blue-500`                       |
+
+## Available Color Tokens
+
+### Backgrounds
+- `bg-background` - Main page/app background
+- `bg-card` - Card and panel backgrounds
+- `bg-popover` - Dropdown, modal, tooltip backgrounds
+- `bg-muted` - Subtle backgrounds (disabled states, hover effects)
+- `bg-primary` - Primary action backgrounds (buttons)
+- `bg-secondary` - Secondary action backgrounds
+- `bg-accent` - Highlighted/selected items
+- `bg-destructive` - Error/danger state backgrounds
+
+### Text Colors
+- `text-foreground` - Primary text color
+- `text-muted-foreground` - Secondary/helper text
+- `text-card-foreground` - Text on card backgrounds
+- `text-popover-foreground` - Text in popovers
+- `text-primary-foreground` - Text on primary backgrounds
+- `text-secondary-foreground` - Text on secondary backgrounds
+- `text-accent-foreground` - Text on accent backgrounds
+- `text-destructive-foreground` - Text on destructive backgrounds
+- `text-destructive` - Error text (on normal backgrounds)
+
+### Borders & Focus
+- `border-border` - Default borders
+- `border-input` - Form input borders
+- `ring-ring` - Focus ring color
+
+### Status Colors
+- `text-success` / `bg-success` - Success states (green)
+- `text-success-foreground` - Text on success backgrounds
+- `text-warning` / `bg-warning` - Warning states (yellow/amber)
+- `text-warning-foreground` - Text on warning backgrounds
+- `text-info` / `bg-info` - Info states (blue)
+- `text-info-foreground` - Text on info backgrounds
+
+### Status Color Usage Examples
+
+```tsx
+// Success states
+<div className="bg-success/10 border-success/30 text-success">Success message</div>
+<Badge variant="success">Completed</Badge>
+
+// Warning states  
+<div className="bg-warning/10 border-warning/30 text-warning">Warning message</div>
+
+// Info states
+<div className="bg-info/10 border-info/30 text-info">Info message</div>
+
+// Error/Destructive states
+<div className="bg-destructive/10 border-destructive/30 text-destructive">Error message</div>
+```
+
+## Font Family
+
+Use the `font-sans` class which respects the user's font selection:
+
+```tsx
+<div className="font-sans">
+  Your content here
+</div>
+```
+
+The body already has `font-sans` applied, so most content inherits it automatically.
+
+## Examples
+
+### ✅ CORRECT Usage
+
+```tsx
+import { Card } from '@/client/components/ui/card';
+import { Button } from '@/client/components/ui/button';
+
+export function MyComponent() {
+  return (
+    <Card className="bg-card border-border">
+      <h2 className="text-foreground font-semibold">Title</h2>
+      <p className="text-muted-foreground">Description text</p>
+      
+      <div className="bg-muted rounded-md p-3">
+        <span className="text-muted-foreground">Muted section</span>
+      </div>
+      
+      <div className="flex gap-2">
+        <Button className="bg-primary text-primary-foreground">
+          Primary Action
+        </Button>
+        <Button variant="secondary" className="bg-secondary text-secondary-foreground">
+          Secondary
+        </Button>
+        <Button variant="destructive" className="bg-destructive text-destructive-foreground">
+          Delete
+        </Button>
+      </div>
+      
+      <div className="border-t border-border pt-4">
+        <input className="border-input bg-background text-foreground" />
+      </div>
+    </Card>
+  );
+}
+```
+
+### ❌ WRONG Usage
+
+```tsx
+// DON'T DO THIS - hardcoded colors break theming!
+export function BadComponent() {
+  return (
+    <div className="bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-700">
+      <h2 className="text-slate-900 dark:text-white">Title</h2>
+      <p className="text-gray-500 dark:text-gray-400">Description</p>
+      
+      <button className="bg-blue-500 hover:bg-blue-600 text-white">
+        Action
+      </button>
+    </div>
+  );
+}
+```
+
+## Why This Matters
+
+1. **Theme Presets**: Users can choose from 8 built-in themes (Default, Ocean, Forest, Sunset, Rose, Midnight, Monochrome, Earth)
+2. **Custom Colors**: Users can customize primary, secondary, accent, and background colors
+3. **Dark/Light Mode**: Each theme has both light and dark variants
+4. **Consistency**: All components automatically update when the theme changes
+
+## Testing Your Components
+
+After implementing a component:
+1. Test with at least 2 different theme presets (e.g., Default and Monochrome)
+2. Test in both light and dark modes
+3. Verify all text is readable against its background
+4. Check that interactive states (hover, focus) are visible
+
+## Related Files
+
+- [src/client/features/theme](mdc:src/client/features/theme) - Theme feature implementation
+- [src/client/styles/globals.css](mdc:src/client/styles/globals.css) - CSS variable definitions
+- [docs/theming.md](mdc:docs/theming.md) - Full theming documentation

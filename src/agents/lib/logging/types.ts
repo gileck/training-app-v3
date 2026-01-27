@@ -3,7 +3,7 @@
  */
 export interface LogContext {
     issueNumber: number;
-    workflow: 'product-design' | 'tech-design' | 'implement' | 'pr-review';
+    workflow: 'product-dev' | 'product-design' | 'tech-design' | 'implement' | 'pr-review';
     phase: string;
     mode?: string;
     issueTitle: string;
@@ -13,6 +13,10 @@ export interface LogContext {
     currentStatus?: string | null;
     /** Current review status when agent started */
     currentReviewStatus?: string | null;
+    /** Agent library used for this execution (e.g., 'claude-code-sdk', 'cursor', 'gemini') */
+    library?: string;
+    /** LLM model used for this execution (e.g., 'sonnet', 'opus-4.5', 'gemini-pro') */
+    model?: string;
 }
 
 /**

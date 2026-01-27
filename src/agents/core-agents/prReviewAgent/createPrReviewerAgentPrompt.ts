@@ -48,10 +48,10 @@ function createPhaseContextSection(phaseInfo: PhaseInfo): string {
 
     // Separate source files from documentation files
     const sourceFiles = phaseFiles?.filter(f =>
-        !f.startsWith('docs/') && !f.startsWith('.cursor/rules/')
+        !f.startsWith('docs/') && !f.startsWith('.ai/skills/')
     ) || [];
     const docFiles = phaseFiles?.filter(f =>
-        f.startsWith('docs/') || f.startsWith('.cursor/rules/')
+        f.startsWith('docs/') || f.startsWith('.ai/skills/')
     ) || [];
 
     let section = `## ⚠️ MULTI-PHASE IMPLEMENTATION - PHASE-SPECIFIC REVIEW REQUIRED
@@ -192,20 +192,20 @@ function createInstructionsSection(): string {
 
 Review this PR and make your final decision. Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.
 
-**IMPORTANT**: Check compliance with project guidelines in \`.cursor/rules/\` (Only when relevant to code changes):
-- TypeScript guidelines (\`.cursor/rules/typescript-guidelines.mdc\`)
-- React patterns (\`.cursor/rules/react-component-organization.mdc\`, \`.cursor/rules/react-hook-organization.mdc\`)
-- State management (\`.cursor/rules/state-management-guidelines.mdc\`)
-- UI/UX patterns (\`.cursor/rules/ui-design-guidelines.mdc\`, \`.cursor/rules/shadcn-usage.mdc\`)
-- File organization (\`.cursor/rules/feature-based-structure.mdc\`)
-- API patterns (\`.cursor/rules/client-server-communications.mdc\`)
-- Comprehensive checklist (\`.cursor/rules/app-guidelines-checklist.mdc\`)
-- mongoDB usage (\`.cursor/rules/mongodb-usage.mdc\`)
-- pages-and-routing-guidelines (\`.cursor/rules/pages-and-routing-guidelines.mdc\`)
-- shadcn-usage (\`.cursor/rules/shadcn-usage.mdc\`)
-- theming-guidelines (\`.cursor/rules/theming-guidelines.mdc\`)
-- user-access (\`.cursor/rules/user-access.mdc\`)
-- ui-mobile-first-shadcn (\`.cursor/rules/ui-mobile-first-shadcn.mdc\`)
+**IMPORTANT**: Check compliance with project guidelines in \`.ai/skills/\` (Only when relevant to code changes):
+- TypeScript guidelines (\`.ai/skills/typescript-guidelines/SKILL.md\`)
+- React patterns (\`.ai/skills/react-component-organization/SKILL.md\`, \`.ai/skills/react-hook-organization/SKILL.md\`)
+- State management (\`.ai/skills/state-management-guidelines/SKILL.md\`)
+- UI/UX patterns (\`.ai/skills/ui-design-guidelines/SKILL.md\`, \`.ai/skills/shadcn-usage/SKILL.md\`)
+- File organization (\`.ai/skills/feature-based-structure/SKILL.md\`)
+- API patterns (\`.ai/skills/client-server-communications/SKILL.md\`)
+- Comprehensive checklist (\`.ai/skills/app-guidelines-checklist/SKILL.md\`)
+- mongoDB usage (\`.ai/skills/mongodb-usage/SKILL.md\`)
+- pages-and-routing-guidelines (\`.ai/skills/pages-and-routing-guidelines/SKILL.md\`)
+- shadcn-usage (\`.ai/skills/shadcn-usage/SKILL.md\`)
+- theming-guidelines (\`.ai/skills/theming-guidelines/SKILL.md\`)
+- user-access (\`.ai/skills/user-access/SKILL.md\`)
+- ui-mobile-first-shadcn (\`.ai/skills/ui-mobile-first-shadcn/SKILL.md\`)
 
 `;
 }

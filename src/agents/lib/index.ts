@@ -6,12 +6,26 @@
  */
 
 import type { AgentLibraryAdapter, WorkflowName, AgentRunOptions, AgentRunResult } from './types';
-import { getLibraryForWorkflow } from './config';
+import { getLibraryForWorkflow, getPlanSubagentConfig } from './config';
+import {
+    getCurrentLogContext,
+    logError,
+    logExecutionStart,
+    logExecutionEnd,
+    logPrompt,
+    logTokenUsage,
+    type LogContext,
+} from './logging';
+import { buildPlanSubagentPrompt } from './prompts/plan-subagent-prompt';
 
 // Import adapters directly
 import claudeCodeSDKAdapter from './adapters/claude-code-sdk';
 import geminiAdapter from './adapters/gemini';
 import cursorAdapter from './adapters/cursor';
+import openaiCodexAdapter from './adapters/openai-codex';
+
+// Fallback library when primary library fails to initialize
+const FALLBACK_LIBRARY = 'claude-code-sdk';
 
 // Forward declarations for adapters (will be imported dynamically)
 type AdapterConstructor = new () => AgentLibraryAdapter;
@@ -32,6 +46,7 @@ const adapterInstances = new Map<string, AgentLibraryAdapter>([
     [claudeCodeSDKAdapter.name, claudeCodeSDKAdapter],
     [geminiAdapter.name, geminiAdapter],
     [cursorAdapter.name, cursorAdapter],
+    [openaiCodexAdapter.name, openaiCodexAdapter],
 ]);
 
 /**
@@ -42,19 +57,77 @@ export function registerAdapter(name: string, constructor: AdapterConstructor): 
 }
 
 /**
- * Get or create an adapter instance
+ * Try to initialize an adapter, returning success status
+ */
+async function tryInitAdapter(adapter: AgentLibraryAdapter): Promise<{ success: boolean; error?: string; wasAlreadyInitialized?: boolean }> {
+    if (adapter.isInitialized()) {
+        return { success: true, wasAlreadyInitialized: true };
+    }
+
+    try {
+        await adapter.init();
+        return { success: true, wasAlreadyInitialized: false };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { success: false, error: errorMessage };
+    }
+}
+
+/**
+ * Log successful adapter initialization
+ */
+function logAdapterInitSuccess(adapter: AgentLibraryAdapter, wasAlreadyInitialized: boolean): void {
+    if (wasAlreadyInitialized) {
+        // Don't log if already initialized (avoid duplicate logs)
+        return;
+    }
+    console.log(`  ✓ Initialized agent library: ${adapter.name} (model: ${adapter.model})`);
+}
+
+/**
+ * Log adapter initialization failure and fallback
+ */
+function logAdapterFallback(
+    originalLibrary: string,
+    fallbackLibrary: string,
+    error: string
+): void {
+    const logCtx = getCurrentLogContext();
+
+    // Console warning (always shown)
+    console.warn(`\n  ⚠️  Failed to initialize ${originalLibrary}: ${error}`);
+    console.warn(`  ⚠️  Falling back to ${fallbackLibrary}\n`);
+
+    // Log to issue log if context is available
+    if (logCtx) {
+        logError(logCtx, `Library init failed: ${originalLibrary} - ${error}. Falling back to ${fallbackLibrary}`, false);
+    }
+}
+
+/**
+ * Get or create an adapter instance with fallback support
  */
 async function getAdapterInstance(libraryName: string): Promise<AgentLibraryAdapter> {
     // Check if adapter exists in pre-populated instances
     if (adapterInstances.has(libraryName)) {
         const adapter = adapterInstances.get(libraryName)!;
 
-        // Initialize if needed
-        if (!adapter.isInitialized()) {
-            await adapter.init();
+        // Try to initialize
+        const initResult = await tryInitAdapter(adapter);
+
+        if (initResult.success) {
+            logAdapterInitSuccess(adapter, initResult.wasAlreadyInitialized ?? false);
+            return adapter;
         }
 
-        return adapter;
+        // Init failed - try fallback if this isn't already the fallback
+        if (libraryName !== FALLBACK_LIBRARY) {
+            logAdapterFallback(libraryName, FALLBACK_LIBRARY, initResult.error!);
+            return getAdapterInstance(FALLBACK_LIBRARY);
+        }
+
+        // Fallback also failed - this is fatal
+        throw new Error(`Failed to initialize fallback library ${FALLBACK_LIBRARY}: ${initResult.error}`);
     }
 
     // Check if constructor exists in registry
@@ -63,13 +136,23 @@ async function getAdapterInstance(libraryName: string): Promise<AgentLibraryAdap
         // Create new instance
         const adapter = new Constructor();
 
-        // Initialize if needed
-        if (!adapter.isInitialized()) {
-            await adapter.init();
+        // Try to initialize
+        const initResult = await tryInitAdapter(adapter);
+
+        if (initResult.success) {
+            logAdapterInitSuccess(adapter, initResult.wasAlreadyInitialized ?? false);
+            adapterInstances.set(libraryName, adapter);
+            return adapter;
         }
 
-        adapterInstances.set(libraryName, adapter);
-        return adapter;
+        // Init failed - try fallback if this isn't already the fallback
+        if (libraryName !== FALLBACK_LIBRARY) {
+            logAdapterFallback(libraryName, FALLBACK_LIBRARY, initResult.error!);
+            return getAdapterInstance(FALLBACK_LIBRARY);
+        }
+
+        // Fallback also failed - this is fatal
+        throw new Error(`Failed to initialize fallback library ${FALLBACK_LIBRARY}: ${initResult.error}`);
     }
 
     // Adapter not found
@@ -100,12 +183,197 @@ export async function getAgentLibrary(workflow?: WorkflowName): Promise<AgentLib
  *
  * This is the main entry point for running agents with the abstraction layer.
  *
+ * For implementation workflows with libraries that support plan mode (claude-code-sdk, cursor),
+ * this function internally runs a Plan subagent before the main implementation to create a
+ * detailed implementation plan. This is fully encapsulated - callers don't need to know
+ * about the two-step process.
+ *
  * @param options - Agent run options
  * @returns Agent run result
  */
 export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult> {
     const library = await getAgentLibrary(options.workflow);
+    const planConfig = getPlanSubagentConfig();
+
+    // For implementation workflow with libraries that support plan mode, run Plan subagent first
+    // This creates a detailed implementation plan before the main implementation
+    const supportsPlanMode = library.capabilities.planMode === true;
+
+    const shouldRunPlanSubagent =
+        planConfig.enabled &&
+        options.workflow === 'implementation' &&
+        supportsPlanMode &&
+        options.allowWrite;
+
+    if (shouldRunPlanSubagent) {
+        const planResult = await runImplementationPlanSubagent(library, options, planConfig.timeout);
+        if (planResult.plan) {
+            // Augment the prompt with the detailed implementation plan
+            const enhancedPrompt = `${options.prompt}
+
+---
+
+## Detailed Implementation Plan (from codebase exploration)
+
+The following plan was created by exploring the codebase. Follow these steps to implement the feature:
+
+${planResult.plan}
+
+---
+
+Follow the plan above while implementing. Adjust as needed based on actual code you encounter.`;
+            return library.run({ ...options, prompt: enhancedPrompt });
+        }
+        // If plan generation failed, proceed without it
+        console.log('  ⚠️ Plan subagent did not generate a plan, proceeding without it');
+    }
+
     return library.run(options);
+}
+
+/**
+ * Run a Plan subagent to create a detailed implementation plan
+ *
+ * This is an internal function used by runAgent for implementation workflows.
+ * It uses the library's plan mode if supported (cursor --mode=plan), or falls
+ * back to read-only tools (claude-code-sdk) to explore the codebase and
+ * generate a step-by-step implementation plan.
+ *
+ * @param library - The agent library adapter
+ * @param options - Original agent run options
+ * @param timeout - Timeout in seconds for plan generation
+ * @returns Plan result with the generated plan
+ */
+async function runImplementationPlanSubagent(
+    library: AgentLibraryAdapter,
+    options: AgentRunOptions,
+    timeout: number
+): Promise<{ plan: string | null; error?: string }> {
+    const usesPlanMode = library.capabilities.planMode === true;
+    const planMechanism = usesPlanMode ? '--mode=plan' : 'read-only tools';
+    const tools = usesPlanMode ? ['plan-mode'] : ['Read', 'Glob', 'Grep', 'WebFetch'];
+
+    console.log(`  📋 Running Plan subagent (${library.name}, ${planMechanism})...`);
+
+    // Get parent log context and create plan subagent context
+    const parentCtx = getCurrentLogContext();
+    const planCtx: LogContext | null = parentCtx ? {
+        ...parentCtx,
+        phase: 'Plan Subagent',
+        startTime: new Date(),
+        library: library.name,
+        model: library.model,
+    } : null;
+
+    // Log execution start for plan subagent phase
+    if (planCtx) {
+        logExecutionStart(planCtx);
+    }
+
+    // Build the plan prompt using the dedicated prompt builder
+    const planPrompt = buildPlanSubagentPrompt(options.prompt);
+
+    // Log the prompt
+    if (planCtx) {
+        logPrompt(planCtx, planPrompt, {
+            model: library.model,
+            tools,
+            timeout,
+        });
+    }
+
+    try {
+        // Use planMode if library supports it (cursor), otherwise use read-only tools (claude-code-sdk)
+        const result = await library.run({
+            prompt: planPrompt,
+            // For libraries with plan mode (cursor): use planMode flag
+            // For libraries without (claude-code-sdk): use read-only tools
+            ...(usesPlanMode
+                ? { planMode: true }
+                : { allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch'] }
+            ),
+            allowWrite: false,
+            stream: false,
+            verbose: false,
+            timeout,
+            progressLabel: 'Creating implementation plan',
+        });
+
+        // Log token usage if available
+        if (planCtx && result.usage) {
+            logTokenUsage(planCtx, {
+                inputTokens: result.usage.inputTokens,
+                outputTokens: result.usage.outputTokens,
+                cost: result.usage.totalCostUSD,
+            });
+        }
+
+        // Calculate totals for summary
+        const totalTokens = result.usage
+            ? result.usage.inputTokens + result.usage.outputTokens
+            : 0;
+        const totalCost = result.usage?.totalCostUSD || 0;
+        // Use files examined as a proxy for tool calls (not tracked directly)
+        const toolCallsCount = result.filesExamined?.length || 0;
+
+        if (result.success && result.content) {
+            console.log('  ✅ Plan subagent completed');
+
+            // Log execution end with success
+            if (planCtx) {
+                logExecutionEnd(planCtx, {
+                    success: true,
+                    toolCallsCount,
+                    totalTokens,
+                    totalCost,
+                });
+            }
+
+            return { plan: result.content };
+        }
+
+        const errorMsg = result.error || 'No plan generated';
+
+        // Log execution end with failure
+        if (planCtx) {
+            logError(planCtx, errorMsg, false);
+            logExecutionEnd(planCtx, {
+                success: false,
+                toolCallsCount,
+                totalTokens,
+                totalCost,
+            });
+        }
+
+        return { plan: null, error: errorMsg };
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.warn(`  ⚠️ Plan subagent failed: ${errorMsg}`);
+
+        // Log error and execution end
+        if (planCtx) {
+            logError(planCtx, errorMsg, false);
+            logExecutionEnd(planCtx, {
+                success: false,
+                toolCallsCount: 0,
+                totalTokens: 0,
+                totalCost: 0,
+            });
+        }
+
+        return { plan: null, error: errorMsg };
+    }
+}
+
+/**
+ * Get the model name for a specific workflow
+ *
+ * @param workflow - Workflow name (optional)
+ * @returns Model name used by the library for this workflow
+ */
+export async function getModelForWorkflow(workflow?: WorkflowName): Promise<string> {
+    const library = await getAgentLibrary(workflow);
+    return library.model;
 }
 
 /**
@@ -134,6 +402,7 @@ export type {
     AgentRunOptions,
     AgentRunResult,
     WorkflowName,
+    MCPServerConfig,
 } from './types';
 
 // Re-export configuration functions
@@ -217,3 +486,20 @@ export {
     deleteDesignDoc,
     deleteIssueDesignDir,
 } from './design-files';
+
+// Re-export dev server management utilities
+export {
+    startDevServer,
+    waitForServer,
+    stopDevServer,
+    getRandomPort,
+    type DevServerState,
+    type StartDevServerOptions,
+} from './devServer';
+
+// Re-export Playwright MCP configuration
+export {
+    PLAYWRIGHT_MCP_CONFIG,
+    PLAYWRIGHT_TOOLS,
+    isPlaywrightMCPAvailable,
+} from './playwright-mcp';

@@ -7,6 +7,7 @@
 import { query, type SDKAssistantMessage, type SDKResultMessage, type SDKToolProgressMessage } from '@anthropic-ai/claude-agent-sdk';
 import { agentConfig } from '../../shared/config';
 import type { AgentLibraryAdapter, AgentLibraryCapabilities, AgentRunOptions, AgentRunResult } from '../types';
+import { getModelForLibrary } from '../config';
 import {
     getCurrentLogContext,
     logPrompt,
@@ -36,7 +37,12 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
         webFetch: true,
         customTools: true,
         timeout: true,
+        planMode: true, // Supports plan mode via read-only tools
     };
+
+    get model(): string {
+        return getModelForLibrary('claude-code-sdk');
+    }
 
     private initialized = false;
 
@@ -60,14 +66,22 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
             progressLabel = 'Processing',
             useSlashCommands = false,
             outputFormat,
+            mcpServers,
+            additionalTools,
+            maxTurns,
         } = options;
 
         // Determine allowed tools
         const readOnlyTools = ['Read', 'Glob', 'Grep', 'WebFetch'];
         const writeTools = ['Edit', 'Write', 'Bash'];
-        const allowedTools = customTools || (allowWrite
+        let allowedTools = customTools || (allowWrite
             ? [...readOnlyTools, ...writeTools]
             : readOnlyTools);
+
+        // Add additional tools if specified
+        if (additionalTools && additionalTools.length > 0) {
+            allowedTools = [...allowedTools, ...additionalTools];
+        }
 
         const startTime = Date.now();
         let lastResult = '';
@@ -101,7 +115,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
         const logCtx = getCurrentLogContext();
         if (logCtx) {
             logPrompt(logCtx, prompt, {
-                model: agentConfig.claude.model,
+                model: this.model,
                 tools: allowedTools,
                 timeout,
             });
@@ -113,13 +127,14 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 options: {
                     allowedTools,
                     cwd: PROJECT_ROOT,
-                    model: agentConfig.claude.model,
-                    maxTurns: agentConfig.claude.maxTurns,
+                    model: this.model as 'sonnet' | 'opus' | 'haiku',
+                    maxTurns: maxTurns ?? agentConfig.claude.maxTurns,
                     permissionMode: 'bypassPermissions',
                     allowDangerouslySkipPermissions: true,
                     abortController,
                     ...(useSlashCommands ? { settingSources: ['project'] as const } : {}),
                     ...(outputFormat ? { outputFormat } : {}),
+                    ...(mcpServers ? { mcpServers } : {}),
                 },
             })) {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);

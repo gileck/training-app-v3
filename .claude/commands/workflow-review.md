@@ -137,6 +137,10 @@ For each red flag found:
   - Only flag as inefficiency if the same file is read 3+ times within ONE agent's execution.
 - [ ] Large token counts for simple tasks? (`Grep pattern="\[LOG:TOKENS\]"` or check Summary table)
 - [ ] Redundant Grep/Glob patterns? (`Grep pattern="\[LOG:TOOL_CALL\].*Grep\|\[LOG:TOOL_CALL\].*Glob"`)
+- [ ] MCP startup delays? (Implementation phase with local testing)
+  - Look for long gap between phase start and first `mcp__playwright__` tool call
+  - If first Playwright tool takes >30s after phase start, MCP server startup may be slow
+  - Check for `[LOG:ERROR]` with MCP or Playwright-related messages
 
 ### Workflow
 - [ ] Phase transitions correct? (`Grep pattern="\[LOG:PHASE_START\]\|\[LOG:PHASE_END\]"`)
@@ -168,7 +172,7 @@ The workflow architecture:
 
 **1. First: Update Project Docs/Rules** (preferred solution)
    - Is there a missing pattern in `docs/` that should be documented?
-   - Should `CLAUDE.md` or `.cursor/rules/` be updated?
+   - Should `CLAUDE.md` or `.ai/skills/` be updated?
    - Example: Missing "multi-cache update" pattern in `docs/react-query-mutations.md`
 
 **2. Second: Verify the Pipeline Worked**
@@ -190,7 +194,7 @@ The workflow architecture:
 **Checklist for each finding:**
 
 - [ ] Can this be fixed by updating a doc in `docs/`?
-- [ ] Can this be fixed by updating `CLAUDE.md` or `.cursor/rules/`?
+- [ ] Can this be fixed by updating `CLAUDE.md` or `.ai/skills/`?
 - [ ] Did tech design include the relevant docs? (check log for "related files")
 - [ ] Is this a universal principle (applies to all features)?
 - [ ] Would adding to prompt make it bloated/unmaintainable?

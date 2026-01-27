@@ -137,6 +137,7 @@ yarn agent:tech-design --issue 123
 
 **What it does:**
 - Reads issue + design documents
+- **Runs Plan Subagent** (for claude-code-sdk and cursor) to create detailed implementation plan
 - For multi-phase: Implements ONLY the current phase
 - Writes code following project guidelines
 - Creates PR with implementation
@@ -149,6 +150,19 @@ yarn agent:implement
 # Or with specific issue:
 yarn agent:implement --issue 123
 ```
+
+**Plan Subagent (Automatic):**
+
+Before implementing, the agent runs a **Plan Subagent** that:
+1. Explores the codebase in read-only mode
+2. Generates a detailed step-by-step implementation plan
+3. Passes the plan to the main implementation agent
+
+This is **fully encapsulated** - you don't need to configure anything. The plan subagent:
+- Uses `--mode=plan` for Cursor
+- Uses read-only tools (`Read`, `Glob`, `Grep`, `WebFetch`) for Claude Code SDK
+- Has a 2-minute timeout
+- If it fails, implementation proceeds without detailed plan
 
 **Phase-Aware Implementation:**
 - Automatically detects current phase from GitHub status

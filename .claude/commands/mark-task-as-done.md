@@ -4,14 +4,14 @@ description: Mark a task as done in task-manager/tasks.md with commit hash
 
 # Mark Task as Done Command
 
-Mark a task as complete in `task-manager/tasks.md` with the commit hash that implemented it. If no task number is provided, automatically detects the last task that was worked on.
+Mark a task as complete using the task management CLI. Tasks are stored as individual files in `task-manager/tasks/` with a summary index in `task-manager/tasks.md`.
 
 ## Usage
 
 Invoke this command:
 - `/mark-task-as-done` - Mark the last worked task as done (auto-detect)
-- `/mark-task-as-done 5` - Mark task 5 as done
-- `/mark-task-as-done --task 3` - Mark task 3 as done
+- `/mark-task-as-done 9` - Mark task 9 as done
+- `/mark-task-as-done --task 9` - Mark task 9 as done
 
 ## Process
 
@@ -40,113 +40,59 @@ Marking Task #5 as done...
 
 ---
 
-## Step 2: Get Current Commit Hash
+## Step 2: Use CLI to Mark Task as Done
 
-- **Objective**: Capture the commit hash that implemented the task
+- **Objective**: Mark the task as done using the official CLI
 - **Actions**:
-  - Run: `git rev-parse --short HEAD`
-  - This gets the short commit hash (7 characters)
-  - Store as `COMMIT_HASH`
+  - Run: `yarn task mark-done --task {N}`
+  - The CLI will:
+    - Update the individual task file: `task-manager/tasks/task-{N}.md`
+    - Set `status: Done`
+    - Add `dateCompleted: YYYY-MM-DD`
+    - Rebuild the summary index in `task-manager/tasks.md`
 
-**Example output:** `abc1234`
-
----
-
-## Step 3: Read Current Task Content
-
-- **Objective**: Find and read the task to be marked
-- **Actions**:
-  - Read `task-manager/tasks.md`
-  - Search for task header: `## {N}.` or `## ~~{N}.`
-  - Verify task exists
-  - Check if already marked as done (has `~~` strikethrough or `✅ DONE`)
-
-**If task already done:**
-- Display: "⚠️ Task #{N} is already marked as done"
-- Ask user: "Update completion info anyway? (yes/no)"
-- If no: exit
-- If yes: continue to update
-
----
-
-## Step 4: Get Completion Date
-
-- **Objective**: Record when the task was completed
-- **Actions**:
-  - Get today's date in YYYY-MM-DD format
-  - Store as `COMPLETION_DATE`
-
-**Example:** `2026-01-25`
-
----
-
-## Step 5: Update Task Header
-
-- **Objective**: Mark task as complete with strikethrough and status
-- **Actions**:
-  - Update task header from:
-    ```markdown
-    ## {N}. {Title}
-    ```
-
-    To:
-    ```markdown
-    ## {N}. ~~{Title}~~ ✅ DONE
-    ```
-
-  - Update status table from:
-    ```markdown
-    | Priority | Complexity | Size | Status |
-    |----------|------------|------|--------|
-    | **{Priority}** | {Complexity} | {Size} | TODO |
-    ```
-
-    To:
-    ```markdown
-    | Priority | Complexity | Size | Status |
-    |----------|------------|------|--------|
-    | **{Priority}** | {Complexity} | {Size} | ✅ **DONE** |
-    ```
-
----
-
-## Step 6: Add Completion Metadata
-
-- **Objective**: Add completion date and commit reference
-- **Actions**:
-  - Add completion blockquote after the status table:
-
-```markdown
-> **Completed:** {COMPLETION_DATE} - Fixed in commit `{COMMIT_HASH}`
+**Example command:**
+```bash
+yarn task mark-done --task 9
 ```
 
-**Example:**
-```markdown
-> **Completed:** 2026-01-25 - Fixed in commit `abc1234`
+---
+
+## Step 3: Add Completion Commit Hash (Optional)
+
+- **Objective**: Add the commit hash that implemented the task
+- **Actions**:
+  - Run: `git rev-parse --short HEAD` to get current commit hash
+  - Read the individual task file: `task-manager/tasks/task-{N}.md`
+  - Add `completionCommit: {HASH}` to the frontmatter (YAML section)
+  - Run: `yarn task rebuild-index` to update the summary
+
+**IMPORTANT:** The field name is `completionCommit`, not `commitHash`.
+
+**Example task frontmatter:**
+```yaml
+---
+number: 9
+title: Workflow Review Slash Command
+priority: Medium
+size: M
+complexity: Mid
+status: Done
+dateAdded: 2026-01-27
+dateUpdated: 2026-01-27
+dateCompleted: 2026-01-27
+completionCommit: edc9a7f
+---
 ```
 
-**If completion metadata already exists:**
-- Replace the existing blockquote with new data
-- Keep any additional notes that were added below
-
 ---
 
-## Step 7: Write Updated Content
-
-- **Objective**: Save the updated task to tasks.md
-- **Actions**:
-  - Use Edit tool to update the task in `task-manager/tasks.md`
-  - Preserve all other task content (summary, details, etc.)
-  - Ensure proper markdown formatting
-
----
-
-## Step 8: Verify and Display
+## Step 4: Verify and Display
 
 - **Objective**: Confirm the task was marked as done
 - **Actions**:
-  - Read back the updated task from tasks.md
-  - Verify the changes were applied correctly
+  - Run: `yarn task list` to verify task is in completed section
+  - Verify the commit hash appears in the summary table
   - Display success message with details
 
 **Display:**
@@ -157,12 +103,14 @@ Marking Task #5 as done...
 📅 Completed: {COMPLETION_DATE}
 🔗 Commit: {COMMIT_HASH}
 
-The task has been updated in task-manager/tasks.md
+The task has been updated in:
+- Individual task file: task-manager/tasks/task-{N}.md
+- Summary index: task-manager/tasks.md
 ```
 
 ---
 
-## Step 9: Suggest Next Actions
+## Step 5: Suggest Next Actions
 
 - **Objective**: Guide user on what to do next
 - **Actions**:
@@ -171,9 +119,11 @@ The task has been updated in task-manager/tasks.md
 **Display:**
 ```
 💡 Next Steps:
-- Review the change in task-manager/tasks.md
-- Commit the change: git add task-manager/tasks.md && git commit -m "docs: mark task #{N} as done"
-- Use /task-list to see remaining tasks
+- Review the changes in task-manager/
+- Commit the changes:
+  git add task-manager/
+  git commit -m "docs: mark task #{N} as done"
+- Use yarn task list to see remaining tasks
 ```
 
 ---
@@ -181,14 +131,11 @@ The task has been updated in task-manager/tasks.md
 ## Quick Checklist
 
 - [ ] Task number determined (provided or auto-detected)
-- [ ] Current commit hash retrieved
-- [ ] Task found in tasks.md and verified
-- [ ] Completion date obtained
-- [ ] Task header updated with strikethrough and ✅ DONE
-- [ ] Status table updated to DONE
-- [ ] Completion metadata added with date and commit
-- [ ] Changes written to tasks.md
-- [ ] Verification successful
+- [ ] Run `yarn task mark-done --task {N}` to mark task as done
+- [ ] Get current commit hash with `git rev-parse --short HEAD`
+- [ ] Edit task file `task-manager/tasks/task-{N}.md` to add `completionCommit` field
+- [ ] Run `yarn task rebuild-index` to update summary
+- [ ] Verification successful (task appears in completed section)
 - [ ] User notified with success message
 
 ---
@@ -205,6 +152,10 @@ The task has been updated in task-manager/tasks.md
    abc1234 fix: correct cost tracking in implementation agent (task #5)
 
 Marking Task #5 as done...
+[runs: yarn task mark-done --task 5]
+[runs: git rev-parse --short HEAD]
+[edits: task-manager/tasks/task-5.md to add completionCommit: abc1234]
+[runs: yarn task rebuild-index]
 
 ✅ Task #5 marked as done!
 
@@ -213,51 +164,35 @@ Marking Task #5 as done...
 🔗 Commit: abc1234
 
 💡 Next Steps:
-- Review the change in task-manager/tasks.md
-- Commit: git add task-manager/tasks.md && git commit -m "docs: mark task #5 as done"
+- Review the changes in task-manager/
+- Commit: git add task-manager/ && git commit -m "docs: mark task #5 as done"
 ```
 
 ### Example 2: Explicit task number
 
-**User:** `/mark-task-as-done 3`
+**User:** `/mark-task-as-done 9`
 
 **Claude:**
 ```
-Marking Task #3 as done...
+Marking Task #9 as done...
+[runs: yarn task mark-done --task 9]
+[runs: git rev-parse --short HEAD]
+[edits: task-manager/tasks/task-9.md to add completionCommit: edc9a7f]
+[runs: yarn task rebuild-index]
 
-✅ Task #3 marked as done!
+✅ Task #9 marked as done!
 
-📝 Task: Add Admin Approval Gate
-📅 Completed: 2026-01-25
-🔗 Commit: def5678
+📝 Task: Workflow Review Slash Command
+📅 Completed: 2026-01-27
+🔗 Commit: edc9a7f
+
+The task has been updated in:
+- Individual task file: task-manager/tasks/task-9.md
+- Summary index: task-manager/tasks.md
 
 💡 Next Steps:
-- Review the change in task-manager/tasks.md
-- Commit: git add task-manager/tasks.md && git commit -m "docs: mark task #3 as done"
-```
-
-### Example 3: Task already done
-
-**User:** `/mark-task-as-done 2`
-
-**Claude:**
-```
-⚠️ Task #2 is already marked as done (completed on 2026-01-24).
-
-Would you like to update the completion info anyway?
-```
-
-**User:** `yes`
-
-**Claude:**
-```
-Updating Task #2 completion info...
-
-✅ Task #2 updated!
-
-📝 Task: Debug PR Reviewer + Claude Integration
-📅 Completed: 2026-01-25 (previously: 2026-01-24)
-🔗 Commit: xyz9012 (previously: dc3fb4c)
+- Review the changes in task-manager/
+- Commit: git add task-manager/ && git commit -m "docs: mark task #9 as done"
 ```
 
 ### Example 4: No task found in git history
@@ -281,7 +216,10 @@ Or check recent commits with: git log --oneline --grep="task #"
 - **Auto-detection** looks for "task #N" pattern in commit messages
 - **Short hash** (7 chars) is used for readability
 - **Completion date** is set to today, not the commit date
-- **Already done** tasks can be updated with new completion info
+- **Field name** is `completionCommit` in the YAML frontmatter, NOT `commitHash`
+- **CLI handles most work** - `yarn task mark-done` updates status and dates
+- **Manual step required** - adding the commit hash to frontmatter
+- **Always rebuild** - run `yarn task rebuild-index` after manual edits
 - **Commit message** suggestion uses consistent format: `docs: mark task #N as done`
 
 ---
@@ -311,9 +249,10 @@ If a commit mentions multiple tasks (e.g., "fix task #3 and task #5"):
 
 ### Task Not Found
 
-If the specified task number doesn't exist in tasks.md:
-- Display error: "❌ Task #{N} not found in task-manager/tasks.md"
-- Suggest running `/task-list` to see available tasks
+If the specified task number doesn't exist:
+- The CLI will display an error: "❌ Task #{N} not found"
+- Display error: "❌ Task #{N} not found in task-manager/tasks/"
+- Suggest running `yarn task list` to see available tasks
 
 ### Invalid Task Number
 
@@ -326,8 +265,17 @@ If user provides non-numeric task number:
 
 This command should:
 1. Parse task number from user input or git history
-2. Validate task exists in tasks.md
-3. Update task with proper markdown formatting
-4. Preserve all existing task content
-5. Show clear success/error messages
-6. Guide user on next steps (commit the change)
+2. Use the CLI command `yarn task mark-done --task {N}` to mark the task
+3. Get current commit hash with `git rev-parse --short HEAD`
+4. Edit the individual task file to add the `completionCommit` field (NOT `commitHash`)
+5. Run `yarn task rebuild-index` to update the summary file
+6. Verify the task appears in the completed section
+7. Show clear success/error messages
+8. Guide user on next steps (commit all changes in task-manager/)
+
+**Key Points:**
+- Tasks are stored as individual files in `task-manager/tasks/task-{N}.md`
+- The summary file `task-manager/tasks.md` is auto-generated - don't edit manually
+- Use `completionCommit` field name in YAML frontmatter, not `commitHash`
+- Always run `yarn task rebuild-index` after editing task files manually
+- Commit both the individual task file and the summary file

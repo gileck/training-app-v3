@@ -117,7 +117,7 @@ Phase 1: Study Documentation (Required First)
     │ - 🚨 CRITICAL: zustand-stores.md
     │ - 🚨 CRITICAL: state-management.md
     │ - 🚨 CRITICAL: offline-pwa-support.md
-    │ - All .cursor/rules/*.mdc files
+    │ - All .ai/skills/*/SKILL.md files
     ▼
 Phase 2: Discovery & Planning
     │ - Map all APIs, routes, features, stores
@@ -183,18 +183,18 @@ Read these files completely in order:
 8. `docs/caching-strategy.md` - Caching architecture
 
 #### Rules Files
-9. `.cursor/rules/client-server-communications.mdc` - API structure
-10. `.cursor/rules/feature-based-structure.mdc` - Code organization
-11. `.cursor/rules/react-component-organization.mdc` - Component patterns
-12. `.cursor/rules/react-hook-organization.mdc` - Hook patterns
-13. `.cursor/rules/state-management-guidelines.mdc` - State decisions
-14. `.cursor/rules/pages-and-routing-guidelines.mdc` - Routing patterns
-15. `.cursor/rules/shadcn-usage.mdc` - UI components
-16. `.cursor/rules/theming-guidelines.mdc` - Theming requirements
-17. `.cursor/rules/typescript-guidelines.mdc` - TypeScript standards
-18. `.cursor/rules/mongodb-usage.mdc` - Database patterns
-19. `.cursor/rules/ai-models-api-usage.mdc` - AI integration (if applicable)
-20. `.cursor/rules/user-access.mdc` - Auth patterns
+9. `.ai/skills/client-server-communications/SKILL.md` - API structure
+10. `.ai/skills/feature-based-structure/SKILL.md` - Code organization
+11. `.ai/skills/react-component-organization/SKILL.md` - Component patterns
+12. `.ai/skills/react-hook-organization/SKILL.md` - Hook patterns
+13. `.ai/skills/state-management-guidelines/SKILL.md` - State decisions
+14. `.ai/skills/pages-and-routing-guidelines/SKILL.md` - Routing patterns
+15. `.ai/skills/shadcn-usage/SKILL.md` - UI components
+16. `.ai/skills/theming-guidelines/SKILL.md` - Theming requirements
+17. `.ai/skills/typescript-guidelines/SKILL.md` - TypeScript standards
+18. `.ai/skills/mongodb-usage/SKILL.md` - Database patterns
+19. `.ai/skills/ai-models-api-usage/SKILL.md` - AI integration (if applicable)
+20. `.ai/skills/user-access/SKILL.md` - Auth patterns
 
 #### Supporting Documentation
 21. `docs/api-endpoint-format.md` - API format details
@@ -1424,7 +1424,7 @@ grep -r "createLocalStoragePersister\|localStorage" src/client/query --include="
 
 ### 3.8: Theming Audit
 
-📚 **Reference**: [.cursor/rules/theming-guidelines.mdc](../../.cursor/rules/theming-guidelines.mdc)
+📚 **Reference**: [.ai/skills/theming-guidelines/SKILL.md](../../.ai/skills/theming-guidelines/SKILL.md)
 
 Search for hardcoded colors:
 
@@ -1449,7 +1449,7 @@ grep -r "border-gray-\|border-slate-" src/client --include="*.tsx"
 
 ### 3.9: TypeScript Audit
 
-📚 **Reference**: [.cursor/rules/typescript-guidelines.mdc](../../.cursor/rules/typescript-guidelines.mdc)
+📚 **Reference**: [.ai/skills/typescript-guidelines/SKILL.md](../../.ai/skills/typescript-guidelines/SKILL.md)
 
 ```bash
 # Find any usage
@@ -1513,7 +1513,7 @@ new ObjectId(clientId) // Breaks on UUID strings
 
 ### 3.11: shadcn/ui Audit
 
-📚 **Reference**: [.cursor/rules/shadcn-usage.mdc](../../.cursor/rules/shadcn-usage.mdc)
+📚 **Reference**: [.ai/skills/shadcn-usage/SKILL.md](../../.ai/skills/shadcn-usage/SKILL.md)
 
 ```bash
 # Find non-shadcn imports (violations)
@@ -1541,9 +1541,9 @@ grep -r "@/client/components/ui" src/client/routes --include="*.tsx" | head -10
 
 📚 **References**:
 - [app-guildelines/React-components-guidelines.md](../../app-guildelines/React-components-guidelines.md)
-- [.cursor/rules/react-component-organization.mdc](../../.cursor/rules/react-component-organization.mdc)
-- [.cursor/rules/react-hook-organization.mdc](../../.cursor/rules/react-hook-organization.mdc)
-- [.cursor/rules/feature-based-structure.mdc](../../.cursor/rules/feature-based-structure.mdc)
+- [.ai/skills/react-component-organization/SKILL.md](../../.ai/skills/react-component-organization/SKILL.md)
+- [.ai/skills/react-hook-organization/SKILL.md](../../.ai/skills/react-hook-organization/SKILL.md)
+- [.ai/skills/feature-based-structure/SKILL.md](../../.ai/skills/feature-based-structure/SKILL.md)
 
 #### 3.12.1: Component Organization Principles
 
@@ -2301,7 +2301,7 @@ Complete ALL items to finish the audit:
 - [ ] Read **docs/offline-pwa-support.md** (CRITICAL)
 - [ ] Read docs/authentication.md
 - [ ] Read docs/caching-strategy.md
-- [ ] Read all .cursor/rules/*.mdc files
+- [ ] Read all .ai/skills/*/SKILL.md files
 
 ### Phase 2: Discovery
 - [ ] Listed all API domains

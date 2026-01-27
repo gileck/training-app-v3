@@ -871,7 +871,7 @@ function SettingsList() {
 
 ### Related Guidelines
 
-- Mobile-first UI: `.cursor/rules/ui-mobile-first-shadcn.mdc`
-- UI Design: `.cursor/rules/ui-design-guidelines.mdc`
-- Component Organization: `.cursor/rules/react-component-organization.mdc`
+- Mobile-first UI: `.ai/skills/ui-mobile-first-shadcn/SKILL.md`
+- UI Design: `.ai/skills/ui-design-guidelines/SKILL.md`
+- Component Organization: `.ai/skills/react-component-organization/SKILL.md`
 

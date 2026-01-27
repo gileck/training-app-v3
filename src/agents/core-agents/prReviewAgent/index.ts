@@ -34,6 +34,8 @@ import {
     type ProjectItem,
     // Claude
     runAgent,
+    getLibraryForWorkflow,
+    getModelForWorkflow,
     // Notifications
     notifyPRReviewComplete,
     notifyPRReadyToMerge,
@@ -221,6 +223,10 @@ async function processItem(
 
     const issueType = getIssueType(content.labels);
 
+    // Get library and model for logging
+    const library = getLibraryForWorkflow('pr-review');
+    const model = await getModelForWorkflow('pr-review');
+
     // Create log context
     const logCtx = createLogContext({
         issueNumber,
@@ -231,6 +237,8 @@ async function processItem(
         issueType,
         currentStatus: item.status,
         currentReviewStatus: item.reviewStatus,
+        library,
+        model,
     });
 
     return runWithLogContext(logCtx, async () => {

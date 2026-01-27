@@ -29,8 +29,9 @@ src/agents/
 │   ├── index.ts                  # Factory: getAgentLibrary()
 │   └── adapters/
 │       ├── claude-code-sdk.ts    # Claude Code SDK implementation
-│       ├── gemini.ts             # Google Gemini stub
-│       └── cursor.ts             # Cursor AI implementation
+│       ├── gemini.ts             # Google Gemini CLI implementation
+│       ├── cursor.ts             # Cursor CLI implementation
+│       └── openai-codex.ts       # OpenAI Codex CLI implementation
 ├── shared/                       # Workflow logic (unchanged)
 │   ├── prompts.ts                # Library-agnostic
 │   ├── notifications.ts          # Library-agnostic
@@ -206,25 +207,59 @@ export const agentsConfig: AgentsConfig = {
 - Usage statistics (tokens, cost)
 - Files examined tracking
 - Slash command support (requires `useSlashCommands: true`)
+- **Plan Mode Support:** Uses read-only tools (`Read`, `Glob`, `Grep`, `WebFetch`) to explore codebase and generate implementation plans
 
-### 2. Google Gemini
+### 2. Google Gemini CLI
 
 **Name:** `gemini`
 
-**Status:** 🚧 Stub (not yet implemented)
+**Status:** ✅ Fully implemented
 
-**Planned Capabilities:**
-- Streaming: ✅ Yes
-- File Read: ❓ To be determined
-- File Write: ❓ To be determined
-- Web Fetch: ✅ Yes
-- Custom Tools: ❓ To be determined
+**Capabilities:**
+- Streaming: ✅ Yes (via `--output-format stream-json`)
+- File Read: ✅ Yes (ReadFile, FindFiles, SearchText, etc.)
+- File Write: ✅ Yes (WriteFile, Shell with `--yolo`)
+- Web Fetch: ❌ Not exposed via CLI
+- Custom Tools: ❌ Uses built-in tools
 - Timeout: ✅ Yes
 
-**Implementation Notes:**
-- Will use Google Gemini API
-- Needs API key configuration
-- Output parsing already compatible (uses same markdown/JSON extraction)
+**Configuration:**
+```typescript
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'gemini',
+    // Or per-workflow:
+    workflowOverrides: {
+        'product-design': 'gemini',
+    },
+    libraryModels: {
+        'gemini': {
+            model: 'gemini-2.5-pro',  // or 'gemini-2.5-flash'
+        },
+    },
+};
+```
+
+**Prerequisites:**
+1. Install Gemini CLI:
+   ```bash
+   npm install -g @google/gemini-cli
+   ```
+2. Authenticate:
+   ```bash
+   export GEMINI_API_KEY=your_api_key
+   # Or run `gemini` for interactive setup
+   ```
+
+**CLI Flags Used:**
+| Option | CLI Flag |
+|--------|----------|
+| `prompt` | Command argument |
+| `allowWrite` | `--yolo` |
+| `!allowWrite` | `--allowed-tools ReadFile,FindFiles,...` |
+| `stream` | `--output-format stream-json` |
+| `!stream` | `--output-format json` |
+
+**Documentation:** [docs/agent-library-gemini.md](./agent-library-gemini.md)
 
 ### 3. Cursor AI
 
@@ -239,6 +274,7 @@ export const agentsConfig: AgentsConfig = {
 - Web Fetch: ❌ No
 - Custom Tools: ❌ No (uses Cursor's built-in tools)
 - Timeout: ✅ Yes
+- **Plan Mode: ✅ Yes** (via `--mode=plan`)
 
 **Configuration:**
 ```typescript
@@ -267,18 +303,191 @@ export const agentsConfig: AgentsConfig = {
 |--------|----------|
 | `prompt` | Command argument |
 | `allowWrite` | `--force` |
-| `stream` | `--stream-partial-output` |
+| `stream` | `--stream-partial-output --output-format stream-json` |
+| `!stream` | `--output-format json` |
+| `planMode` | `--mode=plan` |
 | `timeout` | Process timeout |
-| `outputFormat` | `--output-format json` |
 
 **Features:**
 - Full integration with `cursor-agent` CLI
 - JSON output parsing for structured results
-- Streaming support with real-time event parsing
+- **Real-time streaming** with `--stream-partial-output` for live text output
+- **Plan mode** with `--mode=plan` for read-only codebase exploration
 - Progress indicators with spinner
 - Timeout handling via process termination
 - Files examined tracking from tool_use events
 - Usage statistics extraction (when available)
+
+### 4. OpenAI Codex CLI
+
+**Name:** `openai-codex`
+
+**Status:** ✅ Fully implemented
+
+**Capabilities:**
+- Streaming: ✅ Yes (via `--json` flag)
+- File Read: ✅ Yes
+- File Write: ✅ Yes (with sandbox controls)
+- Web Fetch: ❌ No
+- Custom Tools: ❌ Uses built-in tools
+- Timeout: ✅ Yes
+
+**Configuration:**
+```typescript
+export const agentsConfig: AgentsConfig = {
+    defaultLibrary: 'openai-codex',
+    // Or per-workflow:
+    workflowOverrides: {
+        'implementation': 'openai-codex',
+    },
+    libraryModels: {
+        'openai-codex': {
+            model: 'gpt-5-codex',  // or 'gpt-5'
+        },
+    },
+};
+```
+
+**Prerequisites:**
+1. Install Codex CLI:
+   ```bash
+   npm install -g @openai/codex
+   # Or: brew install --cask codex
+   ```
+2. Login (requires ChatGPT Plus/Pro or API key):
+   ```bash
+   codex login
+   ```
+
+**CLI Flags Used:**
+| Option | CLI Flag |
+|--------|----------|
+| `prompt` | `exec "<prompt>"` |
+| `allowWrite` | `--sandbox workspace-write` |
+| `!allowWrite` | `--sandbox read-only` |
+| `stream` | `--json` |
+| `model` | `--model gpt-5-codex` |
+| `approval` | `--ask-for-approval on-request` |
+
+**Features:**
+- Full integration with `codex exec` command
+- JSON output parsing for structured results
+- Sandbox modes for file access control
+- Streaming support with real-time event parsing
+- Progress indicators with spinner
+- Timeout handling via process termination
+- Files examined tracking from tool_use events
+
+**Documentation:** [docs/agent-library-openai-codex.md](./agent-library-openai-codex.md)
+
+---
+
+## Plan Mode and Plan Subagent
+
+The agent library supports **Plan Mode** for detailed implementation planning before coding.
+
+### Overview
+
+Plan mode enables AI agents to explore the codebase and create detailed implementation plans without making changes. This is used automatically by the Implementation Agent workflow.
+
+### How It Works
+
+When `runAgent()` is called with `workflow: 'implementation'` and `allowWrite: true`, it automatically:
+
+1. **Runs a Plan Subagent** - Explores the codebase in read-only mode
+2. **Generates a detailed plan** - Step-by-step implementation instructions
+3. **Augments the prompt** - Adds the plan to the main implementation prompt
+4. **Runs implementation** - Main agent follows the detailed plan
+
+This two-step process is **fully encapsulated** - calling code doesn't need to know about it.
+
+### Library-Specific Implementation
+
+| Library | Plan Mechanism | How It Works |
+|---------|---------------|--------------|
+| `claude-code-sdk` | Read-only tools | Runs with `allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch']` |
+| `cursor` | `--mode=plan` flag | Uses built-in plan mode for codebase exploration |
+| `gemini`, `openai-codex` | Not supported | Uses high-level plan from tech design only |
+
+### Plan Subagent Behavior
+
+**For claude-code-sdk:**
+```typescript
+// Internally runs:
+await library.run({
+    prompt: planPrompt,
+    allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch'],
+    allowWrite: false,
+    timeout: 120, // 2 minutes
+});
+```
+
+**For cursor:**
+```typescript
+// Internally runs with --mode=plan flag:
+await library.run({
+    prompt: planPrompt,
+    planMode: true,
+    allowWrite: false,
+    timeout: 120,
+});
+```
+
+### Using Plan Mode Directly
+
+You can also use plan mode directly for custom planning tasks:
+
+```typescript
+import { runAgent } from '@/agents/lib';
+
+// With cursor (uses --mode=plan)
+const result = await runAgent({
+    prompt: 'Create a plan for refactoring the auth module',
+    workflow: 'implementation',
+    planMode: true,
+    allowWrite: false,
+});
+
+// With claude-code-sdk (uses read-only tools)
+const result = await runAgent({
+    prompt: 'Create a plan for refactoring the auth module',
+    workflow: 'implementation',
+    allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch'],
+    allowWrite: false,
+});
+```
+
+### Plan Output Format
+
+The Plan Subagent generates a numbered list of implementation steps:
+
+```markdown
+1. Create types file at `src/apis/feature/types.ts` with interfaces
+2. Create handler at `src/apis/feature/handlers/get.ts`
+3. Add API route at `src/pages/api/process/feature_get.ts`
+4. Create React hook at `src/client/features/feature/useFeature.ts`
+5. Export hook from `src/client/features/feature/index.ts`
+6. Add component at `src/client/routes/Feature/index.tsx`
+7. Run yarn checks to verify no errors
+```
+
+### Configuration
+
+Plan mode is **automatically enabled** for implementation workflow. No configuration needed.
+
+To disable (not recommended):
+```typescript
+// Plan subagent only runs when:
+// - workflow === 'implementation'
+// - library supports planMode OR is claude-code-sdk
+// - allowWrite === true
+```
+
+### Timeout and Error Handling
+
+- Plan subagent has a **2-minute timeout**
+- If planning fails, implementation proceeds without the detailed plan
+- Errors are logged but don't fail the overall workflow
 
 ---
 
@@ -635,6 +844,8 @@ await disposeAllAdapters();
 - `src/agents/lib/index.ts` - Factory function
 - `src/agents/lib/adapters/claude-code-sdk.ts` - Claude implementation
 - `src/agents/lib/adapters/cursor.ts` - Cursor CLI implementation
+- `src/agents/lib/adapters/gemini.ts` - Gemini CLI implementation
+- `src/agents/lib/adapters/openai-codex.ts` - OpenAI Codex CLI implementation
 
 ### Workflow Files
 - `src/agents/core-agents/productDesignAgent/index.ts` - Product design workflow
@@ -644,11 +855,15 @@ await disposeAllAdapters();
 
 ### Test Scripts
 - `scripts/test-cursor-adapter.ts` - Test script for Cursor adapter
+- `scripts/test-gemini-adapter.ts` - Test script for Gemini adapter
+- `scripts/test-openai-codex-adapter.ts` - Test script for OpenAI Codex adapter
 
 ### Documentation
 - `CLAUDE.md` - Project guidelines (includes agent library section)
 - `docs/github-projects-integration.md` - GitHub Projects workflow
 - `docs/agent-library-abstraction.md` - This document
+- `docs/agent-library-gemini.md` - Gemini CLI adapter documentation
+- `docs/agent-library-openai-codex.md` - OpenAI Codex CLI adapter documentation
 
 ---
 
@@ -689,7 +904,8 @@ The agent library abstraction provides:
 **Available Adapters:**
 - `claude-code-sdk` - Claude Code SDK (default, fully implemented)
 - `cursor` - Cursor CLI (fully implemented)
-- `gemini` - Google Gemini (stub, not yet implemented)
+- `gemini` - Google Gemini CLI (fully implemented) - [Documentation](./agent-library-gemini.md)
+- `openai-codex` - OpenAI Codex CLI (fully implemented) - [Documentation](./agent-library-openai-codex.md)
 
 **Default Setup:** Works out of the box with Claude Code SDK
 

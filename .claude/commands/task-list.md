@@ -1,5 +1,5 @@
 ---
-description: List all tasks from task-manager/tasks.md organized by priority
+description: List all tasks using the task management library (organized by priority)
 ---
 
 # Task List Command

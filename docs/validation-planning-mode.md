@@ -268,7 +268,7 @@ This catches issues even if local checks were skipped.
 - [.eslintrc.json](../.eslintrc.json) - ESLint configuration
 - [tsconfig.json](../tsconfig.json) - TypeScript configuration
 - [package.json](../package.json) - Scripts definition
-- [.cursor/rules/typescript-guidelines.mdc](../.cursor/rules/typescript-guidelines.mdc) - TypeScript rules
+- [.ai/skills/typescript-guidelines/SKILL.md](../.ai/skills/typescript-guidelines/SKILL.md) - TypeScript rules
 
 ---
 

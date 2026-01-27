@@ -423,5 +423,5 @@ When creating or modifying components:
 - `src/client/routes/Settings/Settings.tsx` - Settings page integration
 
 ### Guidelines
-- `.cursor/rules/theming-guidelines.mdc` - AI/developer coding guidelines
+- `.ai/skills/theming-guidelines/SKILL.md` - AI/developer coding guidelines
 

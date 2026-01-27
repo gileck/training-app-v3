@@ -58,12 +58,14 @@ export type {
 
 // Output schemas for structured outputs
 export type {
+    ProductDevelopmentOutput,
     ProductDesignOutput,
     TechDesignOutput,
     ImplementationOutput,
     ImplementationPhase,
 } from './output-schemas';
 export {
+    PRODUCT_DEVELOPMENT_OUTPUT_FORMAT,
     PRODUCT_DESIGN_OUTPUT_FORMAT,
     TECH_DESIGN_OUTPUT_FORMAT,
     IMPLEMENTATION_OUTPUT_FORMAT,
@@ -73,6 +75,8 @@ export {
 export {
     runAgent,
     getAgentLibrary,
+    getLibraryForWorkflow,
+    getModelForWorkflow,
     extractMarkdown,
     extractJSON,
     extractReview,
@@ -91,6 +95,7 @@ export {
 // Notifications
 export {
     notifyIssueSynced,
+    notifyProductDevelopmentReady,
     notifyProductDesignReady,
     notifyTechDesignReady,
     notifyDesignPRReady,
@@ -109,6 +114,9 @@ export {
 
 // Prompts
 export {
+    buildProductDevelopmentPrompt,
+    buildProductDevelopmentRevisionPrompt,
+    buildProductDevelopmentClarificationPrompt,
     buildProductDesignPrompt,
     buildProductDesignRevisionPrompt,
     buildProductDesignClarificationPrompt,

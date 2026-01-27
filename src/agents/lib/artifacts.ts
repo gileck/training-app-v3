@@ -93,9 +93,9 @@ export function getDesignDocLink(issueNumber: number, type: 'product' | 'tech'):
 
 /**
  * Generate branch name for design PR
- * @returns Branch name: "design/issue-{N}-product" or "design/issue-{N}-tech"
+ * @returns Branch name: "design/issue-{N}-product-dev", "design/issue-{N}-product", or "design/issue-{N}-tech"
  */
-export function generateDesignBranchName(issueNumber: number, type: 'product' | 'tech'): string {
+export function generateDesignBranchName(issueNumber: number, type: 'product-dev' | 'product' | 'tech'): string {
     return `design/issue-${issueNumber}-${type}`;
 }
 

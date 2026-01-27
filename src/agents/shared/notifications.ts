@@ -201,6 +201,32 @@ Waiting for product design generation.`;
 }
 
 /**
+ * Notify admin that product development document is ready for review
+ */
+export async function notifyProductDevelopmentReady(
+    title: string,
+    issueNumber: number,
+    isRevision: boolean = false,
+    summary?: string
+): Promise<SendResult> {
+    const issueUrl = getIssueUrl(issueNumber);
+
+    const status = isRevision ? '🔄 Revised' : '✅ Ready for Review';
+
+    const summarySection = summary ? `\n\n<b>${isRevision ? 'Changes:' : 'Overview:'}</b>\n${escapeHtml(summary)}` : '';
+
+    const message = `<b>Agent (Product Development):</b> ${status}
+
+📋 ${escapeHtml(title)}
+🔗 Issue #${issueNumber}
+📊 Status: Product Development (Waiting for Review)
+
+${isRevision ? 'Document updated based on feedback. ' : ''}Review and approve to proceed to Product Design.${summarySection}`;
+
+    return sendToAdmin(message, buildIssueReviewButtons(issueNumber, issueUrl));
+}
+
+/**
  * Notify admin that product design is ready for review
  */
 export async function notifyProductDesignReady(
@@ -564,7 +590,7 @@ ${typeEmoji} ${typeLabel}
  * Shows Approve & Merge / Request Changes buttons for direct action
  */
 export async function notifyDesignPRReady(
-    designType: 'product' | 'tech',
+    designType: 'product-dev' | 'product' | 'tech',
     title: string,
     issueNumber: number,
     prNumber: number,
@@ -574,7 +600,11 @@ export async function notifyDesignPRReady(
 ): Promise<SendResult> {
     const prUrl = getPrUrl(prNumber);
 
-    const designLabel = designType === 'product' ? 'Product Design' : 'Technical Design';
+    const designLabel = designType === 'product-dev'
+        ? 'Product Development'
+        : designType === 'product'
+            ? 'Product Design'
+            : 'Technical Design';
     const status = isRevision ? '🔄 PR Updated' : '✅ PR Ready';
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';

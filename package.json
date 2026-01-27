@@ -22,6 +22,7 @@
     "investigate-bugs": "tsx scripts/investigate-bugs.ts",
     "design-features": "tsx scripts/design-features.ts",
     "github-workflows-agent": "tsx src/agents/index.ts",
+    "agent:product-dev": "tsx src/agents/core-agents/productDevelopmentAgent/index.ts",
     "agent:product-design": "tsx src/agents/core-agents/productDesignAgent/index.ts",
     "agent:tech-design": "tsx src/agents/core-agents/technicalDesignAgent/index.ts",
     "agent:implement": "tsx src/agents/core-agents/implementAgent/index.ts",
@@ -44,6 +45,9 @@
     "verify-production": "tsx scripts/verify-production.ts",
     "init-agents-copy": "tsx scripts/init-agents-copy-project.ts",
     "test-cursor-adapter": "tsx scripts/test-cursor-adapter.ts",
+    "test-gemini-adapter": "tsx scripts/test-gemini-adapter.ts",
+    "test-openai-codex-adapter": "tsx scripts/test-openai-codex-adapter.ts",
+    "test-all-adapters": "tsx scripts/test-all-adapters.ts",
     "task": "tsx task-manager/tasks-cli.ts"
   },
   "dependencies": {
@@ -100,6 +104,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/mcp": "^0.0.55",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/cookie": "^1.0.0",

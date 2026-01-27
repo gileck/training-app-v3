@@ -1,0 +1,256 @@
+---
+name: react-hook-organization
+description: when developing React components and hooks
+---
+# React Hook Organization Pattern
+
+This rule documents the pattern for organizing React hooks in our codebase, focusing on React Query hooks for data fetching and Zustand for client state.
+
+## Core Principles
+
+1. **React Query for Server State**: All API data fetching uses React Query hooks
+2. **Zustand for Client State**: Global app state uses Zustand stores
+3. **Colocated Hooks**: Route-specific hooks live in `hooks.ts` within the route folder
+4. **Offline-First**: All mutation hooks must handle empty `{}` responses (offline mode)
+5. **Optimistic Updates**: Mutations should update UI immediately, rollback on error
+
+## Hook Types
+
+### 1. Query Hooks (GET requests)
+
+**Keep hooks simple** - cache config is centralized in `src/client/query/defaults.ts`
+
+```typescript
+// src/client/routes/Todos/hooks.ts
+import { useQuery } from '@tanstack/react-query';
+import { useQueryDefaults } from '@/client/query';
+import { getTodos } from '@/apis/todos/client';
+import type { GetTodosResponse } from '@/apis/todos/types';
+
+// Define query keys as constants for consistency
+export const todosQueryKey = ['todos'] as const;
+export const todoQueryKey = (id: string) => ['todos', id] as const;
+
+export function useTodos(options?: { enabled?: boolean }) {
+    const queryDefaults = useQueryDefaults(); // Reads from settings
+    
+    return useQuery({
+        queryKey: todosQueryKey,
+        queryFn: async (): Promise<GetTodosResponse> => {
+            const response = await getTodos({});
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            return response.data;
+        },
+        enabled: options?.enabled ?? true,
+        ...queryDefaults, // No hardcoded cache values!
+    });
+}
+```
+
+### 2. Mutation Hooks (POST requests)
+
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateTodo } from '@/apis/todos/client';
+
+export function useUpdateTodo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: UpdateTodoRequest) => {
+            const response = await updateTodo(data);
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+            // ⚠️ May return undefined when offline!
+            return response.data?.todo;
+        },
+        
+        // Optimistic update - runs BEFORE the mutation
+        onMutate: async (variables) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: todosQueryKey });
+            
+            // Snapshot previous value for rollback
+            const previousTodos = queryClient.getQueryData(todosQueryKey);
+            
+            // Optimistically update cache
+            queryClient.setQueryData<GetTodosResponse>(todosQueryKey, (old) => {
+                if (!old?.todos) return old;
+                return {
+                    todos: old.todos.map(todo =>
+                        todo._id === variables.todoId
+                            ? { ...todo, ...variables }
+                            : todo
+                    ),
+                };
+            });
+            
+            return { previousTodos };
+        },
+        
+        // Rollback on error
+        onError: (_err, _variables, context) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(todosQueryKey, context.previousTodos);
+            }
+        },
+        
+        // Optimistic-only: never update from server response, never invalidate from mutations
+        onSuccess: () => {},
+        onSettled: () => {},
+    });
+}
+```
+
+## ⚠️ Offline Mode Handling
+
+When offline, `apiClient.post` returns `{ data: {}, isFromCache: false }`.
+
+Prefer `onSuccess: () => {}` (optimistic-only).  
+If you have a special-case `onSuccess` (e.g., non-optimistic create), it must guard against empty/undefined data.
+
+## Hook File Organization
+
+### Route-Specific Hooks
+
+Colocate hooks with the route that uses them:
+
+```
+src/client/routes/[ROUTE_NAME]/
+├── [ROUTE_NAME].tsx     // Uses hooks from hooks.ts
+├── hooks.ts             // Query + Mutation hooks for this route
+└── index.ts
+```
+
+**Example `hooks.ts`:**
+```typescript
+// Query Keys (export for cache invalidation elsewhere)
+export const entityQueryKey = ['entities'] as const;
+
+// Query Hooks
+export function useEntities() { /* ... */ }
+export function useEntity(id: string) { /* ... */ }
+
+// Mutation Hooks
+export function useCreateEntity() { /* ... */ }
+export function useUpdateEntity() { /* ... */ }
+export function useDeleteEntity() { /* ... */ }
+
+// Utility Hooks (manual refresh / special-cases)
+export function useInvalidateEntities() {
+    const queryClient = useQueryClient();
+    return {
+        invalidateAll: () => queryClient.invalidateQueries({ queryKey: entityQueryKey }),
+        invalidateOne: (id: string) => queryClient.invalidateQueries({ queryKey: ['entities', id] }),
+    };
+}
+```
+
+### Cross-Cutting Feature Hooks
+
+For hooks used across multiple routes, place them in the feature folder:
+
+```
+src/client/features/auth/
+├── store.ts             // useAuthStore
+├── hooks.ts             // useLogin, useLogout, useCurrentUser
+├── types.ts
+└── index.ts             // Re-exports all
+```
+
+**Import from feature index:**
+```typescript
+import { useLogin, useLogout, useCurrentUser } from '@/client/features/auth';
+```
+
+## Using Zustand in Hooks
+
+When hooks need client state from Zustand:
+
+```typescript
+import { useEffectiveOffline } from '@/client/features/settings';
+
+export function useTodos() {
+    // Subscribe to specific state slice
+    const offlineMode = useEffectiveOffline();
+    
+    return useQuery({
+        queryKey: todosQueryKey,
+        queryFn: async () => { /* ... */ },
+        // Disable network requests in offline mode
+        enabled: !offlineMode,
+        // Show cached data even when offline
+        staleTime: offlineMode ? Infinity : 30 * 1000,
+    });
+}
+```
+
+## File Size Guidelines
+
+- `hooks.ts` files can be up to 300 lines (contains multiple related hooks)
+- If exceeding 300 lines, consider splitting by concern (queries vs mutations)
+- Complex hooks with lots of optimistic update logic may need their own file
+
+## Query Key Conventions
+
+- Export query keys as constants for reuse
+- Use arrays: `['entity']` for lists, `['entity', id]` for single items
+- Use `as const` for type safety
+
+```typescript
+export const todosQueryKey = ['todos'] as const;
+export const todoQueryKey = (id: string) => ['todos', id] as const;
+```
+
+## 🚨 CRITICAL: Loading States & Empty States
+
+**NEVER show empty state before data is loaded.** This is a common bug that creates a bad UX.
+
+### The Problem
+
+`isLoading` is only `true` during initial fetch with no cached data. If you only check `isLoading`, you may show empty state before data arrives.
+
+### ❌ WRONG Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    if (isLoading) return <Skeleton />;
+    
+    // BUG: Shows "No items" even if data hasn't loaded yet!
+    if (items.length === 0) return <EmptyState />;
+    
+    return <ItemsList items={items} />;
+}
+```
+
+### ✅ CORRECT Pattern
+
+```typescript
+function MyComponent() {
+    const { data, isLoading } = useMyQuery();
+    const items = data?.items || [];
+
+    // Check BOTH isLoading AND data existence
+    if (isLoading || data === undefined) {
+        return <Skeleton />;
+    }
+
+    // Now we know data has been fetched - safe to check for empty
+    if (items.length === 0) return <EmptyState />;
+    
+    return <ItemsList items={items} />;
+}
+```
+
+### Key Rules
+
+1. **Always check `data === undefined`** alongside `isLoading`
+2. **Only show empty state** when `data` is defined AND array is empty
+3. **Show cached data immediately** while `isFetching` refreshes in background
+4. **Use skeleton loaders** not spinners (per app design guidelines)

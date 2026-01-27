@@ -88,23 +88,34 @@ Follow these steps to implement a task from task-manager/tasks.md:
 
 ---
 
-## Step 5: Create Implementation Plan
-- **Objective**: Break down the work into manageable steps
+## Step 5: Load or Create Implementation Plan
+- **Objective**: Get or create an implementation plan for the task
 - **Actions**:
-  - For complex tasks (M/L/XL), create a plan file:
-    - Write plan to: `task-manager/plans/task-N-plan.md`
-    - Include: objectives, approach, sub-tasks, file changes
-  - Use the TodoWrite tool to create a structured task list if helpful
-  - Break down implementation into logical sub-tasks
-  - Order sub-tasks by dependencies
-  - For simple tasks (XS/S), you may skip this step
 
-**If a plan file is created, update tasks.md:**
-- Add a `**Plan:**` field to the task with the path to the plan file
-- Example in task-manager/tasks.md:
-  ```markdown
-  **Plan:** `task-manager/plans/task-7-plan.md`
-  ```
+### 5a: Check for Existing Plan
+
+**FIRST, check if a plan already exists:**
+1. Check if task frontmatter has `planFile` field
+2. Check if `task-manager/plans/task-N-plan.md` exists
+3. If plan exists:
+   - Read the plan file
+   - Display: "📋 Using existing plan: task-manager/plans/task-N-plan.md"
+   - Use the sub-tasks from the plan to guide implementation
+   - **Skip to Step 6** - do not create a new plan
+
+### 5b: Create Plan (Only If No Existing Plan)
+
+**If no plan exists:**
+- For complex tasks (M/L/XL), create a plan file:
+  - Write plan to: `task-manager/plans/task-N-plan.md`
+  - Include: objectives, approach, sub-tasks, file changes
+  - Update task frontmatter with `planFile: task-manager/plans/task-N-plan.md`
+- Use the TodoWrite tool to create a structured task list if helpful
+- Break down implementation into logical sub-tasks
+- Order sub-tasks by dependencies
+- For simple tasks (XS/S), you may skip creating a plan file
+
+**TIP:** For M/L/XL tasks without a plan, consider suggesting the user run `/plan-task N` first to get a thorough plan from the Plan agent.
 
 **Example Plan File (`task-manager/plans/task-N-plan.md`):**
 ```markdown
@@ -313,7 +324,7 @@ High-level approach and key decisions.
 - [ ] Requirements understood
 - [ ] Documentation reviewed (CLAUDE.md, task-specific docs)
 - [ ] Relevant code explored
-- [ ] Implementation plan created (if M/L/XL) with path recorded in tasks.md
+- [ ] **Existing plan loaded** (if `task-manager/plans/task-N-plan.md` exists) OR plan created (for M/L/XL tasks)
 - [ ] Task implemented following guidelines
 - [ ] `yarn checks` passed with 0 errors
 - [ ] **⚠️ CRITICAL: User review requested and approval received (MANDATORY - DO NOT SKIP)**

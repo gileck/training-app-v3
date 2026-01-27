@@ -1,10 +1,10 @@
 ---
-description: Add a new task to task-manager/tasks.md following the standardized format
+description: Add a new task using the task management library (creates task-manager/tasks/task-N.md)
 ---
 
 # Add Task Command
 
-Interactively create a new task in `task-manager/tasks.md` following the standardized format defined in `task-manager/TASK_FORMAT.md`.
+Interactively create a new task using the centralized task library. The task will be saved as an individual file in `task-manager/tasks/` and the summary index will be automatically updated.
 
 ## Usage
 
@@ -29,9 +29,9 @@ Invoke this command:
 
 - **Objective**: Get the next sequential task number
 - **Actions**:
-  - Read `task-manager/tasks.md`
-  - Find the highest task number currently used
-  - Next task number = highest + 1
+  - Use CLI command: `yarn task list` to see current tasks
+  - Or read from task library to get next available number
+  - The library will automatically assign the next number (highest + 1)
   - Display: "Creating Task #{N}"
 
 ---
@@ -116,17 +116,17 @@ If "Implementation Notes" selected:
 If "Files to Modify" selected:
 - Question: "List files to modify (one per line, format: `path/file.ts - What to change`):"
 - Collect multi-line text
-- Parse into bulleted list
+- Parse into array of strings
 
 If "Dependencies" selected:
 - Question: "List dependencies (e.g., 'Task #5 must be completed first', 'Requires MongoDB migration'):"
 - Collect multi-line text
-- Parse into bulleted list
+- Parse into array of strings
 
 If "Risks/Blockers" selected:
 - Question: "List potential risks or blockers:"
 - Collect multi-line text
-- Parse into bulleted list
+- Parse into array of strings
 
 If "Notes" selected:
 - Question: "Add any additional notes or context:"
@@ -134,103 +134,57 @@ If "Notes" selected:
 
 ---
 
-## Step 5: Generate Task Markdown
+## Step 5: Create Task Using Library
 
-- **Objective**: Create properly formatted task content
+- **Objective**: Create the task using the task management library
 - **Actions**:
-  - Use the gathered information to create task following TASK_FORMAT.md
+  - Import the task library: `import { createTask } from './task-manager/lib/index'`
+  - Prepare task object with gathered data
+  - Call `createTask()` which will:
+    - Assign the next task number automatically
+    - Create `task-manager/tasks/task-N.md` with YAML frontmatter
+    - Rebuild `task-manager/tasks.md` summary index automatically
   - Get today's date in YYYY-MM-DD format
-  - Status is always "TODO" for new tasks
+  - Status is automatically set to "TODO" for new tasks
 
-**Task Template:**
+**Task Object Structure:**
 
-```markdown
-## {N}. {Title}
+```typescript
+const newTask = {
+    title: "gathered title",
+    priority: "High", // or Critical, Medium, Low
+    complexity: "Medium", // or Low, High
+    size: "M", // or XS, S, L, XL
+    status: "TODO",
+    dateAdded: "2026-01-27", // today's date
+    summary: "gathered summary",
+    // Optional fields:
+    details: "gathered details" || undefined,
+    implementationNotes: "gathered implementation notes" || undefined,
+    filesToModify: ["file1.ts", "file2.ts"] || undefined,
+    dependencies: ["Task #5", "MongoDB migration"] || undefined,
+    risks: ["Risk 1", "Risk 2"] || undefined,
+    notes: "gathered notes" || undefined,
+};
 
-| Priority | Complexity | Size | Status |
-|----------|------------|------|--------|
-| **{Priority}** | {Complexity} | {Size} | TODO |
-
-**Date Added:** {YYYY-MM-DD}
-
-**Summary:** {Summary}
-
-{IF Details provided:}
-**Details:**
-{Details}
-
-{IF Implementation Notes provided:}
-**Implementation Notes:**
-{Implementation Notes}
-
-{IF Files to Modify provided:}
-**Files to Modify:**
-{Bulleted list of files}
-
-{IF Dependencies provided:}
-**Dependencies:**
-{Bulleted list of dependencies}
-
-{IF Risks/Blockers provided:}
-**Risks/Blockers:**
-{Bulleted list of risks}
-
-{IF Notes provided:}
-**Notes:**
-{Notes}
+const createdTask = createTask(newTask);
+// Returns: Task object with assigned number
 ```
 
----
-
-## Step 6: Determine Insertion Point
-
-- **Objective**: Find where to insert the task in tasks.md
-- **Actions**:
-  - Tasks are organized by priority: Critical → High → Medium → Low
-  - Within each priority, tasks are ordered by date (oldest first)
-  - Find the correct priority section
-  - Insert at the end of that priority section (before the next priority section or before completed tasks)
-
-**Priority Section Markers:**
-- Look for tasks with matching priority
-- Insert after the last task of that priority
-- Before the "---" separator or before next priority section
+**Library automatically:**
+- Assigns next task number (highest + 1)
+- Creates `task-manager/tasks/task-{N}.md` with YAML frontmatter
+- Regenerates `task-manager/tasks.md` summary index
 
 ---
 
-## Step 7: Insert Task into tasks.md
-
-- **Objective**: Add the task to the file
-- **Actions**:
-  - Read current tasks.md
-  - Find insertion point based on priority
-  - Insert the task with proper spacing (blank line before "---" separator)
-  - Write updated tasks.md
-
-**Format:**
-```markdown
-## {previous task content}
-
----
-
-## {N}. {New Task Title}
-
-{task content}
-
----
-
-## {next task or next priority section}
-```
-
----
-
-## Step 8: Confirm and Display
+## Step 6: Confirm and Display
 
 - **Objective**: Verify task was added successfully
 - **Actions**:
-  - Read the newly added task from tasks.md to confirm
+  - Read the newly created task file to confirm
   - Display success message with task details
-  - Show next steps
+  - Show file location and next steps
 
 **Display:**
 ```
@@ -241,11 +195,13 @@ If "Notes" selected:
 - Priority: {Priority}
 - Size: {Size}
 - Complexity: {Complexity}
+- File: task-manager/tasks/task-{N}.md
 
 💡 Next Steps:
-- Review the task in task-manager/tasks.md
-- Use /task-list to see all tasks
-- Use /start-task {N} to implement this task
+- View task: yarn task view --task {N}
+- List all tasks: yarn task list
+- Start implementation: yarn task work --task {N}
+- Summary index auto-updated: task-manager/tasks.md
 ```
 
 ---
@@ -253,12 +209,12 @@ If "Notes" selected:
 ## Quick Checklist
 
 - [ ] Read TASK_FORMAT.md for format reference
-- [ ] Determined next task number
+- [ ] Library will determine next task number automatically
 - [ ] Gathered required fields (title, priority, size, complexity, summary)
 - [ ] Gathered optional fields (if requested)
-- [ ] Generated properly formatted task markdown
-- [ ] Found correct insertion point by priority
-- [ ] Inserted task into tasks.md
+- [ ] Called createTask() from library
+- [ ] Library created task-manager/tasks/task-N.md
+- [ ] Library auto-rebuilt task-manager/tasks.md summary
 - [ ] Verified task was added successfully
 - [ ] Displayed confirmation and next steps
 
@@ -268,7 +224,7 @@ If "Notes" selected:
 
 **User:** `/add-task`
 
-**Claude:** Creating a new task in tasks.md. Next task number will be #13.
+**Claude:** Creating a new task. The task library will assign the next available task number.
 
 *[Uses AskUserQuestion to gather info]*
 
@@ -283,29 +239,31 @@ If "Notes" selected:
 
 **Claude:**
 ```
-✅ Task #13 added successfully!
+✅ Task #21 added successfully!
 
 📝 Task Details:
 - Title: Add Dark Mode Support
 - Priority: High
 - Size: M
 - Complexity: Medium
+- File: task-manager/tasks/task-21.md
 
-The task has been added to task-manager/tasks.md in the High priority section.
+The task has been saved and the summary index has been automatically updated.
 
 💡 Next Steps:
-- Review the task in task-manager/tasks.md
-- Use /task-list to see all tasks
-- Use /start-task 13 to implement this task
+- View task: yarn task view --task 21
+- List all tasks: yarn task list
+- Start implementation: yarn task work --task 21
 ```
 
 ---
 
 ## Notes
 
-- Always follow TASK_FORMAT.md specification
-- Date Added is automatically set to today
-- Status is always "TODO" for new tasks
-- Task number is automatically determined (highest + 1)
-- Tasks are inserted in the correct priority section
-- Use proper markdown formatting with tables and bold text
+- Task library handles all file operations automatically
+- No need to manually insert into tasks.md - it's auto-generated
+- Task number is automatically assigned (highest + 1)
+- Summary index (tasks.md) is automatically rebuilt
+- Individual task file uses YAML frontmatter for metadata
+- Use `yarn task view --task N` to see full task details
+- Use `yarn task list` to see all tasks organized by priority/status

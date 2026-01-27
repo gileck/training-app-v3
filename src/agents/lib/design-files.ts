@@ -15,15 +15,38 @@ import * as path from 'path';
 const DESIGN_DOCS_DIR = 'design-docs';
 
 // ============================================================
+// TYPES
+// ============================================================
+
+/**
+ * Design document types:
+ * - 'product-dev': Product Development document (requirements, acceptance criteria)
+ * - 'product': Product Design document (UX/UI design)
+ * - 'tech': Technical Design document (architecture, implementation plan)
+ */
+export type DesignDocType = 'product-dev' | 'product' | 'tech';
+
+// ============================================================
 // FILE OPERATIONS
 // ============================================================
+
+/**
+ * Get the filename for a design document type
+ */
+function getDesignDocFilename(type: DesignDocType): string {
+    switch (type) {
+        case 'product-dev': return 'product-development.md';
+        case 'product': return 'product-design.md';
+        case 'tech': return 'tech-design.md';
+    }
+}
 
 /**
  * Get the full path for a design document
  * @returns Absolute path to the design document
  */
-export function getDesignDocFullPath(issueNumber: number, type: 'product' | 'tech'): string {
-    const filename = type === 'product' ? 'product-design.md' : 'tech-design.md';
+export function getDesignDocFullPath(issueNumber: number, type: DesignDocType): string {
+    const filename = getDesignDocFilename(type);
     return path.join(process.cwd(), DESIGN_DOCS_DIR, `issue-${issueNumber}`, filename);
 }
 
@@ -31,8 +54,8 @@ export function getDesignDocFullPath(issueNumber: number, type: 'product' | 'tec
  * Get the relative path for a design document (from repo root)
  * @returns Relative path: "design-docs/issue-{N}/product-design.md"
  */
-export function getDesignDocRelativePath(issueNumber: number, type: 'product' | 'tech'): string {
-    const filename = type === 'product' ? 'product-design.md' : 'tech-design.md';
+export function getDesignDocRelativePath(issueNumber: number, type: DesignDocType): string {
+    const filename = getDesignDocFilename(type);
     return path.join(DESIGN_DOCS_DIR, `issue-${issueNumber}`, filename);
 }
 
@@ -50,7 +73,7 @@ export function getIssueDesignDir(issueNumber: number): string {
  *
  * @returns The relative path to the written file
  */
-export function writeDesignDoc(issueNumber: number, type: 'product' | 'tech', content: string): string {
+export function writeDesignDoc(issueNumber: number, type: DesignDocType, content: string): string {
     const fullPath = getDesignDocFullPath(issueNumber, type);
     const dir = path.dirname(fullPath);
 
@@ -69,7 +92,7 @@ export function writeDesignDoc(issueNumber: number, type: 'product' | 'tech', co
  * Read design document from design-docs directory
  * @returns File content, or null if file doesn't exist
  */
-export function readDesignDoc(issueNumber: number, type: 'product' | 'tech'): string | null {
+export function readDesignDoc(issueNumber: number, type: DesignDocType): string | null {
     const fullPath = getDesignDocFullPath(issueNumber, type);
 
     if (!fs.existsSync(fullPath)) {
@@ -82,7 +105,7 @@ export function readDesignDoc(issueNumber: number, type: 'product' | 'tech'): st
 /**
  * Check if design document exists
  */
-export function designDocExists(issueNumber: number, type: 'product' | 'tech'): boolean {
+export function designDocExists(issueNumber: number, type: DesignDocType): boolean {
     const fullPath = getDesignDocFullPath(issueNumber, type);
     return fs.existsSync(fullPath);
 }
@@ -91,7 +114,7 @@ export function designDocExists(issueNumber: number, type: 'product' | 'tech'): 
  * Delete design document
  * @returns true if file was deleted, false if it didn't exist
  */
-export function deleteDesignDoc(issueNumber: number, type: 'product' | 'tech'): boolean {
+export function deleteDesignDoc(issueNumber: number, type: DesignDocType): boolean {
     const fullPath = getDesignDocFullPath(issueNumber, type);
 
     if (!fs.existsSync(fullPath)) {

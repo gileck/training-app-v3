@@ -525,7 +525,7 @@ const isOffline = useEffectiveOffline();
 | `cachePersistDays` | `number` | `7` | How long to persist cache to localStorage (days) |
 | `aiModel` | `string` | `''` | Selected AI model |
 
-📚 **Detailed Documentation**: See `.cursor/rules/settings-usage-guidelines.mdc`
+📚 **Detailed Documentation**: See `.ai/skills/settings-usage-guidelines/SKILL.md`
 
 ---
 
@@ -615,7 +615,7 @@ export function MyFeature() {
 | API types | `@/apis/{name}/types` |
 | Config constants | `@/client/config` |
 
-📚 **Detailed Documentation**: See `.cursor/rules/feature-based-structure.mdc`
+📚 **Detailed Documentation**: See `.ai/skills/feature-based-structure/SKILL.md`
 
 ### Route Metadata
 
@@ -647,7 +647,7 @@ export const routes = createRoutes({
 - This is metadata-driven, not a hardcoded list
 - AuthWrapper re-renders on navigation, ensuring auth is checked when navigating from public to protected routes
 
-📚 **Detailed Documentation**: See `.cursor/rules/pages-and-routing-guidelines.mdc`
+📚 **Detailed Documentation**: See `.ai/skills/pages-and-routing-guidelines/SKILL.md`
 
 ---
 
@@ -697,8 +697,8 @@ export const routes = createRoutes({
 | `docs/caching-strategy.md` | Caching architecture & localStorage vs IndexedDB |
 | `docs/api-endpoint-format.md` | API structure |
 | `docs/zustand-stores.md` | Store factory & registry |
-| `.cursor/rules/state-management-guidelines.mdc` | State management patterns |
-| `.cursor/rules/feature-based-structure.mdc` | Code organization |
+| `.ai/skills/state-management-guidelines/SKILL.md` | State management patterns |
+| `.ai/skills/feature-based-structure/SKILL.md` | Code organization |
 
 ---
 
