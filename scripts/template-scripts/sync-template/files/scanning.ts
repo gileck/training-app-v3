@@ -35,6 +35,22 @@ export function getAllFiles(
 
     if (entry.isDirectory()) {
       files.push(...getAllFiles(config, fullPath, baseDir, includeIgnored));
+    } else if (entry.isSymbolicLink()) {
+      // For symlinks, check if target is a directory
+      try {
+        const targetStat = fs.statSync(fullPath);
+        if (targetStat.isDirectory()) {
+          // Symlink to directory - include it as a "file" to sync the symlink itself
+          // Don't recurse into it
+          files.push(relativePath);
+        } else {
+          // Symlink to file - include it
+          files.push(relativePath);
+        }
+      } catch {
+        // Broken symlink - still include it to sync the symlink
+        files.push(relativePath);
+      }
     } else {
       files.push(relativePath);
     }

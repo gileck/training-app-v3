@@ -126,6 +126,23 @@ export function generateFileDiff(context: SyncContext, filePath: string): string
 
   if (!projectExists) {
     // New file in template - show full content
+    // Handle symlinks to directories specially
+    const stat = fs.lstatSync(templateFilePath);
+    if (stat.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(templateFilePath);
+      try {
+        const targetStat = fs.statSync(templateFilePath);
+        if (targetStat.isDirectory()) {
+          return `+++ NEW SYMLINK (to directory) +++\n-> ${linkTarget}`;
+        }
+      } catch {
+        // Broken symlink
+        return `+++ NEW SYMLINK (broken) +++\n-> ${linkTarget}`;
+      }
+    }
+    if (stat.isDirectory()) {
+      return ''; // Skip regular directories
+    }
     const content = fs.readFileSync(templateFilePath, 'utf-8');
     return `+++ NEW FILE +++\n${content}`;
   }
