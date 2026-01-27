@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "d396fd96101d579c7d4395c6cd4df4557330567b",
-  "lastProjectCommit": "13a4ccbd6fd2cc7ff849125fd9d49e3af4444a51",
-  "lastSyncDate": "2026-01-27T17:08:28.866Z",
+  "lastSyncCommit": "36d79d8d1287568f1e2abeb83b5a905c78892fd6",
+  "lastProjectCommit": "77170f66d64f41a22be484f131a036a61b38a77a",
+  "lastSyncDate": "2026-01-27T17:14:03.297Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,19 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-27T17:14:03.469Z",
+      "templateCommit": "36d79d8d1287568f1e2abeb83b5a905c78892fd6",
+      "projectCommit": "77170f66d64f41a22be484f131a036a61b38a77a",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "36d79d8 chore: add orphaned files reminder to sync-template output \u001b[90m(27/01/2026)\u001b[0m\n  After sync completes, remind users that renamed/deleted template files\n  may still exist locally and to run `yarn checks` to catch stale code.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "c7210d0 fix: handle symlinks to directories throughout sync-template \u001b[90m(27/01/2026)\u001b[0m\n  - scanning.ts: Properly detect symlinks to directories and include them\n    as syncable items without recursing into them\n  - diff-utils.ts: Handle symlinks to directories when generating diffs\n    for new template files, avoiding EISDIR errors\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "7579379 fix: handle symlinks to directories in sync-template hashing \u001b[90m(27/01/2026)\u001b[0m\n  Update getFileHash to properly handle symlinks pointing to directories\n  by hashing the link target path instead of trying to read directory\n  contents, which would fail with EISDIR error.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-27T17:08:20.178Z",
       "templateCommit": "d396fd96101d579c7d4395c6cd4df4557330567b",
@@ -382,21 +395,6 @@
         "992f72c feat: add /compact-claude command for CLAUDE.md optimization \u001b[90m(21/01/2026)\u001b[0m\n  Add Claude slash command that compacts CLAUDE.md by extracting verbose\n  sections to dedicated docs while preserving all content. Command provides\n  systematic process for reducing file size without losing information.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "35deaf5 fix: initialize GitHub adapter in pr-review agent \u001b[90m(21/01/2026)\u001b[0m\n  Add missing adapter.init() call that was causing \"GitHub client not initialized\" error.\n  \n  The pr-review agent was attempting to use the adapter without initializing it first,\n  while all other agents (product-design, tech-design, implement, auto-advance) properly\n  call await adapter.init() after getting the adapter.\n  \n  Also fixed incorrect await on getProjectManagementAdapter() - it's not async.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
         "7e585f6 feat: add agent library abstraction layer for swappable AI providers \u001b[90m(21/01/2026)\u001b[0m\n  Implement abstraction layer to support multiple AI providers (Claude Code SDK, Cursor, Gemini, etc.) with per-workflow configuration.\n  \n  Key features:\n  - AgentLibraryAdapter interface for consistent API across providers\n  - Per-workflow library selection via environment variables\n  - Library-agnostic output parsing (markdown, JSON, reviews)\n  - Dynamic adapter loading with singleton pattern\n  - Claude Code SDK fully implemented, Gemini and Cursor stubs for future\n  \n  Structure:\n  - src/agents/lib/types.ts - Interface definitions\n  - src/agents/lib/config.ts - Configuration loader\n  - src/agents/lib/parsing.ts - Output parsing\n  - src/agents/lib/index.ts - Factory function\n  - src/agents/lib/adapters/ - Provider implementations\n  \n  Configuration via .env.local:\n  - AGENT_DEFAULT_LIBRARY - Default for all workflows\n  - AGENT_PRODUCT_DESIGN_LIBRARY - Override for product design\n  - AGENT_TECH_DESIGN_LIBRARY - Override for tech design\n  - AGENT_IMPLEMENTATION_LIBRARY - Override for implementation\n  - AGENT_PR_REVIEW_LIBRARY - Override for PR review\n  \n  All workflows updated to pass workflow option for automatic library selection.\n  Backward compatible - existing code works without changes.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-21T14:29:50.161Z",
-      "templateCommit": "48164a317ce667cd33e729813f507e65d72f278e",
-      "projectCommit": "4f3ad86a9825775fb451330736cf564a366093b7",
-      "filesApplied": 15,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "48164a3 fix: resolve 3 critical issues in GitHub Projects workflow \u001b[90m(21/01/2026)\u001b[0m\n  1. Bug Reports Not Marked Done in MongoDB (HIGH)\n     - Updated mark-issue-done.ts to handle both feature requests and bug reports\n     - Script now checks reports collection if no feature request is found\n     - Bug reports are marked as 'resolved' when PR is merged\n  \n  2. GitHub API Rate Limit Handling (MEDIUM)\n     - Added withRetry() helper with exponential backoff to github.ts adapter\n     - Wrapped 5 high-frequency API calls: listItems, updateItemStatus,\n       updateItemReviewStatus, addIssueComment, addPRComment\n     - Retries up to 3 times with delays of 1s, 2s, 4s on 403 rate limit errors\n  \n  3. MongoDB Status Tracking Documentation (LOW)\n     - Added comprehensive documentation to config.ts explaining two-tier design\n     - Updated CLAUDE.md GitHub Projects section with status tracking details\n     - Clarifies that MongoDB tracks high-level statuses while GitHub Projects\n       tracks detailed workflow phases\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "2a5684f feat: add PR reviewer agent with slash command support \u001b[90m(21/01/2026)\u001b[0m\n  Add automated PR review agent using Claude Code slash commands and improve\n  implementor feedback response with structured resolution mapping.\n  \n  New PR Reviewer Agent:\n  - Created /pr-review slash command for automated code review\n  - Agent checks out feature branches and reviews PRs\n  - Posts structured feedback with APPROVED/REQUEST_CHANGES decision\n  - Updates GitHub Project review status automatically\n  - Integrated into orchestrator workflow\n  \n  Slash Command Support:\n  - Added useSlashCommands option to runAgent()\n  - Enables settingSources: ['project'] for Claude Code features\n  - Added extractReview() and parseReviewDecision() helpers\n  \n  Improved Implementor Feedback:\n  - Updated buildPRRevisionPrompt() to request structured output\n  - Added extractFeedbackResolution() and formatFeedbackResolution()\n  - Implementor now posts detailed table mapping feedback to resolutions\n  \n  Notifications:\n  - Added notifyPRReviewComplete() for PR review results\n  - Includes Telegram buttons to view PR and issue\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "d9a7be9 feat: add the ability to add a feature request straight from the feature-request page (#16) \u001b[90m(21/01/2026)\u001b[0m\n  * feat: add the ability to add a feature request straight from the feature-request page\n  \n  Closes #15\n  \n  * fix: address review feedback for #15\n  \n  * Apply suggestion from @gileck\n  \n  * Apply suggestion from @gileck",
-        "08cdc5c fix: improve implementor agent workflow and yarn checks detection \u001b[90m(21/01/2026)\u001b[0m\n  - Ensure agent always starts on clean default branch (main)\n  - Verify all commits are pushed before creating PR\n  - Always return to default branch after work completes\n  - Fix yarn checks success/failure detection\n  - Add output logging when pre-checks fail\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "bc720d1 fix: replace dynamic import with static import in agent notifications \u001b[90m(21/01/2026)\u001b[0m\n  Root cause: Agent Telegram notifications consistently failed with 404 error\n  because the dynamic import `await import('@/app.config')` in getOwnerChatId()\n  failed to resolve in CLI context (tsx), causing chatId to be null.\n  \n  Solution: Replace dynamic import with static import at module level.\n  This works in both Next.js (test endpoint) and CLI agents (tsx).\n  \n  Before: Dynamic import failed → null chatId → Telegram API 404\n  After: Static import succeeds → correct chatId → notification sent\n  \n  Test endpoint (/api/test-telegram) worked because webpack resolves @/ alias,\n  but CLI agents running via tsx couldn't resolve the TypeScript path alias.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -751,7 +749,7 @@
     "scripts/template-scripts/sync-template/reporting/results.ts": "1baaa93da34ce1ef92b2ea5c0b707c27",
     "scripts/template-scripts/sync-template/sync/index.ts": "700588a9ebd60205565da9104ba35944",
     "scripts/template-scripts/sync-template/sync/operations.ts": "a0871c4a67d488065aeccbc18dd41303",
-    "scripts/template-scripts/sync-template/sync-template-tool.ts": "77757a9c8aa36ec86a0b4401eb31ae19",
+    "scripts/template-scripts/sync-template/sync-template-tool.ts": "3962933259fed17181e5720e94cb1c53",
     "scripts/template-scripts/sync-template/types/index.ts": "d8b68b2af13382b65f180ad337748b91",
     "scripts/template-scripts/sync-template/ui/conflict-resolution.ts": "ed2a67e6ef471bb644d1877875176a43",
     "scripts/template-scripts/sync-template/ui/display.ts": "f379d4e3cb03b1bdfa8ecf6c510a373b",
@@ -1056,6 +1054,7 @@
     "task-manager/tasks/task-6.md": "fd2cd55fa4a6704caa9a5ab1b7cbec6b",
     "task-manager/tasks/task-7.md": "f148907ee6f0f25764342cdb7094c760",
     "task-manager/tasks/task-8.md": "dd4e7d60567ce5198b89e134814a766a",
-    "task-manager/tasks/task-9.md": "63fc12b555a72592ee03e2c817e5633a"
+    "task-manager/tasks/task-9.md": "63fc12b555a72592ee03e2c817e5633a",
+    ".cursor/skills": "a761a542c0a1092756c680db070b63af"
   }
 }

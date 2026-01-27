@@ -401,6 +401,8 @@ export class TemplateSyncTool {
         } else {
           log(this.context.options, '   Safe changes committed. Review .template files for manual merges.');
         }
+        log(this.context.options, '\n💡 Note: If template renamed/deleted files, those old files may still exist locally.');
+        log(this.context.options, '   Run `yarn checks` to catch stale files with outdated code.');
       }
     } catch (error: unknown) {
       this.rl.close();
