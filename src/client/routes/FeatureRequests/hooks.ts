@@ -9,7 +9,6 @@ import {
     getFeatureRequests,
     getFeatureRequest,
     updateFeatureRequestStatus,
-    updateDesignReviewStatus,
     updatePriority,
     deleteFeatureRequest,
     addAdminComment,
@@ -26,8 +25,6 @@ import type {
     GetFeatureRequestsRequest,
     FeatureRequestStatus,
     FeatureRequestPriority,
-    DesignPhaseType,
-    DesignReviewStatus,
     CreateFeatureRequestRequest,
 } from '@/apis/feature-requests/types';
 import { useQueryDefaults } from '@/client/query';
@@ -104,71 +101,6 @@ export function useUpdateFeatureRequestStatus() {
             toast.error('Failed to update status');
         },
         onSuccess: () => {},
-        onSettled: () => {},
-    });
-}
-
-export function useUpdateDesignReviewStatus() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({
-            requestId,
-            phase,
-            reviewStatus,
-            adminComments,
-        }: {
-            requestId: string;
-            phase: DesignPhaseType;
-            reviewStatus: DesignReviewStatus;
-            adminComments?: string;
-        }) => {
-            const result = await updateDesignReviewStatus({
-                requestId,
-                phase,
-                reviewStatus,
-                adminComments,
-            });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data.featureRequest;
-        },
-        onMutate: async ({ requestId, phase, reviewStatus }) => {
-            await queryClient.cancelQueries({ queryKey: featureRequestsBaseQueryKey });
-            const previous = queryClient.getQueriesData({ queryKey: featureRequestsBaseQueryKey });
-
-            queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((request) => {
-                    if (request._id !== requestId) return request;
-                    const designKey = phase === 'product' ? 'productDesign' : 'techDesign';
-                    return {
-                        ...request,
-                        [designKey]: {
-                            ...request[designKey],
-                            reviewStatus,
-                        },
-                    };
-                });
-            });
-
-            return { previous };
-        },
-        onError: (_err, _variables, context) => {
-            if (!context?.previous) return;
-            for (const [key, data] of context.previous) {
-                queryClient.setQueryData(key, data);
-            }
-            toast.error('Failed to update design review status');
-        },
-        onSuccess: (_data, { reviewStatus }) => {
-            if (reviewStatus === 'approved') {
-                toast.success('Design approved');
-            } else if (reviewStatus === 'rejected') {
-                toast.success('Design rejected with feedback');
-            }
-        },
         onSettled: () => {},
     });
 }
@@ -371,6 +303,54 @@ export function useGitHubStatus(requestId: string | null, enabled: boolean = tru
         enabled: enabled && !!requestId,
         staleTime: 30000, // 30 seconds - status can change frequently
         refetchOnWindowFocus: true,
+    });
+}
+
+/**
+ * Hook to fetch GitHub Project statuses for multiple feature requests
+ * Used by the list view to get all statuses for filtering
+ */
+export function useBatchGitHubStatuses(requestIds: string[]) {
+    return useQuery({
+        queryKey: ['github-statuses-batch', requestIds],
+        queryFn: async () => {
+            if (requestIds.length === 0) return {};
+
+            // Fetch all statuses in parallel
+            const results = await Promise.allSettled(
+                requestIds.map(async (requestId) => {
+                    const result = await getGitHubStatus({ requestId });
+                    return { requestId, data: result.data };
+                })
+            );
+
+            // Build map from results, handling errors gracefully
+            const statusMap: Record<string, { status: string; reviewStatus: string | null } | undefined> = {};
+
+            results.forEach((result, index) => {
+                const requestId = requestIds[index];
+                if (result.status === 'fulfilled' && !result.value.data.error) {
+                    statusMap[requestId] = {
+                        status: result.value.data.status || '',
+                        reviewStatus: result.value.data.reviewStatus || null,
+                    };
+                }
+                // On error, don't add to map - will fall back to DB status
+            });
+
+            return statusMap;
+        },
+        enabled: requestIds.length > 0,
+        staleTime: 30000, // 30 seconds
+        refetchOnWindowFocus: true,
+        // Handle rate limit errors gracefully
+        retry: (failureCount, error) => {
+            // Don't retry on rate limit errors
+            if (error instanceof Error && error.message.includes('rate limit')) {
+                return false;
+            }
+            return failureCount < 2;
+        },
     });
 }
 

@@ -6,13 +6,34 @@
  */
 
 import type { Status, ReviewStatus } from './config';
-import type {
-    LinkedPullRequest,
-    GitHubIssueDetails,
-} from '@/apis/feature-requests/types';
 
-// Re-export types from API to avoid duplication
-export type { LinkedPullRequest, GitHubIssueDetails };
+// ============================================================
+// LINKED PR TYPES (used by adapter internally)
+// These are adapter-internal types, not exposed via API
+// ============================================================
+
+// eslint-disable-next-line api-guidelines/no-duplicate-api-types
+export interface LinkedPullRequest {
+    number: number;
+    url: string;
+    title: string;
+    state: 'OPEN' | 'CLOSED' | 'MERGED';
+    mergedAt?: string;
+}
+
+/**
+ * GitHub Issue Details (returned by adapter)
+ * Note: linkedPullRequests is for internal adapter use.
+ * The API layer adds artifacts parsed from comments.
+ */
+export interface GitHubIssueDetails {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    state: 'OPEN' | 'CLOSED';
+    linkedPullRequests: LinkedPullRequest[];
+}
 
 // ============================================================
 // DOMAIN TYPES

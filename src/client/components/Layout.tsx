@@ -9,12 +9,14 @@ import { useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client
 import { GlobalDialogs } from './GlobalDialogs';
 import { ToastContainer } from './ui/toast';
 import { useIsAdmin } from '@/client/features/auth';
+import { useRouter } from '@/client/router';
 
 
 export const Layout = ({ children }: { children?: ReactNode }) => {
   // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral drawer open state
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = useIsAdmin();
+  const { isFullScreen } = useRouter();
   const isStandalone = typeof window !== 'undefined' &&
     (window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as NavigatorStandalone).standalone);
@@ -29,6 +31,18 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  // Full-screen routes render without header/navbar
+  if (isFullScreen) {
+    return (
+      <>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+        <ToastContainer />
+      </>
+    );
+  }
 
   // iOS Safari/PWA Fix: Use 100dvh on mobile instead of min-h-screen
   // This makes the container height equal to the dynamic viewport height,

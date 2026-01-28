@@ -4,12 +4,13 @@ This document explains how to run the AI agents, when to run them, the agents co
 
 ## Overview
 
-The GitHub Projects integration includes four AI agents that automate different phases of the development workflow:
+The GitHub Projects integration includes five AI agents that automate different phases of the development workflow:
 
-1. **Product Design Agent** - Generates UX/UI designs and mockups
-2. **Tech Design Agent** - Creates technical architecture documents
-3. **Implementation Agent** - Writes code and creates PRs
-4. **PR Review Agent** - Reviews implementation PRs and generates commit messages
+1. **Product Development Agent** (Optional) - Transforms vague ideas into concrete product specs
+2. **Product Design Agent** - Generates UX/UI designs and mockups
+3. **Tech Design Agent** - Creates technical architecture documents
+4. **Implementation Agent** - Writes code and creates PRs
+5. **PR Review Agent** - Reviews implementation PRs and generates commit messages
 
 ## Running Agents with Agents Copy (Recommended)
 
@@ -83,13 +84,52 @@ yarn agent:pr-review
 
 ## Agent Execution Flow
 
-### 1. Product Design Agent
+### 1. Product Development Agent (Optional)
+
+**When to run:** Item is in "Product Development" column
+
+**What it does:**
+- Reads vague feature ideas from issue description
+- Transforms them into concrete product specifications
+- Focuses on WHAT to build and WHY (not UI/UX - that's Product Design)
+- Creates PR with product development document
+- Moves issue to "Product Design" on merge
+
+**Command:**
+```bash
+yarn agent:product-development
+
+# Or with specific issue:
+yarn agent:product-development --issue 123
+```
+
+**When to Use:**
+- Feature idea is vague or unclear
+- Requirements need to be defined before UI/UX design
+- Scope boundaries need clarification
+- Success metrics need definition
+
+**When to Skip:**
+- Feature is already well-defined in the issue
+- It's a bug fix (route directly to Tech Design)
+- It's internal/technical work
+
+**Output Sections:**
+- Size Estimate (S/M/L/XL)
+- Problem Statement
+- Target Users
+- Requirements with acceptance criteria
+- Success Metrics
+- Scope (in/out of scope)
+
+### 2. Product Design Agent
 
 **When to run:** Item is in "Product Design" column
 
 **What it does:**
-- Reads issue description
-- Generates UX/UI design document with mockups
+- Reads issue description (and Product Development doc if exists)
+- Generates UX/UI design document
+- Focuses on HOW it will look and feel (mobile-first)
 - Creates PR with design file → `docs/designs/[issue-number]-[title].md`
 - Moves issue to "Technical Design" on merge
 
@@ -105,7 +145,7 @@ yarn agent:product-design --issue 123
 - Manually: Run command when ready
 - Automated: Via cron job (if configured)
 
-### 2. Tech Design Agent
+### 4. Tech Design Agent
 
 **When to run:** Item is in "Technical Design" column
 
@@ -131,7 +171,7 @@ yarn agent:tech-design --issue 123
 - Each phase is independently implementable and mergeable
 - Implementation agent reads phases from comment
 
-### 3. Implementation Agent
+### 5. Implementation Agent
 
 **When to run:** Item is in "Ready for development" column
 
@@ -170,7 +210,7 @@ This is **fully encapsulated** - you don't need to configure anything. The plan 
 - Creates PR title: `feat: [phase X/Y] - description`
 - Next phase starts automatically after previous PR merges
 
-### 4. PR Review Agent
+### 6. PR Review Agent
 
 **When to run:** PR is open and ready for review
 
@@ -414,6 +454,7 @@ jobs:
 - Pull latest changes before running
 
 **Running Agents:**
+- `yarn agent:product-development` - Transform vague ideas into product specs (optional)
 - `yarn agent:product-design` - Generate UX/UI designs
 - `yarn agent:tech-design` - Create architecture docs
 - `yarn agent:implement` - Write code and create PRs

@@ -2,6 +2,57 @@
 
 This document provides technical details about the architecture, file structure, and implementation details of the GitHub Projects automation workflow.
 
+## Status Constants
+
+### Main Statuses (STATUSES)
+
+GitHub Project board columns - the primary workflow phases.
+
+| Constant | Display Value | Description |
+|----------|---------------|-------------|
+| `backlog` | "Backlog" | New items, not yet started |
+| `productDevelopment` | "Product Development" | (Optional) AI transforms vague ideas into product specs |
+| `productDesign` | "Product Design" | AI generates UX/UI design, human reviews |
+| `techDesign` | "Technical Design" | AI generates tech design, human reviews |
+| `implementation` | "Ready for development" | AI implements and creates PR |
+| `prReview` | "PR Review" | PR created, awaiting review/merge |
+| `done` | "Done" | Completed and merged |
+
+### Review Statuses (REVIEW_STATUSES)
+
+Custom field values for tracking review state within each phase.
+
+| Constant | Display Value | Description |
+|----------|---------------|-------------|
+| `waitingForReview` | "Waiting for Review" | AI finished, human needs to review |
+| `approved` | "Approved" | Human approved, ready to advance |
+| `requestChanges` | "Request Changes" | Human wants revisions |
+| `rejected` | "Rejected" | Won't proceed |
+| `waitingForClarification` | "Waiting for Clarification" | Agent needs more info from admin |
+| `clarificationReceived` | "Clarification Received" | Admin provided clarification |
+
+### Custom Fields
+
+| Field Name | Purpose |
+|------------|---------|
+| `Review Status` | Tracks review state within phases |
+| `Implementation Phase` | Multi-PR workflow tracking (format: "X/N", e.g., "1/3") |
+
+### Import in Code
+
+```typescript
+import { STATUSES, REVIEW_STATUSES } from '@/server/project-management';
+
+// Usage
+if (item.status === STATUSES.prReview) {
+    // Handle PR review phase
+}
+
+if (item.reviewStatus === REVIEW_STATUSES.approved) {
+    // Move to next phase
+}
+```
+
 ## File Structure
 
 ### Main Project

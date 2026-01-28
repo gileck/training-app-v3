@@ -5,9 +5,6 @@ import {
     FeatureRequestCreate,
     FeatureRequestFilters,
     FeatureRequestStatus,
-    DesignPhase,
-    DesignReviewStatus,
-    DesignPhaseType,
     FeatureRequestComment,
     FeatureRequestPriority,
 } from './types';
@@ -141,172 +138,6 @@ export const updateFeatureRequestStatus = async (
 };
 
 /**
- * Update a design phase content (used by agent)
- */
-export const updateDesignContent = async (
-    requestId: ObjectId | string,
-    phase: DesignPhaseType,
-    content: string,
-    reviewStatus: DesignReviewStatus = 'pending_review'
-): Promise<FeatureRequestDocument | null> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    const existing = await collection.findOne({ _id: requestIdObj });
-    if (!existing) return null;
-
-    const fieldName = phase === 'product' ? 'productDesign' : 'techDesign';
-    const currentPhase = existing[fieldName];
-
-    const updatedPhase: DesignPhase = {
-        content,
-        reviewStatus,
-        adminComments: currentPhase?.adminComments,
-        iterations: (currentPhase?.iterations || 0) + 1,
-        generatedAt: new Date(),
-        approvedAt: currentPhase?.approvedAt,
-    };
-
-    const result = await collection.findOneAndUpdate(
-        { _id: requestIdObj },
-        {
-            $set: {
-                [fieldName]: updatedPhase,
-                updatedAt: new Date(),
-            },
-        },
-        { returnDocument: 'after' }
-    );
-
-    return result || null;
-};
-
-/**
- * Set design phase review status (used by admin to approve/reject)
- */
-export const setDesignReviewStatus = async (
-    requestId: ObjectId | string,
-    phase: DesignPhaseType,
-    reviewStatus: DesignReviewStatus,
-    adminComments?: string
-): Promise<FeatureRequestDocument | null> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    const existing = await collection.findOne({ _id: requestIdObj });
-    if (!existing) return null;
-
-    const fieldName = phase === 'product' ? 'productDesign' : 'techDesign';
-    const currentPhase = existing[fieldName];
-
-    if (!currentPhase) return null;
-
-    const updatedPhase: DesignPhase = {
-        ...currentPhase,
-        reviewStatus,
-        adminComments: adminComments ?? currentPhase.adminComments,
-        approvedAt: reviewStatus === 'approved' ? new Date() : currentPhase.approvedAt,
-    };
-
-    const updateData: Partial<FeatureRequestDocument> = {
-        [fieldName]: updatedPhase,
-        updatedAt: new Date(),
-    };
-
-    const result = await collection.findOneAndUpdate(
-        { _id: requestIdObj },
-        { $set: updateData },
-        { returnDocument: 'after' }
-    );
-
-    return result || null;
-};
-
-/**
- * Find feature requests that need design work (for agent)
- *
- * NOTE: With simplified status schema, agents should query GitHub Projects directly.
- * This function is kept for backwards compatibility but is no longer the primary
- * way to find work - agents use GitHub Projects API instead.
- *
- * Returns in_progress requests with design phases that need work.
- */
-export const findPendingDesignWork = async (
-    phase?: DesignPhaseType,
-    limit?: number
-): Promise<FeatureRequestDocument[]> => {
-    const collection = await getFeatureRequestsCollection();
-
-    const conditions: Filter<FeatureRequestDocument>[] = [];
-
-    if (!phase || phase === 'product') {
-        conditions.push({
-            status: 'in_progress',
-            $or: [
-                { 'productDesign.reviewStatus': 'not_started' },
-                { 'productDesign.reviewStatus': 'rejected' },
-                { productDesign: { $exists: false } },
-            ],
-        });
-    }
-
-    if (!phase || phase === 'tech') {
-        conditions.push({
-            status: 'in_progress',
-            $or: [
-                { 'techDesign.reviewStatus': 'not_started' },
-                { 'techDesign.reviewStatus': 'rejected' },
-                { techDesign: { $exists: false } },
-            ],
-        });
-    }
-
-    const query: Filter<FeatureRequestDocument> = conditions.length === 1
-        ? conditions[0]
-        : { $or: conditions };
-
-    let cursor = collection.find(query).sort({ createdAt: 1 }); // Oldest first
-
-    if (limit) {
-        cursor = cursor.limit(limit);
-    }
-
-    return cursor.toArray();
-};
-
-/**
- * Mark a design phase as in_progress (to prevent duplicate processing)
- */
-export const markDesignInProgress = async (
-    requestId: ObjectId | string,
-    phase: DesignPhaseType
-): Promise<boolean> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    const fieldName = phase === 'product' ? 'productDesign' : 'techDesign';
-
-    const result = await collection.updateOne(
-        {
-            _id: requestIdObj,
-            $or: [
-                { [`${fieldName}.reviewStatus`]: 'not_started' },
-                { [`${fieldName}.reviewStatus`]: 'rejected' },
-                { [fieldName]: { $exists: false } },
-            ],
-        },
-        {
-            $set: {
-                [`${fieldName}.reviewStatus`]: 'in_progress',
-                updatedAt: new Date(),
-            },
-        }
-    );
-
-    return result.modifiedCount === 1;
-};
-
-/**
  * Add a comment to a feature request
  */
 export const addComment = async (
@@ -422,10 +253,6 @@ export const updateGitHubFields = async (
         githubIssueUrl?: string;
         githubIssueNumber?: number;
         githubProjectItemId?: string;
-        githubProjectStatus?: string;
-        githubReviewStatus?: string;
-        githubPrUrl?: string;
-        githubPrNumber?: number;
     }
 ): Promise<FeatureRequestDocument | null> => {
     const collection = await getFeatureRequestsCollection();

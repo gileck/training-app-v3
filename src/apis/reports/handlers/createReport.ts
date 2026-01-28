@@ -95,8 +95,6 @@ export const createReport = async (
                     githubIssueUrl: existingReport.githubIssueUrl,
                     githubIssueNumber: existingReport.githubIssueNumber,
                     githubProjectItemId: existingReport.githubProjectItemId,
-                    githubPrUrl: existingReport.githubPrUrl,
-                    githubPrNumber: existingReport.githubPrNumber,
                     createdAt: existingReport.createdAt.toISOString(),
                     updatedAt: now.toISOString(),
                 };

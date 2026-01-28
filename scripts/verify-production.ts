@@ -117,6 +117,10 @@ async function checkVercelEnvironmentVariables(): Promise<CategoryResults> {
         'GITHUB_PROJECT_NUMBER',
         'GITHUB_OWNER_TYPE',
         'TELEGRAM_BOT_TOKEN',
+        'AGENT_TELEGRAM_CHAT_ID',
+        'LOCAL_TELEGRAM_CHAT_ID',
+        'GH_TELEGRAM_CHAT_ID',
+        'VERCEL_TELEGRAM_CHAT_ID',
         'MONGO_URI',
         'JWT_SECRET',
         'ADMIN_USER_ID'
@@ -168,7 +172,7 @@ async function compareLocalAndVercelEnvVars(): Promise<CategoryResults> {
         failed: 0
     };
 
-    // Variables to compare (skip LOCAL_* which are intentionally different)
+    // Variables to compare
     const varsToCompare = [
         'GITHUB_TOKEN',
         'GITHUB_OWNER',
@@ -176,6 +180,10 @@ async function compareLocalAndVercelEnvVars(): Promise<CategoryResults> {
         'GITHUB_PROJECT_NUMBER',
         'GITHUB_OWNER_TYPE',
         'TELEGRAM_BOT_TOKEN',
+        'AGENT_TELEGRAM_CHAT_ID',
+        'LOCAL_TELEGRAM_CHAT_ID',
+        'GH_TELEGRAM_CHAT_ID',
+        'VERCEL_TELEGRAM_CHAT_ID',
         'MONGO_URI',
         'JWT_SECRET',
         'ADMIN_USER_ID'

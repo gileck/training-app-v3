@@ -14,6 +14,38 @@ description: globs: .tsx,.css
 >
 > **Priority**: If rules conflict, THIS skill takes precedence for implementation.
 
+## ⚠️ CRITICAL: Mobile-First is a Core Requirement
+
+**This is a mobile-first application.** ALL features and UI MUST be designed and implemented for mobile screens FIRST, especially small screens (~400px CSS viewport width).
+
+**Non-negotiable requirements:**
+- **Start with mobile** - Write base styles for ~400px width, then add `sm:`, `md:`, `lg:` for larger screens
+- **Test at 400px first** - Every component must look good and be fully usable at mobile width
+- **Touch targets ≥ 44px** - All interactive elements must be easily tappable
+- **No horizontal scroll** - Content must fit within mobile viewport width
+- **Thumb-friendly** - Place primary actions in easy-reach zones (bottom of screen)
+
+**Common mobile widths (CSS pixels):**
+- iPhone SE: 375px
+- iPhone 14: 390px
+- Most Android: 360-412px
+- Tailwind `sm:` breakpoint: 640px
+
+**The pattern:**
+```tsx
+// ✅ CORRECT: Mobile-first
+<div className="px-2 py-3 sm:px-4 sm:py-6">
+  <h1 className="text-lg sm:text-2xl">Title</h1>
+</div>
+
+// ❌ WRONG: Desktop-first
+<div className="px-4 py-6 max-sm:px-2 max-sm:py-3">
+  <h1 className="text-2xl max-sm:text-lg">Title</h1>
+</div>
+```
+
+---
+
 These rules standardize design across the app using shadcn UI primitives and Tailwind v4 semantic tokens. Dark mode uses the HTML `.dark` class via `next-themes`. Color tokens live in [globals.css](mdc:src/client/styles/globals.css).
 
 ## Colors and theming

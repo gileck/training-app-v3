@@ -209,7 +209,44 @@ Check that the comment appears from the bot account, not your personal account.
 - ✅ Clear separation between user and agent actions
 - ✅ Agent identity prefixes show which specific agent took each action
 
-## Step 5: Telegram Setup (Optional but Recommended)
+## Step 5: Install Claude GitHub App (Recommended)
+
+The implementation agent automatically triggers Claude Code to review PRs after creation. This requires installing the Claude GitHub App on your repository.
+
+### Why Install Claude GitHub App?
+
+When the implementation agent creates a PR, it posts a comment `@claude please review this PR`. The Claude GitHub App:
+- Automatically reviews the PR code
+- Posts inline comments on potential issues
+- Provides a summary review
+- Helps catch bugs before human review
+
+### Installation Steps
+
+1. **Go to the Claude GitHub App page:**
+   - Visit: https://github.com/apps/claude
+
+2. **Click "Install"** and select your repository
+
+3. **Grant permissions:**
+   - Read access to code and metadata
+   - Read and write access to pull requests and issues
+
+4. **Verify installation:**
+   - Go to your repository → Settings → Integrations → GitHub Apps
+   - Confirm "Claude" is listed
+
+### How It Works in the Workflow
+
+After the implementation agent creates a PR:
+1. Agent posts comment: `@claude please review this PR`
+2. Claude GitHub App receives the mention
+3. Claude reviews the code and posts feedback
+4. Human reviewer sees both the PR and Claude's review comments
+
+**Note:** If the Claude GitHub App is not installed, the `@claude` mention will have no effect, but the workflow will continue normally. Human reviewers can still review the PR manually.
+
+## Step 6: Telegram Setup (Optional but Recommended)
 
 Telegram enables one-click approvals and instant notifications for the entire workflow.
 
@@ -301,7 +338,7 @@ The combined format `chatId:threadId` is backward compatible:
 
 If you prefer a single chat for all notifications, just use the same chat ID everywhere without the thread ID suffix.
 
-## Step 6: Environment Configuration
+## Step 7: Environment Configuration
 
 Project configuration is controlled via environment variables:
 
@@ -333,7 +370,7 @@ export const agentConfig: AgentConfig = {
 
 **Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/project-management/config.ts` and should NOT be modified.
 
-## Step 7: Verify Setup
+## Step 8: Verify Setup
 
 Run the setup verification script:
 ```bash

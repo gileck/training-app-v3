@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, User, FileText, ExternalLink, GitPullRequest, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, FileText, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { useRouter } from '@/client/router';
@@ -14,7 +14,6 @@ import { useFeatureRequestDetail, useGitHubStatus, useGitHubIssueDetails } from 
  * - Description (expanded by default)
  * - GitHub Issue Details (expanded if exists)
  * - Comments (collapsed by default)
- * - Design Documents (collapsed, only if exists)
  * - Admin Notes (collapsed)
  */
 export function FeatureRequestDetail() {
@@ -88,9 +87,6 @@ export function FeatureRequestDetail() {
     }
 
     const hasGitHubIssue = !!request.githubIssueUrl;
-    const hasProductDesign = !!request.productDesign?.content;
-    const hasTechDesign = !!request.techDesign?.content;
-    const hasDesignDocuments = hasProductDesign || hasTechDesign;
     const commentsCount = request.comments?.length || 0;
 
     return (
@@ -149,17 +145,6 @@ export function FeatureRequestDetail() {
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span>Issue #{request.githubIssueNumber}</span>
                         </a>
-                        {request.githubPrUrl && (
-                            <a
-                                href={request.githubPrUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
-                            >
-                                <GitPullRequest className="h-3.5 w-3.5" />
-                                <span>PR #{request.githubPrNumber}</span>
-                            </a>
-                        )}
                     </div>
                 )}
 
@@ -225,17 +210,24 @@ export function FeatureRequestDetail() {
                                 )}
                             </div>
 
-                            {request.githubProjectStatus && (
-                                <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
-                                    <p className="text-xs text-muted-foreground">GitHub Project Status</p>
-                                    <p className="font-medium">{request.githubProjectStatus}</p>
+                            {isLoadingGitHubStatus && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <span>Loading GitHub status...</span>
                                 </div>
                             )}
 
-                            {request.githubReviewStatus && (
+                            {githubStatus?.status && (
+                                <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
+                                    <p className="text-xs text-muted-foreground">GitHub Project Status</p>
+                                    <p className="font-medium">{githubStatus.status}</p>
+                                </div>
+                            )}
+
+                            {githubStatus?.reviewStatus && (
                                 <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                     <p className="text-xs text-muted-foreground">Review Status</p>
-                                    <p className="font-medium">{request.githubReviewStatus}</p>
+                                    <p className="font-medium">{githubStatus.reviewStatus}</p>
                                 </div>
                             )}
 
@@ -249,17 +241,6 @@ export function FeatureRequestDetail() {
                                     <ExternalLink className="h-4 w-4" />
                                     View on GitHub
                                 </a>
-                                {request.githubPrUrl && (
-                                    <a
-                                        href={request.githubPrUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                                    >
-                                        <GitPullRequest className="h-4 w-4" />
-                                        View Pull Request
-                                    </a>
-                                )}
                             </div>
                         </div>
                     </CollapsibleSection>
@@ -321,59 +302,6 @@ export function FeatureRequestDetail() {
                         </div>
                     )}
                 </CollapsibleSection>
-
-                {/* Design Documents Section - Collapsed by default, only if exists */}
-                {hasDesignDocuments && (
-                    <CollapsibleSection title="Design Documents" defaultExpanded={false}>
-                        <div className="space-y-4">
-                            {hasProductDesign && request.productDesign && (
-                                <div className="space-y-2">
-                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                        <h4 className="text-sm font-semibold">Product Design</h4>
-                                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground">
-                                                Status: {request.productDesign.reviewStatus.replace(/_/g, ' ')}
-                                            </span>
-                                            {request.productDesign.iterations > 0 && (
-                                                <span className="text-muted-foreground">
-                                                    | Iteration: {request.productDesign.iterations}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-md border bg-muted/30 p-3 sm:p-4">
-                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed overflow-x-auto">
-                                            {request.productDesign.content}
-                                        </pre>
-                                    </div>
-                                </div>
-                            )}
-
-                            {hasTechDesign && request.techDesign && (
-                                <div className="space-y-2">
-                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                        <h4 className="text-sm font-semibold">Technical Design</h4>
-                                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground">
-                                                Status: {request.techDesign.reviewStatus.replace(/_/g, ' ')}
-                                            </span>
-                                            {request.techDesign.iterations > 0 && (
-                                                <span className="text-muted-foreground">
-                                                    | Iteration: {request.techDesign.iterations}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-md border bg-muted/30 p-3 sm:p-4">
-                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed overflow-x-auto">
-                                            {request.techDesign.content}
-                                        </pre>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </CollapsibleSection>
-                )}
 
                 {/* Admin Notes Section - Collapsed by default, always visible */}
                 <CollapsibleSection title="Admin Notes" defaultExpanded={false}>

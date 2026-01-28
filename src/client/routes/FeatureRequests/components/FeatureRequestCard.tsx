@@ -12,14 +12,13 @@ import {
     DropdownMenuSubTrigger,
 } from '@/client/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/client/components/ui/confirm-dialog';
-import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, ExternalLink, GitPullRequest, Loader2, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreVertical, Trash2, User, Calendar, FileText, ExternalLink, Loader2, RotateCcw } from 'lucide-react';
 import { StatusBadge, PriorityBadge, GitHubStatusBadge } from './StatusBadge';
 import { StatusIndicatorStrip } from './StatusIndicatorStrip';
 import { MetadataIconRow } from './MetadataIconRow';
-import { DesignReviewPanel } from './DesignReviewPanel';
 import { HealthIndicator } from './HealthIndicator';
 import { PrimaryActionButton } from './PrimaryActionButton';
-import type { FeatureRequestClient, FeatureRequestPriority, DesignPhaseType } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/feature-requests/types';
 import { useUpdatePriority, useDeleteFeatureRequest, useApproveFeatureRequest, useGitHubStatus, useGitHubStatuses, useUpdateGitHubStatus, useUpdateGitHubReviewStatus, useClearGitHubReviewStatus } from '../hooks';
 import { useRouter } from '@/client/router';
 
@@ -35,8 +34,6 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
-    const [showDesignReview, setShowDesignReview] = useState(false);
 
     const updatePriorityMutation = useUpdatePriority();
     const deleteMutation = useDeleteFeatureRequest();
@@ -82,18 +79,6 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
 
     // Show approve button for new requests that don't have a GitHub issue yet
     const canApprove = request.status === 'new' && !request.githubIssueUrl;
-
-    // Design phase info is kept for requests that have it, but won't be used for new ones
-    // This is for backwards compatibility with existing data
-    const currentDesignPhase = request.productDesign || request.techDesign || null;
-
-    const currentPhaseType: DesignPhaseType | null = request.productDesign
-        ? 'product'
-        : request.techDesign
-          ? 'tech'
-          : null;
-
-    const canReviewDesign = !!(currentDesignPhase && currentDesignPhase.content && currentPhaseType);
 
     const handleCardClick = () => {
         navigate(`/admin/feature-requests/${request._id}`);
@@ -148,7 +133,31 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
 
                             <PriorityBadge priority={request.priority} />
 
-                            {/* Metadata icon row - hidden on very small screens when collapsed */}
+                            {/* GitHub issue link and date - visible on small screens only */}
+                            <div className="xs:hidden flex items-center gap-1.5 text-xs text-muted-foreground">
+                                {request.githubIssueUrl && (
+                                    <a
+                                        href={request.githubIssueUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 hover:text-primary transition-colors"
+                                        title={`GitHub Issue #${request.githubIssueNumber}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                        <span>#{request.githubIssueNumber}</span>
+                                    </a>
+                                )}
+                                <div
+                                    className="flex items-center gap-1"
+                                    title={`Created: ${new Date(request.createdAt).toLocaleString()}`}
+                                >
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    <span>{new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                </div>
+                            </div>
+
+                            {/* Metadata icon row - hidden on very small screens */}
                             <div className="hidden xs:flex sm:flex">
                                 <MetadataIconRow request={request} />
                             </div>
@@ -159,9 +168,9 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                     <div className="flex items-start gap-0.5 sm:gap-1 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
                         <PrimaryActionButton
                             canApprove={canApprove}
-                            canReviewDesign={canReviewDesign}
+                            canReviewDesign={false}
                             onApprove={handleApprove}
-                            onReview={() => setShowDesignReview(true)}
+                            onReview={() => {}}
                             isApproving={approveMutation.isPending}
                         />
                         <Button
@@ -284,57 +293,25 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                     </div>
 
                     {/* GitHub Integration Section */}
-                    {(request.githubIssueUrl || request.githubPrUrl) && (
+                    {request.githubIssueUrl && (
                         <div className="space-y-2 rounded-lg border-l-2 border-l-primary/20 bg-primary/5 p-3">
                             <h4 className="text-sm font-medium">GitHub Integration</h4>
                             <div className="flex flex-wrap gap-2 text-sm">
-                                {request.githubIssueUrl && (
-                                    <a
-                                        href={request.githubIssueUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
-                                    >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                        <span>Issue #{request.githubIssueNumber}</span>
-                                    </a>
-                                )}
-                                {request.githubPrUrl && (
-                                    <a
-                                        href={request.githubPrUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
-                                    >
-                                        <GitPullRequest className="h-3.5 w-3.5" />
-                                        <span>PR #{request.githubPrNumber}</span>
-                                    </a>
-                                )}
+                                <a
+                                    href={request.githubIssueUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    <span>Issue #{request.githubIssueNumber}</span>
+                                </a>
                             </div>
                         </div>
                     )}
 
                     {/* Health Indicator - shown in expanded view only when not healthy */}
                     <HealthIndicator request={request} githubStatus={githubStatus} />
-
-                    {currentDesignPhase?.content && (
-                        <div className="space-y-2 rounded-lg border border-info/30 bg-info/5 p-3">
-                            <h4 className="text-sm font-medium">
-                                {currentPhaseType === 'product' ? 'Product Design' : 'Technical Design'}
-                            </h4>
-                            <div className="prose prose-sm max-w-none text-muted-foreground">
-                                <pre className="whitespace-pre-wrap text-xs sm:text-sm overflow-x-auto">
-                                    {currentDesignPhase.content.slice(0, 500)}
-                                    {currentDesignPhase.content.length > 500 && '...'}
-                                </pre>
-                            </div>
-                            {currentDesignPhase.iterations > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                    Iteration: {currentDesignPhase.iterations}
-                                </p>
-                            )}
-                        </div>
-                    )}
 
                     {request.comments && request.comments.length > 0 && (
                         <div className="space-y-3 rounded-lg bg-muted/20 p-3">
@@ -392,16 +369,6 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-
-            {canReviewDesign && currentPhaseType && (
-                <DesignReviewPanel
-                    request={request}
-                    phase={currentPhaseType}
-                    design={currentDesignPhase}
-                    open={showDesignReview}
-                    onOpenChange={setShowDesignReview}
-                />
-            )}
         </Card>
     );
 }

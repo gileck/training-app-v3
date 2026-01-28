@@ -10,7 +10,7 @@
  * Filter categories:
  * - Status: active, waiting_for_review, in_progress, blocked, done, new
  * - Priority: critical, high, medium, low (with color dots matching PriorityBadge)
- * - GitHub: has_issue, has_pr, no_link
+ * - GitHub: has_issue, no_link
  * - Activity: recent, stale
  *
  * Features:
@@ -25,7 +25,7 @@
 import { useState } from 'react';
 import { Badge } from '@/client/components/ui/badge';
 import { Button } from '@/client/components/ui/button';
-import { X, Filter, GitBranch, GitPullRequest, Link2Off, Clock, CalendarClock, SlidersHorizontal } from 'lucide-react';
+import { X, Filter, GitBranch, Link2Off, Clock, CalendarClock, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/client/lib/utils';
 import type { FeatureRequestPriority } from '@/apis/feature-requests/types';
 import { MobileFilterSheet } from './MobileFilterSheet';
@@ -40,8 +40,8 @@ interface FilterChipBarProps {
     onTogglePriorityFilter: (priority: FeatureRequestPriority) => void;
 
     // GitHub filters
-    githubFilters: ('has_issue' | 'has_pr' | 'no_link')[];
-    onToggleGitHubFilter: (filter: 'has_issue' | 'has_pr' | 'no_link') => void;
+    githubFilters: ('has_issue' | 'no_link')[];
+    onToggleGitHubFilter: (filter: 'has_issue' | 'no_link') => void;
 
     // Activity filters
     activityFilters: ('recent' | 'stale')[];
@@ -236,12 +236,6 @@ export function FilterChipBar({
                         isActive={githubFilters.includes('has_issue')}
                         onClick={() => onToggleGitHubFilter('has_issue')}
                         icon={<GitBranch className="h-3 w-3" />}
-                    />
-                    <FilterChip
-                        label="Has PR"
-                        isActive={githubFilters.includes('has_pr')}
-                        onClick={() => onToggleGitHubFilter('has_pr')}
-                        icon={<GitPullRequest className="h-3 w-3" />}
                     />
                     <FilterChip
                         label="No GitHub Link"

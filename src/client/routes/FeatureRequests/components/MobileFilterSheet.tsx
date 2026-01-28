@@ -12,7 +12,7 @@
  * Filter categories:
  * - Status: active, waiting_for_review, in_progress, blocked, done, new
  * - Priority: critical, high, medium, low (with color dots matching PriorityBadge)
- * - GitHub: has_issue, has_pr, no_link (collapsed by default)
+ * - GitHub: has_issue, no_link (collapsed by default)
  * - Activity: recent, stale (collapsed by default)
  *
  * iOS PWA support:
@@ -34,7 +34,6 @@ import {
     ChevronDown,
     ChevronUp,
     GitBranch,
-    GitPullRequest,
     Link2Off,
     Clock,
     CalendarClock,
@@ -56,8 +55,8 @@ interface MobileFilterSheetProps {
     onTogglePriorityFilter: (priority: FeatureRequestPriority) => void;
 
     // GitHub filters
-    githubFilters: ('has_issue' | 'has_pr' | 'no_link')[];
-    onToggleGitHubFilter: (filter: 'has_issue' | 'has_pr' | 'no_link') => void;
+    githubFilters: ('has_issue' | 'no_link')[];
+    onToggleGitHubFilter: (filter: 'has_issue' | 'no_link') => void;
 
     // Activity filters
     activityFilters: ('recent' | 'stale')[];
@@ -268,12 +267,6 @@ export function MobileFilterSheet({
                                 isActive={githubFilters.includes('has_issue')}
                                 onClick={() => onToggleGitHubFilter('has_issue')}
                                 icon={<GitBranch className="h-4 w-4" />}
-                            />
-                            <FilterOption
-                                label="Has PR"
-                                isActive={githubFilters.includes('has_pr')}
-                                onClick={() => onToggleGitHubFilter('has_pr')}
-                                icon={<GitPullRequest className="h-4 w-4" />}
                             />
                             <FilterOption
                                 label="No GitHub Link"

@@ -80,13 +80,17 @@ function isInProgress(
 
 /**
  * Check if item is done
+ * Checks BOTH DB status and GitHub status to handle stale cache
  */
 function isDone(
     request: FeatureRequestClient,
     githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
 ): boolean {
+    // Check DB status first (most reliable)
+    if (request.status === 'done') return true;
+    // Then check effective (GitHub) status
     const status = getEffectiveStatus(request, githubStatusMap);
-    return status === 'done' || status.toLowerCase() === 'done';
+    return status === 'done';
 }
 
 /**

@@ -22,6 +22,8 @@ export interface RouteConfig {
   public?: boolean;
   /** If true, route requires admin privileges */
   adminOnly?: boolean;
+  /** If true, route renders full screen without header/navbar */
+  fullScreen?: boolean;
 }
 
 /** Routes can be simple components or full config objects */
@@ -33,6 +35,7 @@ type RouterContextType = {
   routeParams: RouteParams;
   queryParams: QueryParams;
   isPublicRoute: boolean;
+  isFullScreen: boolean;
   navigate: (path: string, options?: { replace?: boolean }) => void;
 };
 
@@ -41,6 +44,7 @@ const RouterContext = createContext<RouterContextType>({
   routeParams: {},
   queryParams: {},
   isPublicRoute: false,
+  isFullScreen: false,
   navigate: () => { },
 });
 
@@ -176,20 +180,21 @@ export const RouterProvider = ({ children, routes }: {
     }
   }, [currentPath, isAdmin]);
 
-  // Find matching route pattern, parse route parameters, and determine if route is public
-  const { RouteComponent, routeParams, isCurrentRoutePublic } = useMemo(() => {
+  // Find matching route pattern, parse route parameters, and determine if route is public/fullScreen
+  const { RouteComponent, routeParams, isCurrentRoutePublic, isCurrentRouteFullScreen } = useMemo(() => {
     const pathWithoutQuery = currentPath.split('?')[0];
 
     // Treat admin routes as home for non-admins (helps avoid flash before redirect effect runs).
     const effectivePath = (pathWithoutQuery.startsWith('/admin') && !isAdmin) ? '/' : pathWithoutQuery;
-    
+
     // First check for exact matches
     if (routes[effectivePath]) {
       const config = normalizeRoute(routes[effectivePath]);
-      return { 
-        RouteComponent: config.component, 
+      return {
+        RouteComponent: config.component,
         routeParams: {},
-        isCurrentRoutePublic: config.public === true
+        isCurrentRoutePublic: config.public === true,
+        isCurrentRouteFullScreen: config.fullScreen === true
       };
     }
 
@@ -199,10 +204,11 @@ export const RouterProvider = ({ children, routes }: {
         const params = parseRouteParams(effectivePath, pattern);
         if (Object.keys(params).length > 0) {
           const config = normalizeRoute(routes[pattern]);
-          return { 
-            RouteComponent: config.component, 
+          return {
+            RouteComponent: config.component,
             routeParams: params,
-            isCurrentRoutePublic: config.public === true
+            isCurrentRoutePublic: config.public === true,
+            isCurrentRouteFullScreen: config.fullScreen === true
           };
         }
       }
@@ -214,7 +220,8 @@ export const RouterProvider = ({ children, routes }: {
     return {
       RouteComponent: fallbackConfig?.component ?? (() => null),
       routeParams: {},
-      isCurrentRoutePublic: fallbackConfig?.public === true
+      isCurrentRoutePublic: fallbackConfig?.public === true,
+      isCurrentRouteFullScreen: fallbackConfig?.fullScreen === true
     };
   }, [currentPath, routes, isAdmin]);
 
@@ -273,7 +280,7 @@ export const RouterProvider = ({ children, routes }: {
 
   // Provide router context and render current route
   return (
-    <RouterContext.Provider value={{ currentPath, routeParams, queryParams, isPublicRoute: isCurrentRoutePublic, navigate }}>
+    <RouterContext.Provider value={{ currentPath, routeParams, queryParams, isPublicRoute: isCurrentRoutePublic, isFullScreen: isCurrentRouteFullScreen, navigate }}>
       {children ? children(RouteComponent) : <RouteComponent />}
     </RouterContext.Provider>
   );

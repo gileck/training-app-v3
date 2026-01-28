@@ -7,8 +7,6 @@ import {
     API_GET_FEATURE_REQUESTS,
     API_GET_FEATURE_REQUEST,
     API_UPDATE_FEATURE_REQUEST_STATUS,
-    API_UPDATE_DESIGN_REVIEW_STATUS,
-    API_UPDATE_DESIGN_CONTENT,
     API_ADD_ADMIN_COMMENT,
     API_UPDATE_ADMIN_NOTES,
     API_UPDATE_PRIORITY,
@@ -35,10 +33,6 @@ import {
     GetFeatureRequestResponse,
     UpdateFeatureRequestStatusRequest,
     UpdateFeatureRequestStatusResponse,
-    UpdateDesignReviewStatusRequest,
-    UpdateDesignReviewStatusResponse,
-    UpdateDesignContentRequest,
-    UpdateDesignContentResponse,
     AddAdminCommentRequest,
     AddAdminCommentResponse,
     UpdateAdminNotesRequest,
@@ -125,24 +119,6 @@ export const updateFeatureRequestStatus = async (
     params: UpdateFeatureRequestStatusRequest
 ): Promise<CacheResult<UpdateFeatureRequestStatusResponse>> => {
     return apiClient.post(API_UPDATE_FEATURE_REQUEST_STATUS, params);
-};
-
-/**
- * Update design review status - approve/reject (admin only)
- */
-export const updateDesignReviewStatus = async (
-    params: UpdateDesignReviewStatusRequest
-): Promise<CacheResult<UpdateDesignReviewStatusResponse>> => {
-    return apiClient.post(API_UPDATE_DESIGN_REVIEW_STATUS, params);
-};
-
-/**
- * Update design content (admin/agent only)
- */
-export const updateDesignContent = async (
-    params: UpdateDesignContentRequest
-): Promise<CacheResult<UpdateDesignContentResponse>> => {
-    return apiClient.post(API_UPDATE_DESIGN_CONTENT, params);
 };
 
 /**

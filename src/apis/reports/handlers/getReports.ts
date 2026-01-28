@@ -66,8 +66,6 @@ export const getReports = async (
                 githubIssueUrl: doc.githubIssueUrl,
                 githubIssueNumber: doc.githubIssueNumber,
                 githubProjectItemId: doc.githubProjectItemId,
-                githubPrUrl: doc.githubPrUrl,
-                githubPrNumber: doc.githubPrNumber,
                 createdAt,
                 updatedAt,
             };

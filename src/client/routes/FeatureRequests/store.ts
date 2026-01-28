@@ -5,7 +5,7 @@ import type { SortMode } from './utils/sortingUtils';
 // Stable fallback references (prevent infinite loops in selectors)
 const EMPTY_STATUS_FILTERS: string[] = [];
 const EMPTY_PRIORITY_FILTERS: FeatureRequestPriority[] = [];
-const EMPTY_GITHUB_FILTERS: ('has_issue' | 'has_pr' | 'no_link')[] = [];
+const EMPTY_GITHUB_FILTERS: ('has_issue' | 'no_link')[] = [];
 const EMPTY_ACTIVITY_FILTERS: ('recent' | 'stale')[] = [];
 
 /**
@@ -23,7 +23,7 @@ export type StatusFilterOption = FeatureRequestStatus | 'all' | 'active';
 /**
  * GitHub linkage filter options
  */
-export type GitHubFilterOption = 'has_issue' | 'has_pr' | 'no_link';
+export type GitHubFilterOption = 'has_issue' | 'no_link';
 
 /**
  * Activity filter options

@@ -94,6 +94,24 @@ The tech design specified these docs as relevant for this phase. READ them and v
 2. ❌ Flag if the PR implements features from later phases (Phase ${current + 1}+)
 3. ✅ Verify the PR is independently mergeable and testable
 4. ✅ Check that the PR follows the phase description above
+
+**Phase-Aware Review Examples:**
+
+✅ **APPROVE** scenarios for Phase ${current}:
+- PR implements exactly what Phase ${current} describes
+- Minor additional improvements within Phase ${current} scope (better error handling, comments)
+- Files outside the expected list IF they're necessary imports/exports for Phase ${current} functionality
+
+❌ **REQUEST CHANGES** scenarios:
+- PR implements features clearly belonging to Phase ${current + 1} or later
+- PR creates UI components when Phase ${current} is "Database & Types" only
+- PR is incomplete - doesn't implement all of Phase ${current} (partial implementation)
+- Code doesn't follow project guidelines
+
+⚠️ **EDGE CASES** (use judgment):
+- Small refactors in related code → APPROVE if minor, REQUEST CHANGES if significant scope creep
+- Test files for Phase ${current} functionality → APPROVE (testing current phase is good)
+- Documentation updates → APPROVE (documenting current phase is good)
 `;
 
     if (sourceFiles.length > 0) {

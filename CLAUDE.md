@@ -33,6 +33,28 @@ src/
 
 ---
 
+## Mobile-First Philosophy
+
+**CRITICAL: This is a mobile-first application.** All features and UI must be designed and implemented for mobile screens FIRST, especially small screens (~400px CSS width).
+
+**Key Requirements:**
+- **Design for 400px width first** - Then enhance for larger screens with `sm:`, `md:`, `lg:` modifiers
+- **Test on small screens** - Every feature must look good and be fully usable on mobile
+- **Touch-friendly** - Minimum touch targets of 44px, adequate spacing between interactive elements
+- **Bottom navigation priority** - Primary actions should be reachable with thumbs
+- **Avoid horizontal scrolling** - Content must fit within mobile viewport
+- **Consider thumb zones** - Place frequent actions in easy-reach areas
+
+**When implementing any UI:**
+1. Start with mobile layout (no responsive modifiers)
+2. Verify it works at 400px width
+3. Add `sm:` modifiers for tablet improvements
+4. Add `md:`/`lg:` modifiers for desktop enhancements
+
+**Rules:** [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md)
+
+---
+
 ## State Management
 
 Dual-store architecture optimized for PWA with offline support.
@@ -291,6 +313,29 @@ Adding routes and keeping navigation menus in sync.
 - `src/client/routes/index.ts` - Route definitions
 - `src/client/components/NavLinks.tsx` - Navigation menus (navItems, menuItems)
 
+**Route Configuration Options:**
+
+```typescript
+// Simple route (requires auth, shows header/navbar)
+'/my-page': MyComponent,
+
+// Route with options
+'/share/:id': {
+  component: SharePage,
+  public: true,      // No authentication required
+  fullScreen: true,  // Renders without header/navbar
+},
+
+// Admin-only route (automatic for /admin/* paths)
+'/admin/reports': AdminReports,
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `public` | `false` | Skip authentication (for share pages, public forms) |
+| `fullScreen` | `false` | Render without header/navbar (for focused UIs) |
+| `adminOnly` | `false` | Require admin privileges (automatic for `/admin/*`) |
+
 **When Adding a New Route:**
 1. Add the route component in `src/client/routes/[RouteName]/`
 2. Register it in `src/client/routes/index.ts`
@@ -303,6 +348,7 @@ Adding routes and keeping navigation menus in sync.
 - `/not-found` - fallback route
 - `/profile` - accessed via avatar in header
 - Public share pages - accessed via direct links
+- Full-screen pages (e.g., `/clarify/:issueNumber`) - accessed via external links
 - Auth callback routes - redirect-only
 
 **Rules:** [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md)
@@ -860,18 +906,42 @@ Key documents:
 
 ## Vercel CLI Tool
 
-CLI for managing Vercel deployments. Requires `VERCEL_TOKEN` in `.env`.
+CLI for managing Vercel deployments and environment variables. Requires `VERCEL_TOKEN` in `.env`.
 
 **Key Commands:**
 ```bash
 yarn vercel-cli list --target production
 yarn vercel-cli logs --deployment dpl_xxx
-yarn vercel-cli env:push --overwrite
+yarn vercel-cli env                          # List env vars
+yarn vercel-cli env:sync                     # Sync .env.local to Vercel (recommended)
+yarn vercel-cli env:sync --dry-run           # Preview what would be synced
+yarn vercel-cli env:set --name VAR --value "value" --target production,preview
 ```
 
 **Key Points:**
 - Run `vercel link` first to auto-detect project
 - Use `--cloud-proxy` flag in Claude Code cloud environment
+
+### Environment Variable Management
+
+**⚠️ CRITICAL: NEVER use `npx vercel env add` with piped input!**
+
+```bash
+# ❌ WRONG - `echo` adds trailing newline that corrupts the value
+echo "$value" | npx vercel env add MY_VAR production --force
+
+# ✅ CORRECT - Use yarn vercel-cli which uses the API directly
+yarn vercel-cli env:sync                     # Sync all from .env.local
+yarn vercel-cli env:set --name MY_VAR --value "$value" --target production
+```
+
+**Why:** The `echo` command adds a trailing `\n` to output. When piped to `vercel env add`, this newline becomes part of the stored value, causing string comparisons to fail silently.
+
+**`env:sync` behavior:**
+- Syncs all variables from `.env.local` to Vercel
+- Most variables → all environments (production, preview, development)
+- `PREVIEW_USER_ID` → preview environment only
+- Excludes local-only vars: `TEST_*`, `VERCEL_OIDC_TOKEN`
 
 **Docs:** [docs/vercel-cli-guide.md](docs/vercel-cli-guide.md)
 **Rules:** [.ai/skills/vercel-cli-usage/SKILL.md](.ai/skills/vercel-cli-usage/SKILL.md)

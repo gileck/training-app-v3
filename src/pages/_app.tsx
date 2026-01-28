@@ -26,7 +26,7 @@ const RouterProvider = dynamic(() => import('@/client/router/index').then(module
 // Mark app mount as early as possible
 markEvent(BOOT_PHASES.APP_MOUNT);
 
-export default function App({ }: AppProps) {
+export default function App({ Component: _Component, pageProps: _pageProps }: AppProps) {
   return (
     <>
       <Head>

@@ -7,14 +7,14 @@
 
 ## Summary
 
-- **Total Tasks:** 29
-- **Open:** 10
+- **Total Tasks:** 32
+- **Open:** 11
 - **In Progress:** 0
-- **Done:** 19
+- **Done:** 21
 
 ---
 
-## 📋 Open Tasks (10)
+## 📋 Open Tasks (11)
 
 ### 🟠 High Priority
 
@@ -33,6 +33,7 @@
 | 6 | Add PR Size Validation Enforcement | S | Low |
 | 23 | Workflow Source Code Audit Command | M | Medium |
 | 24 | Standalone Task Creation Agent | L | Medium |
+| 32 | Display Design Docs and PR Links from GitHub Issue Artifacts | M | Medium |
 
 ### 🟢 Low Priority
 
@@ -41,10 +42,12 @@
 | 15 | Telegram Button UX Improvements | S | Low |
 | 22 | Per-Issue Plan Subagent Toggle | S | Low |
 
-## ✅ Completed Tasks (19)
+## ✅ Completed Tasks (21)
 
 | # | Title | Completed | Commit |
 |---|-------|-----------|--------|
+| 31 | ~~Remove Legacy MongoDB Design Fields (productDesign/techDesign)~~ | 2026-01-28 | - |
+| 30 | ~~Telegram Interactive Clarification Flow for Agents~~ | 2026-01-28 | - |
 | 29 | ~~Disable Plan Mode When Addressing PR Feedback~~ | 2026-01-28 | `a0a531e` |
 | 27 | ~~Fix PR Descriptions and Commit Messages~~ | 2026-01-28 | - |
 | 26 | ~~Standardize Telegram Messages and Commit Summaries~~ | 2026-01-28 | - |

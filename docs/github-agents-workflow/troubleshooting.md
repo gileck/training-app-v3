@@ -373,6 +373,37 @@ git push
 - Review agent logs for API errors
 - Ensure agent has access to PR files
 
+### 11. GitHub API Rate Limit Errors
+
+**Problem:** Feature Requests page shows "GitHub API rate limit reached" warning, or statuses appear incomplete
+
+**Background:** The Feature Requests page fetches live GitHub Project statuses for all items to ensure accurate filtering. This can hit GitHub API rate limits (5000 requests/hour for authenticated requests).
+
+**Solutions:**
+
+#### a) Check Current Rate Limit Status
+```bash
+# Check your current rate limit
+curl -H "Authorization: token <GITHUB_TOKEN>" \
+  https://api.github.com/rate_limit
+```
+
+#### b) Wait for Reset
+- Rate limits reset hourly
+- The page will show a warning banner but continue to function
+- Items will fall back to database status for filtering
+
+#### c) Reduce API Calls
+- The page uses React Query with 30-second stale time
+- Avoid frequent page refreshes
+- Consider reducing the number of active (non-Done) items in your project
+
+#### d) Use GitHub Enterprise (if applicable)
+- GitHub Enterprise has higher rate limits
+- Contact your admin for rate limit increases
+
+**Note:** Rate limit errors are handled gracefully - the page remains functional but may show slightly stale status data. Individual card displays will still fetch their own status.
+
 ## Getting Help
 
 If issues persist after trying these solutions:

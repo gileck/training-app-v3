@@ -94,6 +94,7 @@ const nextConfig: NextConfig = withPWA({
   async rewrites() {
     return [
       {
+        // Rewrite all paths to root EXCEPT /api (handled by Next.js API routes)
         source: '/:path((?!api).*)*',
         destination: '/',
       },

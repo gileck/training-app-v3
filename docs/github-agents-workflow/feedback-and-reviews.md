@@ -43,72 +43,151 @@ When an issue description is unclear or incomplete, agents can request clarifica
 - Decides if work can proceed or clarification needed
 
 **2. Clarification Request**
-- Agent posts GitHub comment with questions
-- Uses structured format with numbered questions
-- Adds label: `needs-clarification`
-- Sends Telegram notification to admin
+- Agent posts GitHub comment with structured question format
+- Sets Review Status to "Waiting for Clarification"
+- Sends Telegram notification with "ANSWER QUESTIONS" button
 
-**3. Admin Response**
-- Admin answers questions in GitHub comment
-- Removes `needs-clarification` label
-- Agent monitors for label removal
+**3. Admin Response (Two Options)**
+
+**Option A: Interactive Web UI (Recommended)**
+- Click "ANSWER QUESTIONS" button in Telegram
+- Opens dedicated clarification page (`/clarify/:issueNumber`)
+- Select from pre-defined options or provide custom answer
+- Submit → answer posted to GitHub, status updated automatically
+
+**Option B: Manual GitHub Comment**
+- Click "View Issue" to open GitHub
+- Add comment with your answer
+- Click "Clarification Received" button in Telegram
+- Status updates to "Clarification Received"
 
 **4. Agent Resumes**
 - Agent reads admin's answers
 - Incorporates clarifications into design/implementation
 - Proceeds with normal workflow
 
+### Interactive Clarification UI
+
+The clarification page (`/clarify/:issueNumber?token=...`) provides a wizard-style interface for answering agent questions.
+
+**Wizard Flow:**
+1. **One question at a time** - Focused view, less overwhelming
+2. **Progress indicator** - Dots showing current position and answered questions
+3. **Back/Next navigation** - Step through questions freely
+4. **Preview step** - Review all answers before submitting
+5. **Edit capability** - Click pencil icon or progress dots to change any answer
+
+**Features:**
+- **Structured Questions**: Parsed from agent's comment with collapsible context
+- **Radio Options**: Pre-defined choices with emoji indicators (✅ recommended, ⚠️ alternatives)
+- **Option Details**: Bullet points showing pros/cons for each option
+- **Recommendation Banner**: Agent's recommendation highlighted with reasoning
+- **"Other" Option**: Text area for completely custom responses
+- **Additional Notes**: Optional notes field for any answer (adds context without changing selection)
+- **Mobile-Optimized**: Full-screen layout, touch-friendly, fixed bottom navigation
+
+**URL Format:**
+```
+https://your-app.vercel.app/clarify/45?token=abc123
+```
+
+**Route Configuration:**
+- Path: `/clarify/:issueNumber`
+- Public route (no authentication required)
+- Full-screen mode (no header/navbar)
+
+**Security:**
+- Token-based access (8-char SHA256 hash of issue number + JWT_SECRET)
+- Token validated server-side before showing data or accepting submissions
+- Submissions only allowed when issue is in "Waiting for Clarification" status
+
 ### Example Clarification Flow
 
 **Issue #45: Add search functionality**
 
-**Agent Comment:**
+**Agent Comment (structured format):**
 ```markdown
-I need clarification on the following points before proceeding with the design:
+## Context
+The feature request asks for "search functionality" but doesn't specify the scope or type.
 
-1. **Search scope**: Should search include only task titles, or also descriptions, tags, and comments?
+## Question
+What notification channels should be supported initially?
 
-2. **Search type**: Should this be:
-   - Simple text matching
-   - Fuzzy search (handles typos)
-   - Advanced search with filters (date, status, assignee)
+## Options
 
-3. **Performance**: Expected dataset size? (affects indexing strategy)
+✅ Option 1: Email only
+   - Simpler to implement
+   - Most users have email configured
 
-4. **UI placement**: Should search be:
-   - In header (global)
-   - In task list view (filtered)
-   - Both
+⚠️ Option 2: Email + Push notifications
+   - More complex, requires service worker
+   - Better UX for time-sensitive alerts
 
-Please answer these questions and remove the `needs-clarification` label.
+⚠️ Option 3: In-app only
+   - Simplest to implement
+   - Users must be in app to see them
+
+## Recommendation
+I recommend Option 1 because it provides reliable delivery with minimal complexity.
 ```
 
-**Admin Response:**
-```markdown
-1. Search should include titles and descriptions, not tags/comments initially
-2. Start with simple text matching, we can add fuzzy search later
-3. Dataset will be under 10,000 tasks per user
-4. Search in task list view only for now
+**Telegram Notification:**
+```
+🤔 Agent Needs Clarification
+
+Phase: Tech Design
+✨ Feature
+
+📋 Add search functionality
+🔗 Issue #45
+
+[💬 ANSWER QUESTIONS]
+[📋 View Issue]
+[✅ Clarification Received]
 ```
 
-**Agent Action:**
-- Reads responses
-- Updates design document with clarifications
-- Creates PR with design
+**Admin clicks "ANSWER QUESTIONS":**
+- Opens wizard UI showing first question
+- Progress dots show "Question 1 of 1"
+- Selects "Option 1: Email only"
+- Optionally clicks "+ Add additional notes" to provide context
+- Clicks "Next" → sees Preview step
+- Reviews answer, can click pencil to edit
+- Clicks "Submit Answers"
+
+**Answer Posted to GitHub:**
+```markdown
+## ✅ Clarification Provided
+
+**Question:** What notification channels should be supported initially?
+
+**Answer:** Email only
+
+**Additional notes:** Start simple, we can add push notifications in v2.
+
+---
+_Clarification provided via interactive UI. Continue with the selected option(s)._
+```
+
+**Result:**
+- Comment posted to GitHub with structured Q/A format
+- Review Status → "Clarification Received"
+- Agent continues on next workflow run with clear answer
 
 ### Clarification Best Practices
 
 **For Agents:**
 - Ask specific, numbered questions
 - Provide context for each question
-- Suggest options when applicable
+- Suggest 2-4 options with pros/cons
+- Indicate recommended option with reasoning
 - Keep questions concise and focused
 
 **For Admins:**
-- Answer all questions clearly
-- Use numbered responses matching questions
+- Use the interactive UI when possible (faster, less error-prone)
+- If using manual comment, be specific and clear
 - Provide examples when helpful
-- Remove `needs-clarification` label when done
+- Don't forget to mark "Clarification Received" if using manual flow
 
 ## Handling Feedback Loops
 

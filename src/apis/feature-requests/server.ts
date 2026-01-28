@@ -9,8 +9,6 @@ import {
     API_GET_FEATURE_REQUESTS,
     API_GET_FEATURE_REQUEST,
     API_UPDATE_FEATURE_REQUEST_STATUS,
-    API_UPDATE_DESIGN_REVIEW_STATUS,
-    API_UPDATE_DESIGN_CONTENT,
     API_ADD_ADMIN_COMMENT,
     API_UPDATE_ADMIN_NOTES,
     API_UPDATE_PRIORITY,
@@ -32,8 +30,6 @@ import { addUserComment } from './handlers/addUserComment';
 import { getFeatureRequests } from './handlers/getFeatureRequests';
 import { getFeatureRequest } from './handlers/getFeatureRequest';
 import { updateFeatureRequestStatus } from './handlers/updateFeatureRequestStatus';
-import { updateDesignReviewStatus } from './handlers/updateDesignReviewStatus';
-import { updateDesignContent } from './handlers/updateDesignContent';
 import { addAdminComment } from './handlers/addAdminComment';
 import { updateAdminNotes } from './handlers/updateAdminNotes';
 import { updatePriority } from './handlers/updatePriority';
@@ -55,8 +51,6 @@ export const featureRequestsApiHandlers = {
     [API_GET_FEATURE_REQUESTS]: { process: getFeatureRequests },
     [API_GET_FEATURE_REQUEST]: { process: getFeatureRequest },
     [API_UPDATE_FEATURE_REQUEST_STATUS]: { process: updateFeatureRequestStatus },
-    [API_UPDATE_DESIGN_REVIEW_STATUS]: { process: updateDesignReviewStatus },
-    [API_UPDATE_DESIGN_CONTENT]: { process: updateDesignContent },
     [API_ADD_ADMIN_COMMENT]: { process: addAdminComment },
     [API_UPDATE_ADMIN_NOTES]: { process: updateAdminNotes },
     [API_UPDATE_PRIORITY]: { process: updatePriority },

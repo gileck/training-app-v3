@@ -17,43 +17,9 @@ export type FeatureRequestStatus =
     | 'rejected';        // Not going to implement
 
 /**
- * Review status within a design phase
- */
-export type DesignReviewStatus =
-    | 'not_started'      // Agent hasn't worked on it yet
-    | 'in_progress'      // Agent is currently generating
-    | 'pending_review'   // Waiting for admin approval
-    | 'approved'         // Admin approved, can move to next phase
-    | 'rejected';        // Admin rejected, agent can rework
-
-/**
  * Priority level for feature requests
  */
 export type FeatureRequestPriority = 'low' | 'medium' | 'high' | 'critical';
-
-/**
- * Design phase tracking (used for both product and tech design)
- */
-export interface DesignPhase {
-    content: string;                  // The design document (markdown)
-    reviewStatus: DesignReviewStatus;
-    adminComments?: string;           // Feedback when rejected
-    iterations: number;               // How many times reworked
-    generatedAt?: Date;
-    approvedAt?: Date;
-}
-
-/**
- * Client-friendly design phase with string dates
- */
-export interface DesignPhaseClient {
-    content: string;
-    reviewStatus: DesignReviewStatus;
-    adminComments?: string;
-    iterations: number;
-    generatedAt?: string;
-    approvedAt?: string;
-}
 
 /**
  * Comment in a feature request discussion
@@ -93,10 +59,6 @@ export interface FeatureRequestDocument {
     // Main workflow status
     status: FeatureRequestStatus;
 
-    // Design phases with review workflow
-    productDesign?: DesignPhase;
-    techDesign?: DesignPhase;
-
     // User interaction
     needsUserInput: boolean;          // True when admin needs more info from user
     requestedBy: ObjectId;            // User who submitted
@@ -111,10 +73,6 @@ export interface FeatureRequestDocument {
     githubIssueUrl?: string;          // URL to the GitHub issue
     githubIssueNumber?: number;       // GitHub issue number
     githubProjectItemId?: string;     // GitHub Project item ID (for status updates)
-    githubProjectStatus?: string;     // Current status in GitHub Project (e.g., "Product Design")
-    githubReviewStatus?: string;      // Review Status in GitHub Project (e.g., "Waiting for Review")
-    githubPrUrl?: string;             // URL to the pull request
-    githubPrNumber?: number;          // GitHub PR number
 
     // Approval token for Telegram quick-approve link
     approvalToken?: string;           // Secure token for one-click approval
@@ -138,8 +96,6 @@ export interface FeatureRequestClient {
     description: string;
     page?: string;
     status: FeatureRequestStatus;
-    productDesign?: DesignPhaseClient;
-    techDesign?: DesignPhaseClient;
     needsUserInput: boolean;
     requestedBy: string;
     requestedByName: string;
@@ -150,10 +106,6 @@ export interface FeatureRequestClient {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
-    githubProjectStatus?: string;
-    githubReviewStatus?: string;
-    githubPrUrl?: string;
-    githubPrNumber?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -168,8 +120,3 @@ export interface FeatureRequestFilters {
     startDate?: Date;
     endDate?: Date;
 }
-
-/**
- * Design phase type identifier
- */
-export type DesignPhaseType = 'product' | 'tech';

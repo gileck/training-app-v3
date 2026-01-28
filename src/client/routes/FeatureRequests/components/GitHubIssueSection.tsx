@@ -1,12 +1,126 @@
-import { ExternalLink, GitPullRequest, Loader2 } from 'lucide-react';
+import { ExternalLink, GitPullRequest, FileText, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from '@/client/components/ui/badge';
 import { Button } from '@/client/components/ui/button';
-import type { GitHubIssueDetails } from '@/apis/feature-requests/types';
+import type { GitHubIssueDetails, DesignDocArtifact, ImplementationPhaseArtifact } from '@/apis/feature-requests/types';
 
 interface GitHubIssueSectionProps {
     issueDetails: GitHubIssueDetails | null | undefined;
     isLoading: boolean;
     error: Error | null;
+}
+
+/**
+ * Get status badge variant and label for implementation phase
+ */
+function getPhaseStatusDisplay(status: ImplementationPhaseArtifact['status']): {
+    variant: 'default' | 'secondary' | 'outline' | 'destructive';
+    label: string;
+} {
+    switch (status) {
+        case 'merged':
+            return { variant: 'default', label: 'Merged' };
+        case 'approved':
+            return { variant: 'default', label: 'Approved' };
+        case 'in-review':
+            return { variant: 'secondary', label: 'In Review' };
+        case 'changes-requested':
+            return { variant: 'destructive', label: 'Changes Requested' };
+        case 'pending':
+        default:
+            return { variant: 'outline', label: 'Pending' };
+    }
+}
+
+/**
+ * Component to display a design document artifact
+ */
+function DesignDocItem({ doc }: { doc: DesignDocArtifact }) {
+    return (
+        <div className="flex items-center justify-between rounded-md border bg-card p-3">
+            <div className="flex flex-1 items-center gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{doc.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                        Updated {doc.lastUpdated}
+                        {doc.prNumber && <span className="ml-2">• PR #{doc.prNumber}</span>}
+                    </p>
+                </div>
+                {doc.status === 'approved' ? (
+                    <Badge variant="default" className="shrink-0 gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Approved
+                    </Badge>
+                ) : (
+                    <Badge variant="outline" className="shrink-0 gap-1">
+                        <Clock className="h-3 w-3" />
+                        Pending
+                    </Badge>
+                )}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="shrink-0"
+                >
+                    <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`View ${doc.label}`}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </a>
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Component to display an implementation phase artifact
+ */
+function ImplementationPhaseItem({ phase }: { phase: ImplementationPhaseArtifact }) {
+    const { variant, label } = getPhaseStatusDisplay(phase.status);
+    const phaseLabel = phase.totalPhases > 1
+        ? `Phase ${phase.phase}/${phase.totalPhases}${phase.name ? `: ${phase.name}` : ''}`
+        : phase.name || 'Implementation';
+
+    return (
+        <div className="flex items-center justify-between rounded-md border bg-card p-3">
+            <div className="flex flex-1 items-center gap-3">
+                <GitPullRequest className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{phaseLabel}</p>
+                    {phase.prNumber && (
+                        <p className="text-xs text-muted-foreground">
+                            PR #{phase.prNumber}
+                        </p>
+                    )}
+                </div>
+                <Badge variant={variant} className="shrink-0">
+                    {label}
+                </Badge>
+                {phase.prUrl && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="shrink-0"
+                    >
+                        <a
+                            href={phase.prUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View PR #${phase.prNumber}`}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                        </a>
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
 }
 
 /**
@@ -44,10 +158,44 @@ export function GitHubIssueSection({ issueDetails, isLoading, error }: GitHubIss
         );
     }
 
-    const hasLinkedPRs = issueDetails.linkedPullRequests.length > 0;
+    const hasDesignDocs = issueDetails.artifacts?.designDocs && issueDetails.artifacts.designDocs.length > 0;
+    const hasImplementationPhases = issueDetails.artifacts?.implementationPhases && issueDetails.artifacts.implementationPhases.length > 0;
+    const hasArtifacts = hasDesignDocs || hasImplementationPhases;
 
     return (
         <div className="space-y-4">
+            {/* Artifacts Section - Design Docs and Implementation PRs from artifact comment */}
+            {hasArtifacts && (
+                <>
+                    {/* Design Documents */}
+                    {hasDesignDocs && (
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Design Documents</h4>
+                            <div className="space-y-2">
+                                {issueDetails.artifacts!.designDocs.map((doc) => (
+                                    <DesignDocItem key={doc.type} doc={doc} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Implementation Phases */}
+                    {hasImplementationPhases && (
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Implementation Progress</h4>
+                            <div className="space-y-2">
+                                {issueDetails.artifacts!.implementationPhases.map((phase) => (
+                                    <ImplementationPhaseItem
+                                        key={`phase-${phase.phase}`}
+                                        phase={phase}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
             {/* GitHub Issue Description */}
             <div className="space-y-2">
                 <h4 className="text-sm font-semibold">Issue Description</h4>
@@ -61,63 +209,6 @@ export function GitHubIssueSection({ issueDetails, isLoading, error }: GitHubIss
                     )}
                 </div>
             </div>
-
-            {/* Linked Pull Requests */}
-            {hasLinkedPRs && (
-                <div className="space-y-2">
-                    <h4 className="text-sm font-semibold">Linked Pull Requests</h4>
-                    <div className="space-y-2">
-                        {issueDetails.linkedPullRequests.map((pr) => (
-                            <div
-                                key={pr.number}
-                                className="flex items-center justify-between rounded-md border bg-card p-3"
-                            >
-                                <div className="flex flex-1 items-center gap-3">
-                                    <GitPullRequest className="h-4 w-4 text-muted-foreground shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{pr.title}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            PR #{pr.number}
-                                            {pr.mergedAt && (
-                                                <span className="ml-2">
-                                                    • Merged {new Date(pr.mergedAt).toLocaleDateString()}
-                                                </span>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <Badge
-                                        variant={
-                                            pr.state === 'MERGED'
-                                                ? 'default'
-                                                : pr.state === 'OPEN'
-                                                ? 'secondary'
-                                                : 'outline'
-                                        }
-                                        className="shrink-0"
-                                    >
-                                        {pr.state}
-                                    </Badge>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        asChild
-                                        className="shrink-0"
-                                    >
-                                        <a
-                                            href={pr.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            aria-label={`View PR #${pr.number} on GitHub`}
-                                        >
-                                            <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* View on GitHub Link */}
             <div className="pt-2">

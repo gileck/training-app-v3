@@ -25,7 +25,7 @@ import { Label } from '@/client/components/ui/label';
 import { Input } from '@/client/components/ui/input';
 import { Textarea } from '@/client/components/ui/textarea';
 import { Loader2, AlertCircle, Inbox, Lightbulb, Plus, Send, ArrowDownAZ } from 'lucide-react';
-import { useFeatureRequests, useCreateFeatureRequest } from './hooks';
+import { useFeatureRequests, useCreateFeatureRequest, useBatchGitHubStatuses } from './hooks';
 import { useFeatureRequestsStore } from './store';
 import { FeatureRequestCard } from './components/FeatureRequestCard';
 import { CompletedSection } from './components/CompletedSection';
@@ -84,22 +84,29 @@ export function FeatureRequests() {
     // Fetch all requests without API-level filtering (client-side filtering now)
     const { data: rawRequests, isLoading, error } = useFeatureRequests({});
 
-    // Build GitHub status map for filtering
-    // Use Record instead of Map to prevent infinite re-renders (stable reference comparison)
+    // Get IDs of requests with GitHub project items (for batch status fetch)
+    const githubLinkedIds = useMemo(() => {
+        if (!rawRequests) return [];
+        return rawRequests
+            .filter((r) => r.githubProjectItemId)
+            .map((r) => r._id);
+    }, [rawRequests]);
+
+    // Fetch live GitHub statuses for all linked items
+    const { data: batchStatusData, isLoading: isLoadingStatuses, error: statusError } = useBatchGitHubStatuses(githubLinkedIds);
+
+    // Build GitHub status map from live data
     const githubStatusMap = useMemo(() => {
         const map: Record<string, GetGitHubStatusResponse | undefined> = {};
-        // This will be populated as individual cards fetch their statuses
-        // For now, we'll use the status from the request object itself
-        rawRequests?.forEach((request) => {
-            if (request.githubProjectItemId && request.githubProjectStatus) {
-                map[request._id] = {
-                    status: request.githubProjectStatus,
-                    reviewStatus: request.githubReviewStatus || null,
-                };
-            }
-        });
+        if (batchStatusData) {
+            Object.entries(batchStatusData).forEach(([requestId, status]) => {
+                if (status) {
+                    map[requestId] = status;
+                }
+            });
+        }
         return map;
-    }, [rawRequests]);
+    }, [batchStatusData]);
 
     // Apply client-side filtering and sorting
     const { activeRequests, doneRequests } = useMemo(() => {
@@ -128,7 +135,14 @@ export function FeatureRequests() {
 
     const totalFilteredCount = activeRequests.length + doneRequests.length;
 
+    // Show loading while fetching requests or statuses (but not blocking on statuses)
     const showLoading = isLoading || rawRequests === undefined;
+    const isLoadingGitHubData = isLoadingStatuses && githubLinkedIds.length > 0;
+
+    // Handle rate limit errors gracefully
+    const rateLimitError = statusError instanceof Error && statusError.message.includes('rate limit')
+        ? 'GitHub API rate limit reached. Status data may be incomplete.'
+        : null;
 
     const handleDialogClose = () => {
         setTitle('');
@@ -243,6 +257,24 @@ export function FeatureRequests() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            {/* Rate limit warning */}
+            {rateLimitError && (
+                <Card className="border-warning bg-warning/10">
+                    <CardContent className="py-3 px-4 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+                        <p className="text-sm text-warning">{rateLimitError}</p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* GitHub status loading indicator (non-blocking) */}
+            {isLoadingGitHubData && !showLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Loading GitHub statuses...</span>
+                </div>
+            )}
 
             {/* Content */}
             {showLoading ? (

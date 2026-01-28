@@ -175,8 +175,6 @@ export interface ReportDocument {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
-    githubPrUrl?: string;
-    githubPrNumber?: number;
     approvalToken?: string;
 
     createdAt: Date;
@@ -199,8 +197,6 @@ export type ReportUpdate = Partial<Pick<ReportDocument,
     'githubIssueUrl' |
     'githubIssueNumber' |
     'githubProjectItemId' |
-    'githubPrUrl' |
-    'githubPrNumber' |
     'updatedAt'
 >>;
 
@@ -235,8 +231,6 @@ export interface ReportClient {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
-    githubPrUrl?: string;
-    githubPrNumber?: number;
 
     createdAt: string;
     updatedAt: string;

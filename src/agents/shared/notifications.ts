@@ -7,6 +7,7 @@
 
 import { agentConfig, getIssueUrl, getPrUrl, getProjectUrl } from './config';
 import { appConfig } from '../../app.config';
+import { generateClarificationToken } from '@/apis/clarification/utils';
 
 // ============================================================
 // TELEGRAM API
@@ -423,6 +424,28 @@ Issue will be marked as Done.`;
 }
 
 /**
+ * Get the base app URL for clarification links
+ *
+ * Priority order:
+ * 1. VERCEL_PROJECT_PRODUCTION_URL - Stable production domain
+ * 2. VERCEL_URL - Deployment-specific URL
+ * 3. NEXT_PUBLIC_APP_URL - Manual override
+ * 4. localhost:3000 - Local development fallback
+ */
+function getAppUrl(): string {
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL;
+    }
+    return 'http://localhost:3000';
+}
+
+/**
  * Notify admin that agent needs clarification
  */
 export async function notifyAgentNeedsClarification(
@@ -435,6 +458,10 @@ export async function notifyAgentNeedsClarification(
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';
     const issueUrl = getIssueUrl(issueNumber);
+
+    // Generate clarification URL with token
+    const token = generateClarificationToken(issueNumber);
+    const clarifyUrl = `${getAppUrl()}/clarify/${issueNumber}?token=${token}`;
 
     // Truncate question for Telegram (max 4000 chars total)
     // Reserve ~1000 chars for header/footer
@@ -458,7 +485,10 @@ ${escapeHtml(truncatedQuestion)}`;
     const buttons: InlineKeyboardMarkup = {
         inline_keyboard: [
             [
-                { text: '📋 View Issue & Respond', url: issueUrl },
+                { text: '💬 ANSWER QUESTIONS', url: clarifyUrl },
+            ],
+            [
+                { text: '📋 View Issue', url: issueUrl },
             ],
             [
                 { text: '✅ Clarification Received', callback_data: `clarified:${issueNumber}` },

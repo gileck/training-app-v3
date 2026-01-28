@@ -1,4 +1,4 @@
-import { User, ExternalLink, GitPullRequest, Clock } from 'lucide-react';
+import { User, ExternalLink, Clock, Calendar } from 'lucide-react';
 import type { FeatureRequestClient } from '@/apis/feature-requests/types';
 
 interface MetadataIconRowProps {
@@ -7,6 +7,14 @@ interface MetadataIconRowProps {
 
 // Staleness threshold in days
 const STALE_THRESHOLD_DAYS = 7;
+
+/**
+ * Format a date as a short string (e.g., "Jan 28")
+ */
+function formatShortDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 /**
  * Compact icon row for metadata display in collapsed card view
@@ -49,20 +57,14 @@ export function MetadataIconRow({ request }: MetadataIconRowProps) {
                 </a>
             )}
 
-            {/* GitHub PR link - compact display */}
-            {request.githubPrUrl && (
-                <a
-                    href={request.githubPrUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                    title={`Pull Request #${request.githubPrNumber}`}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <GitPullRequest className="h-3.5 w-3.5" />
-                    <span className="text-xs">#{request.githubPrNumber}</span>
-                </a>
-            )}
+            {/* Created date - always show */}
+            <div
+                className="flex items-center gap-1"
+                title={`Created: ${new Date(request.createdAt).toLocaleString()}`}
+            >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="text-xs">{formatShortDate(request.createdAt)}</span>
+            </div>
 
             {/* Activity staleness indicator - only show if >7 days */}
             {isStale && (
