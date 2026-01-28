@@ -2,6 +2,7 @@
  * Feature Requests Admin Page
  *
  * Admin dashboard for managing feature requests.
+ * Mobile-first design with responsive filter controls.
  */
 
 import { useState, useMemo } from 'react';
@@ -42,6 +43,15 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
     oldest: 'Oldest First',
     priority: 'Priority',
     updated: 'Recently Updated',
+};
+
+// Short labels for mobile
+const SORT_MODE_SHORT_LABELS: Record<SortMode, string> = {
+    smart: 'Smart',
+    newest: 'Newest',
+    oldest: 'Oldest',
+    priority: 'Priority',
+    updated: 'Updated',
 };
 
 export function FeatureRequests() {
@@ -157,24 +167,24 @@ export function FeatureRequests() {
 
     return (
         <div className="space-y-4 pb-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header - Mobile optimized with stacked layout on small screens */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                    <Lightbulb className="h-6 w-6 text-yellow-500" />
-                    <h1 className="text-xl font-semibold">Feature Requests</h1>
+                    <Lightbulb className="h-5 w-5 text-yellow-500 sm:h-6 sm:w-6" />
+                    <h1 className="text-lg font-semibold sm:text-xl">Feature Requests</h1>
                     {!showLoading && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground sm:text-sm">
                             {totalFilteredCount}
                         </span>
                     )}
                 </div>
-                <Button onClick={() => setIsDialogOpen(true)} size="sm">
+                <Button onClick={() => setIsDialogOpen(true)} size="sm" className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     New Request
                 </Button>
             </div>
 
-            {/* Filter Chips and Sort Controls */}
+            {/* Filter and Sort Controls - Mobile optimized */}
             <div className="flex items-center gap-2">
                 <FilterChipBar
                     statusFilters={statusFilters}
@@ -196,6 +206,7 @@ export function FeatureRequests() {
                         >
                             <ArrowDownAZ className="h-4 w-4" />
                             <span className="hidden sm:inline">{SORT_MODE_LABELS[sortMode]}</span>
+                            <span className="sm:hidden">{SORT_MODE_SHORT_LABELS[sortMode]}</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -269,7 +280,7 @@ export function FeatureRequests() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     {/* Active items */}
                     {activeRequests.map((request) => (
                         <FeatureRequestCard key={request._id} request={request} />
@@ -289,7 +300,7 @@ export function FeatureRequests() {
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="mx-4 max-w-[calc(100vw-2rem)] sm:mx-auto sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Lightbulb className="h-5 w-5 text-yellow-500" />
@@ -338,11 +349,11 @@ export function FeatureRequests() {
                             </p>
                         </div>
 
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="flex-1"
+                                className="w-full sm:flex-1"
                                 onClick={handleDialogClose}
                                 disabled={createMutation.isPending}
                             >
@@ -350,7 +361,7 @@ export function FeatureRequests() {
                             </Button>
                             <Button
                                 type="submit"
-                                className="flex-1"
+                                className="w-full sm:flex-1"
                                 disabled={createMutation.isPending || !title.trim() || !description.trim()}
                             >
                                 {createMutation.isPending ? (

@@ -4,6 +4,16 @@ description: globs: .tsx,.css
 ---
 # iOS-Inspired UI Design Guidelines
 
+> **Role**: Design PHILOSOPHY and inspiration reference. Contains iOS-inspired principles, advanced concepts (RTL, haptics, animations), and comprehensive QA checklists.
+>
+> **When to use**: Understanding WHY certain patterns exist, exploring advanced concepts not covered elsewhere, design inspiration.
+>
+> **Related skills**:
+> - `ui-mobile-first-shadcn` - AUTHORITATIVE implementation rules. Use that skill for actual code patterns.
+> - `web-design-guidelines` - On-demand audit tool for code reviews.
+>
+> **Important**: Code examples here use raw CSS/HTML. When implementing, adapt to shadcn + Tailwind patterns from `ui-mobile-first-shadcn`. Do NOT use raw hex colors in components - use semantic tokens instead.
+
 ## Color Palette & Theme
 
 ### Dynamic System Colors

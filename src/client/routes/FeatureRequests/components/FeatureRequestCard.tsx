@@ -104,9 +104,9 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
             {/* Left-edge status indicator strip (4px) */}
             <StatusIndicatorStrip request={request} githubStatus={githubStatus?.status} />
 
-            <CardHeader className="pb-2 pt-3 px-4">
+            <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
                 {/* 3-zone layout: Left (handled by strip), Center (main content), Right (actions) */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
                     {/* Center Zone: Main Content */}
                     <div
                         className="flex-1 min-w-0 cursor-pointer pl-2"
@@ -121,12 +121,12 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                         }}
                     >
                         {/* Title - max 2 lines, semibold, high contrast */}
-                        <CardTitle className="text-base font-semibold leading-tight line-clamp-2 hover:text-primary transition-colors mb-1.5">
+                        <CardTitle className="text-sm font-semibold leading-tight line-clamp-2 hover:text-primary transition-colors mb-1.5 sm:text-base">
                             {request.title}
                         </CardTitle>
 
                         {/* Status Row: Inline badges and metadata icons with compact spacing */}
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                             {/* Show GitHub status as primary when linked, fallback to DB status */}
                             {request.githubProjectItemId ? (
                                 isLoadingGitHubStatus ? (
@@ -148,13 +148,15 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
 
                             <PriorityBadge priority={request.priority} />
 
-                            {/* Metadata icon row */}
-                            <MetadataIconRow request={request} />
+                            {/* Metadata icon row - hidden on very small screens when collapsed */}
+                            <div className="hidden xs:flex sm:flex">
+                                <MetadataIconRow request={request} />
+                            </div>
                         </div>
                     </div>
 
                     {/* Right Zone: Actions - compact and aligned */}
-                    <div className="flex items-start gap-1 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-0.5 sm:gap-1 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
                         <PrimaryActionButton
                             canApprove={canApprove}
                             canReviewDesign={canReviewDesign}
@@ -177,7 +179,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -256,7 +258,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
             </CardHeader>
 
             {isExpanded && (
-                <CardContent className="space-y-4 pt-2 px-4 pb-4 transition-all duration-200 ease-out">
+                <CardContent className="space-y-3 pt-2 px-3 pb-4 sm:space-y-4 sm:px-4 transition-all duration-200 ease-out">
                     <div className="space-y-2 rounded-lg bg-muted/20 p-3">
                         <h4 className="text-sm font-medium">Description</h4>
                         <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
@@ -265,18 +267,18 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                     </div>
 
                     <div className="flex flex-wrap gap-2 text-xs">
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1.5 sm:px-2.5">
                             <User className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">{request.requestedByName}</span>
                         </div>
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1.5 sm:px-2.5">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">{new Date(request.createdAt).toLocaleDateString()}</span>
                         </div>
                         {request.page && (
-                            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1.5">
+                            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1.5 sm:px-2.5">
                                 <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">{request.page}</span>
+                                <span className="text-muted-foreground truncate max-w-[150px]">{request.page}</span>
                             </div>
                         )}
                     </div>
@@ -285,13 +287,13 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                     {(request.githubIssueUrl || request.githubPrUrl) && (
                         <div className="space-y-2 rounded-lg border-l-2 border-l-primary/20 bg-primary/5 p-3">
                             <h4 className="text-sm font-medium">GitHub Integration</h4>
-                            <div className="flex flex-wrap gap-3 text-sm">
+                            <div className="flex flex-wrap gap-2 text-sm">
                                 {request.githubIssueUrl && (
                                     <a
                                         href={request.githubIssueUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5" />
                                         <span>Issue #{request.githubIssueNumber}</span>
@@ -302,7 +304,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                         href={request.githubPrUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 font-medium text-primary hover:bg-primary/20 transition-colors"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
                                     >
                                         <GitPullRequest className="h-3.5 w-3.5" />
                                         <span>PR #{request.githubPrNumber}</span>
@@ -321,7 +323,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                 {currentPhaseType === 'product' ? 'Product Design' : 'Technical Design'}
                             </h4>
                             <div className="prose prose-sm max-w-none text-muted-foreground">
-                                <pre className="whitespace-pre-wrap text-sm">
+                                <pre className="whitespace-pre-wrap text-xs sm:text-sm overflow-x-auto">
                                     {currentDesignPhase.content.slice(0, 500)}
                                     {currentDesignPhase.content.length > 500 && '...'}
                                 </pre>
@@ -346,14 +348,14 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                 {request.comments.slice(-3).map((comment) => (
                                     <div
                                         key={comment.id}
-                                        className={`rounded-md border border-border/50 p-3 text-sm ${
+                                        className={`rounded-md border border-border/50 p-2.5 text-sm sm:p-3 ${
                                             comment.isAdmin ? 'bg-background' : 'bg-muted/10'
                                         }`}
                                     >
-                                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <div className="flex flex-wrap items-center gap-1.5 text-xs sm:gap-2">
                                             <span className="font-medium text-foreground">{comment.authorName}</span>
                                             {comment.isAdmin && (
-                                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium">
+                                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary font-medium sm:px-2">
                                                     Admin
                                                 </span>
                                             )}
@@ -361,7 +363,7 @@ export function FeatureRequestCard({ request }: FeatureRequestCardProps) {
                                                 {new Date(comment.createdAt).toLocaleString()}
                                             </span>
                                         </div>
-                                        <p className="mt-2 text-sm text-foreground leading-relaxed">{comment.content}</p>
+                                        <p className="mt-1.5 text-sm text-foreground leading-relaxed sm:mt-2">{comment.content}</p>
                                     </div>
                                 ))}
                             </div>

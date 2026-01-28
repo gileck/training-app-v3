@@ -48,10 +48,48 @@ export interface SendMessageResult {
 }
 
 /**
- * Send a Telegram notification to a specific chat ID
+ * Parse a chat ID string that may include a topic thread ID.
+ *
+ * Supports two formats:
+ * - Simple: "-100123456789" (just chat ID)
+ * - With topic: "-100123456789:42" (chat ID + thread ID for topics)
+ *
+ * @example
+ * parseChatId("-100123456789") // { chatId: "-100123456789", threadId: undefined }
+ * parseChatId("-100123456789:42") // { chatId: "-100123456789", threadId: "42" }
+ */
+function parseChatId(chatIdString: string): { chatId: string; threadId?: string } {
+    const lastColonIndex = chatIdString.lastIndexOf(':');
+
+    // No colon found, or colon is at the start (invalid)
+    if (lastColonIndex <= 0) {
+        return { chatId: chatIdString };
+    }
+
+    const potentialThreadId = chatIdString.slice(lastColonIndex + 1);
+
+    // Check if the part after the last colon is a valid number (thread ID)
+    if (/^\d+$/.test(potentialThreadId)) {
+        return {
+            chatId: chatIdString.slice(0, lastColonIndex),
+            threadId: potentialThreadId
+        };
+    }
+
+    // Not a valid thread ID, treat the whole string as chat ID
+    return { chatId: chatIdString };
+}
+
+/**
+ * Send a Telegram notification to a specific chat ID.
+ *
+ * Supports topic threads via combined format: "chatId:threadId"
+ * @example
+ * sendToChat("-100123456789", "Hello")           // Send to chat
+ * sendToChat("-100123456789:42", "Hello")        // Send to topic thread 42
  */
 async function sendToChat(
-    chatId: string,
+    chatIdString: string,
     message: string,
     options?: SendMessageOptions
 ): Promise<SendMessageResult> {
@@ -62,6 +100,9 @@ async function sendToChat(
         return { success: false, error: 'Missing bot token' };
     }
 
+    // Parse chat ID and optional thread ID (for topics)
+    const { chatId, threadId } = parseChatId(chatIdString);
+
     try {
         const body: Record<string, unknown> = {
             chat_id: chatId,
@@ -69,6 +110,11 @@ async function sendToChat(
             parse_mode: options?.parseMode,
             disable_notification: options?.disableNotification
         };
+
+        // Add thread ID for topic support
+        if (threadId) {
+            body.message_thread_id = parseInt(threadId, 10);
+        }
 
         // Add inline keyboard if provided
         if (options?.inlineKeyboard) {

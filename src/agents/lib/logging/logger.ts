@@ -104,7 +104,7 @@ export function logPrompt(
 ${escapeCodeBlock(prompt)}
 \`\`\`
 
-### Agent Execution
+### [LOG:EXECUTION_START] Agent Execution
 
 `;
 
@@ -308,9 +308,11 @@ export function logExecutionEnd(
     const duration = Date.now() - ctx.startTime.getTime();
     const durationStr = formatDuration(duration);
 
-    const content = `---
+    const content = `### [LOG:EXECUTION_END] Agent Execution
 
-### [LOG:PHASE_END] Phase Result
+---
+
+## [LOG:PHASE_END] Phase: ${ctx.phase}
 
 **Duration:** ${durationStr}
 **Tool calls:** ${summary.toolCallsCount || 0}
@@ -421,10 +423,15 @@ export function logWebhookPhaseStart(
     source: ExternalLogSource = 'webhook'
 ): void {
     const timestamp = formatTime(new Date());
-    const marker = getExternalMarker(source);
+    const startMarker =
+        source === 'webhook'
+            ? '[LOG:WEBHOOK_START]'
+            : source === 'github_action'
+              ? '[LOG:ACTION_START]'
+              : '[LOG:EXTERNAL_START]';
     const emoji = source === 'github_action' ? '🚀' : '📥';
 
-    const content = `## ${marker} ${emoji} ${phase}
+    const content = `## ${startMarker} ${emoji} ${phase}
 
 **Source:** ${source}
 **Started:** ${timestamp}
@@ -444,14 +451,18 @@ export function logWebhookPhaseEnd(
     source: ExternalLogSource = 'webhook'
 ): void {
     const timestamp = formatTime(new Date());
-    const marker = getExternalMarker(source);
+    const endMarker =
+        source === 'webhook'
+            ? '[LOG:WEBHOOK_END]'
+            : source === 'github_action'
+              ? '[LOG:ACTION_END]'
+              : '[LOG:EXTERNAL_END]';
     const statusEmoji = result === 'success' ? '✅' : result === 'failed' ? '❌' : '⏭️';
 
     const content = `---
 
-### ${marker} Phase Result
+## ${endMarker} ${phase}
 
-**Phase:** ${phase}
 **Status:** ${statusEmoji} ${result.charAt(0).toUpperCase() + result.slice(1)}
 **Completed:** ${timestamp}
 

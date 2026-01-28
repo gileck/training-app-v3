@@ -4,6 +4,16 @@ description: globs: .tsx,.css
 ---
 # Mobile-first UI rules (shadcn + Tailwind)
 
+> **Role**: AUTHORITATIVE implementation rules for this project's tech stack.
+>
+> **When to use**: Always reference when writing actual UI code (.tsx, .css files).
+>
+> **Related skills**:
+> - `ui-design-guidelines` - Design philosophy/inspiration (iOS patterns, advanced concepts like RTL, haptics). Use for understanding WHY, but adapt examples to shadcn/Tailwind.
+> - `web-design-guidelines` - On-demand audit tool that fetches external Vercel guidelines. Use for code reviews.
+>
+> **Priority**: If rules conflict, THIS skill takes precedence for implementation.
+
 These rules standardize design across the app using shadcn UI primitives and Tailwind v4 semantic tokens. Dark mode uses the HTML `.dark` class via `next-themes`. Color tokens live in [globals.css](mdc:src/client/styles/globals.css).
 
 ## Colors and theming

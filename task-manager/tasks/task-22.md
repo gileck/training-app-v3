@@ -4,7 +4,7 @@ title: Per-Issue Plan Subagent Toggle
 priority: Low
 size: S
 complexity: Low
-status: Backlog
+status: TODO
 dateAdded: 2026-01-27
 dateUpdated: 2026-01-27
 ---

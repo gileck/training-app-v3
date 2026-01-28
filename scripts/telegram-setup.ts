@@ -20,6 +20,7 @@ interface TelegramUpdate {
     update_id: number;
     message?: {
         message_id: number;
+        message_thread_id?: number;  // Topic thread ID (for supergroups with topics)
         from: {
             id: number;
             first_name: string;
@@ -31,8 +32,10 @@ interface TelegramUpdate {
             title?: string;
             first_name?: string;
             username?: string;
+            is_forum?: boolean;  // True if supergroup has topics enabled
         };
         text?: string;
+        is_topic_message?: boolean;  // True if sent in a topic
     };
 }
 
@@ -49,10 +52,23 @@ async function getUpdates(botToken: string, offset?: number, timeout = 30): Prom
     }
 
     const response = await fetch(url.toString());
-    const data = await response.json() as GetUpdatesResponse;
+    const data = await response.json() as GetUpdatesResponse & { description?: string; error_code?: number };
 
     if (!data.ok) {
-        throw new Error('Failed to get updates from Telegram');
+        // Common issue: webhook is set, which prevents getUpdates from working
+        if (data.description?.includes('webhook')) {
+            console.error('');
+            console.error('⚠️  A webhook is currently set on this bot.');
+            console.error('   getUpdates cannot be used while a webhook is active.');
+            console.error('');
+            console.error('To temporarily disable the webhook, run:');
+            console.error('   yarn telegram-webhook delete');
+            console.error('');
+            console.error('After getting your chat IDs, re-set the webhook:');
+            console.error('   yarn telegram-webhook set <your-app-url>');
+            console.error('');
+        }
+        throw new Error(`Failed to get updates from Telegram: ${data.description || 'Unknown error'}`);
     }
 
     return data.result;
@@ -68,11 +84,15 @@ async function getLatestUpdateId(botToken: string): Promise<number | undefined> 
     return undefined;
 }
 
-async function sendMessage(botToken: string, chatId: number, text: string): Promise<void> {
+async function sendMessage(botToken: string, chatId: number, text: string, threadId?: number): Promise<void> {
+    const body: Record<string, unknown> = { chat_id: chatId, text };
+    if (threadId) {
+        body.message_thread_id = threadId;
+    }
     await fetch(`${TELEGRAM_API_URL}${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text })
+        body: JSON.stringify(body)
     });
 }
 
@@ -117,76 +137,72 @@ async function main() {
 
                 if (update.message) {
                     const chatId = update.message.chat.id;
+                    const threadId = update.message.message_thread_id;
+                    const isTopicMessage = update.message.is_topic_message || threadId !== undefined;
+                    const isForum = update.message.chat.is_forum;
                     const chatName = update.message.chat.title ||
                                     update.message.chat.first_name ||
                                     update.message.chat.username ||
                                     'Unknown';
                     const senderName = update.message.from.first_name;
 
-                    console.log(`Received message from "${senderName}" in chat "${chatName}"`);
+                    // Combined format for topics: chatId:threadId
+                    const combinedId = threadId ? `${chatId}:${threadId}` : String(chatId);
+
+                    // Track collected topics
+                    const topicName = update.message.text?.slice(0, 30) || `Topic ${threadId || 'General'}`;
+
                     console.log('');
                     console.log('='.repeat(60));
-                    console.log(`Your Chat ID: ${chatId}`);
-                    console.log('='.repeat(60));
+                    console.log(`📩 Message from "${senderName}" in "${chatName}"`);
+                    if (isTopicMessage && threadId) {
+                        console.log(`📌 Topic Thread ID: ${threadId}`);
+                    }
                     console.log('');
-                    console.log('SETUP INSTRUCTIONS');
-                    console.log('==================');
-                    console.log('');
-                    console.log('Option 1: Simple Mode (One Chat for All)');
-                    console.log('-----------------------------------------');
-                    console.log('Add to your .env file:');
-                    console.log('');
-                    console.log(`  LOCAL_TELEGRAM_CHAT_ID=${chatId}`);
-                    console.log('');
-                    console.log('');
-                    console.log('Option 2: Advanced Mode (Three Separate Chats)');
-                    console.log('-----------------------------------------------');
-                    console.log('Create 3 separate chats/groups (or use Topics in one group).');
-                    console.log('Send a message from each chat to get their IDs,');
-                    console.log('then add to your .env file:');
-                    console.log('');
-                    console.log(`  VERCEL_TELEGRAM_CHAT_ID=${chatId}    # Deployments`);
-                    console.log(`  GITHUB_TELEGRAM_CHAT_ID=${chatId}    # GitHub activity`);
-                    console.log(`  AGENT_TELEGRAM_CHAT_ID=${chatId}     # Agent workflow`);
-                    console.log('');
-                    console.log('');
-                    console.log('GitHub Actions Setup');
-                    console.log('--------------------');
-                    console.log('For GitHub Actions to send notifications, add these secrets:');
-                    console.log('  GitHub → Settings → Secrets and variables → Actions');
-                    console.log('');
-                    console.log('  TELEGRAM_BOT_TOKEN (your bot token)');
-                    console.log('');
-                    console.log('  Simple mode: Add these secrets');
-                    console.log(`    LOCAL_TELEGRAM_CHAT_ID=${chatId}`);
-                    console.log(`    TELEGRAM_CHAT_ID=${chatId}`);
-                    console.log('');
-                    console.log('  Advanced mode: Add these secrets');
-                    console.log(`    VERCEL_TELEGRAM_CHAT_ID=${chatId}    # Deployments`);
-                    console.log(`    GITHUB_TELEGRAM_CHAT_ID=${chatId}    # GitHub activity`);
-                    console.log('');
-                    console.log('');
-                    console.log('Vercel Environment Variables');
-                    console.log('-----------------------------');
-                    console.log('For runtime agent notifications, add to Vercel:');
-                    console.log('  Settings → Environment Variables');
-                    console.log('');
-                    console.log(`  AGENT_TELEGRAM_CHAT_ID=${chatId}`);
-                    console.log('');
-                    console.log('Or use: yarn vercel-cli env:push (after setting in .env)');
-                    console.log('');
+                    console.log(`   ➜ Combined ID: ${combinedId}`);
                     console.log('='.repeat(60));
 
-                    // Send confirmation
+                    // Send confirmation with topic info if applicable
+                    const confirmationMsg = threadId
+                        ? `✅ Combined ID: ${combinedId}`
+                        : `✅ Chat ID: ${chatId}`;
+
                     await sendMessage(
                         botToken,
                         chatId,
-                        `✅ Your Chat ID is: ${chatId}\n\nCheck the terminal for setup instructions.`
+                        confirmationMsg,
+                        threadId
                     );
-                    console.log('');
-                    console.log('Done!');
 
-                    process.exit(0);
+                    // For forums with topics, keep listening
+                    if (isForum) {
+                        console.log('');
+                        console.log('💡 Topics detected - keep sending messages from other topics.');
+                        console.log('   Press Ctrl+C when done collecting all topic IDs.');
+                        console.log('');
+                        console.log('   Example .env configuration:');
+                        console.log(`   VERCEL_TELEGRAM_CHAT_ID=${combinedId}`);
+                        console.log(`   GITHUB_TELEGRAM_CHAT_ID=${chatId}:<other-thread-id>`);
+                        console.log(`   AGENT_TELEGRAM_CHAT_ID=${chatId}:<other-thread-id>`);
+                        console.log('');
+                        console.log('Waiting for more messages...');
+                    } else {
+                        // Not a forum, show full instructions and exit
+                        console.log('');
+                        console.log('SETUP INSTRUCTIONS');
+                        console.log('==================');
+                        console.log('');
+                        console.log('Add to your .env file:');
+                        console.log('');
+                        console.log(`  LOCAL_TELEGRAM_CHAT_ID=${combinedId}`);
+                        console.log('');
+                        console.log('GitHub Actions secrets:');
+                        console.log(`  TELEGRAM_BOT_TOKEN=<your-token>`);
+                        console.log(`  LOCAL_TELEGRAM_CHAT_ID=${combinedId}`);
+                        console.log('');
+                        console.log('Done!');
+                        process.exit(0);
+                    }
                 }
             }
         } catch (error) {

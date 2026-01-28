@@ -84,6 +84,8 @@ export interface AgentRunOptions {
     additionalTools?: string[];
     /** Maximum number of agent turns (overrides default) */
     maxTurns?: number;
+    /** Whether to use plan mode for this run (default: true). Set to false for feedback/clarification modes. */
+    shouldUsePlanMode?: boolean;
 }
 
 /**

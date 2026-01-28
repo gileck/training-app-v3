@@ -12,7 +12,6 @@ import {
     logError,
     logExecutionStart,
     logExecutionEnd,
-    logPrompt,
     logTokenUsage,
     type LogContext,
 } from './logging';
@@ -199,10 +198,17 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
     // This creates a detailed implementation plan before the main implementation
     const supportsPlanMode = library.capabilities.planMode === true;
 
+    // planModeEnabled: from config - CAN plan mode be used?
+    const planModeEnabled = planConfig.enabled && supportsPlanMode;
+
+    // shouldUsePlanMode: from runtime options - SHOULD plan mode be used for this run?
+    // Defaults to true (backward compatible), set to false for feedback/clarification modes
+    const shouldUsePlanMode = options.shouldUsePlanMode !== false;
+
     const shouldRunPlanSubagent =
-        planConfig.enabled &&
+        planModeEnabled &&
+        shouldUsePlanMode &&
         options.workflow === 'implementation' &&
-        supportsPlanMode &&
         options.allowWrite;
 
     if (shouldRunPlanSubagent) {
@@ -226,6 +232,9 @@ Follow the plan above while implementing. Adjust as needed based on actual code 
         }
         // If plan generation failed, proceed without it
         console.log('  ⚠️ Plan subagent did not generate a plan, proceeding without it');
+    } else if (planModeEnabled && !shouldUsePlanMode && options.workflow === 'implementation') {
+        // Log when plan subagent is explicitly disabled (e.g., for feedback/clarification modes)
+        console.log('  📋 Plan subagent skipped (shouldUsePlanMode: false)');
     }
 
     return library.run(options);
@@ -251,7 +260,6 @@ async function runImplementationPlanSubagent(
 ): Promise<{ plan: string | null; error?: string }> {
     const usesPlanMode = library.capabilities.planMode === true;
     const planMechanism = usesPlanMode ? '--mode=plan' : 'read-only tools';
-    const tools = usesPlanMode ? ['plan-mode'] : ['Read', 'Glob', 'Grep', 'WebFetch'];
 
     console.log(`  📋 Running Plan subagent (${library.name}, ${planMechanism})...`);
 
@@ -273,14 +281,8 @@ async function runImplementationPlanSubagent(
     // Build the plan prompt using the dedicated prompt builder
     const planPrompt = buildPlanSubagentPrompt(options.prompt);
 
-    // Log the prompt
-    if (planCtx) {
-        logPrompt(planCtx, planPrompt, {
-            model: library.model,
-            tools,
-            timeout,
-        });
-    }
+    // NOTE: We don't call logPrompt here because the adapter will log it.
+    // The adapter logs with the correct model name and tools.
 
     try {
         // Use planMode if library supports it (cursor), otherwise use read-only tools (claude-code-sdk)

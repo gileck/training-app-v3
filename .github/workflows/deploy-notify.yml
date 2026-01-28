@@ -47,11 +47,21 @@ jobs:
       - name: Send deployment started notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID_RAW: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
+          # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
+          if [[ "$CHAT_ID_RAW" == *":"* ]]; then
+            CHAT_ID="${CHAT_ID_RAW%:*}"
+            THREAD_ID="${CHAT_ID_RAW##*:}"
+            THREAD_PARAM="-d message_thread_id=${THREAD_ID}"
+          else
+            CHAT_ID="$CHAT_ID_RAW"
+            THREAD_PARAM=""
+          fi
+
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
 
@@ -79,6 +89,7 @@ jobs:
 
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
+              ${THREAD_PARAM} \
               -d "parse_mode=Markdown" \
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
@@ -92,6 +103,7 @@ jobs:
             KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
+              ${THREAD_PARAM} \
               -d "parse_mode=Markdown" \
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
@@ -139,11 +151,21 @@ jobs:
         if: success()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID_RAW: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
+          # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
+          if [[ "$CHAT_ID_RAW" == *":"* ]]; then
+            CHAT_ID="${CHAT_ID_RAW%:*}"
+            THREAD_ID="${CHAT_ID_RAW##*:}"
+            THREAD_PARAM="-d message_thread_id=${THREAD_ID}"
+          else
+            CHAT_ID="$CHAT_ID_RAW"
+            THREAD_PARAM=""
+          fi
+
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
 
@@ -171,6 +193,7 @@ jobs:
 
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
+              ${THREAD_PARAM} \
               -d "parse_mode=Markdown" \
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
@@ -185,6 +208,7 @@ jobs:
 
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${CHAT_ID}" \
+              ${THREAD_PARAM} \
               -d "parse_mode=Markdown" \
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
@@ -194,11 +218,21 @@ jobs:
         if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
+          CHAT_ID_RAW: ${{ secrets.VERCEL_TELEGRAM_CHAT_ID || secrets.LOCAL_TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ steps.deploy-type.outputs.sha }}
           ERROR_MSG: ${{ steps.deployment.outputs.error }}
           LOG_URL: ${{ steps.deployment.outputs.log_url }}
         run: |
+          # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
+          if [[ "$CHAT_ID_RAW" == *":"* ]]; then
+            CHAT_ID="${CHAT_ID_RAW%:*}"
+            THREAD_ID="${CHAT_ID_RAW##*:}"
+            THREAD_PARAM="-d message_thread_id=${THREAD_ID}"
+          else
+            CHAT_ID="$CHAT_ID_RAW"
+            THREAD_PARAM=""
+          fi
+
           # Truncate error message if too long
           ERROR_PREVIEW="${ERROR_MSG:0:200}"
           if [ ${#ERROR_MSG} -gt 200 ]; then
@@ -244,6 +278,7 @@ jobs:
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \
+            ${THREAD_PARAM} \
             -d "parse_mode=Markdown" \
             -d "text=${MESSAGE}" \
             -d "reply_markup=${KEYBOARD}" \

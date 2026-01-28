@@ -60,17 +60,25 @@ async function handleDesignPRMerged(
     prNumber: number,
     prTitle: string,
     issueNumber: number,
-    isProductDesign: boolean
+    designType: 'product-dev' | 'product' | 'tech'
 ): Promise<void> {
-    const designType = isProductDesign ? 'product' : 'tech';
-    const designLabel = isProductDesign ? 'Product Design' : 'Technical Design';
+    const designLabel = designType === 'product-dev'
+        ? 'Product Development'
+        : designType === 'product'
+            ? 'Product Design'
+            : 'Technical Design';
 
     console.log(`\n📄 Processing ${designLabel} PR merge...`);
 
     // 1. Update artifact comment on issue
     console.log(`  Updating artifact comment on issue #${issueNumber}...`);
+    const artifactType = designType === 'product-dev'
+        ? 'product-dev'
+        : designType === 'product'
+            ? 'product-design'
+            : 'tech-design';
     await updateDesignArtifact(adapter, issueNumber, {
-        type: isProductDesign ? 'product-design' : 'tech-design',
+        type: artifactType,
         path: getDesignDocLink(issueNumber, designType),
         status: 'approved',
         lastUpdated: new Date().toISOString().split('T')[0],
@@ -104,7 +112,7 @@ async function handleDesignPRMerged(
     }
 
     // 3. For tech design PRs, check for phases and initialize in artifact comment
-    if (!isProductDesign) {
+    if (designType === 'tech') {
         const techDesign = readDesignDoc(issueNumber, 'tech');
         if (techDesign) {
             const phases = parsePhasesFromMarkdown(techDesign);
@@ -150,21 +158,31 @@ async function main() {
     console.log(`Merged by: ${mergedBy}`);
 
     // Check for design PRs by title pattern
-    // Format: "docs: product design for issue #123" or "docs: technical design for issue #123"
+    // Format: "docs: product development for issue #123", "docs: product design for issue #123", or "docs: technical design for issue #123"
+    const productDevMatch = prTitle.match(/^docs:\s*product\s+development\s+for\s+issue\s+#(\d+)/i);
     const productDesignMatch = prTitle.match(/^docs:\s*product\s+design\s+for\s+issue\s+#(\d+)/i);
     const techDesignMatch = prTitle.match(/^docs:\s*technical?\s+design\s+for\s+issue\s+#(\d+)/i);
 
-    if (productDesignMatch || techDesignMatch) {
-        const issueNumber = parseInt((productDesignMatch || techDesignMatch)![1], 10);
-        const isProductDesign = !!productDesignMatch;
+    if (productDevMatch || productDesignMatch || techDesignMatch) {
+        const issueNumber = parseInt((productDevMatch || productDesignMatch || techDesignMatch)![1], 10);
+        const designType: 'product-dev' | 'product' | 'tech' = productDevMatch
+            ? 'product-dev'
+            : productDesignMatch
+                ? 'product'
+                : 'tech';
+        const designLabel = designType === 'product-dev'
+            ? 'Product Development'
+            : designType === 'product'
+                ? 'Product Design'
+                : 'Technical';
 
-        console.log(`\n📋 Detected ${isProductDesign ? 'Product' : 'Technical'} Design PR for issue #${issueNumber}`);
+        console.log(`\n📋 Detected ${designLabel} Design PR for issue #${issueNumber}`);
 
         // Initialize adapter
         const adapter = getProjectManagementAdapter();
         await adapter.init();
 
-        await handleDesignPRMerged(adapter, parseInt(prNumber), prTitle, issueNumber, isProductDesign);
+        await handleDesignPRMerged(adapter, parseInt(prNumber), prTitle, issueNumber, designType);
         return;
     }
 

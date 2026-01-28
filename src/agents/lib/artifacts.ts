@@ -29,7 +29,7 @@ export const ARTIFACT_COMMENT_MARKER = '<!-- ISSUE_ARTIFACT_V1 -->';
 // ============================================================
 
 export interface DesignArtifact {
-    type: 'product-design' | 'tech-design';
+    type: 'product-dev' | 'product-design' | 'tech-design';
     path: string;
     status: 'pending' | 'approved';
     lastUpdated: string;
@@ -55,6 +55,7 @@ export interface ImplementationArtifact {
 }
 
 export interface ArtifactComment {
+    productDevelopment?: DesignArtifact;
     productDesign?: DesignArtifact;
     techDesign?: DesignArtifact;
     implementation?: ImplementationArtifact;
@@ -76,8 +77,12 @@ export interface GitHubComment {
  * Generate file path for design document
  * @returns Relative path from repo root: "design-docs/issue-{N}/product-design.md"
  */
-export function getDesignDocPath(issueNumber: number, type: 'product' | 'tech'): string {
-    const filename = type === 'product' ? 'product-design.md' : 'tech-design.md';
+export function getDesignDocPath(issueNumber: number, type: 'product-dev' | 'product' | 'tech'): string {
+    const filename = type === 'product-dev'
+        ? 'product-development.md'
+        : type === 'product'
+            ? 'product-design.md'
+            : 'tech-design.md';
     return `design-docs/issue-${issueNumber}/${filename}`;
 }
 
@@ -85,7 +90,7 @@ export function getDesignDocPath(issueNumber: number, type: 'product' | 'tech'):
  * Generate full GitHub blob URL for artifact comment link
  * @returns Full URL: "https://github.com/{owner}/{repo}/blob/main/design-docs/issue-{N}/..."
  */
-export function getDesignDocLink(issueNumber: number, type: 'product' | 'tech'): string {
+export function getDesignDocLink(issueNumber: number, type: 'product-dev' | 'product' | 'tech'): string {
     const config = getProjectConfig();
     const path = getDesignDocPath(issueNumber, type);
     return `https://github.com/${config.github.owner}/${config.github.repo}/blob/main/${path}`;
@@ -134,6 +139,20 @@ export function parseArtifactComment(comments: GitHubComment[]): ArtifactComment
     const artifact: ArtifactComment = {};
 
     // Parse table rows for design artifacts
+    // Format: | [Product Development](path) | ✅ Approved | 2026-01-25 | #456 |
+    const productDevMatch = comment.body.match(
+        /\|\s*\[Product Development\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*(\w+)\s*\|\s*([^|]+)\|\s*#?(\d+)?\s*\|/
+    );
+    if (productDevMatch) {
+        artifact.productDevelopment = {
+            type: 'product-dev',
+            path: productDevMatch[1],
+            status: productDevMatch[2] === '✅' ? 'approved' : 'pending',
+            lastUpdated: productDevMatch[4].trim(),
+            prNumber: productDevMatch[5] ? parseInt(productDevMatch[5], 10) : undefined,
+        };
+    }
+
     // Format: | [Product Design](path) | ✅ Approved | 2026-01-25 | #456 |
     const productMatch = comment.body.match(
         /\|\s*\[Product Design\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*(\w+)\s*\|\s*([^|]+)\|\s*#?(\d+)?\s*\|/
@@ -269,6 +288,14 @@ export function formatArtifactComment(artifacts: ArtifactComment): string {
 
     // Design Documents section
     const designRows: string[] = [];
+    if (artifacts.productDevelopment) {
+        const { path, status, lastUpdated, prNumber } = artifacts.productDevelopment;
+        const statusEmoji = status === 'approved' ? '✅' : '⏳';
+        const statusLabel = status === 'approved' ? 'Approved' : 'Pending';
+        const prLink = prNumber ? `#${prNumber}` : '-';
+        designRows.push(`| [Product Development](${path}) | ${statusEmoji} ${statusLabel} | ${lastUpdated} | ${prLink} |`);
+    }
+
     if (artifacts.productDesign) {
         const { path, status, lastUpdated, prNumber } = artifacts.productDesign;
         const statusEmoji = status === 'approved' ? '✅' : '⏳';
@@ -390,7 +417,9 @@ export async function updateDesignArtifact(
     const existingArtifact = parseArtifactComment(comments) || {};
 
     // Update the appropriate design
-    if (design.type === 'product-design') {
+    if (design.type === 'product-dev') {
+        existingArtifact.productDevelopment = design;
+    } else if (design.type === 'product-design') {
         existingArtifact.productDesign = design;
     } else {
         existingArtifact.techDesign = design;

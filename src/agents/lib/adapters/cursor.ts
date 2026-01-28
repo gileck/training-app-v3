@@ -14,10 +14,18 @@
  * - --force - Allow write operations
  * - --output-format json|stream-json - Output format
  * - --model <model> - Specify model (e.g., sonnet-4)
+ *
+ * MCP Support:
+ * - MCP servers are configured via .cursor/mcp.json
+ * - Pass mcpServers in AgentRunOptions to enable MCP tools
+ * - Servers are automatically enabled via: cursor-agent mcp enable <identifier>
+ * - Example: { playwright: { command: 'node', args: ['./node_modules/@playwright/mcp/cli.js'] } }
  */
 
 import { spawn } from 'child_process';
-import type { AgentLibraryAdapter, AgentLibraryCapabilities, AgentRunOptions, AgentRunResult } from '../types';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { AgentLibraryAdapter, AgentLibraryCapabilities, AgentRunOptions, AgentRunResult, MCPServerConfig } from '../types';
 import {
     getCurrentLogContext,
     logPrompt,
@@ -98,8 +106,8 @@ class CursorAdapter implements AgentLibraryAdapter {
         streaming: true,
         fileRead: true,
         fileWrite: true,
-        webFetch: false, // Cursor CLI does not support web fetch
-        customTools: false, // Cursor uses its own tool set
+        webFetch: false, // Cursor CLI does not support web fetch natively
+        customTools: true, // Cursor supports MCP servers for custom tools
         timeout: true,
         planMode: true, // Cursor supports --mode=plan
     };
@@ -157,28 +165,47 @@ class CursorAdapter implements AgentLibraryAdapter {
             timeout = DEFAULT_TIMEOUT_SECONDS,
             progressLabel = 'Processing',
             planMode = false,
+            mcpServers,
         } = options;
+
+        // Set up MCP servers if provided
+        if (mcpServers && Object.keys(mcpServers).length > 0) {
+            await this.setupMCPServers(mcpServers);
+        }
 
         const startTime = Date.now();
         let toolCallCount = 0;
         const filesExamined: string[] = [];
         let lastResult = '';
 
+        // Buffer for accumulating streaming text responses
+        let textBuffer = '';
+        const TEXT_BUFFER_FLUSH_SIZE = 500; // Flush after this many characters
+
+        const flushTextBuffer = () => {
+            if (textBuffer.trim() && logCtx) {
+                logTextResponse(logCtx, textBuffer.trim());
+            }
+            textBuffer = '';
+        };
+
         let spinnerInterval: NodeJS.Timeout | null = null;
         let spinnerFrame = 0;
 
         // Build CLI arguments
+        const hasMcpServers = mcpServers && Object.keys(mcpServers).length > 0;
         const args = this.buildArgs(prompt, {
             allowWrite,
             stream,
             planMode,
+            useMcp: hasMcpServers,
         });
 
         // Log prompt if context is available
         const logCtx = getCurrentLogContext();
         if (logCtx) {
             logPrompt(logCtx, prompt, {
-                model: 'cursor-agent',
+                model: this.model,
                 tools: allowWrite ? ['read', 'write', 'edit', 'bash'] : ['read'],
                 timeout,
             });
@@ -206,15 +233,22 @@ class CursorAdapter implements AgentLibraryAdapter {
                             const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
                             if (event.type === 'text' && event.content) {
-                                // Log text response
-                                if (logCtx) {
-                                    logTextResponse(logCtx, event.content);
-                                }
-                                console.log(`    \x1b[90m${event.content}\x1b[0m`);
+                                // Buffer text responses instead of logging each one
+                                textBuffer += event.content;
                                 lastResult = event.content;
+
+                                // Flush if buffer is large enough
+                                if (textBuffer.length >= TEXT_BUFFER_FLUSH_SIZE) {
+                                    flushTextBuffer();
+                                }
+
+                                // Still show in console for real-time feedback
+                                console.log(`    \x1b[90m${event.content}\x1b[0m`);
                             }
 
                             if (event.type === 'tool_use') {
+                                // Flush text buffer before logging tool call
+                                flushTextBuffer();
                                 toolCallCount++;
                                 const toolName = event.name || 'unknown';
                                 const toolInput = event.input || {};
@@ -241,6 +275,8 @@ class CursorAdapter implements AgentLibraryAdapter {
                             }
 
                             if (event.type === 'result') {
+                                // Flush any remaining text before processing result
+                                flushTextBuffer();
                                 if (event.result) {
                                     lastResult = event.result;
                                 }
@@ -248,6 +284,9 @@ class CursorAdapter implements AgentLibraryAdapter {
                         },
                     }
                 );
+
+                // Flush any remaining text in buffer
+                flushTextBuffer();
 
                 const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
                 const usage = this.extractUsageFromResult(result.stdout);
@@ -409,6 +448,7 @@ class CursorAdapter implements AgentLibraryAdapter {
         allowWrite?: boolean;
         stream?: boolean;
         planMode?: boolean;
+        useMcp?: boolean;
     }): string[] {
         const args = [prompt];
 
@@ -432,6 +472,11 @@ class CursorAdapter implements AgentLibraryAdapter {
         } else if (options.allowWrite) {
             // Allow write operations (only if not in plan mode)
             args.push('--force');
+        }
+
+        // Auto-approve MCP servers in headless mode
+        if (options.useMcp) {
+            args.push('--approve-mcps');
         }
 
         return args;
@@ -781,6 +826,81 @@ class CursorAdapter implements AgentLibraryAdapter {
             // Ignore parsing errors
         }
         return null;
+    }
+
+    // ============================================================
+    // MCP SERVER SUPPORT
+    // ============================================================
+
+    /**
+     * Set up MCP servers for the agent
+     *
+     * Cursor uses .cursor/mcp.json for MCP configuration.
+     * This method:
+     * 1. Writes/updates the MCP config file
+     * 2. Enables each MCP server via cursor-agent mcp enable
+     */
+    private async setupMCPServers(mcpServers: Record<string, MCPServerConfig>): Promise<void> {
+        const mcpConfigPath = path.join(PROJECT_ROOT, '.cursor', 'mcp.json');
+        const mcpConfigDir = path.dirname(mcpConfigPath);
+
+        // Ensure .cursor directory exists
+        if (!fs.existsSync(mcpConfigDir)) {
+            fs.mkdirSync(mcpConfigDir, { recursive: true });
+        }
+
+        // Read existing config or create new one
+        let existingConfig: { mcpServers?: Record<string, MCPServerConfig> } = {};
+        if (fs.existsSync(mcpConfigPath)) {
+            try {
+                const content = fs.readFileSync(mcpConfigPath, 'utf-8');
+                existingConfig = JSON.parse(content);
+            } catch {
+                // Invalid JSON, start fresh
+                existingConfig = {};
+            }
+        }
+
+        // Merge new MCP servers with existing config
+        const updatedConfig = {
+            ...existingConfig,
+            mcpServers: {
+                ...(existingConfig.mcpServers || {}),
+                ...mcpServers,
+            },
+        };
+
+        // Write updated config
+        fs.writeFileSync(mcpConfigPath, JSON.stringify(updatedConfig, null, 2));
+
+        // Enable each MCP server
+        for (const identifier of Object.keys(mcpServers)) {
+            await this.enableMCPServer(identifier);
+        }
+    }
+
+    /**
+     * Enable an MCP server via cursor-agent mcp enable
+     */
+    private async enableMCPServer(identifier: string): Promise<void> {
+        try {
+            const { exitCode, stderr } = await this.executeCommand(['mcp', 'enable', identifier], {
+                timeout: 10000,
+                suppressOutput: true,
+            });
+
+            // Exit code 0 = success, or server already enabled
+            if (exitCode !== 0) {
+                // Check if it's just "already enabled" which is fine
+                if (!stderr.toLowerCase().includes('already')) {
+                    console.log(`  \x1b[33m⚠ Warning: Failed to enable MCP server '${identifier}': ${stderr}\x1b[0m`);
+                }
+            }
+        } catch (error) {
+            // Non-fatal - log warning and continue
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.log(`  \x1b[33m⚠ Warning: Could not enable MCP server '${identifier}': ${errorMsg}\x1b[0m`);
+        }
     }
 }
 

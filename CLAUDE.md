@@ -14,6 +14,8 @@ This is a **Next.js PWA** with offline-first capabilities, optimized for instant
 - **Optimistic Updates**: All mutations update UI immediately before server confirms
 - **Feature-Based Organization**: Code organized by feature, not type
 
+**Docs:** [docs/architecture.md](docs/architecture.md) - Comprehensive architecture including boot flow, auth preflight, BootGate, state layer, and offline patterns.
+
 ### Project Structure
 
 ```
@@ -787,6 +789,24 @@ git commit --no-verify  # Use with extreme caution
 
 ---
 
+## ESLint/TypeScript Wixpress Registry Issue
+
+Troubleshooting ESLint failures in Wix corporate network environment.
+
+**Problem:** ESLint fails with `tsutils.iterateComments is not a function` when the wixpress npm registry (`npm.dev.wixpress.com`) provides broken `@typescript-eslint` packages.
+
+**Root Cause:**
+- Wixpress registry contains version `8.52.0` of `@typescript-eslint/*` (doesn't exist on public npm)
+- This version uses deprecated `tsutils` package incompatible with TypeScript 5.x
+
+**Quick Fix:**
+1. Copy working `@typescript-eslint` packages from a project using public npm
+2. Reset `yarn.lock` before commits to avoid committing wixpress URLs
+
+**Docs:** [docs/eslint-typescript-wixpress-issue.md](docs/eslint-typescript-wixpress-issue.md)
+
+---
+
 ## GitHub Agents Workflow
 
 AI-powered feature request and bug fix pipeline using GitHub Projects V2.
@@ -824,13 +844,17 @@ Admin Merges (Telegram) → Status updates to Done (or next phase for multi-phas
 📚 **[docs/github-agents-workflow/](docs/github-agents-workflow/)** - Full workflow documentation
 
 Key documents:
+- [Getting Started Guide](docs/init-github-projects-workflow.md) - Complete setup for child projects
 - [Setup Guide](docs/github-agents-workflow/setup-guide.md) - GitHub Project + tokens + Telegram setup
 - [Workflow Guide](docs/github-agents-workflow/workflow-guide.md) - Step-by-step workflow
 - [Running Agents](docs/github-agents-workflow/running-agents.md) - How to execute agents
 - [Multi-Phase Features](docs/github-agents-workflow/multi-phase-features.md) - L/XL feature handling
 - [Troubleshooting](docs/github-agents-workflow/troubleshooting.md) - Common issues
 
-**See also:** [Agent Library Abstraction](docs/agent-library-abstraction.md)
+**See also:**
+- [Agent Library Abstraction](docs/agent-library-abstraction.md)
+- [Gemini CLI Adapter](src/agents/lib/adapters/GEMINI.md)
+- [OpenAI Codex CLI Adapter](src/agents/lib/adapters/OPENAI-CODEX.md)
 
 ---
 
@@ -890,14 +914,43 @@ Common pitfalls when deploying to production.
 
 ## Additional Rules Reference
 
+Project coding standards and guidelines to follow when writing code.
+
 | Topic | Rule File |
 |-------|-----------|
 | AI Model API Usage | [.ai/skills/ai-models-api-usage/SKILL.md](.ai/skills/ai-models-api-usage/SKILL.md) |
+| App Guidelines Checklist | [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md) |
+| Client-Server Communications | [.ai/skills/client-server-communications/SKILL.md](.ai/skills/client-server-communications/SKILL.md) |
 | ESLint Custom Rules | [.ai/skills/eslint-custom-guidelines/SKILL.md](.ai/skills/eslint-custom-guidelines/SKILL.md) |
+| Feature-Based Structure | [.ai/skills/feature-based-structure/SKILL.md](.ai/skills/feature-based-structure/SKILL.md) |
 | Feature Planning | [.ai/skills/feature-planning/SKILL.md](.ai/skills/feature-planning/SKILL.md) |
+| Mobile-First UI | [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md) |
 | MongoDB Usage | [.ai/skills/mongodb-usage/SKILL.md](.ai/skills/mongodb-usage/SKILL.md) |
 | Pages & Routing | [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md) |
+| React Component Organization | [.ai/skills/react-component-organization/SKILL.md](.ai/skills/react-component-organization/SKILL.md) |
+| React Hook Organization | [.ai/skills/react-hook-organization/SKILL.md](.ai/skills/react-hook-organization/SKILL.md) |
 | Settings Usage | [.ai/skills/settings-usage-guidelines/SKILL.md](.ai/skills/settings-usage-guidelines/SKILL.md) |
+| shadcn Usage | [.ai/skills/shadcn-usage/SKILL.md](.ai/skills/shadcn-usage/SKILL.md) |
+| State Management | [.ai/skills/state-management-guidelines/SKILL.md](.ai/skills/state-management-guidelines/SKILL.md) |
+| Theming Guidelines | [.ai/skills/theming-guidelines/SKILL.md](.ai/skills/theming-guidelines/SKILL.md) |
+| TypeScript Guidelines | [.ai/skills/typescript-guidelines/SKILL.md](.ai/skills/typescript-guidelines/SKILL.md) |
+| UI Design Guidelines | [.ai/skills/ui-design-guidelines/SKILL.md](.ai/skills/ui-design-guidelines/SKILL.md) |
 | User Access | [.ai/skills/user-access/SKILL.md](.ai/skills/user-access/SKILL.md) |
-| Mobile-First UI | [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md) |
-| App Guidelines Checklist | [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md) |
+| Vercel Composition Patterns | [.ai/skills/vercel-composition-patterns/SKILL.md](.ai/skills/vercel-composition-patterns/SKILL.md) |
+| Vercel React Best Practices | [.ai/skills/vercel-react-best-practices/SKILL.md](.ai/skills/vercel-react-best-practices/SKILL.md) |
+| Web Design Guidelines | [.ai/skills/web-design-guidelines/SKILL.md](.ai/skills/web-design-guidelines/SKILL.md) |
+
+---
+
+## Command Skills Reference
+
+Skills invoked on user request to perform specific actions or workflows.
+
+| Command | Skill File |
+|---------|------------|
+| Contribute to Template | [.ai/skills/contribute-to-template/SKILL.md](.ai/skills/contribute-to-template/SKILL.md) |
+| Debug Bug Report | [.ai/skills/debug-bug-report/SKILL.md](.ai/skills/debug-bug-report/SKILL.md) |
+| Full Project Audit | [.ai/skills/full-project-audit/SKILL.md](.ai/skills/full-project-audit/SKILL.md) |
+| Sync Template | [.ai/skills/sync-template/SKILL.md](.ai/skills/sync-template/SKILL.md) |
+| Template Diff | [.ai/skills/template-diff/SKILL.md](.ai/skills/template-diff/SKILL.md) |
+| Vercel CLI Usage | [.ai/skills/vercel-cli-usage/SKILL.md](.ai/skills/vercel-cli-usage/SKILL.md) |

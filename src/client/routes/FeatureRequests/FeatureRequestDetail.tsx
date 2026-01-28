@@ -42,7 +42,7 @@ export function FeatureRequestDetail() {
     // Loading state
     if (isLoading || !requestId) {
         return (
-            <div className="container mx-auto max-w-4xl px-4 py-8">
+            <div className="container mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
                 <div className="flex flex-col items-center justify-center gap-4 py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Loading feature request...</p>
@@ -54,7 +54,7 @@ export function FeatureRequestDetail() {
     // Error state
     if (error) {
         return (
-            <div className="container mx-auto max-w-4xl px-4 py-8">
+            <div className="container mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
                         <p className="mb-4 text-lg font-medium text-destructive">
@@ -73,7 +73,7 @@ export function FeatureRequestDetail() {
     // Not found state
     if (!request) {
         return (
-            <div className="container mx-auto max-w-4xl px-4 py-8">
+            <div className="container mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
                         <p className="mb-4 text-lg font-medium">Feature request not found</p>
@@ -94,31 +94,32 @@ export function FeatureRequestDetail() {
     const commentsCount = request.comments?.length || 0;
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="container mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
             {/* Back Button - Sticky on mobile */}
-            <div className="sticky top-0 z-10 -mx-4 mb-6 bg-background px-4 py-3 shadow-sm sm:relative sm:top-auto sm:z-auto sm:mx-0 sm:bg-transparent sm:px-0 sm:shadow-none">
+            <div className="sticky top-0 z-10 -mx-3 mb-4 bg-background px-3 py-2 shadow-sm sm:relative sm:top-auto sm:z-auto sm:-mx-0 sm:mb-6 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
                 <Button
                     variant="ghost"
                     onClick={handleBack}
-                    className="gap-2"
+                    className="gap-2 -ml-2"
+                    size="sm"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to Feature Requests
+                    <span className="sm:inline">Back</span>
                 </Button>
             </div>
 
             {/* Header Section */}
-            <div className="mb-6 space-y-4">
-                <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{request.title}</h1>
+            <div className="mb-4 space-y-3 sm:mb-6 sm:space-y-4">
+                <h1 className="text-xl font-bold leading-tight sm:text-2xl md:text-3xl">{request.title}</h1>
 
                 {/* Status, Priority, and Timestamps */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {request.githubProjectItemId ? (
                         isLoadingGitHubStatus ? (
                             <span className="text-sm text-muted-foreground">Loading status...</span>
                         ) : githubStatus?.status ? (
                             <div className="flex items-center gap-2">
-                                <span className="rounded-md bg-primary px-2.5 py-0.5 text-sm font-medium text-primary-foreground">
+                                <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground sm:px-2.5 sm:text-sm">
                                     {githubStatus.status}
                                 </span>
                                 {githubStatus.reviewStatus && (
@@ -138,12 +139,12 @@ export function FeatureRequestDetail() {
 
                 {/* GitHub Issue Link */}
                 {hasGitHubIssue && (
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                         <a
                             href={request.githubIssueUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
                         >
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span>Issue #{request.githubIssueNumber}</span>
@@ -153,7 +154,7 @@ export function FeatureRequestDetail() {
                                 href={request.githubPrUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
                             >
                                 <GitPullRequest className="h-3.5 w-3.5" />
                                 <span>PR #{request.githubPrNumber}</span>
@@ -163,34 +164,34 @@ export function FeatureRequestDetail() {
                 )}
 
                 {/* Metadata */}
-                <div className="flex flex-wrap gap-2 text-sm">
-                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex flex-wrap gap-1.5 text-xs sm:gap-2 sm:text-sm">
+                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 sm:px-2.5">
+                        <User className="h-3 w-3 text-muted-foreground sm:h-3.5 sm:w-3.5" />
                         <span className="text-muted-foreground">{request.requestedByName}</span>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 sm:px-2.5">
+                        <Calendar className="h-3 w-3 text-muted-foreground sm:h-3.5 sm:w-3.5" />
                         <span className="text-muted-foreground">
-                            Created {new Date(request.createdAt).toLocaleDateString()}
+                            {new Date(request.createdAt).toLocaleDateString()}
                         </span>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 sm:px-2.5">
+                        <Calendar className="h-3 w-3 text-muted-foreground sm:h-3.5 sm:w-3.5" />
                         <span className="text-muted-foreground">
                             Updated {new Date(request.updatedAt).toLocaleDateString()}
                         </span>
                     </div>
                     {request.page && (
-                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1">
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">{request.page}</span>
+                        <div className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 sm:px-2.5">
+                            <FileText className="h-3 w-3 text-muted-foreground sm:h-3.5 sm:w-3.5" />
+                            <span className="text-muted-foreground truncate max-w-[120px] sm:max-w-none">{request.page}</span>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Collapsible Sections */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
                 {/* Description Section - Expanded by default */}
                 <CollapsibleSection title="Description" defaultExpanded={true}>
                     <div className="space-y-3">
@@ -198,7 +199,7 @@ export function FeatureRequestDetail() {
                             {request.description}
                         </p>
                         {request.page && (
-                            <div className="rounded-md bg-muted/50 p-3">
+                            <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                 <p className="text-sm text-muted-foreground">
                                     <span className="font-medium">Related page:</span> {request.page}
                                 </p>
@@ -211,13 +212,13 @@ export function FeatureRequestDetail() {
                 {hasGitHubIssue && (
                     <CollapsibleSection title="GitHub Issue Details" defaultExpanded={true}>
                         <div className="space-y-3">
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-md bg-muted/50 p-3">
+                            <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
+                                <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                     <p className="text-xs text-muted-foreground">Issue Number</p>
                                     <p className="font-medium">#{request.githubIssueNumber}</p>
                                 </div>
                                 {githubStatus?.issueState && (
-                                    <div className="rounded-md bg-muted/50 p-3">
+                                    <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                         <p className="text-xs text-muted-foreground">Issue State</p>
                                         <p className="font-medium">{githubStatus.issueState}</p>
                                     </div>
@@ -225,25 +226,25 @@ export function FeatureRequestDetail() {
                             </div>
 
                             {request.githubProjectStatus && (
-                                <div className="rounded-md bg-muted/50 p-3">
+                                <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                     <p className="text-xs text-muted-foreground">GitHub Project Status</p>
                                     <p className="font-medium">{request.githubProjectStatus}</p>
                                 </div>
                             )}
 
                             {request.githubReviewStatus && (
-                                <div className="rounded-md bg-muted/50 p-3">
+                                <div className="rounded-md bg-muted/50 p-2.5 sm:p-3">
                                     <p className="text-xs text-muted-foreground">Review Status</p>
                                     <p className="font-medium">{request.githubReviewStatus}</p>
                                 </div>
                             )}
 
-                            <div className="flex flex-wrap gap-2 pt-2">
+                            <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                                 <a
                                     href={request.githubIssueUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                                 >
                                     <ExternalLink className="h-4 w-4" />
                                     View on GitHub
@@ -253,7 +254,7 @@ export function FeatureRequestDetail() {
                                         href={request.githubPrUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                                     >
                                         <GitPullRequest className="h-4 w-4" />
                                         View Pull Request
@@ -293,20 +294,20 @@ export function FeatureRequestDetail() {
                             No comments yet
                         </p>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                             {request.comments.map((comment) => (
                                 <div
                                     key={comment.id}
-                                    className={`rounded-md border p-4 ${
+                                    className={`rounded-md border p-3 sm:p-4 ${
                                         comment.isAdmin ? 'bg-background' : 'bg-muted/30'
                                     }`}
                                 >
-                                    <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                                    <div className="flex flex-wrap items-center gap-1.5 mb-2 text-xs text-muted-foreground sm:gap-2">
                                         <span className="font-medium text-foreground">
                                             {comment.authorName}
                                         </span>
                                         {comment.isAdmin && (
-                                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
+                                            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary sm:px-2">
                                                 Admin
                                             </span>
                                         )}
@@ -327,9 +328,9 @@ export function FeatureRequestDetail() {
                         <div className="space-y-4">
                             {hasProductDesign && request.productDesign && (
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                         <h4 className="text-sm font-semibold">Product Design</h4>
-                                        <div className="flex items-center gap-2 text-xs">
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className="text-muted-foreground">
                                                 Status: {request.productDesign.reviewStatus.replace(/_/g, ' ')}
                                             </span>
@@ -340,8 +341,8 @@ export function FeatureRequestDetail() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="rounded-md border bg-muted/30 p-4">
-                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
+                                    <div className="rounded-md border bg-muted/30 p-3 sm:p-4">
+                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed overflow-x-auto">
                                             {request.productDesign.content}
                                         </pre>
                                     </div>
@@ -350,9 +351,9 @@ export function FeatureRequestDetail() {
 
                             {hasTechDesign && request.techDesign && (
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                         <h4 className="text-sm font-semibold">Technical Design</h4>
-                                        <div className="flex items-center gap-2 text-xs">
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className="text-muted-foreground">
                                                 Status: {request.techDesign.reviewStatus.replace(/_/g, ' ')}
                                             </span>
@@ -363,8 +364,8 @@ export function FeatureRequestDetail() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="rounded-md border bg-muted/30 p-4">
-                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
+                                    <div className="rounded-md border bg-muted/30 p-3 sm:p-4">
+                                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed overflow-x-auto">
                                             {request.techDesign.content}
                                         </pre>
                                     </div>
@@ -377,7 +378,7 @@ export function FeatureRequestDetail() {
                 {/* Admin Notes Section - Collapsed by default, always visible */}
                 <CollapsibleSection title="Admin Notes" defaultExpanded={false}>
                     {request.adminNotes ? (
-                        <div className="rounded-md border border-dashed border-warning/30 bg-warning/5 p-4">
+                        <div className="rounded-md border border-dashed border-warning/30 bg-warning/5 p-3 sm:p-4">
                             <p className="whitespace-pre-wrap text-sm">{request.adminNotes}</p>
                         </div>
                     ) : (

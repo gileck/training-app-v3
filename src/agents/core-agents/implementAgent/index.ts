@@ -271,11 +271,13 @@ function runYarnChecks(): { success: boolean; output: string } {
 }
 
 /**
- * Get list of changed files (staged or unstaged)
+ * Get list of changed files compared to base branch
+ * Uses origin/baseBranch...HEAD to get all files changed since branching
  */
-function getChangedFiles(): string[] {
+function getChangedFiles(baseBranch: string = 'main'): string[] {
     try {
-        const output = git('diff --name-only HEAD', { silent: true });
+        // Get files changed since branching from base (not uncommitted changes)
+        const output = git(`diff --name-only origin/${baseBranch}...HEAD`, { silent: true });
         return output.split('\n').filter((f) => f.trim());
     } catch {
         return [];
@@ -718,6 +720,8 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
                 allowWrite: true, // Enable write mode
                 workflow: 'implementation',
                 outputFormat: IMPLEMENTATION_OUTPUT_FORMAT,
+                // Only use plan mode for new implementations, not for feedback/clarification
+                shouldUsePlanMode: mode === 'new',
                 // Add Playwright MCP for local testing (only if dev server is running)
                 ...(devServer ? {
                     mcpServers: PLAYWRIGHT_MCP_CONFIG,
@@ -923,7 +927,7 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
             const defaultBranch = await adapter.getDefaultBranch();
 
                 // Get list of changed files for PR description
-                const changedFiles = getChangedFiles();
+                const changedFiles = getChangedFiles(defaultBranch);
                 const filesList = changedFiles.length > 0
                     ? changedFiles.map((f) => `- ${f}`).join('\n')
                     : 'No files changed';

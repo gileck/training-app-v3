@@ -17,10 +17,20 @@ jobs:
       - name: Send Telegram Notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.GITHUB_TELEGRAM_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID_RAW: ${{ secrets.GH_TELEGRAM_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_ACTION: ${{ github.event.action }}
         run: |
+          # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
+          if [[ "$CHAT_ID_RAW" == *":"* ]]; then
+            TELEGRAM_CHAT_ID="${CHAT_ID_RAW%:*}"
+            THREAD_ID="${CHAT_ID_RAW##*:}"
+            THREAD_PARAM="-d message_thread_id=${THREAD_ID}"
+          else
+            TELEGRAM_CHAT_ID="$CHAT_ID_RAW"
+            THREAD_PARAM=""
+          fi
+
           MESSAGE=""
 
           # Pull request events
@@ -83,6 +93,7 @@ jobs:
           if [ -n "$MESSAGE" ]; then
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              ${THREAD_PARAM} \
               -d "text=${MESSAGE}" \
               -d "parse_mode=Markdown" \
               -d "disable_web_page_preview=true"

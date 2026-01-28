@@ -146,7 +146,7 @@ function extractWhyRationale(issueBody: string | null | undefined): string {
     if (whyMatch) {
         const whyContent = whyMatch[1].trim().split('\n')[0].trim();
         if (whyContent && whyContent.length > 10) {
-            return truncateText(whyContent, 100);
+            return truncateText(whyContent, 300);
         }
     }
 
@@ -155,7 +155,7 @@ function extractWhyRationale(issueBody: string | null | undefined): string {
     if (summaryMatch) {
         const firstLine = summaryMatch[1].trim().split('\n')[0].trim();
         if (firstLine && firstLine.length > 10) {
-            return truncateText(firstLine, 100);
+            return truncateText(firstLine, 300);
         }
     }
 
@@ -164,7 +164,7 @@ function extractWhyRationale(issueBody: string | null | undefined): string {
     for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('|') && trimmed.length > 10) {
-            return truncateText(trimmed, 100);
+            return truncateText(trimmed, 300);
         }
     }
 

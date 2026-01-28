@@ -375,9 +375,9 @@ export async function notifyPRReadyToMerge(
     const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
     const typeLabel = itemType === 'bug' ? 'Bug Fix' : 'Feature';
 
-    // Truncate body for Telegram (keep it readable)
-    const bodyPreview = commitMessage.body.length > 200
-        ? commitMessage.body.substring(0, 200) + '...'
+    // Truncate body for Telegram (keep it readable, allow more content for commit summaries)
+    const bodyPreview = commitMessage.body.length > 500
+        ? commitMessage.body.substring(0, 500) + '...'
         : commitMessage.body;
 
     const message = `<b>Agent (PR Review):</b> ✅ Approved!

@@ -223,6 +223,84 @@ Telegram enables one-click approvals and instant notifications for the entire wo
 - Implementation PR merge buttons with saved commit messages
 - Real-time notifications for all workflow events
 
+### Using Telegram Topics (Recommended)
+
+You can organize notifications into separate topics within a single supergroup to reduce information overload:
+
+| Topic | Env Variable | Notifications |
+|-------|--------------|---------------|
+| **Github Issues** | `GH_TELEGRAM_CHAT_ID` | PR events, issue events, comments |
+| **Vercel Deployments** | `VERCEL_TELEGRAM_CHAT_ID` | Deployment started/success/failed |
+| **Agents** | `AGENT_TELEGRAM_CHAT_ID` | Bug reports, feature routing, approvals, merges |
+
+#### Setup Topics
+
+1. **Create a supergroup** in Telegram and enable Topics (Settings → Topics)
+
+2. **Create 3 topics**: "Github Issues", "Vercel Deployments", "Agents"
+
+3. **Add your bot as admin** in the group (required to see messages in topics)
+
+4. **Delete the webhook temporarily** (needed to get topic IDs):
+   ```bash
+   yarn telegram-webhook delete
+   ```
+
+5. **Get topic thread IDs** by running the setup script and sending a message from each topic:
+   ```bash
+   yarn telegram-setup
+   ```
+
+   Send a message from each topic. The script will show output like:
+   ```
+   Chat ID: -100xxxxxxxxx
+   Topic Thread ID: 5
+   Combined (for topics): -100xxxxxxxxx:5
+   ```
+
+   Press Ctrl+C after collecting all IDs.
+
+6. **Configure environment variables** with the combined format (`chatId:threadId`):
+
+   **`.env.local`:**
+   ```bash
+   GH_TELEGRAM_CHAT_ID="-100xxxxxxxxx:3"      # Github Issues topic
+   VERCEL_TELEGRAM_CHAT_ID="-100xxxxxxxxx:4"  # Vercel Deployments topic
+   AGENT_TELEGRAM_CHAT_ID="-100xxxxxxxxx:2"   # Agents topic
+   ```
+
+7. **Set GitHub secrets** (for GitHub Actions):
+   ```bash
+   gh secret set GH_TELEGRAM_CHAT_ID --body "-100xxxxxxxxx:3"
+   gh secret set VERCEL_TELEGRAM_CHAT_ID --body "-100xxxxxxxxx:4"
+   ```
+
+   **Note:** GitHub doesn't allow secrets starting with `GITHUB_`, so we use `GH_TELEGRAM_CHAT_ID`.
+
+8. **Set Vercel env var** (for app runtime):
+   ```bash
+   echo "-100xxxxxxxxx:2" | vercel env add AGENT_TELEGRAM_CHAT_ID production
+   echo "-100xxxxxxxxx:2" | vercel env add AGENT_TELEGRAM_CHAT_ID preview
+   ```
+
+9. **Re-enable the webhook**:
+   ```bash
+   yarn telegram-webhook set https://your-app.vercel.app
+   ```
+
+10. **Redeploy** to pick up the new env var:
+    ```bash
+    vercel --prod --yes
+    ```
+
+#### Format Reference
+
+The combined format `chatId:threadId` is backward compatible:
+- `-100xxxxxxxxx` → sends to the group (General topic)
+- `-100xxxxxxxxx:5` → sends to topic with thread ID 5
+
+If you prefer a single chat for all notifications, just use the same chat ID everywhere without the thread ID suffix.
+
 ## Step 6: Environment Configuration
 
 Project configuration is controlled via environment variables:
