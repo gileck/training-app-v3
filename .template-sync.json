@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "6fe1a77b190a264c77d72920193af5817a67bc76",
-  "lastProjectCommit": "16474ae5f0733a9283099fb5f5601ccb9e36f790",
-  "lastSyncDate": "2026-01-30T07:16:44.683Z",
+  "lastSyncCommit": "d37610b4e8f503a7a62e0242e71e7194d4c7e155",
+  "lastProjectCommit": "ed1d6f97551a8e2865739d9deab90d5dc5247561",
+  "lastSyncDate": "2026-01-30T08:45:58.734Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,20 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-30T08:45:58.875Z",
+      "templateCommit": "d37610b4e8f503a7a62e0242e71e7194d4c7e155",
+      "projectCommit": "ed1d6f97551a8e2865739d9deab90d5dc5247561",
+      "filesApplied": 185,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "d37610b docs: update template-sync docs for Path Ownership Model \u001b[90m(30/01/2026)\u001b[0m\n  - Add Path Ownership Model as recommended approach\n  - Document both config models (Path Ownership vs Legacy Hash-Based)\n  - Add migration section with --migrate and --migration-help commands\n  - Update Summary section with new commands\n  - Update quick-start, implementation, comparison, and visual guides\n  - Document deletion handling differences between models\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "3a8d7b6 refactor: implement path-ownership model for sync-template \u001b[90m(30/01/2026)\u001b[0m\n  Major refactoring of sync-template to use explicit path ownership instead of\n  hash-based conflict detection. This solves two critical issues:\n  1. Deleted files are now handled - when template deletes a file, child projects\n     will have it deleted too\n  2. Reliable conflict detection - no more hash baseline drift issues\n  \n  Changes:\n  - Restructure folders for clear template vs project ownership:\n    - docs/ -> docs/template/ + docs/project/\n    - scripts/template-scripts/ -> scripts/template/\n    - .ai/skills/ -> .ai/skills/template/ + .ai/skills/project/\n  \n  - Add new FolderOwnershipConfig with templatePaths and projectOverrides\n  - Add folder-sync-analysis.ts for path ownership analysis\n  - Add syncFolderOwnership() for new sync logic\n  - Add migration support with --migrate flag\n  - Update CLAUDE.md with new folder structure and config format\n  - All existing legacy functionality preserved for backward compatibility\n  \n  New config format:\n  ```json\n  {\n    \"templatePaths\": [\"package.json\", \"docs/template/**\", ...],\n    \"projectOverrides\": [\"src/client/components/ui/badge.tsx\"]\n  }\n  ```\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "225cfca task: add task #33 for sendAgentNotification() function \u001b[90m(30/01/2026)\u001b[0m\n  Add dedicated Telegram notification function for agent workflow events\n  that uses AGENT_TELEGRAM_CHAT_ID env var with forum topic support.\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+        "d11692c update docs \u001b[90m(30/01/2026)\u001b[0m"
+      ]
+    },
     {
       "date": "2026-01-30T07:16:44.933Z",
       "templateCommit": "6fe1a77b190a264c77d72920193af5817a67bc76",
@@ -385,20 +399,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "7d90be3 docs: update init guide with bot setup and manual-only agents \u001b[90m(22/01/2026)\u001b[0m\n  Add missing critical information to init-github-projects-workflow.md:\n  \n  Critical additions:\n  - Add Step 2.5: Bot Account Setup (recommended for PR approval)\n  - Update environment variables to include GITHUB_BOT_TOKEN\n  - Explain two-token architecture vs single-token fallback mode\n  \n  Important clarifications:\n  - Emphasize agents are MANUAL-ONLY by default (no automation)\n  - Add note that bug diagnostics warnings now included\n  - Reference main integration guide for detailed bot setup\n  \n  Fixes alignment issues between init guide and main integration docs.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-      ]
-    },
-    {
-      "date": "2026-01-22T13:04:15.550Z",
-      "templateCommit": "2c8a02637e68c0968478667a3fe634e7fd42095e",
-      "projectCommit": "6aafb4f83cdf3c35dcd1c484c3e8d4c9ed221595",
-      "filesApplied": 11,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "2c8a026 docs: fix GitHub agent workflow review issues \u001b[90m(22/01/2026)\u001b[0m\n  Fix multiple documentation and code inconsistencies identified in\n  comprehensive workflow review:\n  \n  P0 (Critical):\n  - Fix config.ts comment from \"5-column\" to \"6-column workflow\"\n  - Update docs: \"Implementation\" → \"Ready for development\" (12+ instances)\n    Docs referred to wrong status name; GitHub status is \"Ready for development\"\n  \n  P1 (Major):\n  - Add Telegram warnings when bug diagnostics missing (tech-design, implement)\n  - Document agents are manual-only (no automated scheduling exists)\n  \n  P2 (Medium):\n  - Remove bot author filtering from all agents (include all comments)\n    Improves context by including bot comments in agent prompts\n  \n  P3 (Minor):\n  - Document Claude Code workflow files (claude-code-review.yml, claude.yml)\n  \n  All changes verified with yarn checks (0 errors).\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "bb4af8d feat: PR Review Agent submits official GitHub PR reviews \u001b[90m(22/01/2026)\u001b[0m\n  Added ability to submit official GitHub PR reviews (APPROVE/REQUEST_CHANGES)\n  in addition to updating GitHub Projects status.\n  \n  Changes:\n  - Added submitPRReview method to ProjectManagementAdapter interface\n  - Implemented submitPRReview in GitHub adapter using oc.pulls.createReview\n  - Updated PR review agent to submit official review after posting comment\n  - Maps structured output decision to GitHub review events:\n    - 'approved' → 'APPROVE'\n    - 'request_changes' → 'REQUEST_CHANGES'\n  \n  Benefits:\n  - Visual approval/changes-requested indicator in GitHub PR UI\n  - Shows in PR's \"Reviews\" section with green checkmark or red X\n  - Works with GitHub branch protection rules (if configured)\n  - Maintains GitHub Projects status for workflow automation\n  \n  Workflow:\n  1. PR Review Agent reviews the code\n  2. Posts comment with detailed feedback\n  3. Submits official GitHub review (APPROVE/REQUEST_CHANGES)\n  4. Updates GitHub Projects review status (drives automation)\n  5. Sends Telegram notification\n  \n  Both GitHub's native review system and custom workflow status are updated.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "09988ee feat: PR Review Agent as final authority with Claude Code as optional guidance \u001b[90m(22/01/2026)\u001b[0m\n  The PR Review Agent is now the final authority on PR status decisions, with\n  Claude Code serving as optional advisory input.\n  \n  Changes:\n  - Separate Claude Code comments from other PR comments\n  - Present Claude's feedback as \"optional guidance\" section\n  - Explicitly state PR Review Agent is final authority\n  - PR Review Agent can override Claude's decision if needed\n  - Updated logging to show Claude Code comment count\n  \n  Workflow:\n  1. Claude Code reviews first (optional, triggered by @claude)\n  2. PR Review Agent reviews and reads Claude's feedback\n  3. PR Review Agent makes final decision on status\n  4. PR Review Agent can approve even if Claude requested changes\n  5. Status update drives implementor workflow\n  \n  This maintains project guideline enforcement while benefiting from\n  Claude Code's broader security/quality insights.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "45a8b63 feat: coordinate dual PR reviewers in implementor agent \u001b[90m(22/01/2026)\u001b[0m\n  Add reviewer coordination instructions to help the implementor agent\n  understand and prioritize feedback from two reviewers:\n  \n  1. PR Review Agent - Project guidelines and architecture compliance\n  2. Claude Code - General quality, security, and best practices\n  \n  The implementor now understands:\n  - Each reviewer's focus area and expertise\n  - How to prioritize potentially conflicting feedback\n  - That both reviewers have HIGH priority in their domains\n  - How to handle redundant feedback efficiently\n  \n  This enables the agent to intelligently address feedback from both\n  sources without confusion or conflicts.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
