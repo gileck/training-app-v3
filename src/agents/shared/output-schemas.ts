@@ -155,9 +155,25 @@ export const TECH_DESIGN_OUTPUT_FORMAT = {
 // IMPLEMENTATION OUTPUT
 // ============================================================
 
+/**
+ * Visual verification status for UI changes
+ */
+export interface VisualVerification {
+    /** Whether visual verification was performed */
+    verified: boolean;
+    /** What was visually verified (e.g., "Tested at 400px viewport, verified touch targets, checked dark mode") */
+    whatWasVerified?: string;
+    /** If verification was skipped, explain why (e.g., "Playwright MCP not available", "No UI changes in this PR") */
+    skippedReason?: string;
+    /** Any visual issues found and fixed during verification */
+    issuesFound?: string;
+}
+
 export interface ImplementationOutput {
     prSummary: string;
     comment: string;
+    /** Visual verification status for UI changes (optional - only required when PR includes UI changes) */
+    visualVerification?: VisualVerification;
 }
 
 export const IMPLEMENTATION_OUTPUT_FORMAT = {
@@ -175,6 +191,33 @@ export const IMPLEMENTATION_OUTPUT_FORMAT = {
                     'High-level summary of what was done to post as GitHub comment. ' +
                     'For new implementations: "Here\'s what I did: 1. ... 2. ..." (3-5 items). ' +
                     'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+            },
+            visualVerification: {
+                type: 'object',
+                description:
+                    'Visual verification status for UI changes. Required when PR includes UI changes (.tsx files with visual components). ' +
+                    'Omit this field if the PR has no UI changes.',
+                properties: {
+                    verified: {
+                        type: 'boolean',
+                        description: 'Whether visual verification was performed (true) or skipped (false)',
+                    },
+                    whatWasVerified: {
+                        type: 'string',
+                        description:
+                            'What was visually verified. Example: "Tested at 400px viewport, verified touch targets are 44px, checked layout in dark mode"',
+                    },
+                    skippedReason: {
+                        type: 'string',
+                        description:
+                            'If verification was skipped, explain why. Example: "Playwright MCP not available", "No visual components in changes"',
+                    },
+                    issuesFound: {
+                        type: 'string',
+                        description: 'Any visual issues found and fixed during verification. Example: "Fixed button overflow on small screens"',
+                    },
+                },
+                required: ['verified'],
             },
         },
         required: ['prSummary', 'comment'],

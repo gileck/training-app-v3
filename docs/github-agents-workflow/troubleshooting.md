@@ -362,6 +362,56 @@ git push
 - For multi-phase: verify phase comment format
 - Check `--phase N` parameter passed correctly
 
+**Problem:** Visual verification skipped or not working
+
+**Background:** For UI changes, the implementation agent should visually verify at 400px viewport using Playwright MCP. The verification status appears in the agent's output.
+
+**Solutions:**
+
+#### a) Check if Playwright MCP is Available
+```bash
+# Verify @playwright/mcp is installed
+ls node_modules/@playwright/mcp/cli.js
+
+# If not installed
+yarn add @playwright/mcp
+```
+
+#### b) Verify Visual Verification Output
+The agent's structured output should include:
+```json
+{
+  "visualVerification": {
+    "verified": true,
+    "whatWasVerified": "Tested at 400px viewport...",
+    "issuesFound": "Fixed button overflow..."
+  }
+}
+```
+
+If verification was skipped:
+```json
+{
+  "visualVerification": {
+    "verified": false,
+    "skippedReason": "Playwright MCP not available"
+  }
+}
+```
+
+#### c) When Visual Verification is Optional
+- PRs with **no UI changes** (backend, types, configs) don't need visual verification
+- The `visualVerification` field will be omitted from output
+- This is expected behavior, not an error
+
+#### d) Manual Visual Verification
+If automated verification fails:
+1. Run the app locally: `yarn dev`
+2. Open browser DevTools → Device Toolbar
+3. Set viewport to 400px width
+4. Navigate to affected pages/components
+5. Check: layout, touch targets (44px min), dark mode, no horizontal scroll
+
 ### PR Review Agent
 
 **Problem:** Reviews not happening or wrong criteria

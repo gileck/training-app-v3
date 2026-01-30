@@ -352,4 +352,4 @@ Planned features:
 
 - [GitHub Projects Integration](./github-projects-integration.md)
 - [GitHub PR CLI Tool](../CLAUDE.md#github-pr-cli-tool)
-- [Agent Library Abstraction](./agent-library-abstraction.md)
+- [Agent Library Abstraction](../docs/github-agents-workflow/agent-library-abstraction.md)

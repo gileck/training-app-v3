@@ -455,6 +455,8 @@ Error: Maximum update depth exceeded.
 
 **Cause:** Zustand selectors that return new array/object references on every call cause infinite re-render loops with React's `useSyncExternalStore`.
 
+#### Anti-Pattern 1: Object/Array Literal Fallbacks
+
 ```typescript
 // ❌ BAD - Creates new [] on every call, causing infinite loop
 export function useItems(id: string | null) {
@@ -489,6 +491,47 @@ export function useData(id: string | null) {
 }
 ```
 
+#### Anti-Pattern 2: Combined Object Selectors
+
+**CRITICAL:** Never use a selector that returns an object to extract multiple values at once.
+
+```typescript
+// ❌ BAD - Combined selector returns new object every render → INFINITE LOOP
+const { sortBy, hideCompleted, setSortBy } = useMyStore((state) => ({
+    sortBy: state.sortBy,
+    hideCompleted: state.hideCompleted,
+    setSortBy: state.setSortBy,
+}));
+```
+
+**Fix:** Use individual selectors:
+
+```typescript
+// ✅ GOOD - Individual selectors return stable references
+const sortBy = useMyStore((state) => state.sortBy);
+const hideCompleted = useMyStore((state) => state.hideCompleted);
+const setSortBy = useMyStore((state) => state.setSortBy);
+```
+
+**Why this works:** Individual selectors return primitives or function references that are stable across renders. The combined object selector creates a new `{}` on every render, which Zustand interprets as a state change.
+
+**Alternative with `useShallow`:** If you must select multiple values together:
+
+```typescript
+import { useShallow } from 'zustand/react/shallow';
+
+// ✅ GOOD - useShallow compares object properties shallowly
+const { sortBy, hideCompleted } = useMyStore(
+    useShallow((state) => ({
+        sortBy: state.sortBy,
+        hideCompleted: state.hideCompleted,
+    }))
+);
+```
+
 **Why this happens:** Every time the selector runs and returns `[]` or `{}`, it creates a **new reference**. React sees this as "state changed" and re-renders, which calls the selector again, creating another new reference, ad infinitum.
 
-**Rule:** Always use module-level constants for fallback values in Zustand selectors.
+**Rules:**
+1. Always use module-level constants for fallback values in Zustand selectors
+2. Never use combined object selectors `(state) => ({ ... })`
+3. Prefer individual selectors over `useShallow`

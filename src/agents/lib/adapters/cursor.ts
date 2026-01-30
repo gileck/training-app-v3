@@ -115,7 +115,7 @@ class CursorAdapter implements AgentLibraryAdapter {
     private initialized = false;
 
     async init(): Promise<void> {
-        // Verify cursor-agent is available
+        // Verify agent is available
         try {
             const { exitCode } = await this.executeCommand(['--version'], {
                 timeout: 5000,
@@ -166,7 +166,28 @@ class CursorAdapter implements AgentLibraryAdapter {
             progressLabel = 'Processing',
             planMode = false,
             mcpServers,
+            outputFormat,
         } = options;
+
+        // Build the effective prompt - inject schema if outputFormat is provided
+        let effectivePrompt = prompt;
+        if (outputFormat && outputFormat.type === 'json_schema' && outputFormat.schema) {
+            const schemaJson = JSON.stringify(outputFormat.schema, null, 2);
+            effectivePrompt = `${prompt}
+
+## REQUIRED OUTPUT FORMAT
+
+You MUST return your response as a valid JSON object matching this schema:
+
+\`\`\`json
+${schemaJson}
+\`\`\`
+
+IMPORTANT:
+- Your final response MUST be ONLY the JSON object (no markdown code fences, no extra text)
+- All required fields in the schema MUST be present
+- The JSON must be valid and parseable`;
+        }
 
         // Set up MCP servers if provided
         if (mcpServers && Object.keys(mcpServers).length > 0) {
@@ -194,7 +215,7 @@ class CursorAdapter implements AgentLibraryAdapter {
 
         // Build CLI arguments
         const hasMcpServers = mcpServers && Object.keys(mcpServers).length > 0;
-        const args = this.buildArgs(prompt, {
+        const args = this.buildArgs(effectivePrompt, {
             allowWrite,
             stream,
             planMode,
@@ -333,12 +354,16 @@ class CursorAdapter implements AgentLibraryAdapter {
 
                 console.log(`  \x1b[32m✓ ${progressLabel} complete (${durationSeconds}s, ${toolCallCount} tool calls${usageInfo})\x1b[0m`);
 
+                // Extract structured output if outputFormat was provided
+                const structuredOutput = outputFormat ? this.extractStructuredOutput(lastResult) : undefined;
+
                 return {
                     success: true,
                     content: lastResult,
                     filesExamined,
                     usage,
                     durationSeconds,
+                    structuredOutput,
                 };
             } else {
                 // Non-streaming execution
@@ -405,12 +430,16 @@ class CursorAdapter implements AgentLibraryAdapter {
 
                 console.log(`\r  \x1b[32m✓ ${progressLabel} complete (${durationSeconds}s, ${toolCallCount} tool calls${usageInfo})\x1b[0m\x1b[K`);
 
+                // Extract structured output if outputFormat was provided
+                const structuredOutput = outputFormat ? this.extractStructuredOutput(content || lastResult) : undefined;
+
                 return {
                     success: true,
                     content: content || lastResult,
                     filesExamined,
                     usage,
                     durationSeconds,
+                    structuredOutput,
                 };
             }
         } catch (error) {
@@ -795,6 +824,43 @@ class CursorAdapter implements AgentLibraryAdapter {
 
             return result;
         }
+    }
+
+    /**
+     * Extract structured output from response content
+     * Tries to parse JSON from the response, handling various formats
+     */
+    private extractStructuredOutput(content: string | null): unknown {
+        if (!content) return undefined;
+
+        // Try direct JSON parse first
+        try {
+            return JSON.parse(content.trim());
+        } catch {
+            // Not direct JSON
+        }
+
+        // Try to extract JSON from markdown code block
+        const jsonBlockMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+        if (jsonBlockMatch) {
+            try {
+                return JSON.parse(jsonBlockMatch[1].trim());
+            } catch {
+                // Invalid JSON in code block
+            }
+        }
+
+        // Try to find JSON object in the content (starts with { ends with })
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch {
+                // Invalid JSON
+            }
+        }
+
+        return undefined;
     }
 
     /**

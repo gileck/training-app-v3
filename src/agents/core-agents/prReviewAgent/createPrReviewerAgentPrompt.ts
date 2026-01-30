@@ -210,6 +210,18 @@ function createInstructionsSection(): string {
 
 Review this PR and make your final decision. Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.
 
+**CRITICAL: Project Docs Override Generic Best Practices**
+
+This project has specific patterns documented in \`docs/\` and \`.ai/skills/\` that may differ from generic best practices. These project-specific patterns exist for good reasons (e.g., to prevent known bugs).
+
+**You MUST:**
+1. READ the relevant project docs before suggesting changes
+2. FOLLOW project patterns even if they differ from common conventions
+3. If you disagree with a project pattern, note it as a **"suggestion for future consideration"** - NOT a required change
+4. NEVER request changes that contradict documented project guidelines
+
+**Example:** If project docs say "use individual Zustand selectors, not combined object selectors", do NOT request combining them even if that's a common pattern elsewhere.
+
 **IMPORTANT**: Check compliance with project guidelines in \`.ai/skills/\` (Only when relevant to code changes):
 - TypeScript guidelines (\`.ai/skills/typescript-guidelines/SKILL.md\`)
 - React patterns (\`.ai/skills/react-component-organization/SKILL.md\`, \`.ai/skills/react-hook-organization/SKILL.md\`)
@@ -232,14 +244,29 @@ const OUTPUT_INSTRUCTIONS = `
 
 After completing the review, provide your response as structured JSON with these fields:
 - decision: either "approved" or "request_changes"
-- summary: 1-2 sentence summary of the review
+- summary: 1-2 sentence summary of the review (see examples below)
 - reviewText: the full review content to post as PR comment
-   * Keep it short when highlighting positive feedback (checklist of what looks good is enough, no need to elaborate). 
+   * Keep it short when highlighting positive feedback (checklist of what looks good is enough, no need to elaborate).
    * Keep it concise and direct when highlighting negative feedback. Include BAD/GOOD examples when applicable (short code examples).
    * When writing negative feedback, always include a suggestion for improvement.
-   
 
+### SUMMARY QUALITY REQUIREMENTS
 
+The summary field should be descriptive and specific, not generic.
+
+**GOOD summary examples:**
+- "Approved: Clean implementation following project patterns. Mobile-first UI verified, Zustand store properly configured."
+- "Approved: Bug fix correctly handles edge case. Good error handling and test coverage."
+- "Request changes: Missing error handling in API calls, touch targets too small on mobile."
+- "Request changes: Combined object selector will cause infinite re-renders (see state-management docs)."
+
+**BAD summary examples (too vague, avoid):**
+- "Approved"
+- "Approved: Looks good"
+- "Request changes: Some issues found"
+- "Request changes: Needs fixes"
+
+The summary should give the admin a quick understanding of WHY you approved/rejected without reading the full reviewText.
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 `;

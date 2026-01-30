@@ -15,7 +15,7 @@ import {
     logTokenUsage,
     type LogContext,
 } from './logging';
-import { buildPlanSubagentPrompt } from './prompts/plan-subagent-prompt';
+import { buildPlanSubagentPrompt } from '@/agents/shared/prompts';
 
 // Import adapters directly
 import claudeCodeSDKAdapter from './adapters/claude-code-sdk';

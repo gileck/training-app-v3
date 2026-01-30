@@ -149,7 +149,8 @@ Based on the selected phase, the appropriate agent processes the item:
 
 **Ready for Development:**
 - Agent implements the feature/fix
-- Creates PR with code changes
+- **Visually verifies UI changes** at 400px viewport (if applicable)
+- Creates PR with code changes (includes visual verification status)
 - Sets status to "PR Review"
 
 ### Step 7: Design PR Approval

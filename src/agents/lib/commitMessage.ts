@@ -120,16 +120,29 @@ function extractWhatSummary(prBody: string): string {
     const meaningfulLines = lines
         .slice(0, 4)
         .map(line => {
+            // Clean up markdown formatting
+            let trimmed = line.trim();
+
+            // Remove bold markers
+            trimmed = trimmed.replace(/\*\*([^*]+)\*\*/g, '$1');
+            // Remove italic markers
+            trimmed = trimmed.replace(/\*([^*]+)\*/g, '$1');
+            // Remove inline code markers for file references
+            trimmed = trimmed.replace(/`([^`]+)`/g, '$1');
+
             // Ensure bullet point format
-            const trimmed = line.trim();
             if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
-                return trimmed;
+                // Normalize to dash format
+                return '- ' + trimmed.replace(/^[\-*•]\s*/, '');
             }
-            // Skip headers and empty lines
+            // Skip headers, phase headers, and empty lines
             if (trimmed.startsWith('#') || !trimmed) return '';
+            if (trimmed.toLowerCase().startsWith('phase ') && trimmed.includes('/')) return '';
+            // Skip "Closes #X" or "Part of #X" lines
+            if (/^(closes|part of)\s+#\d+/i.test(trimmed)) return '';
             return `- ${trimmed}`;
         })
-        .filter(line => line);
+        .filter(line => line && line.length > 3); // Filter out empty or too-short lines
 
     return meaningfulLines.join('\n');
 }
@@ -141,21 +154,43 @@ function extractWhatSummary(prBody: string): string {
 function extractWhyRationale(issueBody: string | null | undefined): string {
     if (!issueBody) return '';
 
-    // Try to find explicit "Why" or "Problem" section
-    const whyMatch = issueBody.match(/## (?:Why|Problem|Motivation|Background)\s*\n([\s\S]*?)(?=\n##|$)/i);
+    // Try to find explicit "Why", "Problem", "Goal", "Context", "Objective", or "Purpose" section
+    const whyMatch = issueBody.match(/## (?:Why|Problem|Motivation|Background|Goal|Context|Objective|Purpose)\s*\n([\s\S]*?)(?=\n##|$)/i);
     if (whyMatch) {
-        const whyContent = whyMatch[1].trim().split('\n')[0].trim();
-        if (whyContent && whyContent.length > 10) {
-            return truncateText(whyContent, 300);
+        const whyContent = whyMatch[1].trim();
+        // Try to get first meaningful line (skip empty lines and bullets)
+        const contentLines = whyContent.split('\n');
+        for (const line of contentLines) {
+            const trimmed = line.trim().replace(/^[\-*]\s*/, ''); // Remove bullet markers
+            if (trimmed && trimmed.length > 10) {
+                return truncateText(trimmed, 300);
+            }
         }
     }
 
     // Try to extract from summary section
     const summaryMatch = issueBody.match(/## Summary\s*\n([\s\S]*?)(?=\n##|$)/i);
     if (summaryMatch) {
-        const firstLine = summaryMatch[1].trim().split('\n')[0].trim();
-        if (firstLine && firstLine.length > 10) {
-            return truncateText(firstLine, 300);
+        const summaryContent = summaryMatch[1].trim();
+        const summaryLines = summaryContent.split('\n');
+        for (const line of summaryLines) {
+            const trimmed = line.trim().replace(/^[\-*]\s*/, '');
+            if (trimmed && trimmed.length > 10) {
+                return truncateText(trimmed, 300);
+            }
+        }
+    }
+
+    // Try to extract from description section
+    const descMatch = issueBody.match(/## Description\s*\n([\s\S]*?)(?=\n##|$)/i);
+    if (descMatch) {
+        const descContent = descMatch[1].trim();
+        const descLines = descContent.split('\n');
+        for (const line of descLines) {
+            const trimmed = line.trim().replace(/^[\-*]\s*/, '');
+            if (trimmed && trimmed.length > 10) {
+                return truncateText(trimmed, 300);
+            }
         }
     }
 

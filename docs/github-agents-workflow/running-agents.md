@@ -180,6 +180,7 @@ yarn agent:tech-design --issue 123
 - **Runs Plan Subagent** (for claude-code-sdk and cursor) to create detailed implementation plan
 - For multi-phase: Implements ONLY the current phase
 - Writes code following project guidelines
+- **Visually verifies UI changes** at 400px viewport (when applicable)
 - Creates PR with implementation
 - Sets Review Status = "Waiting for Review"
 
@@ -203,6 +204,43 @@ This is **fully encapsulated** - you don't need to configure anything. The plan 
 - Uses read-only tools (`Read`, `Glob`, `Grep`, `WebFetch`) for Claude Code SDK
 - Has a 2-minute timeout
 - If it fails, implementation proceeds without detailed plan
+
+**Visual Verification (UI Changes):**
+
+When implementing UI changes, the agent will:
+1. Use Playwright MCP to open the app at `http://localhost:3000`
+2. Navigate to the relevant page/component
+3. Resize browser to 400px width (mobile viewport)
+4. Take screenshots to verify:
+   - Layout looks correct on mobile
+   - Touch targets are at least 44px
+   - No content overflow or horizontal scrolling
+   - Dark mode works if applicable
+
+**Visual verification output** is included in the agent's structured output:
+```json
+{
+  "prSummary": "...",
+  "comment": "...",
+  "visualVerification": {
+    "verified": true,
+    "whatWasVerified": "Tested at 400px viewport, verified touch targets, checked dark mode",
+    "issuesFound": "Fixed button overflow on small screens"
+  }
+}
+```
+
+If Playwright MCP is unavailable:
+```json
+{
+  "visualVerification": {
+    "verified": false,
+    "skippedReason": "Playwright MCP not available - manual verification needed"
+  }
+}
+```
+
+**Note:** Visual verification is **optional** and only applies to PRs with UI changes. PRs without visual components (backend-only, types, etc.) will not include the `visualVerification` field.
 
 **Phase-Aware Implementation:**
 - Automatically detects current phase from GitHub status

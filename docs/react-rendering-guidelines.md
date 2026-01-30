@@ -4,6 +4,20 @@ This document covers common React rendering pitfalls that cause infinite loops, 
 
 ---
 
+> **⚠️ IMPORTANT FOR PR REVIEWERS**
+>
+> This project has specific Zustand selector patterns that **differ from common conventions**.
+> These patterns exist to prevent infinite re-render loops (React error #185).
+>
+> **DO NOT request changes to:**
+> - Split individual selectors into combined object selectors
+> - Return object literals `({...})` from selectors
+>
+> These patterns cause infinite loops in Zustand. If you see code using individual selectors,
+> it is correct for this project. See "Anti-Pattern 2" below for full explanation.
+
+---
+
 ## Zustand Selector Stability
 
 ### The Problem
@@ -11,14 +25,16 @@ This document covers common React rendering pitfalls that cause infinite loops, 
 Zustand selectors that return new object/array references on every render cause infinite re-render loops. This happens because React's `useSyncExternalStore` detects a "change" when the reference changes, even if the content is identical.
 
 **Symptoms:**
-- `Maximum update depth exceeded` error
+- `Maximum update depth exceeded` error (React error #185)
 - `The result of getSnapshot should be cached to avoid an infinite loop` warning
 - App freezes or crashes on component mount
 
-### Bad Pattern
+---
+
+### Anti-Pattern 1: Object Literal Fallbacks
 
 ```typescript
-// BAD: Returns new {} on every render when planId is null or data is missing
+// ❌ BAD: Returns new {} on every render when planId is null or data is missing
 export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
     return usePlanDataStore((state) => {
         if (!planId) return {};  // New object every time!
@@ -27,10 +43,10 @@ export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
 }
 ```
 
-### Good Pattern
+**Fix:** Use stable fallback references
 
 ```typescript
-// GOOD: Use stable fallback references
+// ✅ GOOD: Use stable fallback references
 const EMPTY_WORKOUT_SETS: Record<string, Record<string, number>> = {};
 
 export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
@@ -41,12 +57,75 @@ export function useWeekWorkoutSets(planId: string | null, weekNumber: number) {
 }
 ```
 
-### Rules
+---
+
+### Anti-Pattern 2: Combined Object Selectors (Destructuring Multiple Values)
+
+> **🚨 THIS PROJECT FORBIDS COMBINED SELECTORS**
+>
+> This is a project-specific rule. Even though combined selectors are common in tutorials and
+> other codebases, they cause **infinite re-render loops** in Zustand due to reference instability.
+> Individual selectors are **required** in this codebase.
+
+**CRITICAL:** Never use a selector that returns an object literal to extract multiple values at once. This is a common pattern in Redux that does NOT work safely in Zustand.
+
+```typescript
+// ❌ BAD: Combined selector returns new object every render → INFINITE LOOP
+const {
+    sortBy,
+    hideCompleted,
+    setSortBy,
+    setHideCompleted,
+} = useMyStore((state) => ({
+    sortBy: state.sortBy,
+    hideCompleted: state.hideCompleted,
+    setSortBy: state.setSortBy,
+    setHideCompleted: state.setHideCompleted,
+}));
+```
+
+**Why this fails:** The selector `(state) => ({ ... })` creates a **new object on every render**. Zustand compares the new result to the previous result using shallow equality. Since `{} !== {}` (different references), Zustand thinks the state changed and triggers a re-render. This creates another new object, triggering another re-render, ad infinitum.
+
+**Fix:** Use individual selectors for each value
+
+```typescript
+// ✅ GOOD: Individual selectors return stable references (primitives or functions)
+const sortBy = useMyStore((state) => state.sortBy);
+const hideCompleted = useMyStore((state) => state.hideCompleted);
+const setSortBy = useMyStore((state) => state.setSortBy);
+const setHideCompleted = useMyStore((state) => state.setHideCompleted);
+```
+
+**Why this works:** Each selector returns either:
+- A **primitive value** (`string`, `number`, `boolean`) - always stable
+- A **function reference** from the store - same reference unless store is recreated
+- An **object/array from state** - same reference unless that specific state changes
+
+**Alternative with `useShallow`:** If you must select multiple values, use Zustand's `useShallow` hook:
+
+```typescript
+import { useShallow } from 'zustand/react/shallow';
+
+// ✅ GOOD: useShallow performs shallow comparison of object properties
+const { sortBy, hideCompleted } = useMyStore(
+    useShallow((state) => ({
+        sortBy: state.sortBy,
+        hideCompleted: state.hideCompleted,
+    }))
+);
+```
+
+**Note:** `useShallow` adds overhead and is generally not needed. Individual selectors are clearer and more performant.
+
+---
+
+### Rules Summary
 
 1. **Never return `{}` or `[]` literals** in selector fallback paths
-2. **Create module-level constants** for empty fallback values
-3. **Name them clearly**: `EMPTY_ITEMS`, `EMPTY_MAP`, `EMPTY_LIST`
-4. **Place constants near selectors** in the same file for visibility
+2. **Never use combined object selectors** `(state) => ({ a: state.a, b: state.b })`
+3. **Use individual selectors** for each value you need
+4. **Create module-level constants** for empty fallback values
+5. **Name constants clearly**: `EMPTY_ITEMS`, `EMPTY_MAP`, `EMPTY_LIST`
 
 ### Example Stable Fallbacks
 

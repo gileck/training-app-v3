@@ -280,6 +280,8 @@ return <ItemList items={items} />;
 
 Common pitfalls that cause infinite re-renders.
 
+### Rule 1: Never Use Object Literals in Selector Fallbacks
+
 **CRITICAL:** Never return `{}` or `[]` literals in Zustand selector fallbacks. Create module-level constants for empty values.
 
 **The Bug:**
@@ -298,6 +300,30 @@ return usePlanDataStore((state) => {
     if (!planId) return EMPTY_DATA;
 });
 ```
+
+### Rule 2: Never Use Combined Object Selectors
+
+**CRITICAL:** Never return an object literal from a Zustand selector to extract multiple values. Use individual selectors instead.
+
+**The Bug:**
+```typescript
+// BAD: Object literal creates new reference every render → infinite loop
+const { sortBy, hideCompleted, setSortBy } = useMyStore((state) => ({
+    sortBy: state.sortBy,
+    hideCompleted: state.hideCompleted,
+    setSortBy: state.setSortBy,
+}));
+```
+
+**The Fix:**
+```typescript
+// GOOD: Individual selectors return stable primitive/function references
+const sortBy = useMyStore((state) => state.sortBy);
+const hideCompleted = useMyStore((state) => state.hideCompleted);
+const setSortBy = useMyStore((state) => state.setSortBy);
+```
+
+**Why:** The object literal `({...})` creates a new object on every render. Zustand's shallow equality check sees different references and triggers a re-render, which creates another new object, causing an infinite loop.
 
 **Docs:** [docs/react-rendering-guidelines.md](docs/react-rendering-guidelines.md)
 
@@ -782,74 +808,25 @@ git branch -d fix/my-fix
 
 ---
 
-## Lock File Management (yarn.lock & package-lock.json)
+## Wixpress Registry Issues (Lock Files & ESLint)
 
-Special handling for lock files due to corporate network constraints.
+Handling npm package issues in Wix corporate network environment.
 
-**Problem:** Local development requires private npm registry (`npm.dev.wixpress.com`) because access to public npm is blocked. However, Vercel deployments need public registry URLs.
+**Summary:** The wixpress npm registry causes two related issues: (1) Lock files contain private URLs that shouldn't be committed, and (2) ESLint fails due to broken `@typescript-eslint` packages.
 
-**Solution - Multi-Layer Protection:**
+**Key Points:**
+- Run `yarn setup-hooks` once after cloning (sets up skip-worktree for yarn.lock)
+- **Always use `yarn install`**, never `npm install`
+- If ESLint fails with `tsutils.iterateComments is not a function`, copy working `@typescript-eslint` packages from a project using public npm
 
-| Layer | yarn.lock | package-lock.json |
-|-------|-----------|-------------------|
-| **Committed version** | ✅ Public npm registry (for Vercel) | ❌ Should not exist (project uses yarn) |
-| **Local changes** | Auto-reset by pre-commit hook | Auto-removed by pre-commit hook |
-| **GitHub Action** | Blocks PRs with `npm.dev.wixpress.com` | Blocks PRs containing this file |
-
-**For Local Development:**
-
-When you run `yarn install` locally, yarn.lock will update with private Wix registry URLs. This is expected and safe - the pre-commit hook automatically resets it to the committed version.
-
-**IMPORTANT - Use yarn, not npm:**
-
-This project uses Yarn. If you accidentally run `npm install`, it will create `package-lock.json` with private registry URLs. The pre-commit hook will automatically remove it, but always use:
-
+**Quick Reference:**
 ```bash
-yarn install  # ✅ Correct
-npm install   # ❌ Wrong - creates package-lock.json
+yarn setup-hooks              # Initial setup (run once)
+yarn install                  # Correct - use yarn
+git ls-files -v | grep ^S     # Check skip-worktree status
 ```
 
-**Pre-commit Hook Behavior:**
-
-The hook in `.githooks/pre-commit` automatically:
-1. Resets `yarn.lock` to HEAD (removes private registry URLs)
-2. Removes `package-lock.json` if it exists (project uses yarn)
-
-**GitHub Action Protection:**
-
-The workflow `.github/workflows/validate-yarn-lock.yml` runs on all PRs that modify lock files:
-1. Fails if `package-lock.json` exists
-2. Fails if `yarn.lock` contains `npm.dev.wixpress.com`
-
-**When dependencies need updating (rare):**
-
-Option 1: Let CI/Vercel regenerate yarn.lock automatically
-Option 2: Use a machine with public npm access to generate clean yarn.lock
-Option 3: Manually clean private registry URLs before committing
-
-**To bypass the hook (not recommended):**
-
-```bash
-git commit --no-verify  # Use with extreme caution
-```
-
----
-
-## ESLint/TypeScript Wixpress Registry Issue
-
-Troubleshooting ESLint failures in Wix corporate network environment.
-
-**Problem:** ESLint fails with `tsutils.iterateComments is not a function` when the wixpress npm registry (`npm.dev.wixpress.com`) provides broken `@typescript-eslint` packages.
-
-**Root Cause:**
-- Wixpress registry contains version `8.52.0` of `@typescript-eslint/*` (doesn't exist on public npm)
-- This version uses deprecated `tsutils` package incompatible with TypeScript 5.x
-
-**Quick Fix:**
-1. Copy working `@typescript-eslint` packages from a project using public npm
-2. Reset `yarn.lock` before commits to avoid committing wixpress URLs
-
-**Docs:** [docs/eslint-typescript-wixpress-issue.md](docs/eslint-typescript-wixpress-issue.md)
+**Docs:** [docs/wixpress-registry-issues.md](docs/wixpress-registry-issues.md)
 
 ---
 
@@ -898,7 +875,7 @@ Key documents:
 - [Troubleshooting](docs/github-agents-workflow/troubleshooting.md) - Common issues
 
 **See also:**
-- [Agent Library Abstraction](docs/agent-library-abstraction.md)
+- [Agent Library Abstraction](docs/github-agents-workflow/agent-library-abstraction.md)
 - [Gemini CLI Adapter](src/agents/lib/adapters/GEMINI.md)
 - [OpenAI Codex CLI Adapter](src/agents/lib/adapters/OPENAI-CODEX.md)
 

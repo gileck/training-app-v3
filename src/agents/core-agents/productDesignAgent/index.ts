@@ -344,27 +344,47 @@ async function processItem(
                 );
             }
 
-            // Extract structured output (with fallback to markdown extraction)
+            // Extract structured output (with fallback to JSON/markdown extraction)
             let design: string;
             let comment: string | undefined;
 
             const structuredOutput = result.structuredOutput as ProductDesignOutput | undefined;
-            if (structuredOutput) {
+            if (structuredOutput && typeof structuredOutput.design === 'string') {
                 design = structuredOutput.design;
                 comment = structuredOutput.comment;
                 console.log(`  Design generated: ${design.length} chars (structured output)`);
             } else {
-                // Fallback: extract markdown from text output
-                const extracted = extractMarkdown(result.content);
-                if (!extracted) {
-                    const error = 'Could not extract design document from output';
-                    if (!options.dryRun) {
-                        await notifyAgentError('Product Design', content.title, issueNumber, error);
+                // Try parsing as JSON first (cursor adapter returns JSON as raw text)
+                let parsed: ProductDesignOutput | null = null;
+                try {
+                    const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const candidate = JSON.parse(jsonMatch[0]);
+                        if (candidate && typeof candidate.design === 'string') {
+                            parsed = candidate as ProductDesignOutput;
+                        }
                     }
-                    return { success: false, error };
+                } catch {
+                    // Not valid JSON, continue to markdown extraction
                 }
-                design = extracted;
-                console.log(`  Design generated: ${design.length} chars (fallback extraction)`);
+
+                if (parsed) {
+                    design = parsed.design;
+                    comment = parsed.comment;
+                    console.log(`  Design generated: ${design.length} chars (JSON extraction)`);
+                } else {
+                    // Fallback: extract markdown from text output
+                    const extracted = extractMarkdown(result.content);
+                    if (!extracted) {
+                        const error = 'Could not extract design document from output';
+                        if (!options.dryRun) {
+                            await notifyAgentError('Product Design', content.title, issueNumber, error);
+                        }
+                        return { success: false, error };
+                    }
+                    design = extracted;
+                    console.log(`  Design generated: ${design.length} chars (markdown extraction)`);
+                }
             }
 
             console.log(`  Preview: ${design.slice(0, 100).replace(/\n/g, ' ')}...`);

@@ -343,27 +343,47 @@ async function processItem(
                 );
             }
 
-            // Extract structured output (with fallback to markdown extraction)
+            // Extract structured output (with fallback to JSON/markdown extraction)
             let document: string;
             let comment: string | undefined;
 
             const structuredOutput = result.structuredOutput as ProductDevelopmentOutput | undefined;
-            if (structuredOutput) {
+            if (structuredOutput && typeof structuredOutput.document === 'string') {
                 document = structuredOutput.document;
                 comment = structuredOutput.comment;
                 console.log(`  Document generated: ${document.length} chars (structured output)`);
             } else {
-                // Fallback: extract markdown from text output
-                const extracted = extractMarkdown(result.content);
-                if (!extracted) {
-                    const error = 'Could not extract product development document from output';
-                    if (!options.dryRun) {
-                        await notifyAgentError('Product Development', content.title, issueNumber, error);
+                // Try parsing as JSON first (cursor adapter returns JSON as raw text)
+                let parsed: ProductDevelopmentOutput | null = null;
+                try {
+                    const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const candidate = JSON.parse(jsonMatch[0]);
+                        if (candidate && typeof candidate.document === 'string') {
+                            parsed = candidate as ProductDevelopmentOutput;
+                        }
                     }
-                    return { success: false, error };
+                } catch {
+                    // Not valid JSON, continue to markdown extraction
                 }
-                document = extracted;
-                console.log(`  Document generated: ${document.length} chars (fallback extraction)`);
+
+                if (parsed) {
+                    document = parsed.document;
+                    comment = parsed.comment;
+                    console.log(`  Document generated: ${document.length} chars (JSON extraction)`);
+                } else {
+                    // Fallback: extract markdown from text output
+                    const extracted = extractMarkdown(result.content);
+                    if (!extracted) {
+                        const error = 'Could not extract product development document from output';
+                        if (!options.dryRun) {
+                            await notifyAgentError('Product Development', content.title, issueNumber, error);
+                        }
+                        return { success: false, error };
+                    }
+                    document = extracted;
+                    console.log(`  Document generated: ${document.length} chars (markdown extraction)`);
+                }
             }
 
             console.log(`  Preview: ${document.slice(0, 100).replace(/\n/g, ' ')}...`);

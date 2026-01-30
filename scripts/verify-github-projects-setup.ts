@@ -657,6 +657,48 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     };
 }
 
+async function checkPlaywrightMCP(): Promise<CategoryResults> {
+    const checks: CheckResult[] = [];
+
+    // Check if @playwright/mcp is installed
+    const mcpCliPath = resolve(process.cwd(), 'node_modules', '@playwright', 'mcp', 'cli.js');
+    const isInstalled = existsSync(mcpCliPath);
+
+    checks.push({
+        passed: true, // Always pass - this is optional
+        message: `@playwright/mcp ${isInstalled ? '✓ (local testing enabled)' : 'ℹ (optional - local testing disabled)'}`,
+        details: isInstalled
+            ? ['Implementation agent can perform local browser testing during development']
+            : [
+                'Local browser testing is disabled for implementation agent',
+                'To enable: yarn add -D @playwright/mcp',
+                'This allows the agent to verify UI changes in a headless browser'
+            ]
+    });
+
+    // If installed, check if browsers are available
+    if (isInstalled) {
+        const playwrightPath = resolve(process.cwd(), 'node_modules', 'playwright-core');
+        const hasBrowsers = existsSync(playwrightPath);
+
+        checks.push({
+            passed: true, // Always pass - informational
+            message: `playwright-core ${hasBrowsers ? '✓' : 'ℹ (may need browser install)'}`,
+            details: hasBrowsers
+                ? undefined
+                : ['If browser tests fail, run: npx playwright install chromium']
+        });
+    }
+
+    const passed = checks.filter(c => c.passed).length;
+    return {
+        category: 'Local Testing (Optional)',
+        checks,
+        passed,
+        failed: checks.length - passed
+    };
+}
+
 // ============================================================================
 // Main Function
 // ============================================================================
@@ -691,6 +733,9 @@ async function main() {
         results.push(await checkTokenPermissions());
         results.push(await checkGitHubProject());
     }
+
+    // Always check optional features
+    results.push(await checkPlaywrightMCP());
 
     // Print results
     results.forEach(result => {

@@ -1433,7 +1433,7 @@ After completing setup:
    - Try requesting changes and see how agents handle feedback
 
 3. **Customize for your needs**:
-   - Adjust agent prompts in `src/agents/shared/prompts.ts`
+   - Adjust agent prompts in `src/agents/shared/prompts/` (split by phase: product-design.ts, technical-design.ts, implementation.ts, bug-fix.ts)
    - Configure Claude model/timeout in `src/agents/shared/config.ts`
    - Add custom labels or routing options
 

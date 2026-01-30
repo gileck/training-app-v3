@@ -21,7 +21,7 @@ description: globs: .tsx,.css
 **Non-negotiable requirements:**
 - **Start with mobile** - Write base styles for ~400px width, then add `sm:`, `md:`, `lg:` for larger screens
 - **Test at 400px first** - Every component must look good and be fully usable at mobile width
-- **Touch targets ≥ 44px** - All interactive elements must be easily tappable
+- **Touch targets ≥ 44px** - All interactive elements must be easily tappable (see Touch Targets section below)
 - **No horizontal scroll** - Content must fit within mobile viewport width
 - **Thumb-friendly** - Place primary actions in easy-reach zones (bottom of screen)
 
@@ -43,6 +43,76 @@ description: globs: .tsx,.css
   <h1 className="text-2xl max-sm:text-lg">Title</h1>
 </div>
 ```
+
+---
+
+## Touch Targets (44px Minimum)
+
+**WCAG 2.1 AA requires 44×44px minimum touch targets.** This is non-negotiable for mobile UX.
+
+### Quick Reference
+
+| Element | Minimum Size | Tailwind Classes |
+|---------|--------------|------------------|
+| Buttons | 44×44px | `min-h-11 min-w-11` or `h-11 px-4` |
+| Icon buttons | 44×44px | `h-11 w-11` |
+| Checkboxes | 44×44px touch area | Use `::before` extension (see below) |
+| List items | 44px height | `min-h-11 py-3` |
+
+### Pattern: Invisible Touch Target Extension
+
+When you need a **small visual element** (e.g., 24px checkbox) with a **large touch area** (44px):
+
+```css
+/* Visual element: 24px, Touch area: 44px */
+.touch-checkbox {
+    position: relative;
+    width: 1.5rem;   /* 24px visual */
+    height: 1.5rem;  /* 24px visual */
+}
+
+.touch-checkbox::before {
+    content: '';
+    position: absolute;
+    /* Extend 10px in each direction: 24px + 20px = 44px */
+    inset: -0.625rem;  /* -10px */
+}
+```
+
+```tsx
+// ✅ CORRECT: 44px touch target with 24px visual
+<button className="relative h-6 w-6 before:absolute before:inset-[-0.625rem] before:content-['']">
+  <CheckIcon className="h-6 w-6" />
+</button>
+
+// ❌ WRONG: Only 24px touch target
+<button className="h-6 w-6">
+  <CheckIcon className="h-6 w-6" />
+</button>
+```
+
+### Common Sizes
+
+```tsx
+// Icon-only button (44px)
+<Button variant="ghost" size="icon" className="h-11 w-11">
+  <RefreshIcon className="h-5 w-5" />
+</Button>
+
+// Standard button (44px height)
+<Button className="h-11 px-4">Save</Button>
+
+// Mobile action button (48px for comfortable tapping)
+<Button className="h-12 w-12">
+  <PlusIcon />
+</Button>
+```
+
+### Spacing Between Touch Targets
+
+Ensure adequate spacing between adjacent touch targets to prevent mis-taps:
+- Minimum gap: `gap-2` (8px)
+- Recommended gap: `gap-3` (12px)
 
 ---
 
@@ -140,7 +210,7 @@ export default function Page() {
 
 ## Performance and accessibility
 - Avoid conditional render for light/dark classes; rely on tokens for contrast.
-- Ensure touch targets ≥ `h-9` with left/right padding ≥ `px-3`.
+- Ensure touch targets ≥ 44px (see Touch Targets section above). Use `min-h-11` or invisible extension pattern.
 - Respect reduced motion for potential animations; keep durations at 150–200ms where used.
 
 ## Do/Don't

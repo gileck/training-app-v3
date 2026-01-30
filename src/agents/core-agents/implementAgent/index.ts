@@ -65,9 +65,6 @@ import {
     getBugDiagnostics,
     extractClarification,
     handleClarificationRequest,
-    extractFeedbackResolution,
-    formatFeedbackResolution,
-    extractPRSummary,
     // Output schemas
     IMPLEMENTATION_OUTPUT_FORMAT,
     // Agent Identity
@@ -768,21 +765,24 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
 
         console.log(`  Agent completed in ${result.durationSeconds}s`);
 
-        // Extract structured output (with fallback to text extraction)
+        // Extract structured output (no fallback - warn if missing)
         let prSummary: string | null = null;
         let comment: string | undefined;
 
         const structuredOutput = result.structuredOutput as ImplementationOutput | undefined;
         if (structuredOutput) {
-            prSummary = structuredOutput.prSummary;
+            prSummary = structuredOutput.prSummary || null;
             comment = structuredOutput.comment;
-            console.log('  PR summary extracted (structured output)');
-        } else {
-            // Fallback: extract from text output
-            prSummary = result.content ? extractPRSummary(result.content) : null;
-            if (prSummary) {
-                console.log('  PR summary extracted (fallback extraction)');
+            if (prSummary && comment) {
+                console.log('  PR summary extracted (structured output)');
+            } else {
+                console.warn('  ⚠️ Structured output returned but missing fields:');
+                if (!prSummary) console.warn('    - prSummary is missing');
+                if (!comment) console.warn('    - comment is missing');
             }
+        } else {
+            console.warn('  ⚠️ Structured output not returned by agent adapter');
+            console.warn('    Agent library may not support structured output');
         }
 
         // Check if there are changes to commit
@@ -958,15 +958,14 @@ ${currentPhaseDetails.description}
 
 ${currentPhase && totalPhases && currentPhase === totalPhases ? `Closes #${issueNumber}` : `Part of #${issueNumber}`}`;
                 } else {
-                    // Fallback to generic text if agent didn't provide a summary
-                    const prBodyIntro = issueType === 'bug'
-                        ? `Fixes the bug described in issue #${issueNumber}.`
-                        : currentPhase && totalPhases
-                            ? `Implements Phase ${currentPhase}/${totalPhases} of the feature described in issue #${issueNumber}.`
-                            : `Implements the feature described in issue #${issueNumber}.`;
-                    prBodyAboveSeparator = `${phaseHeader}${prBodyIntro}
+                    // No structured output summary - use minimal description
+                    // (Agent adapter may not support structured output)
+                    const issueRef = currentPhase && totalPhases && currentPhase === totalPhases
+                        ? `Closes #${issueNumber}`
+                        : `Part of #${issueNumber}`;
+                    prBodyAboveSeparator = `${phaseHeader}See issue #${issueNumber} for details.
 
-${currentPhase && totalPhases && currentPhase === totalPhases ? `Closes #${issueNumber}` : `Part of #${issueNumber}`}`;
+${issueRef}`;
                 }
 
                 const prBody = `${prBodyAboveSeparator}
@@ -1063,25 +1062,26 @@ See issue #${issueNumber} for full context, product design, and technical design
                 const issueStatusComment = addAgentPrefix('implementor', `🔧 ${feedbackPhasePrefix}Addressed feedback on PR #${prNumber} - ready for re-review`);
                 await adapter.addIssueComment(issueNumber, issueStatusComment);
 
-                // Use structured output comment if available, otherwise fallback
-                let feedbackComment: string;
+                // Use structured output comment if available, otherwise warn
+                let feedbackComment: string | undefined;
                 if (comment) {
                     feedbackComment = comment;
-                } else if (result.content) {
-                    // Fallback: try to extract structured feedback resolution from text
-                    const feedbackResolution = extractFeedbackResolution(result.content);
-                    feedbackComment = feedbackResolution
-                        ? formatFeedbackResolution(feedbackResolution)
-                        : 'Addressed review feedback. Ready for re-review.';
                 } else {
-                    feedbackComment = 'Addressed review feedback. Ready for re-review.';
+                    console.warn('  ⚠️ No comment in structured output for feedback response');
                 }
-                const prefixedComment = addAgentPrefix('implementor', feedbackComment);
-                // Add @claude to trigger Claude GitHub App to re-review the fixes
-                const commentWithReviewRequest = `${prefixedComment}\n\n@claude please review the changes`;
-                await adapter.addPRComment(prNumber, commentWithReviewRequest);
-                console.log('  Feedback response comment posted on PR (with @claude review request)');
-                logGitHubAction(logCtx, 'comment', 'Posted feedback response on PR with @claude review request');
+                // Post feedback comment on PR if available
+                if (feedbackComment) {
+                    const prefixedComment = addAgentPrefix('implementor', feedbackComment);
+                    // Add @claude to trigger Claude GitHub App to re-review the fixes
+                    const commentWithReviewRequest = `${prefixedComment}\n\n@claude please review the changes`;
+                    await adapter.addPRComment(prNumber, commentWithReviewRequest);
+                    console.log('  Feedback response comment posted on PR (with @claude review request)');
+                    logGitHubAction(logCtx, 'comment', 'Posted feedback response on PR with @claude review request');
+                } else {
+                    // Still trigger @claude review even without detailed comment
+                    await adapter.addPRComment(prNumber, '@claude please review the changes');
+                    console.log('  Review request posted on PR (no detailed comment available)');
+                }
             }
         }
 
