@@ -114,7 +114,7 @@ export class TemplateSyncTool {
 
     // Step 3: Print analysis summary
     if (verbose || !quiet) {
-      printFolderSyncAnalysis(analysis);
+      printFolderSyncAnalysis(analysis, verbose);
     }
 
     // Step 4: Check if there are changes

@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FolderOwnershipConfig, FolderSyncAnalysis, FolderSyncFile, FolderSyncAction, TEMPLATE_DIR } from '../types';
 import { getFileHash } from '../files/hashing';
+import { mergePackageJson, readPackageJson } from '../utils/package-json-merge';
 
 /**
  * Expand glob patterns to actual file paths
@@ -240,8 +241,40 @@ function categorizeFile(
   const inProject = fs.existsSync(projectPath);
   const isOverride = config.projectOverrides.includes(filePath);
 
-  // Special case: package.json always uses 3-way merge
+  // Special case: package.json uses 3-way merge
   if (filePath === 'package.json') {
+    // Check if merge would actually produce changes
+    if (inTemplate && inProject) {
+      try {
+        const templatePkg = readPackageJson(templatePath);
+        const projectPkg = readPackageJson(projectPath);
+
+        if (templatePkg && projectPkg) {
+          const mergeResult = mergePackageJson(null, templatePkg, projectPkg);
+
+          if (mergeResult.success && mergeResult.merged) {
+            // Compare merged result with current project package.json
+            const mergedStr = JSON.stringify(mergeResult.merged, null, 2);
+            const projectStr = JSON.stringify(projectPkg, null, 2);
+
+            if (mergedStr === projectStr) {
+              // No changes - skip merge
+              return {
+                path: filePath,
+                action: 'skip',
+                reason: 'Already up to date',
+                inTemplate,
+                inProject,
+                isOverride: false,
+              };
+            }
+          }
+        }
+      } catch {
+        // If we can't check, proceed with merge
+      }
+    }
+
     return {
       path: filePath,
       action: 'merge',
@@ -402,9 +435,18 @@ export function analyzeFolderSync(
 /**
  * Print analysis summary
  */
-export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis): void {
+export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: boolean = false): void {
   console.log('\n📊 Folder Ownership Analysis');
   console.log('='.repeat(60));
+
+  // Count "already up to date" files separately
+  const upToDate = analysis.toSkip.filter(f => f.reason === 'Already up to date');
+  const otherSkipped = analysis.toSkip.filter(f => f.reason !== 'Already up to date');
+
+  const hasActions = analysis.toCopy.length > 0 ||
+                     analysis.toDelete.length > 0 ||
+                     analysis.toMerge.length > 0 ||
+                     analysis.conflicts.length > 0;
 
   if (analysis.toCopy.length > 0) {
     console.log(`\n📥 To Copy (${analysis.toCopy.length}):`);
@@ -440,16 +482,46 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis): void {
     }
   }
 
-  if (analysis.toSkip.length > 0) {
-    console.log(`\n⏭️  Skipped (${analysis.toSkip.length}):`);
-    for (const file of analysis.toSkip.slice(0, 5)) {
+  // Only show other skipped files (not "already up to date") unless verbose
+  if (otherSkipped.length > 0) {
+    console.log(`\n⏭️  Skipped (${otherSkipped.length}):`);
+    for (const file of otherSkipped.slice(0, 5)) {
       console.log(`   ⏭️  ${file.path} - ${file.reason}`);
     }
-    if (analysis.toSkip.length > 5) {
-      console.log(`   ... and ${analysis.toSkip.length - 5} more`);
+    if (otherSkipped.length > 5) {
+      console.log(`   ... and ${otherSkipped.length - 5} more`);
+    }
+  }
+
+  // Show "already up to date" only in verbose mode
+  if (verbose && upToDate.length > 0) {
+    console.log(`\n✅ Already up to date (${upToDate.length}):`);
+    for (const file of upToDate.slice(0, 10)) {
+      console.log(`   ✅ ${file.path}`);
+    }
+    if (upToDate.length > 10) {
+      console.log(`   ... and ${upToDate.length - 10} more`);
     }
   }
 
   console.log('\n' + '='.repeat(60));
-  console.log(`Summary: ${analysis.toCopy.length} copy, ${analysis.toDelete.length} delete, ${analysis.toMerge.length} merge, ${analysis.conflicts.length} conflicts, ${analysis.toSkip.length} skip`);
+
+  // Build summary line
+  const parts: string[] = [];
+  if (analysis.toCopy.length > 0) parts.push(`${analysis.toCopy.length} to copy`);
+  if (analysis.toDelete.length > 0) parts.push(`${analysis.toDelete.length} to delete`);
+  if (analysis.toMerge.length > 0) parts.push(`${analysis.toMerge.length} to merge`);
+  if (analysis.conflicts.length > 0) parts.push(`${analysis.conflicts.length} conflicts`);
+
+  if (parts.length > 0) {
+    console.log(`Summary: ${parts.join(', ')}`);
+  }
+
+  if (upToDate.length > 0) {
+    console.log(`✅ ${upToDate.length} files already up to date`);
+  }
+
+  if (!hasActions && upToDate.length > 0) {
+    console.log('\n✨ Everything is in sync!');
+  }
 }
