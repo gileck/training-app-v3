@@ -242,7 +242,7 @@ export interface SyncContext {
 /**
  * Action type for a file in the folder ownership model
  */
-export type FolderSyncAction = 'copy' | 'delete' | 'skip' | 'conflict' | 'merge';
+export type FolderSyncAction = 'copy' | 'delete' | 'skip' | 'conflict' | 'merge' | 'diverged';
 
 /**
  * A file analysis result in the folder ownership model
@@ -275,6 +275,9 @@ export interface FolderSyncAnalysis {
 
   /** Files to 3-way merge (package.json) */
   toMerge: FolderSyncFile[];
+
+  /** Diverged files (project modified template file without adding to overrides) */
+  diverged: FolderSyncFile[];
 
   /** Summary of template paths expanded from globs */
   expandedTemplatePaths: string[];

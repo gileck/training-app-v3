@@ -118,14 +118,64 @@ export class TemplateSyncTool {
     }
 
     // Step 4: Check if there are changes
-    const totalChanges = analysis.toCopy.length + analysis.toDelete.length + analysis.toMerge.length + analysis.conflicts.length;
+    const totalChanges = analysis.toCopy.length + analysis.toDelete.length + analysis.toMerge.length + analysis.conflicts.length + analysis.diverged.length;
     if (totalChanges === 0) {
       console.log('\n✅ No changes to sync. Project is up to date with template.');
       await cleanupTemplate(this.context);
       return;
     }
 
-    // Step 5: Handle conflicts interactively or based on auto mode
+    // Step 5: Handle diverged files (project modified template files not in overrides)
+    let divergedResolutions: Map<string, 'override' | 'keep' | 'merge'> = new Map();
+
+    if (analysis.diverged.length > 0) {
+      if (autoMode === 'safe-only') {
+        // In safe-only mode, skip diverged files (don't overwrite project changes)
+        console.log(`\n🔶 ${analysis.diverged.length} diverged file(s) will be skipped (safe-only mode)`);
+        console.log(`   To resolve: add files to projectOverrides or run interactive sync`);
+      } else if (autoMode === 'override-conflicts') {
+        // Override mode: use template version
+        for (const file of analysis.diverged) {
+          divergedResolutions.set(file.path, 'override');
+        }
+        console.log(`\n✅ Auto-overriding ${analysis.diverged.length} diverged file(s) with template version`);
+      } else if (autoMode === 'skip-conflicts') {
+        // Skip mode: keep project version but add to overrides
+        for (const file of analysis.diverged) {
+          divergedResolutions.set(file.path, 'keep');
+        }
+        console.log(`\n⏭️  Keeping ${analysis.diverged.length} diverged file(s) and adding to projectOverrides`);
+      } else if (!quiet && isInteractive()) {
+        // Interactive resolution
+        console.log(`\n🔶 Found ${analysis.diverged.length} diverged file(s) - project modified but not in overrides:`);
+
+        for (const file of analysis.diverged) {
+          console.log(`\n   File: ${file.path}`);
+          console.log(`   Your project has modified this template file.`);
+          console.log(`\n   Options:`);
+          console.log(`     1. Override - Replace with template version (lose your changes)`);
+          console.log(`     2. Keep - Keep your version and add to projectOverrides`);
+          console.log(`     3. Merge - Create .template file for manual merge, add to overrides`);
+
+          const rl = this.rl;
+          const answer = await new Promise<string>((resolve) => {
+            rl.question(`   Choose [1/2/3] (default: 2): `, (ans) => {
+              resolve(ans.trim().toLowerCase() || '2');
+            });
+          });
+
+          if (answer === '1' || answer === 'override') {
+            divergedResolutions.set(file.path, 'override');
+          } else if (answer === '3' || answer === 'merge') {
+            divergedResolutions.set(file.path, 'merge');
+          } else {
+            divergedResolutions.set(file.path, 'keep');
+          }
+        }
+      }
+    }
+
+    // Step 6: Handle conflicts (project overrides where template also changed)
     let conflictResolutions: Map<string, ConflictResolution> = new Map();
 
     if (analysis.conflicts.length > 0) {
@@ -159,10 +209,16 @@ export class TemplateSyncTool {
       }
     }
 
-    // Step 6: Confirm sync
+    // Step 7: Confirm sync
     if (!dryRun && !quiet && isInteractive() && autoMode === 'none') {
+      const parts = [];
+      if (analysis.toCopy.length > 0) parts.push(`${analysis.toCopy.length} copy`);
+      if (analysis.toDelete.length > 0) parts.push(`${analysis.toDelete.length} delete`);
+      if (analysis.toMerge.length > 0) parts.push(`${analysis.toMerge.length} merge`);
+      if (divergedResolutions.size > 0) parts.push(`${divergedResolutions.size} diverged`);
+
       const proceed = await confirm(
-        `\nProceed with sync? (${analysis.toCopy.length} copy, ${analysis.toDelete.length} delete, ${analysis.toMerge.length} merge)`,
+        `\nProceed with sync? (${parts.join(', ')})`,
         true
       );
       if (!proceed) {
@@ -172,7 +228,7 @@ export class TemplateSyncTool {
       }
     }
 
-    // Step 7: Apply changes
+    // Step 8: Apply changes
     console.log('\n🔄 Applying changes...');
     const result = await syncFolderOwnership(
       analysis,
@@ -183,6 +239,7 @@ export class TemplateSyncTool {
         dryRun,
         quiet,
         conflictResolutions,
+        divergedResolutions,
       }
     );
 

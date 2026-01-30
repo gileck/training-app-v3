@@ -330,13 +330,24 @@ function categorizeFile(
           isOverride,
         };
       }
+
+      // Files differ - this is a DIVERGED file (project modified without adding to overrides)
+      // User needs to decide: override, add to overrides, or merge
+      return {
+        path: filePath,
+        action: 'diverged',
+        reason: 'Project modified this template file (not in overrides)',
+        inTemplate,
+        inProject,
+        isOverride,
+      };
     }
 
-    // Copy (new file or changed)
+    // New file from template - safe to copy
     return {
       path: filePath,
       action: 'copy',
-      reason: inProject ? 'Changed in template' : 'New file from template',
+      reason: 'New file from template',
       inTemplate,
       inProject,
       isOverride,
@@ -393,6 +404,7 @@ export function analyzeFolderSync(
     toSkip: [],
     conflicts: [],
     toMerge: [],
+    diverged: [],
     expandedTemplatePaths: [],
   };
 
@@ -426,6 +438,9 @@ export function analyzeFolderSync(
       case 'merge':
         analysis.toMerge.push(file);
         break;
+      case 'diverged':
+        analysis.diverged.push(file);
+        break;
     }
   }
 
@@ -446,7 +461,8 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: b
   const hasActions = analysis.toCopy.length > 0 ||
                      analysis.toDelete.length > 0 ||
                      analysis.toMerge.length > 0 ||
-                     analysis.conflicts.length > 0;
+                     analysis.conflicts.length > 0 ||
+                     analysis.diverged.length > 0;
 
   if (analysis.toCopy.length > 0) {
     console.log(`\n📥 To Copy (${analysis.toCopy.length}):`);
@@ -482,6 +498,17 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: b
     }
   }
 
+  if (analysis.diverged.length > 0) {
+    console.log(`\n🔶 Diverged - Need Decision (${analysis.diverged.length}):`);
+    for (const file of analysis.diverged.slice(0, 10)) {
+      console.log(`   🔶 ${file.path}`);
+    }
+    if (analysis.diverged.length > 10) {
+      console.log(`   ... and ${analysis.diverged.length - 10} more`);
+    }
+    console.log(`   ℹ️  These files were modified in your project but not added to projectOverrides`);
+  }
+
   // Only show other skipped files (not "already up to date") unless verbose
   if (otherSkipped.length > 0) {
     console.log(`\n⏭️  Skipped (${otherSkipped.length}):`);
@@ -512,6 +539,7 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: b
   if (analysis.toDelete.length > 0) parts.push(`${analysis.toDelete.length} to delete`);
   if (analysis.toMerge.length > 0) parts.push(`${analysis.toMerge.length} to merge`);
   if (analysis.conflicts.length > 0) parts.push(`${analysis.conflicts.length} conflicts`);
+  if (analysis.diverged.length > 0) parts.push(`${analysis.diverged.length} diverged`);
 
   if (parts.length > 0) {
     console.log(`Summary: ${parts.join(', ')}`);

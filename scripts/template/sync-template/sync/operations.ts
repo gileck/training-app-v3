@@ -220,6 +220,7 @@ export interface FolderSyncResult {
   skipped: string[];
   conflicts: string[];
   errors: string[];
+  addedToOverrides?: string[];
 }
 
 /**
@@ -259,6 +260,7 @@ export async function syncFolderOwnership(
     dryRun?: boolean;
     quiet?: boolean;
     conflictResolutions?: Map<string, ConflictResolution>;
+    divergedResolutions?: Map<string, 'override' | 'keep' | 'merge'>;
   } = {}
 ): Promise<FolderSyncResult> {
   const result: FolderSyncResult = {
@@ -268,9 +270,10 @@ export async function syncFolderOwnership(
     skipped: [],
     conflicts: [],
     errors: [],
+    addedToOverrides: [],
   };
 
-  const { dryRun = false, quiet = false, conflictResolutions } = options;
+  const { dryRun = false, quiet = false, conflictResolutions, divergedResolutions } = options;
 
   // 1. Copy files from template
   for (const file of analysis.toCopy) {
@@ -431,7 +434,92 @@ export async function syncFolderOwnership(
     }
   }
 
-  // 5. Log skipped files
+  // 5. Handle diverged files (project modified template files not in overrides)
+  for (const file of analysis.diverged) {
+    const resolution = divergedResolutions?.get(file.path);
+
+    if (resolution === 'override') {
+      // Use template version - discard project changes
+      const templatePath = path.join(templateDir, file.path);
+      const projectPath = path.join(projectDir, file.path);
+
+      try {
+        if (!dryRun && fs.existsSync(templatePath)) {
+          copyFileOrSymlink(templatePath, projectPath);
+        }
+        result.copied.push(file.path);
+        if (!quiet) {
+          console.log(`  ✅ ${file.path} - override with template`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result.errors.push(`${file.path}: ${message}`);
+      }
+    } else if (resolution === 'keep') {
+      // Keep project version, add to projectOverrides
+      const templatePath = path.join(templateDir, file.path);
+
+      if (!dryRun) {
+        // Add to projectOverrides
+        if (!config.projectOverrides.includes(file.path)) {
+          config.projectOverrides.push(file.path);
+        }
+        // Store template hash as baseline
+        if (!config.overrideHashes) {
+          config.overrideHashes = {};
+        }
+        if (fs.existsSync(templatePath)) {
+          config.overrideHashes[file.path] = getFileHash(templatePath);
+        }
+      }
+
+      if (!result.addedToOverrides) result.addedToOverrides = [];
+      result.addedToOverrides.push(file.path);
+      result.skipped.push(file.path);
+      if (!quiet) {
+        console.log(`  🔒 ${file.path} - kept and added to projectOverrides`);
+      }
+    } else if (resolution === 'merge') {
+      // Create .template file for manual merge, add to overrides
+      const templatePath = path.join(templateDir, file.path);
+      const templateCopyPath = path.join(projectDir, file.path + '.template');
+
+      try {
+        if (!dryRun && fs.existsSync(templatePath)) {
+          copyFileOrSymlink(templatePath, templateCopyPath);
+
+          // Add to projectOverrides
+          if (!config.projectOverrides.includes(file.path)) {
+            config.projectOverrides.push(file.path);
+          }
+          // Store template hash as baseline
+          if (!config.overrideHashes) {
+            config.overrideHashes = {};
+          }
+          config.overrideHashes[file.path] = getFileHash(templatePath);
+        }
+
+        if (!result.addedToOverrides) result.addedToOverrides = [];
+        result.addedToOverrides.push(file.path);
+        result.skipped.push(file.path);
+        if (!quiet) {
+          console.log(`  📋 ${file.path} - created .template file for manual merge`);
+          console.log(`     → Merge changes from ${file.path}.template then delete it`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result.errors.push(`${file.path}: ${message}`);
+      }
+    } else {
+      // Unresolved - skip (safe-only mode or no resolution provided)
+      result.skipped.push(file.path);
+      if (!quiet) {
+        console.log(`  🔶 ${file.path} - skipped (diverged, no resolution)`);
+      }
+    }
+  }
+
+  // 6. Log skipped files
   for (const file of analysis.toSkip) {
     result.skipped.push(file.path);
   }
