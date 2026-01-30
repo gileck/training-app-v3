@@ -7,14 +7,18 @@ import {
     Dialog,
     DialogContent,
 } from '@/client/components/ui/dialog';
-import { Dumbbell } from 'lucide-react';
+import { Badge } from '@/client/components/ui/badge';
+import { Dumbbell, Settings2 } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { ExerciseOverrides } from '@/client/features/plan-data/types';
+import { CustomizeExerciseSheet } from './CustomizeExerciseSheet';
+import { getEffectiveExerciseValues, hasOverrides } from '../../utils/exerciseOverrides';
 
 interface EditExerciseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     exercise: PlanExerciseWithDefinition | null;
-    onSave: (config: { sets: number; reps: number; weight: number; comments: string }) => void;
+    onSave: (config: { sets: number; reps: number; weight: number; comments: string; overrides?: ExerciseOverrides }) => void;
     isPending: boolean;
 }
 
@@ -33,6 +37,10 @@ export function EditExerciseDialog({
     const [weight, setWeight] = useState(0);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [comments, setComments] = useState('');
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [customizeOpen, setCustomizeOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [pendingOverrides, setPendingOverrides] = useState<ExerciseOverrides | undefined>(undefined);
 
     // Reset form when exercise changes
     useEffect(() => {
@@ -41,14 +49,24 @@ export function EditExerciseDialog({
             setReps(exercise.reps);
             setWeight(exercise.weight);
             setComments(exercise.comments || '');
+            setPendingOverrides(exercise.overrides);
         }
     }, [exercise]);
 
     const handleSave = () => {
-        onSave({ sets, reps, weight, comments: comments.trim() });
+        onSave({ sets, reps, weight, comments: comments.trim(), overrides: pendingOverrides });
+    };
+
+    const handleCustomizeSave = (overrides: ExerciseOverrides | undefined) => {
+        setPendingOverrides(overrides);
+        setCustomizeOpen(false);
     };
 
     if (!exercise) return null;
+
+    // Get effective values for display (original merged with pending overrides)
+    const effectiveValues = getEffectiveExerciseValues(exercise.exerciseDef, pendingOverrides);
+    const isCustomized = hasOverrides({ ...exercise, overrides: pendingOverrides });
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,10 +75,10 @@ export function EditExerciseDialog({
                 <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-background shadow-md overflow-hidden flex-shrink-0 relative border border-border/50">
-                            {exercise.exerciseDef.imageUrl ? (
+                            {effectiveValues.imageUrl ? (
                                 <Image
-                                    src={exercise.exerciseDef.imageUrl}
-                                    alt={exercise.exerciseDef.name}
+                                    src={effectiveValues.imageUrl}
+                                    alt={effectiveValues.name}
                                     fill
                                     className="object-contain p-1"
                                     unoptimized
@@ -72,11 +90,32 @@ export function EditExerciseDialog({
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-lg font-bold truncate">{exercise.exerciseDef.name}</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-lg font-bold truncate">{effectiveValues.name}</h2>
+                                {isCustomized && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary">
+                                        Customized
+                                    </Badge>
+                                )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
-                                {exercise.exerciseDef.primaryMuscle}
+                                {effectiveValues.primaryMuscle}
                             </p>
+                            {isCustomized && effectiveValues.name !== exercise.exerciseDef.name && (
+                                <p className="text-xs text-muted-foreground/70">
+                                    Based on: {exercise.exerciseDef.name}
+                                </p>
+                            )}
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setCustomizeOpen(true)}
+                            className="h-10 w-10 rounded-full shrink-0"
+                            title="Customize exercise"
+                        >
+                            <Settings2 className="h-5 w-5" />
+                        </Button>
                     </div>
                 </div>
 
@@ -207,6 +246,15 @@ export function EditExerciseDialog({
                     </Button>
                 </div>
             </DialogContent>
+
+            {/* Customize Exercise Sheet */}
+            <CustomizeExerciseSheet
+                open={customizeOpen}
+                onOpenChange={setCustomizeOpen}
+                exerciseDef={exercise.exerciseDef}
+                currentOverrides={pendingOverrides}
+                onSave={handleCustomizeSave}
+            />
         </Dialog>
     );
 }

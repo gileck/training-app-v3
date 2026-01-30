@@ -1,4 +1,4 @@
-import { PlanExerciseClient } from '@/server/database/collections/planExercises/types';
+import { PlanExerciseClient, ExerciseOverridesClient } from '@/server/database/collections/planExercises/types';
 import { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 
 // API Handler Context
@@ -10,6 +10,9 @@ export interface ApiHandlerContext {
 export interface PlanExerciseWithDefinition extends PlanExerciseClient {
     exerciseDef: ExerciseDefinitionClient;
 }
+
+// Re-export for convenience
+export type { ExerciseOverridesClient };
 
 // List plan exercises
 export interface ListPlanExercisesRequest {
@@ -31,6 +34,8 @@ export interface AddPlanExerciseRequest {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesClient;
 }
 
 export interface AddPlanExerciseResponse {
@@ -46,6 +51,8 @@ export interface UpdatePlanExerciseRequest {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesClient;
 }
 
 export interface UpdatePlanExerciseResponse {
@@ -83,6 +90,8 @@ export interface BulkAddExerciseItem {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesClient;
 }
 
 export interface BulkAddPlanExercisesRequest {

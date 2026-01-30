@@ -2,8 +2,9 @@ import Image from 'next/image';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent } from '@/client/components/ui/card';
 import { Badge } from '@/client/components/ui/badge';
-import { ChevronUp, ChevronDown, Trash2, Dumbbell } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, Dumbbell, Settings2 } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import { getEffectiveExerciseValues, hasOverrides } from '../../utils/exerciseOverrides';
 
 interface PlanExerciseCardProps {
     exercise: PlanExerciseWithDefinition;
@@ -29,6 +30,10 @@ export function PlanExerciseCard({
     onMoveUp,
     onMoveDown,
 }: PlanExerciseCardProps) {
+    // Get effective values (original merged with overrides)
+    const effectiveValues = getEffectiveExerciseValues(exercise.exerciseDef, exercise.overrides);
+    const isCustomized = hasOverrides(exercise);
+
     return (
         <Card
             className="rounded-xl border-0 shadow-sm active:scale-[0.98] transition-transform cursor-pointer hover:bg-muted/50"
@@ -60,10 +65,10 @@ export function PlanExerciseCard({
                         </div>
                     )}
                     <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
-                        {exercise.exerciseDef.imageUrl ? (
+                        {effectiveValues.imageUrl ? (
                             <Image
-                                src={exercise.exerciseDef.imageUrl}
-                                alt={exercise.exerciseDef.name}
+                                src={effectiveValues.imageUrl}
+                                alt={effectiveValues.name}
                                 fill
                                 className="object-contain"
                                 unoptimized
@@ -73,21 +78,34 @@ export function PlanExerciseCard({
                                 <Dumbbell className="h-6 w-6 text-muted-foreground" />
                             </div>
                         )}
+                        {/* Customized indicator on image */}
+                        {isCustomized && (
+                            <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary/90 flex items-center justify-center">
+                                <Settings2 className="h-3 w-3 text-primary-foreground" />
+                            </div>
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-semibold truncate">
-                            {exercise.exerciseDef.name}
+                            {effectiveValues.name}
                         </h3>
                         <p className="text-sm text-muted-foreground">
                             {exercise.sets} sets × {exercise.reps} reps
                             {exercise.weight > 0 && ` • ${exercise.weight}kg`}
                         </p>
-                        <Badge
-                            variant="outline"
-                            className="mt-1 text-xs bg-[hsl(210,100%,95%)] text-[hsl(210,100%,40%)] border-[hsl(210,100%,85%)] dark:bg-[hsl(210,100%,20%)] dark:text-[hsl(210,100%,80%)]"
-                        >
-                            {exercise.exerciseDef.primaryMuscle}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <Badge
+                                variant="outline"
+                                className="text-xs bg-[hsl(210,100%,95%)] text-[hsl(210,100%,40%)] border-[hsl(210,100%,85%)] dark:bg-[hsl(210,100%,20%)] dark:text-[hsl(210,100%,80%)]"
+                            >
+                                {effectiveValues.primaryMuscle}
+                            </Badge>
+                            {isCustomized && effectiveValues.name !== exercise.exerciseDef.name && (
+                                <span className="text-[10px] text-muted-foreground/70 truncate max-w-[120px]">
+                                    Based on: {exercise.exerciseDef.name}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div onClick={(e) => e.stopPropagation()}>
                         <Button

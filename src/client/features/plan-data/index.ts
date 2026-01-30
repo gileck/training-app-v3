@@ -75,4 +75,5 @@ export type {
     ExerciseUpdates,
     NewExercise,
     PlanConflict,
+    ExerciseOverrides,
 } from './types';

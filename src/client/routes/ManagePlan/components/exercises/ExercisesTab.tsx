@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from '@/client/components/ui/toast';
 import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition, ExerciseOverridesClient } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import { useManagePlanStore } from '../../store';
 import { AddExerciseDialog } from './AddExerciseDialog';
@@ -26,7 +26,7 @@ interface ExercisesTabProps {
         isPending: boolean;
     };
     updateExerciseMutation: {
-        mutate: (params: { planExerciseId: string; sets: number; reps: number; weight: number; comments?: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (params: { planExerciseId: string; sets: number; reps: number; weight: number; comments?: string; overrides?: ExerciseOverridesClient }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
         isPending: boolean;
     };
     deleteExerciseMutation: {
@@ -164,7 +164,7 @@ export function ExercisesTab({
         setEditDialogOpen(true);
     };
 
-    const handleSaveEdit = (config: { sets: number; reps: number; weight: number; comments: string }) => {
+    const handleSaveEdit = (config: { sets: number; reps: number; weight: number; comments: string; overrides?: ExerciseOverridesClient }) => {
         if (!exerciseToEdit) return;
         updateExerciseMutation.mutate(
             { planExerciseId: exerciseToEdit._id, ...config, comments: config.comments || undefined },

@@ -208,15 +208,30 @@ export const usePlanDataStore = createStore<PlanDataState>({
                 const plan = state.plans[planId];
                 if (!plan) return state;
 
-                const exercises = plan.exercises.map((ex) =>
-                    ex._id === exerciseId
-                        ? {
-                            ...ex,
-                            ...updates,
-                            updatedAt: new Date().toISOString(),
+                const exercises = plan.exercises.map((ex) => {
+                    if (ex._id !== exerciseId) return ex;
+                    
+                    // Handle overrides specially - merge or clear
+                    let newOverrides = ex.overrides;
+                    if (updates.overrides !== undefined) {
+                        if (updates.overrides && Object.keys(updates.overrides).length > 0) {
+                            newOverrides = updates.overrides;
+                        } else {
+                            // Clear overrides if empty object or undefined
+                            newOverrides = undefined;
                         }
-                        : ex
-                );
+                    }
+                    
+                    // Destructure to exclude overrides from spread
+                    const { overrides: _, ...restUpdates } = updates;
+                    
+                    return {
+                        ...ex,
+                        ...restUpdates,
+                        ...(newOverrides ? { overrides: newOverrides } : {}),
+                        updatedAt: new Date().toISOString(),
+                    };
+                });
 
                 return {
                     plans: {
@@ -244,6 +259,10 @@ export const usePlanDataStore = createStore<PlanDataState>({
                     createdAt: now,
                     updatedAt: now,
                     exerciseDef: exercise.exerciseDef,
+                    // Include overrides if provided
+                    ...(exercise.overrides && Object.keys(exercise.overrides).length > 0
+                        ? { overrides: exercise.overrides }
+                        : {}),
                 };
 
                 return {

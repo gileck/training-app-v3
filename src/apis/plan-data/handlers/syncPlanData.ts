@@ -117,28 +117,42 @@ async function syncExercises(
     const incomingIds = new Set(exercises.map((ex) => ex._id));
 
     // Build bulk operations for upserts
-    const upsertOps = exercises.map((ex) => ({
-        updateOne: {
-            filter: { _id: toQueryId(ex._id) },
-            update: {
-                $set: {
-                    planId: planIdQuery,
-                    exerciseDefId: toQueryId(ex.exerciseDefId),
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    weight: ex.weight,
-                    durationSeconds: ex.durationSeconds,
-                    comments: ex.comments,
-                    order: ex.order,
-                    updatedAt: now,
-                },
-                $setOnInsert: {
-                    createdAt: now,
-                },
+    const upsertOps = exercises.map((ex) => {
+        const hasOverrides = ex.overrides && Object.keys(ex.overrides).length > 0;
+        
+        // Build update object - MongoDB doesn't allow $set and $unset on same field
+        const updateObj: Record<string, unknown> = {
+            $set: {
+                planId: planIdQuery,
+                exerciseDefId: toQueryId(ex.exerciseDefId),
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight,
+                durationSeconds: ex.durationSeconds,
+                comments: ex.comments,
+                order: ex.order,
+                updatedAt: now,
+                // Include overrides in $set if present
+                ...(hasOverrides ? { overrides: ex.overrides } : {}),
             },
-            upsert: true,
-        },
-    }));
+            $setOnInsert: {
+                createdAt: now,
+            },
+        };
+        
+        // Add $unset for overrides if not present (to clean up old data)
+        if (!hasOverrides) {
+            updateObj.$unset = { overrides: '' };
+        }
+        
+        return {
+            updateOne: {
+                filter: { _id: toQueryId(ex._id) },
+                update: updateObj,
+                upsert: true,
+            },
+        };
+    });
 
     // Build delete operations for exercises that no longer exist
     const deleteOps = [...existingIds]

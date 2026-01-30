@@ -10,6 +10,20 @@ export interface ApiHandlerContext {
 }
 
 // ============================================================================
+// Exercise Overrides (for sync)
+// ============================================================================
+
+export interface ExerciseOverridesSyncData {
+    name?: string;
+    imageUrl?: string;
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+// ============================================================================
 // Exercise Sync Data
 // ============================================================================
 
@@ -22,6 +36,8 @@ export interface ExerciseSyncData {
     durationSeconds: number;
     comments: string;
     order: number;
+    /** User overrides for exercise definition fields */
+    overrides?: ExerciseOverridesSyncData;
 }
 
 // ============================================================================

@@ -10,3 +10,5 @@ export { MultiSelectActionBar } from './MultiSelectActionBar';
 export { MultiConfigDialog } from './MultiConfigDialog';
 export { EditExerciseDialog } from './EditExerciseDialog';
 export { DeleteExerciseDialog } from './DeleteExerciseDialog';
+export { CustomizeExerciseSheet } from './CustomizeExerciseSheet';
+export { ModifiedFieldIndicator } from './ModifiedFieldIndicator';

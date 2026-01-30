@@ -48,6 +48,8 @@ export const updatePlanExercise = async (
             ...(request.weight !== undefined && { weight: request.weight }),
             ...(request.durationSeconds !== undefined && { durationSeconds: request.durationSeconds }),
             ...(request.comments !== undefined && { comments: request.comments }),
+            // Handle overrides - can be set to update or undefined to clear
+            ...(request.overrides !== undefined && { overrides: request.overrides }),
         };
 
         const updated = await planExercises.updatePlanExercise(request.planExerciseId, update);
@@ -67,6 +69,8 @@ export const updatePlanExercise = async (
             durationSeconds: updated.durationSeconds,
             comments: updated.comments,
             order: updated.order,
+            // Include overrides if present
+            ...(updated.overrides ? { overrides: updated.overrides } : {}),
             createdAt: updated.createdAt.toISOString(),
             updatedAt: updated.updatedAt.toISOString(),
         };
