@@ -281,11 +281,29 @@ function categorizeFile(
       };
     }
 
-    // Normal template file - copy
+    // Normal template file - check if actually changed
+    if (inProject) {
+      const templateHash = getFileHash(templatePath);
+      const projectHash = getFileHash(projectPath);
+
+      if (templateHash === projectHash) {
+        // File is identical, no need to copy
+        return {
+          path: filePath,
+          action: 'skip',
+          reason: 'Already up to date',
+          inTemplate,
+          inProject,
+          isOverride,
+        };
+      }
+    }
+
+    // Copy (new file or changed)
     return {
       path: filePath,
       action: 'copy',
-      reason: inProject ? 'Update from template' : 'New file from template',
+      reason: inProject ? 'Changed in template' : 'New file from template',
       inTemplate,
       inProject,
       isOverride,
