@@ -3,7 +3,7 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "lastSyncCommit": "f708285b0e2add70d6dcb0dc4b76a38e240c2d91",
-  "lastSyncDate": "2026-01-30T10:06:52.783Z",
+  "lastSyncDate": "2026-01-30T10:09:01.317Z",
   "templatePaths": [
     "package.json",
     "tsconfig.json",
@@ -35,7 +35,14 @@
     "src/server/database/collections/reports/**",
     "src/pages/api/process/**",
     "app-guildelines/**",
-    "task-manager/**"
+    "task-manager/lib/**",
+    "task-manager/tasks-cli.ts",
+    "task-manager/README.md",
+    "task-manager/TASK_FORMAT.md",
+    "task-manager/TASK_COMMANDS.md",
+    "task-manager/SLASH_COMMANDS_README.md",
+    "task-manager/task-management-cli.md",
+    "task-manager/.sync-info.md"
   ],
   "projectOverrides": [],
   "overrideHashes": {}
