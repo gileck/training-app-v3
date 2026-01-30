@@ -4,7 +4,7 @@
  * These are core features provided by the template.
  * Do not modify this file - it will be overwritten during template sync.
  *
- * To add project-specific features, add them to index.ts instead.
+ * To add project-specific features, add them to index.project.ts instead.
  */
 
 export * from './auth';

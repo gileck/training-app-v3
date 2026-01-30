@@ -1,14 +1,13 @@
 /**
  * Client Features
  *
- * This file re-exports template features and adds project-specific features.
- * Template features are in index.template.ts (synced from template).
- *
- * Add your project-specific feature exports below the template re-export.
+ * This file combines template and project features.
+ * - index.template.ts: Template features (synced from template)
+ * - index.project.ts: Project features (your custom features)
  */
 
-// Re-export all template features
+// Template features
 export * from './index.template';
 
-// Project-specific features:
-export * from './plan-data';
+// Project-specific features
+export * from './index.project';
