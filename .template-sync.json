@@ -30,9 +30,6 @@
     "app-guildelines/**",
     "task-manager/**"
   ],
-  "projectOverrides": [
-    "src/client/features/index.ts",
-    "src/server/database/collections/index.ts"
-  ],
+  "projectOverrides": [],
   "overrideHashes": {}
 }
