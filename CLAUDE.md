@@ -688,22 +688,37 @@ const createdAt = doc.createdAt.toISOString();  // Crashes on legacy docs
 
 Merge updates from the template repository into projects created from it.
 
-**Summary:** Projects created from this template can receive ongoing updates and improvements while maintaining their own customizations. The sync system supports two models:
+**Summary:** Projects created from this template can receive ongoing updates and improvements while maintaining their own customizations.
 
-### Path Ownership Model (New - Recommended)
+### Sync Flow Summary
+
+| Scenario | Action | User Decision? |
+|----------|--------|----------------|
+| New file from template | Copy | No |
+| Identical file | Skip | No |
+| **Diverged** (project modified, not in overrides) | Prompt | **Yes** - Override/Keep/Merge |
+| **Conflict** (in overrides, template changed) | Prompt | **Yes** - Override/Skip |
+| Override unchanged | Skip | No |
+| Deleted from template | Delete | No |
+| package.json | 3-way merge | No |
+
+**Docs:** [docs/template/template-sync/sync-flows-reference.md](docs/template/template-sync/sync-flows-reference.md) - Complete flow documentation
+
+### Path Ownership Model
 
 Uses explicit path ownership for reliable syncing:
 - **templatePaths**: Paths owned by template - synced exactly, including deletions
 - **projectOverrides**: Files within templatePaths that project wants to keep different
+- **overrideHashes**: Baseline hashes for conflict detection on overrides
 
-**Benefits:**
-- Deleted files from template are automatically deleted from projects
-- No hash baseline drift issues
-- Simple, explicit ownership rules
+**Key Behaviors:**
+- **Diverged files**: If you modify a template file without adding to `projectOverrides`, sync will detect this and prompt you to choose: override, keep (add to overrides), or merge
+- **Conflicts**: If a file in `projectOverrides` is also changed in template, you're prompted to resolve
+- **Deletions**: Files removed from template are automatically removed from project
 
 **Three-File Pattern for Index Files:**
 
-Index files (features, collections, APIs, routes) use a special pattern that eliminates the need for `projectOverrides`:
+Index files (features, collections, APIs, routes) use a pattern that eliminates `projectOverrides`:
 
 | File | Owner | Purpose |
 |------|-------|---------|
@@ -715,53 +730,20 @@ Used in: `src/client/features/`, `src/server/database/collections/`, `src/apis/`
 
 **Docs:** [docs/template/template-sync/migrate-to-split-index-files.md](docs/template/template-sync/migrate-to-split-index-files.md)
 
-**New Config Format (`.template-sync.json`):**
-```json
-{
-  "templateRepo": "...",
-  "templateBranch": "main",
-  "lastSyncCommit": "...",
-  "templatePaths": [
-    "package.json",
-    "docs/template/**",
-    "scripts/template/**",
-    ".ai/skills/template/**",
-    "src/client/components/ui/**",
-    "src/client/features/index.ts",
-    "src/client/features/index.template.ts",
-    "src/apis/index.ts",
-    "src/apis/index.template.ts"
-  ],
-  "projectOverrides": [],
-  "overrideHashes": {}
-}
-```
-
-**Migration from Legacy:**
-```bash
-yarn sync-template --migrate   # Interactive migration wizard
-yarn sync-template --migration-help  # Show migration documentation
-```
-
-### Legacy Model (Hash-Based)
-
-Uses file hashes to detect conflicts:
-- `ignoredFiles`: Files never synced
-- `projectSpecificFiles`: Project's custom files to skip
-- `fileHashes`: Baseline hashes for conflict detection
-
 **Commands:**
 ```bash
-yarn init-template <url>       # Initialize tracking in new project
 yarn sync-template             # Sync updates (interactive)
 yarn sync-template --dry-run   # Preview changes without applying
-yarn sync-template --diff-summary  # Generate full diff report
+yarn sync-template --verbose   # Show all files including unchanged
 ```
 
 **Auto Mode Flags (for CI/CD):**
-| Flag | Safe Changes | Conflicts |
-|------|-------------|-----------|
-| `--auto-safe-only` | Applied | Skipped |
+
+| Flag | Safe Changes | Diverged | Conflicts |
+|------|--------------|----------|-----------|
+| `--auto-safe-only` | Applied | Skipped | Skipped |
+| `--auto-override-conflicts` | Applied | Override | Override |
+| `--auto-skip-conflicts` | Applied | Keep+override | Skip |
 | `--auto-merge-conflicts` | Applied | Creates `.template` files |
 | `--auto-override-conflicts` | Applied | Replaced with template |
 | `--auto-skip-conflicts` | Applied | Skipped |

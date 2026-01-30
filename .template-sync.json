@@ -2,8 +2,8 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
-  "lastSyncCommit": "72c55f95c36ab981d7cc62993fbae2467efce216",
-  "lastSyncDate": "2026-01-30T10:32:47.692Z",
+  "lastSyncCommit": "b537658870b5781aa5c217fbeb81da4ffd135839",
+  "lastSyncDate": "2026-01-30T10:40:54.129Z",
   "templatePaths": [
     "package.json",
     "tsconfig.json",
