@@ -477,7 +477,9 @@ For detailed instructions, see the [Bot Account Setup](./github-projects-integra
    TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
    ```
 
-### Step 3.2: Get Your Chat ID
+### Step 3.2: Get Your Chat ID (Simple Mode)
+
+Use this for a single chat receiving all notifications. For separate topics, see Step 3.2b below.
 
 1. Run the telegram setup script:
    ```bash
@@ -508,6 +510,106 @@ For detailed instructions, see the [Bot Account Setup](./github-projects-integra
        // ... other config ...
        ownerTelegramChatId: '123456789',  // Your chat ID here
    };
+   ```
+
+### Step 3.2b: Separate Topics (Advanced Mode - Recommended)
+
+Split notifications into 3 separate Telegram topics to reduce noise:
+
+| Topic | Frequency | What it receives |
+|-------|-----------|------------------|
+| **Vercel Deployments** | Low | Deploy success/failure |
+| **GitHub Activity** | Medium | PR merged, issues created |
+| **Agent Workflow** | High | Approvals, agent progress |
+
+#### Create Forum Group with Topics
+
+1. **Create a Telegram supergroup** (not a regular group)
+2. **Enable Topics**: Group Settings → Topics → Enable
+3. **Create 3 topics**:
+   - `Vercel Deployments`
+   - `GitHub Activity`
+   - `Agent Workflow`
+4. **Add your bot** to the group
+
+#### Configure Bot for Forum Groups
+
+> **⚠️ CRITICAL: Forum groups require extra bot configuration**
+
+1. **Disable Privacy Mode** (required to receive messages):
+   - Message **@BotFather** → `/mybots` → Select your bot
+   - **Bot Settings → Group Privacy → Turn OFF**
+
+2. **Make bot an admin** (required for topics):
+   - In your group, tap the bot's name
+   - **Promote to Admin** with "Manage Topics" permission
+
+3. **Reset message filter** (if bot still doesn't receive messages):
+   ```bash
+   # Check current filter
+   TOKEN=$(grep "^TELEGRAM_BOT_TOKEN" .env.local | cut -d'=' -f2 | tr -d '"')
+   curl -s "https://api.telegram.org/bot${TOKEN}/getWebhookInfo" | jq '.result.allowed_updates'
+
+   # If it only shows ["callback_query"], reset it:
+   curl -s -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+     -H "Content-Type: application/json" \
+     -d '{"url":"","allowed_updates":["message","callback_query","channel_post","edited_message"]}'
+   ```
+
+#### Get Topic IDs
+
+1. **Delete webhook temporarily** (required for `yarn telegram-setup` to work):
+   ```bash
+   yarn telegram-webhook delete
+   ```
+
+2. **Run setup script**:
+   ```bash
+   yarn telegram-setup
+   ```
+
+3. **Send a message in each topic**. The script outputs combined IDs:
+   ```
+   Combined ID: -1001234567890:123
+                ↑ group chat ID  ↑ topic thread ID
+   ```
+
+4. **Collect all 3 IDs** (press Ctrl+C when done):
+   ```
+   Vercel Deployments:  -1001234567890:2
+   GitHub Activity:     -1001234567890:14
+   Agent Workflow:      -1001234567890:16
+   ```
+
+5. **Add to `.env.local`**:
+   ```bash
+   # Simple mode fallback
+   LOCAL_TELEGRAM_CHAT_ID="5781511728"
+
+   # Separate notification channels (forum topics)
+   VERCEL_TELEGRAM_CHAT_ID="-1001234567890:2"
+   GITHUB_TELEGRAM_CHAT_ID="-1001234567890:14"
+   AGENT_TELEGRAM_CHAT_ID="-1001234567890:16"
+   ```
+
+6. **Test each topic**:
+   ```bash
+   TOKEN=$(grep "^TELEGRAM_BOT_TOKEN" .env.local | cut -d'=' -f2 | tr -d '"')
+
+   # Test Vercel topic
+   curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+     -H "Content-Type: application/json" \
+     -d '{"chat_id":"-1001234567890","message_thread_id":2,"text":"✅ Vercel topic works!"}'
+
+   # Test GitHub topic
+   curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+     -H "Content-Type: application/json" \
+     -d '{"chat_id":"-1001234567890","message_thread_id":14,"text":"✅ GitHub topic works!"}'
+
+   # Test Agent topic
+   curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+     -H "Content-Type: application/json" \
+     -d '{"chat_id":"-1001234567890","message_thread_id":16,"text":"✅ Agent topic works!"}'
    ```
 
 ### Step 3.3: Set Telegram Webhook (After Deployment)
@@ -580,13 +682,38 @@ If you prefer to set these manually:
 
 **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
 
-| Secret Name | Value | Source |
-|-------------|-------|--------|
-| `TELEGRAM_BOT_TOKEN` | Your bot token | From BotFather (Step 3.1) |
-| `TELEGRAM_CHAT_ID` | Your chat ID | From `yarn telegram-setup` (Step 3.2) |
-| `PROJECT_TOKEN` | Your GitHub token | Use the value from `GITHUB_TOKEN` in your `.env.local` |
+| Secret Name | Value | Source | Used By |
+|-------------|-------|--------|---------|
+| `TELEGRAM_BOT_TOKEN` | Your bot token | From BotFather (Step 3.1) | All workflows |
+| `TELEGRAM_CHAT_ID` | Your chat ID | From `yarn telegram-setup` (Step 3.2) | Fallback |
+| `PROJECT_TOKEN` | Your GitHub token | Use the value from `GITHUB_TOKEN` in your `.env.local` | GitHub API calls |
 
 > **Note:** `PROJECT_TOKEN` is ONLY used as a GitHub Actions secret name. You do NOT need to add it to your `.env.local` file.
+
+**Additional Secrets for Separate Topics (Advanced Mode):**
+
+> **⚠️ CRITICAL: GitHub blocks `GITHUB_*` prefix for secrets!**
+>
+> You CANNOT use `GITHUB_TELEGRAM_CHAT_ID` as a secret name. Use `GH_TELEGRAM_CHAT_ID` instead.
+
+| Secret Name | Value | Used By |
+|-------------|-------|---------|
+| `VERCEL_TELEGRAM_CHAT_ID` | `-100xxx:2` (Vercel topic) | `deploy-notify.yml` |
+| `GH_TELEGRAM_CHAT_ID` | `-100xxx:14` (GitHub topic) | `issue-notifications.yml`, `pr-notifications.yml` |
+| `LOCAL_TELEGRAM_CHAT_ID` | Your personal chat ID | Fallback for all workflows |
+
+**Quick setup for separate topics:**
+```bash
+# Set secrets (replace with your actual IDs)
+gh secret set VERCEL_TELEGRAM_CHAT_ID --body "-1001234567890:2" -R owner/repo
+gh secret set GH_TELEGRAM_CHAT_ID --body "-1001234567890:14" -R owner/repo
+gh secret set LOCAL_TELEGRAM_CHAT_ID --body "5781511728" -R owner/repo
+```
+
+**Fallback hierarchy:**
+- Vercel deployments: `VERCEL_TELEGRAM_CHAT_ID` → `LOCAL_TELEGRAM_CHAT_ID`
+- GitHub activity: `GH_TELEGRAM_CHAT_ID` → `TELEGRAM_CHAT_ID`
+- Agent workflow: Uses `AGENT_TELEGRAM_CHAT_ID` from Vercel env vars (not GitHub secrets)
 
 **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
 
@@ -1273,6 +1400,52 @@ curl -s -H "Authorization: bearer YOUR_TOKEN" \
 - Telegram webhooks only work with HTTPS URLs
 - Use your Vercel production URL (automatically HTTPS)
 - For local testing, buttons are replaced with text links
+
+### Telegram Forum Topics Issues
+
+**`yarn telegram-setup` doesn't receive messages from forum topics**
+- **Cause 1:** Bot privacy mode is enabled
+  - **Fix:** Message @BotFather → `/mybots` → Select bot → Bot Settings → Group Privacy → Turn OFF
+  - **Important:** Remove and re-add the bot to the group after changing this setting
+- **Cause 2:** Bot is not an admin in the forum group
+  - **Fix:** In the group, tap bot name → Promote to Admin → Enable "Manage Topics"
+- **Cause 3:** `allowed_updates` filter is blocking messages
+  - **Diagnosis:**
+    ```bash
+    TOKEN=$(grep "^TELEGRAM_BOT_TOKEN" .env.local | cut -d'=' -f2 | tr -d '"')
+    curl -s "https://api.telegram.org/bot${TOKEN}/getWebhookInfo" | jq '.result.allowed_updates'
+    ```
+  - If it only shows `["callback_query"]`, messages are blocked
+  - **Fix:** Reset the filter:
+    ```bash
+    curl -s -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+      -H "Content-Type: application/json" \
+      -d '{"url":"","allowed_updates":["message","callback_query","channel_post","edited_message"]}'
+    ```
+
+**Bot token returns 404 (Not Found)**
+- **Cause:** Token is invalid or bot was deleted
+- **Fix:** Get fresh token from @BotFather → `/mybots` → Select bot → API Token
+- **Verification:**
+  ```bash
+  TOKEN="your_token_here"
+  curl -s "https://api.telegram.org/bot${TOKEN}/getMe" | jq '.ok'
+  # Should return: true
+  ```
+
+**Notifications go to wrong topic / don't go to topics at all**
+- **Cause:** Missing thread ID in chat ID format
+- **Fix:** Use combined format `chatId:threadId` (e.g., `-1001234567890:14`)
+- **Verification:** Check your `.env.local`:
+  ```bash
+  grep TELEGRAM_CHAT_ID .env.local
+  # Should show format like: -1001234567890:14
+  ```
+
+**Can't use `GITHUB_TELEGRAM_CHAT_ID` as GitHub Actions secret**
+- **Cause:** GitHub blocks all secrets starting with `GITHUB_` prefix
+- **Fix:** Use `GH_TELEGRAM_CHAT_ID` instead
+- The workflows already support this name with fallback to `TELEGRAM_CHAT_ID`
 
 ### Agent Issues
 

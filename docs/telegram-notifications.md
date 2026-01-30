@@ -127,8 +127,11 @@ TELEGRAM_CHAT_ID=123456789        # GitHub activity
 **Advanced mode:**
 ```
 VERCEL_TELEGRAM_CHAT_ID=123456789   # Vercel deployments
-GITHUB_TELEGRAM_CHAT_ID=987654321   # GitHub activity
+GH_TELEGRAM_CHAT_ID=987654321       # GitHub activity (NOTE: GITHUB_ prefix not allowed!)
 ```
+
+> **⚠️ Note:** GitHub blocks secrets starting with `GITHUB_*` prefix.
+> Use `GH_TELEGRAM_CHAT_ID` instead of `GITHUB_TELEGRAM_CHAT_ID`.
 
 **Enable GitHub notifications:**
 Add this variable (not secret):
@@ -260,11 +263,13 @@ The 3-chat system is **fully backward compatible**:
 
 **Fallback hierarchy:**
 
-| Notification Type | Primary Env Var | Fallback |
-|-------------------|-----------------|----------|
-| Vercel Deployments | `VERCEL_TELEGRAM_CHAT_ID` | `LOCAL_TELEGRAM_CHAT_ID` |
-| GitHub Activity | `GITHUB_TELEGRAM_CHAT_ID` | `TELEGRAM_CHAT_ID` |
-| Agent Workflow | `AGENT_TELEGRAM_CHAT_ID` | `ownerTelegramChatId` in app.config.js |
+| Notification Type | Primary Secret/Env Var | Fallback | Where Used |
+|-------------------|------------------------|----------|------------|
+| Vercel Deployments | `VERCEL_TELEGRAM_CHAT_ID` | `LOCAL_TELEGRAM_CHAT_ID` | GitHub Actions |
+| GitHub Activity | `GH_TELEGRAM_CHAT_ID` | `TELEGRAM_CHAT_ID` | GitHub Actions |
+| Agent Workflow | `AGENT_TELEGRAM_CHAT_ID` | `ownerTelegramChatId` in app.config.js | Vercel runtime |
+
+> **Note:** For GitHub Activity, use `GH_TELEGRAM_CHAT_ID` (not `GITHUB_TELEGRAM_CHAT_ID`) because GitHub blocks the `GITHUB_*` prefix for secrets.
 
 ## Troubleshooting
 
