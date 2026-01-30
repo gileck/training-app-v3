@@ -3,7 +3,7 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "lastSyncCommit": "f1c8f2cc27b54503b381e77a83d18e5e25031578",
-  "lastSyncDate": "2026-01-30T10:13:08.429Z",
+  "lastSyncDate": "2026-01-30T10:14:08.094Z",
   "templatePaths": [
     "package.json",
     "tsconfig.json",
