@@ -1,316 +1,185 @@
 # Migration Guide: Split Index Files (Template + Project)
 
-> **⚠️ ONE-TIME MANUAL UPDATE REQUIRED**
+> **Why This Pattern?**
 >
-> If your project was created before commit `4b8502a` (Jan 18, 2026), you need to manually update 5 index files to use the new template + project pattern.
+> Index files (features, collections, APIs, routes) need to export both template code AND project-specific code. The three-file pattern cleanly separates ownership:
+> - `index.template.ts` - Template exports (synced from template)
+> - `index.project.ts` - Project exports (owned by your project)
+> - `index.ts` - Simple combiner (synced from template)
 >
-> **Why?** These files are in `ignoredFiles` (don't auto-sync), so you need to update them manually once.
+> **Result:** No merge conflicts, no `projectOverrides` needed for these files!
 
 ---
 
-## What Changed
+## The Three-File Pattern
 
-The template now splits aggregation files into two parts:
-- **`.template.ts` files** - Template code (auto-syncs from template)
-- **Main index files** - Your project code + imports from template
+Each index location uses three files:
 
-This prevents merge conflicts during template sync.
+| File | Owner | Purpose |
+|------|-------|---------|
+| `index.template.ts` | Template | Exports template-provided code |
+| `index.project.ts` | Project | Exports project-specific code |
+| `index.ts` | Template | Combines both (just re-exports) |
 
----
-
-## Files to Update (5 total)
-
-Update these files in your project:
-
-1. `src/apis/apis.ts`
-2. `src/client/features/index.ts`
-3. `src/client/components/NavLinks.tsx`
-4. `src/client/routes/index.ts`
-5. `src/server/database/collections/index.ts`
+**Key insight:** The `index.ts` combiner is owned by template and syncs automatically. Your project-specific exports go in `index.project.ts` which is never touched by sync.
 
 ---
 
-## 1. Update `src/apis/apis.ts`
+## Files Using This Pattern
 
-### Before (OLD - remove this):
-```typescript
-import { mergeApiHandlers } from "./registry";
-import { chatApiHandlers } from "./chat/server";
-import { clearCacheApiHandlers } from "./settings/clearCache/server";
-import { authApiHandlers } from "./auth/server";
-import { todosApiHandlers } from "./todos/server";
-import { reportsApiHandlers } from "./reports/server";
-import { featureRequestsApiHandlers } from "./feature-requests/server";
+The template uses this pattern in 4 locations:
 
-export const apiHandlers = mergeApiHandlers(
-  chatApiHandlers,
-  clearCacheApiHandlers,
-  authApiHandlers,
-  todosApiHandlers,
-  reportsApiHandlers,
-  featureRequestsApiHandlers
-);
-```
+1. `src/client/features/` - Client features
+2. `src/server/database/collections/` - Database collections
+3. `src/apis/` - API exports
+4. `src/client/routes/` - Route definitions
 
-### After (NEW - replace with this):
+---
+
+## Migration Steps
+
+### 1. Features: `src/client/features/`
+
+**Create `index.project.ts`** with your project-specific features:
+
 ```typescript
 /**
- * API Handlers
+ * Project-Specific Features
  *
- * This file merges template API handlers with project-specific handlers.
- * Template handlers are in apis.template.ts (synced from template).
- *
- * Add your project-specific API handlers below.
+ * Add your project-specific feature exports here.
+ * This file is NOT synced from template - it's owned by your project.
  */
-
-import { mergeApiHandlers } from "./registry";
-import { templateApiHandlers } from "./apis.template";
-import { chatApiHandlers } from "./chat/server";
-import { todosApiHandlers } from "./todos/server";
-
-export const apiHandlers = mergeApiHandlers(
-  templateApiHandlers,  // Template APIs (auth, reports, feature-requests, clearCache)
-  chatApiHandlers,      // Your project-specific APIs
-  todosApiHandlers
-  // Add more project-specific API handlers here:
-  // myApiHandlers,
-);
-```
-
-**What to keep:**
-- Keep any project-specific APIs you added (e.g., `chatApiHandlers`, `todosApiHandlers`)
-- Remove template APIs that are now in `templateApiHandlers` (auth, reports, feature-requests, clearCache)
-
----
-
-## 2. Update `src/client/features/index.ts`
-
-### Before (OLD - remove this):
-```typescript
-/**
- * Client Features
- */
-
-export * from './auth';
-export * from './settings';
-export * from './router';
-export * from './offline-sync';
-export * from './session-logs';
-export * from './bug-report';
-export * from './feature-request';
-export * from './error-tracking';
-export * from './theme';
-export * from './boot-performance';
-export * from './my-custom-feature';  // Your project-specific feature
-```
-
-### After (NEW - replace with this):
-```typescript
-/**
- * Client Features
- *
- * This file re-exports template features and adds project-specific features.
- * Template features are in index.template.ts (synced from template).
- *
- * Add your project-specific feature exports below the template re-export.
- */
-
-// Re-export all template features
-export * from './index.template';
 
 // Add project-specific features below:
-export * from './my-custom-feature';  // Your project-specific features
+export * from './my-custom-feature';
+export * from './another-feature';
+
+// If no project features yet, use empty export:
+// export {};
 ```
 
-**What to keep:**
-- Keep any project-specific features you added
-- Remove template features that are now in `index.template.ts`
+**Template provides** `index.template.ts` and `index.ts` (these sync automatically).
 
 ---
 
-## 3. Update `src/client/components/NavLinks.tsx`
+### 2. Collections: `src/server/database/collections/`
 
-### Before (OLD - remove this):
+**Create `index.project.ts`** with your project-specific collections:
+
 ```typescript
-import { NavItem } from './layout/types';
-import { Home, MessageSquare, Settings, CheckSquare, ClipboardList, Palette, Lightbulb } from 'lucide-react';
+/**
+ * Project-Specific Collections
+ *
+ * Add your project-specific collection exports here.
+ * This file is NOT synced from template - it's owned by your project.
+ */
 
-export const navItems: NavItem[] = [
-  { path: '/', label: 'Home', icon: <Home size={18} /> },
-  { path: '/todos', label: 'Todos', icon: <CheckSquare size={18} /> },
-  { path: '/chat', label: 'Chat', icon: <MessageSquare size={18} /> },
-];
+// Add project-specific collections below:
+export * as myItems from './my-items';
+export * as customData from './custom-data';
 
-export const menuItems: NavItem[] = [
-  { path: '/', label: 'Home', icon: <Home size={18} /> },
-  { path: '/todos', label: 'Todos', icon: <CheckSquare size={18} /> },
-  { path: '/chat', label: 'Chat', icon: <MessageSquare size={18} /> },
-  { path: '/theme', label: 'Theme', icon: <Palette size={18} /> },
-  { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
-];
+// If no project collections yet, use empty export:
+// export {};
+```
 
-export const adminMenuItems: NavItem[] = [
-  { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
-  { path: '/admin/feature-requests', label: 'Feature Requests', icon: <Lightbulb size={18} /> },
-];
+**Template provides** `index.template.ts` (users, reports, feature-requests, todos) and `index.ts`.
 
-export function filterAdminNavItems(items: NavItem[], isAdmin: boolean): NavItem[] {
-  if (isAdmin) return items;
-  return items.filter((item) => !item.path.startsWith('/admin'));
+---
+
+### 3. APIs: `src/apis/`
+
+**Create `index.project.ts`** with your project-specific API exports:
+
+```typescript
+/**
+ * Project-Specific APIs
+ *
+ * Add your project-specific API exports here.
+ * This file is NOT synced from template - it's owned by your project.
+ */
+
+// Add project-specific APIs below:
+export * as myApi from './my-api';
+
+// If no project APIs yet, use empty export:
+// export {};
+```
+
+**Template provides** `index.template.ts` (chat, clearCache) and `index.ts`.
+
+---
+
+### 4. Routes: `src/client/routes/`
+
+**Create `index.project.ts`** with your project-specific routes:
+
+```typescript
+/**
+ * Project-Specific Routes
+ *
+ * Add your project-specific route definitions here.
+ * This file is NOT synced from template - it's owned by your project.
+ */
+
+import type { Routes } from '../router';
+import { MyPage } from './MyPage';
+import { CustomFeature } from './CustomFeature';
+
+export const projectRoutes: Routes = {
+  '/my-page': MyPage,
+  '/custom-feature': CustomFeature,
+};
+
+// If no project routes yet:
+// export const projectRoutes: Routes = {};
+```
+
+**Template provides** `index.template.ts` (Home, Todos, AIChat, Settings, etc.) and `index.ts`.
+
+---
+
+## Template Sync Configuration
+
+After migration, your `.template-sync.json` should include these in `templatePaths`:
+
+```json
+{
+  "templatePaths": [
+    "src/client/features/index.ts",
+    "src/client/features/index.template.ts",
+    "src/server/database/collections/index.ts",
+    "src/server/database/collections/index.template.ts",
+    "src/apis/index.ts",
+    "src/apis/index.template.ts",
+    "src/client/routes/index.ts",
+    "src/client/routes/index.template.ts"
+  ],
+  "projectOverrides": []
 }
 ```
 
-### After (NEW - replace with this):
-```typescript
-/**
- * Project Navigation Items
- *
- * This file defines the app's navigation menus.
- * Admin items and utilities are imported from NavLinks.template.tsx (synced from template).
- *
- * Customize navItems and menuItems for your project's needs.
- */
-
-import { NavItem } from './layout/types';
-import { Home, MessageSquare, CheckSquare } from 'lucide-react';
-
-// Re-export template items and utilities
-export { adminMenuItems, filterAdminNavItems } from './NavLinks.template';
-
-/** Bottom navigation bar items */
-export const navItems: NavItem[] = [
-  { path: '/', label: 'Home', icon: <Home size={18} /> },
-  { path: '/todos', label: 'Todos', icon: <CheckSquare size={18} /> },
-  { path: '/chat', label: 'Chat', icon: <MessageSquare size={18} /> },
-];
-
-/** Hamburger menu items */
-export const menuItems: NavItem[] = [
-  { path: '/', label: 'Home', icon: <Home size={18} /> },
-  { path: '/todos', label: 'Todos', icon: <CheckSquare size={18} /> },
-  { path: '/chat', label: 'Chat', icon: <MessageSquare size={18} /> },
-  // Template items (theme, settings) can be added here if needed
-];
-```
-
-**What to keep:**
-- Keep your project-specific nav items
-- Remove `adminMenuItems` and `filterAdminNavItems` (now in template)
+**Note:** `index.project.ts` files are NOT in `templatePaths` because they're owned by your project.
 
 ---
 
-## 4. Update `src/client/routes/index.ts`
+## TypeScript Requirement
 
-### Before (OLD - remove this):
+Empty `index.project.ts` files need an export to be valid TypeScript modules:
+
 ```typescript
-import { Home } from './Home';
-import { NotFound } from './NotFound';
-import { AIChat } from './AIChat';
-import { Settings } from './Settings';
-import { Todos } from './Todos';
-import { SingleTodo } from './SingleTodo';
-import { Profile } from './Profile';
-import { Reports } from './Reports';
-import { FeatureRequests } from './FeatureRequests';
-import { MyFeatureRequests } from './MyFeatureRequests';
-import { Theme } from './Theme';
-import { createRoutes } from '../router';
-
-export const routes = createRoutes({
-  '/': Home,
-  '/ai-chat': AIChat,
-  '/todos': Todos,
-  '/todos/:todoId': SingleTodo,
-  '/settings': Settings,
-  '/theme': Theme,
-  '/profile': Profile,
-  '/my-requests': MyFeatureRequests,
-  '/admin/reports': Reports,
-  '/admin/feature-requests': FeatureRequests,
-  '/not-found': NotFound,
-});
+// If you have no project-specific exports yet:
+export {};
 ```
 
-### After (NEW - replace with this):
-```typescript
-/**
- * Route Definitions
- *
- * This file defines the app's routes by merging template routes with project routes.
- * Template routes are in index.template.ts (synced from template).
- *
- * Add your project-specific routes below.
- */
-
-import { createRoutes } from '../router';
-import { templateRoutes } from './index.template';
-import { Home } from './Home';
-import { AIChat } from './AIChat';
-import { Todos } from './Todos';
-import { SingleTodo } from './SingleTodo';
-
-export const routes = createRoutes({
-  // Template routes (settings, profile, admin, theme, not-found, etc.)
-  ...templateRoutes,
-
-  // Project routes:
-  '/': Home,
-  '/ai-chat': AIChat,
-  '/todos': Todos,
-  '/todos/:todoId': SingleTodo,
-
-  // Add more project routes here:
-  // '/my-page': MyPage,
-});
-```
-
-**What to keep:**
-- Keep your project-specific routes (e.g., Home, AIChat, Todos)
-- Remove template routes that are now in `templateRoutes` (Settings, Theme, Profile, Reports, FeatureRequests, MyFeatureRequests, NotFound)
-
----
-
-## 5. Update `src/server/database/collections/index.ts`
-
-### Before (OLD - remove this):
-```typescript
-export * as users from './users';
-export * as todos from './todos';
-export * as reports from './reports';
-export * as featureRequests from './feature-requests';
-export * as myCollection from './my-collection';
-```
-
-### After (NEW - replace with this):
-```typescript
-/**
- * Database Collections
- *
- * This file re-exports template collections and adds project-specific collections.
- * Template collections are in index.template.ts (synced from template).
- *
- * Add your project-specific collection exports below the template re-export.
- */
-
-// Re-export all template collections
-export * from './index.template';
-
-// Project-specific collections:
-export * as todos from './todos';
-export * as myCollection from './my-collection';
-```
-
-**What to keep:**
-- Keep your project-specific collections (e.g., `todos`, `myCollection`)
-- Remove template collections that are now in template (users, reports, featureRequests)
+Without this, TypeScript will error with "File is not a module".
 
 ---
 
 ## Verification
 
-After updating all 5 files:
+After migration:
 
-1. **Run TypeScript checks:**
+1. **Run checks:**
    ```bash
    yarn checks
    ```
@@ -320,45 +189,46 @@ After updating all 5 files:
    yarn dev
    ```
 
-3. **Verify everything works:**
-   - Navigation menus should work
-   - Routes should load
-   - API calls should work
-   - Database collections accessible
+3. **Verify sync works:**
+   ```bash
+   yarn sync-template --dry-run
+   ```
+
+   Should show no conflicts for index files.
 
 ---
 
-## Why This Change?
+## Before vs After
 
-**Problem before:** Template sync would conflict on these 5 files because both template and project modified them.
+### Before (Two-File Pattern - OLD)
 
-**Solution now:**
-- Template code lives in `.template.ts` files (syncs automatically)
-- Your code lives in main files (ignored from sync)
-- Main files import from template + add project-specific code
+```
+index.ts         ← Project owns, contains both template + project code
+index.template.ts ← Template owns, synced
+```
 
-**Result:** No more merge conflicts on these files during template sync! 🎉
+**Problem:** `index.ts` needed to be in `projectOverrides` to prevent sync conflicts.
 
----
+### After (Three-File Pattern - NEW)
 
-## Need Help?
+```
+index.ts          ← Template owns, just combines the two
+index.template.ts ← Template owns, template exports
+index.project.ts  ← Project owns, project exports
+```
 
-If you run into issues during migration:
-
-1. Check the template's version of these files for reference
-2. Make sure to keep all your project-specific code
-3. Only remove imports/exports that are now in `.template.ts` files
-4. Run `yarn checks` to catch any missing imports
+**Solution:** No `projectOverrides` needed! Template syncs `index.ts` and `index.template.ts`, project owns `index.project.ts`.
 
 ---
 
 ## Summary Checklist
 
-- [ ] Update `src/apis/apis.ts` to import from `apis.template.ts`
-- [ ] Update `src/client/features/index.ts` to import from `index.template.ts`
-- [ ] Update `src/client/components/NavLinks.tsx` to import from `NavLinks.template.tsx`
-- [ ] Update `src/client/routes/index.ts` to import from `index.template.ts`
-- [ ] Update `src/server/database/collections/index.ts` to import from `index.template.ts`
-- [ ] Run `yarn checks` - should pass with 0 errors
-- [ ] Test app - everything should work as before
-- [ ] Sync template - should have no conflicts on these files! ✅
+- [ ] Created `src/client/features/index.project.ts` with project features
+- [ ] Created `src/server/database/collections/index.project.ts` with project collections
+- [ ] Created `src/apis/index.project.ts` with project APIs
+- [ ] Created `src/client/routes/index.project.ts` with project routes
+- [ ] Added index.ts and index.template.ts to `templatePaths`
+- [ ] Removed index.ts files from `projectOverrides` (should be empty now)
+- [ ] Run `yarn checks` - passes with 0 errors
+- [ ] Run `yarn dev` - app works correctly
+- [ ] Run `yarn sync-template --dry-run` - no conflicts on index files

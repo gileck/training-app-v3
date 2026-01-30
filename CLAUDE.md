@@ -701,6 +701,20 @@ Uses explicit path ownership for reliable syncing:
 - No hash baseline drift issues
 - Simple, explicit ownership rules
 
+**Three-File Pattern for Index Files:**
+
+Index files (features, collections, APIs, routes) use a special pattern that eliminates the need for `projectOverrides`:
+
+| File | Owner | Purpose |
+|------|-------|---------|
+| `index.template.ts` | Template | Template exports (synced) |
+| `index.project.ts` | Project | Project exports (never synced) |
+| `index.ts` | Template | Combines both (synced) |
+
+Used in: `src/client/features/`, `src/server/database/collections/`, `src/apis/`, `src/client/routes/`
+
+**Docs:** [docs/template/template-sync/migrate-to-split-index-files.md](docs/template/template-sync/migrate-to-split-index-files.md)
+
 **New Config Format (`.template-sync.json`):**
 ```json
 {
@@ -712,11 +726,13 @@ Uses explicit path ownership for reliable syncing:
     "docs/template/**",
     "scripts/template/**",
     ".ai/skills/template/**",
-    "src/client/components/ui/**"
+    "src/client/components/ui/**",
+    "src/client/features/index.ts",
+    "src/client/features/index.template.ts",
+    "src/apis/index.ts",
+    "src/apis/index.template.ts"
   ],
-  "projectOverrides": [
-    "src/client/components/ui/badge.tsx"
-  ],
+  "projectOverrides": [],
   "overrideHashes": {}
 }
 ```
