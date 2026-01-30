@@ -4,6 +4,35 @@
 
 This guide explains the folder restructuring in the template and how to migrate child projects.
 
+---
+
+## Quick Start (TL;DR)
+
+For experienced users, run these commands in your child project:
+
+```bash
+# 1. Sync new structure (auto-applies safe changes, commits automatically)
+yarn sync-template --auto-safe-only
+
+# 2. Verify everything works
+yarn checks
+
+# 3. Remove old folders
+yarn cleanup-old-folders --force
+
+# 4. Commit cleanup
+git add -A && git commit -m "chore: cleanup old folder structure after template migration"
+
+# 5. (Optional) Migrate to Path Ownership config for future automatic deletions
+yarn sync-template --migrate
+```
+
+**Result:** 2 commits will be created:
+1. `chore: sync template (abc123)` - from sync-template (automatic)
+2. `chore: cleanup old folder structure` - from your manual commit
+
+---
+
 ## What Changed
 
 The template now organizes files into `template/` and `project/` subfolders for clearer ownership:
@@ -55,12 +84,18 @@ docs/
 First, sync the template to get the new folder structure:
 
 ```bash
+# Interactive mode (prompts for confirmation)
 yarn sync-template
+
+# OR non-interactive mode (recommended for automation)
+yarn sync-template --auto-safe-only
 ```
 
 This will:
 - Add all new files in `scripts/template/`, `.ai/skills/template/`, `docs/template/`
 - Update `package.json` with new script paths
+- Run validation (`yarn checks`) automatically
+- **Auto-commit** the synced changes with message: `chore: sync template (abc123)`
 - NOT delete old folders (legacy config doesn't handle deletions)
 
 ### Step 2: Verify Everything Works

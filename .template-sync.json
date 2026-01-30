@@ -3,9 +3,9 @@
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
   "baseCommit": "b1ae8e5278941743ad6a39e1623f08d1236d8371",
-  "lastSyncCommit": "078c3c4e159ee1e762668e9036cbbb608ce6f9c3",
-  "lastProjectCommit": "9cd972e8a4550384e275b60c9538f80a09b4e565",
-  "lastSyncDate": "2026-01-30T08:50:58.732Z",
+  "lastSyncCommit": "bd45ff40a16fab093b1d24ac4b1cadb7cc257aaf",
+  "lastProjectCommit": "374f26b978d8f101c7dd38b85bf92cb2a2a83f97",
+  "lastSyncDate": "2026-01-30T08:55:40.394Z",
   "ignoredFiles": [
     ".template-sync.json",
     "README.md",
@@ -56,6 +56,17 @@
     "scripts/hooks/**"
   ],
   "syncHistory": [
+    {
+      "date": "2026-01-30T08:55:40.573Z",
+      "templateCommit": "bd45ff40a16fab093b1d24ac4b1cadb7cc257aaf",
+      "projectCommit": "374f26b978d8f101c7dd38b85bf92cb2a2a83f97",
+      "filesApplied": 1,
+      "filesSkipped": 14,
+      "filesConflicted": 0,
+      "templateCommits": [
+        "bd45ff4 docs: add Quick Start section to folder restructure migration guide \u001b[90m(30/01/2026)\u001b[0m\n  - Add TL;DR section with complete commands for experienced users\n  - Document --auto-safe-only flag for non-interactive sync\n  - Clarify that sync auto-commits changes\n  - Show expected commit messages\n  \n  Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+      ]
+    },
     {
       "date": "2026-01-30T08:50:58.963Z",
       "templateCommit": "078c3c4e159ee1e762668e9036cbbb608ce6f9c3",
@@ -384,21 +395,6 @@
       "filesConflicted": 0,
       "templateCommits": [
         "1e7fbb1 feat(sync-template): show git diff in --merge-package-json output \u001b[90m(22/01/2026)\u001b[0m\n  Shows the actual diff between project and template package.json files\n  so users can see all differences, not just what would be merged."
-      ]
-    },
-    {
-      "date": "2026-01-22T15:20:10.916Z",
-      "templateCommit": "a67fa1279f2aa4afbaa15513c052dd31f33a7915",
-      "projectCommit": "79c4b67246e02b71f42d3d99f4f742a566b68a16",
-      "filesApplied": 13,
-      "filesSkipped": 14,
-      "filesConflicted": 0,
-      "templateCommits": [
-        "a67fa12 feat(sync-template): add --merge-package-json flag for package.json-only sync \u001b[90m(22/01/2026)\u001b[0m\n  Adds a new mode that performs only the package.json 3-way merge without\n  running a full template sync. Useful when you only want to pull dependency\n  updates from the template.",
-        "d9a9649 docs: remove package.json from all template-sync ignore examples \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Removed package.json from all example ignoredFiles lists\n  - Added warnings in 4 template-sync docs about NOT ignoring package.json\n  - Updated \"Best Practices\" section: changed from \"merge manually\" to \"keep synced\"\n  - Changed comparison example from \"ignore package.json\" to \"ignore example features\"\n  \n  Problem:\n  Template-sync documentation was showing package.json as an example of\n  what to ignore. This misled users into adding it to their ignoredFiles,\n  which broke the GitHub Projects workflow because required scripts\n  (yarn agent:*, yarn verify-setup, etc.) were missing.\n  \n  Root Cause:\n  - template-sync-quick-start.md: showed package.json in ignoredFiles example\n  - template-sync.md: showed package.json in ignoredFiles example AND table\n  - template-sync.md: recommended \"merging package.json manually\"\n  - template-sync-comparison.md: used \"ignore package.json\" as feature demo\n  - template-sync-implementation.md: showed package.json in ignoredFiles example\n  \n  Solution:\n  Remove ALL mentions of ignoring package.json and add explicit warnings.\n  The sync system can handle project-specific dependencies and scripts\n  without conflicts, so there's no reason to ignore it.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "ccb45ad docs: add critical warning about package.json sync requirement \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Add prominent warning box in Prerequisites section\n  - Emphasize that package.json must be synced from template\n  - List specific required scripts that child projects need\n  - Add package.json to Prerequisites checklist\n  \n  Problem:\n  Some child projects are not syncing package.json from the template\n  (adding it to ignoredFiles or projectSpecificFiles), which breaks\n  the entire init workflow because required scripts are missing.\n  \n  Solution:\n  Make it impossible to miss this requirement by adding a 🚨 CRITICAL\n  warning at the top of Prerequisites, before users start any setup steps.\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "1e7a42d docs: emphasize creating new Telegram bot per project \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Add prominent warning box at top of Step 3 in init guide\n  - Add similar warning to telegram-notifications.md\n  \n  Rationale:\n  - A Telegram bot can only have ONE webhook URL at a time\n  - Each project has a different webhook URL (different domains)\n  - Sharing a bot across projects breaks button callbacks\n  - Need to make this crystal clear to prevent setup issues\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
-        "da17681 refactor: use consistent PROJECT_* naming for GitHub Actions variables \u001b[90m(22/01/2026)\u001b[0m\n  Changes:\n  - Workflow: Update pr-merged-mark-done.yml to use PROJECT_* variable names\n  - Docs: Update init guide with new variable names and naming convention note\n  - Script: Update verification script to check for PROJECT_* variables\n  \n  Rationale:\n  - Consistent naming: All GitHub Actions configs now use PROJECT_* prefix\n  - Clear separation: No confusion with GitHub's built-in GITHUB_TOKEN\n  - Explicit ownership: Makes it obvious these are project-defined configs\n  - Local .env still uses GITHUB_* names - this is intentional and documented\n  \n  Variable mapping:\n  - GITHUB_OWNER → PROJECT_OWNER\n  - GITHUB_REPO → PROJECT_REPO\n  - GITHUB_PROJECT_NUMBER → PROJECT_NUMBER\n  - GITHUB_OWNER_TYPE → PROJECT_OWNER_TYPE\n  - PROJECT_TOKEN (no change - already used this naming)\n  \n  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
       ]
     }
   ],
@@ -1303,7 +1299,7 @@
     "docs/template/shadcn-component-library.md": "d37d8929b4c7117df453881b9dcd3962",
     "docs/template/state-management.md": "2410c4ff3ced94cbc6c3689c18deb6ac",
     "docs/template/telegram-notifications.md": "f4dc4b6d2ff3e9961683652595837039",
-    "docs/template/template-sync/folder-restructure-migration.md": "bebf9a249ed5e8c168d9d41c86353b79",
+    "docs/template/template-sync/folder-restructure-migration.md": "ba57efb1345249059b9e9828d65c6e75",
     "docs/template/template-sync/migrate-to-split-index-files.md": "94698432f53479254d119cc0eb282470",
     "docs/template/template-sync/template-sync-comparison.md": "b6618f29b216402550fc173ef53b0e11",
     "docs/template/template-sync/template-sync-implementation.md": "675cfa2104321b7e45f74932bbe3a5c0",
