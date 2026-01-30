@@ -303,7 +303,7 @@ function runInitTemplate() {
 
     console.log('[Template Tracking] Initializing...');
     try {
-        const initTemplateScript = path.resolve(__dirname, 'template-scripts', 'init-template.ts');
+        const initTemplateScript = path.resolve(__dirname, 'template', 'init-template.ts');
         execSync(`npx tsx "${initTemplateScript}" "${remoteUrl}"`, {
             encoding: 'utf8',
             stdio: 'inherit',

@@ -7,14 +7,14 @@
 
 ## Summary
 
-- **Total Tasks:** 32
-- **Open:** 11
+- **Total Tasks:** 33
+- **Open:** 12
 - **In Progress:** 0
 - **Done:** 21
 
 ---
 
-## 📋 Open Tasks (11)
+## 📋 Open Tasks (12)
 
 ### 🟠 High Priority
 
@@ -34,6 +34,7 @@
 | 23 | Workflow Source Code Audit Command | M | Medium |
 | 24 | Standalone Task Creation Agent | L | Medium |
 | 32 | Display Design Docs and PR Links from GitHub Issue Artifacts | M | Medium |
+| 33 | Add sendAgentNotification() Function for Agent-Specific Telegram Notifications | S | Low |
 
 ### 🟢 Low Priority
 
@@ -70,4 +71,4 @@
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-01-30*

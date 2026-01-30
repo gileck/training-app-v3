@@ -14,7 +14,7 @@ This is a **Next.js PWA** with offline-first capabilities, optimized for instant
 - **Optimistic Updates**: All mutations update UI immediately before server confirms
 - **Feature-Based Organization**: Code organized by feature, not type
 
-**Docs:** [docs/architecture.md](docs/architecture.md) - Comprehensive architecture including boot flow, auth preflight, BootGate, state layer, and offline patterns.
+**Docs:** [docs/template/architecture.md](docs/template/architecture.md) - Comprehensive architecture including boot flow, auth preflight, BootGate, state layer, and offline patterns.
 
 ### Project Structure
 
@@ -29,7 +29,22 @@ src/
 ├── apis/               # API definitions (types, handlers, client functions)
 ├── server/             # Server-side code
 └── pages/              # Next.js pages
+
+docs/
+├── template/           # Template documentation (synced from template)
+└── project/            # Project-specific documentation (not synced)
+
+scripts/
+├── template/           # Template scripts (synced from template)
+│   └── sync-template/  # Template sync tool
+└── project/            # Project-specific scripts (not synced)
+
+.ai/skills/
+├── template/           # Template skills (synced from template)
+└── project/            # Project-specific skills (not synced)
 ```
+
+**Folder Ownership:** Files in `template/` folders are owned by the template and synced automatically. Files in `project/` folders are project-specific and never synced.
 
 ---
 
@@ -51,7 +66,7 @@ src/
 3. Add `sm:` modifiers for tablet improvements
 4. Add `md:`/`lg:` modifiers for desktop enhancements
 
-**Rules:** [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md)
+**Rules:** [.ai/skills/template/ui-mobile-first-shadcn/SKILL.md](.ai/skills/template/ui-mobile-first-shadcn/SKILL.md)
 
 ---
 
@@ -83,9 +98,9 @@ const useMyStore = createStore<MyState>({
 });
 ```
 
-**Docs:** [docs/state-management.md](docs/state-management.md), [docs/react-query-mutations.md](docs/react-query-mutations.md), [docs/zustand-stores.md](docs/zustand-stores.md)
+**Docs:** [docs/template/state-management.md](docs/template/state-management.md), [docs/template/react-query-mutations.md](docs/template/react-query-mutations.md), [docs/template/zustand-stores.md](docs/template/zustand-stores.md)
 
-**Rules:** [.ai/skills/state-management-guidelines/SKILL.md](.ai/skills/state-management-guidelines/SKILL.md)
+**Rules:** [.ai/skills/template/state-management-guidelines/SKILL.md](.ai/skills/template/state-management-guidelines/SKILL.md)
 
 ---
 
@@ -116,7 +131,7 @@ Setup:
 
 When visiting a preview URL, the middleware automatically sets an auth cookie for the test user.
 
-**Docs:** [docs/authentication.md](docs/authentication.md)
+**Docs:** [docs/template/authentication.md](docs/template/authentication.md)
 
 ---
 
@@ -134,7 +149,7 @@ Single-layer client cache using localStorage.
 - All queries use `useQueryDefaults()` for centralized cache config
 - Large queries can be excluded from persistence
 
-**Docs:** [docs/caching-strategy.md](docs/caching-strategy.md)
+**Docs:** [docs/template/caching-strategy.md](docs/template/caching-strategy.md)
 
 ---
 
@@ -149,7 +164,7 @@ Full offline support with service worker and optimistic updates.
 - **Batch sync alert** shows sync progress when coming back online
 - POST requests return `{}` when offline (not an error)
 - **CRITICAL - Optimistic-Only Pattern**: Never update UI from server response
-- **Multi-cache updates**: If data shows in both list and detail views, update BOTH caches in `onMutate` (see `docs/react-query-mutations.md`)
+- **Multi-cache updates**: If data shows in both list and detail views, update BOTH caches in `onMutate` (see `docs/template/react-query-mutations.md`)
 
 ```typescript
 useMutation({
@@ -169,7 +184,7 @@ useMutation({
 });
 ```
 
-**Docs:** [docs/offline-pwa-support.md](docs/offline-pwa-support.md)
+**Docs:** [docs/template/offline-pwa-support.md](docs/template/offline-pwa-support.md)
 
 ---
 
@@ -213,7 +228,7 @@ function useIOSKeyboardOffset() {
 - Use `100vh` for full-height layouts
 - Use `env(keyboard-inset-bottom)` (not widely supported)
 
-**Docs:** [docs/ios-pwa-fixes.md](docs/ios-pwa-fixes.md)
+**Docs:** [docs/template/ios-pwa-fixes.md](docs/template/ios-pwa-fixes.md)
 
 ---
 
@@ -246,8 +261,8 @@ export function useTodos() {
 }
 ```
 
-**Docs:** [docs/api-endpoint-format.md](docs/api-endpoint-format.md)
-**Rules:** [.ai/skills/client-server-communications/SKILL.md](.ai/skills/client-server-communications/SKILL.md)
+**Docs:** [docs/template/api-endpoint-format.md](docs/template/api-endpoint-format.md)
+**Rules:** [.ai/skills/template/client-server-communications/SKILL.md](.ai/skills/template/client-server-communications/SKILL.md)
 
 ---
 
@@ -272,7 +287,7 @@ if (items.length === 0) return <EmptyState />;
 return <ItemList items={items} />;
 ```
 
-**Rules:** [.ai/skills/react-component-organization/SKILL.md](.ai/skills/react-component-organization/SKILL.md), [.ai/skills/react-hook-organization/SKILL.md](.ai/skills/react-hook-organization/SKILL.md), [.ai/skills/feature-based-structure/SKILL.md](.ai/skills/feature-based-structure/SKILL.md)
+**Rules:** [.ai/skills/template/react-component-organization/SKILL.md](.ai/skills/template/react-component-organization/SKILL.md), [.ai/skills/template/react-hook-organization/SKILL.md](.ai/skills/template/react-hook-organization/SKILL.md), [.ai/skills/template/feature-based-structure/SKILL.md](.ai/skills/template/feature-based-structure/SKILL.md)
 
 ---
 
@@ -325,7 +340,7 @@ const setSortBy = useMyStore((state) => state.setSortBy);
 
 **Why:** The object literal `({...})` creates a new object on every render. Zustand's shallow equality check sees different references and triggers a re-render, which creates another new object, causing an infinite loop.
 
-**Docs:** [docs/react-rendering-guidelines.md](docs/react-rendering-guidelines.md)
+**Docs:** [docs/template/react-rendering-guidelines.md](docs/template/react-rendering-guidelines.md)
 
 ---
 
@@ -377,7 +392,7 @@ Adding routes and keeping navigation menus in sync.
 - Full-screen pages (e.g., `/clarify/:issueNumber`) - accessed via external links
 - Auth callback routes - redirect-only
 
-**Rules:** [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md)
+**Rules:** [.ai/skills/template/pages-and-routing-guidelines/SKILL.md](.ai/skills/template/pages-and-routing-guidelines/SKILL.md)
 
 ---
 
@@ -402,8 +417,8 @@ shadcn/ui components with semantic theming.
 | `text-muted-foreground` | `text-gray-500` |
 | `border-border` | `border-gray-200` |
 
-**Docs:** [docs/shadcn-component-library.md](docs/shadcn-component-library.md), [docs/theming.md](docs/theming.md)
-**Rules:** [.ai/skills/shadcn-usage/SKILL.md](.ai/skills/shadcn-usage/SKILL.md), [.ai/skills/theming-guidelines/SKILL.md](.ai/skills/theming-guidelines/SKILL.md), [.ai/skills/ui-design-guidelines/SKILL.md](.ai/skills/ui-design-guidelines/SKILL.md)
+**Docs:** [docs/template/shadcn-component-library.md](docs/template/shadcn-component-library.md), [docs/template/theming.md](docs/template/theming.md)
+**Rules:** [.ai/skills/template/shadcn-usage/SKILL.md](.ai/skills/template/shadcn-usage/SKILL.md), [.ai/skills/template/theming-guidelines/SKILL.md](.ai/skills/template/theming-guidelines/SKILL.md), [.ai/skills/template/ui-design-guidelines/SKILL.md](.ai/skills/template/ui-design-guidelines/SKILL.md)
 
 ---
 
@@ -419,7 +434,7 @@ Single-admin setup via environment variable.
 - **Client**: Use `useIsAdmin()` hook for conditional UI
 - Server handlers receive `context.isAdmin`
 
-**Docs:** [docs/admin.md](docs/admin.md)
+**Docs:** [docs/template/admin.md](docs/template/admin.md)
 
 ---
 
@@ -442,7 +457,7 @@ import { logger } from '@/client/features/session-logs';
 logger.info('feature', 'Message', { meta: { ... } });
 ```
 
-**Docs:** [docs/logging-and-error-tracking.md](docs/logging-and-error-tracking.md)
+**Docs:** [docs/template/logging-and-error-tracking.md](docs/template/logging-and-error-tracking.md)
 
 ---
 
@@ -488,7 +503,7 @@ await sendNotificationToOwner(`API Error: ${error.message}`);
 await sendTelegramNotificationToUser(userId, 'Your task was completed');
 ```
 
-**Docs:** [docs/telegram-notifications.md](docs/telegram-notifications.md)
+**Docs:** [docs/template/telegram-notifications.md](docs/template/telegram-notifications.md)
 
 ---
 
@@ -527,7 +542,7 @@ Strict TypeScript guidelines.
 - Keep types simple - avoid complex type structures
 - Always type function parameters and return values
 
-**Rules:** [.ai/skills/typescript-guidelines/SKILL.md](.ai/skills/typescript-guidelines/SKILL.md)
+**Rules:** [.ai/skills/template/typescript-guidelines/SKILL.md](.ai/skills/template/typescript-guidelines/SKILL.md)
 
 ---
 
@@ -575,7 +590,7 @@ Always include a final task to run `yarn checks` in your plan.
 2. Fix ESLint errors second
 3. Re-run `yarn checks` until it passes
 
-**Docs:** [docs/validation-planning-mode.md](docs/validation-planning-mode.md)
+**Docs:** [docs/template/validation-planning-mode.md](docs/template/validation-planning-mode.md)
 
 ---
 
@@ -596,7 +611,7 @@ try {
 }
 ```
 
-**Docs:** [docs/exit-codes-guide.md](docs/exit-codes-guide.md)
+**Docs:** [docs/template/exit-codes-guide.md](docs/template/exit-codes-guide.md)
 
 ---
 
@@ -620,7 +635,7 @@ Systematic verification of codebase compliance.
 
 **Docs:** [app-guildelines/app-guidelines-checklist.md](app-guildelines/app-guidelines-checklist.md)
 
-**Rules:** [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md)
+**Rules:** [.ai/skills/template/app-guidelines-checklist/SKILL.md](.ai/skills/template/app-guidelines-checklist/SKILL.md)
 
 ---
 
@@ -664,8 +679,8 @@ const createdAt = doc.createdAt.toISOString();  // Crashes on legacy docs
 3. Provide sensible fallbacks with nullish coalescing (`??`)
 4. Consider writing a migration script for critical fields
 
-**Docs:** [docs/mongodb-usage.md](docs/mongodb-usage.md)
-**Rules:** [.ai/skills/mongodb-usage/SKILL.md](.ai/skills/mongodb-usage/SKILL.md)
+**Docs:** [docs/template/mongodb-usage.md](docs/template/mongodb-usage.md)
+**Rules:** [.ai/skills/template/mongodb-usage/SKILL.md](.ai/skills/template/mongodb-usage/SKILL.md)
 
 ---
 
@@ -673,12 +688,51 @@ const createdAt = doc.createdAt.toISOString();  // Crashes on legacy docs
 
 Merge updates from the template repository into projects created from it.
 
-**Summary:** Projects created from this template can receive ongoing updates and improvements while maintaining their own customizations. The sync system auto-merges safe changes and flags true conflicts only when files changed in BOTH template and project.
+**Summary:** Projects created from this template can receive ongoing updates and improvements while maintaining their own customizations. The sync system supports two models:
 
-**Key Points:**
-- **Smart conflict detection**: Only flags conflicts when BOTH sides changed a file
-- **Project customizations preserved**: Files you changed that template didn't touch are NOT conflicts
-- **Auto-commits**: Synced changes are automatically committed
+### Path Ownership Model (New - Recommended)
+
+Uses explicit path ownership for reliable syncing:
+- **templatePaths**: Paths owned by template - synced exactly, including deletions
+- **projectOverrides**: Files within templatePaths that project wants to keep different
+
+**Benefits:**
+- Deleted files from template are automatically deleted from projects
+- No hash baseline drift issues
+- Simple, explicit ownership rules
+
+**New Config Format (`.template-sync.json`):**
+```json
+{
+  "templateRepo": "...",
+  "templateBranch": "main",
+  "lastSyncCommit": "...",
+  "templatePaths": [
+    "package.json",
+    "docs/template/**",
+    "scripts/template/**",
+    ".ai/skills/template/**",
+    "src/client/components/ui/**"
+  ],
+  "projectOverrides": [
+    "src/client/components/ui/badge.tsx"
+  ],
+  "overrideHashes": {}
+}
+```
+
+**Migration from Legacy:**
+```bash
+yarn sync-template --migrate   # Interactive migration wizard
+yarn sync-template --migration-help  # Show migration documentation
+```
+
+### Legacy Model (Hash-Based)
+
+Uses file hashes to detect conflicts:
+- `ignoredFiles`: Files never synced
+- `projectSpecificFiles`: Project's custom files to skip
+- `fileHashes`: Baseline hashes for conflict detection
 
 **Commands:**
 ```bash
@@ -702,12 +756,7 @@ yarn sync-template --diff-summary  # Generate full diff report
 - **Merge**: Create `.template` file for manual merge
 - **Do nothing**: Leave file unchanged for now
 
-**Configuration (`.template-sync.json`):**
-- `ignoredFiles`: Files never synced (config, example features)
-- `projectSpecificFiles`: Your custom files to skip
-- Supports glob patterns (`*`, `**`)
-
-**Docs:** [docs/template-sync/template-sync.md](docs/template-sync/template-sync.md)
+**Docs:** [docs/template/template-sync/template-sync.md](docs/template/template-sync/template-sync.md)
 
 ---
 
@@ -765,7 +814,7 @@ yarn github-pr merge --pr 1 --method squash
 - Use `--cloud-proxy` flag in Claude Code cloud environment
 - Merge methods: `merge`, `squash`, `rebase` (default: `squash`)
 
-**Docs:** [docs/github-pr-cli-guide.md](docs/github-pr-cli-guide.md)
+**Docs:** [docs/template/github-pr-cli-guide.md](docs/template/github-pr-cli-guide.md)
 
 ---
 
@@ -804,7 +853,7 @@ git branch -d fix/my-fix
 - No need for PRs on small fixes - merge directly to main
 - Always run `yarn checks` before merging
 
-**Docs:** [docs/git-worktree-workflow.md](docs/git-worktree-workflow.md)
+**Docs:** [docs/template/git-worktree-workflow.md](docs/template/git-worktree-workflow.md)
 
 ---
 
@@ -826,7 +875,7 @@ yarn install                  # Correct - use yarn
 git ls-files -v | grep ^S     # Check skip-worktree status
 ```
 
-**Docs:** [docs/wixpress-registry-issues.md](docs/wixpress-registry-issues.md)
+**Docs:** [docs/template/wixpress-registry-issues.md](docs/template/wixpress-registry-issues.md)
 
 ---
 
@@ -864,18 +913,18 @@ Admin Merges (Telegram) → Status updates to Done (or next phase for multi-phas
 - `yarn verify-setup` - Verify configuration
 
 **Complete Documentation:**
-📚 **[docs/github-agents-workflow/](docs/github-agents-workflow/)** - Full workflow documentation
+📚 **[docs/template/github-agents-workflow/](docs/template/github-agents-workflow/)** - Full workflow documentation
 
 Key documents:
-- [Getting Started Guide](docs/init-github-projects-workflow.md) - Complete setup for child projects
-- [Setup Guide](docs/github-agents-workflow/setup-guide.md) - GitHub Project + tokens + Telegram setup
-- [Workflow Guide](docs/github-agents-workflow/workflow-guide.md) - Step-by-step workflow
-- [Running Agents](docs/github-agents-workflow/running-agents.md) - How to execute agents
-- [Multi-Phase Features](docs/github-agents-workflow/multi-phase-features.md) - L/XL feature handling
-- [Troubleshooting](docs/github-agents-workflow/troubleshooting.md) - Common issues
+- [Getting Started Guide](docs/template/init-github-projects-workflow.md) - Complete setup for child projects
+- [Setup Guide](docs/template/github-agents-workflow/setup-guide.md) - GitHub Project + tokens + Telegram setup
+- [Workflow Guide](docs/template/github-agents-workflow/workflow-guide.md) - Step-by-step workflow
+- [Running Agents](docs/template/github-agents-workflow/running-agents.md) - How to execute agents
+- [Multi-Phase Features](docs/template/github-agents-workflow/multi-phase-features.md) - L/XL feature handling
+- [Troubleshooting](docs/template/github-agents-workflow/troubleshooting.md) - Common issues
 
 **See also:**
-- [Agent Library Abstraction](docs/github-agents-workflow/agent-library-abstraction.md)
+- [Agent Library Abstraction](docs/template/github-agents-workflow/agent-library-abstraction.md)
 - [Gemini CLI Adapter](src/agents/lib/adapters/GEMINI.md)
 - [OpenAI Codex CLI Adapter](src/agents/lib/adapters/OPENAI-CODEX.md)
 
@@ -920,8 +969,8 @@ yarn vercel-cli env:set --name MY_VAR --value "$value" --target production
 - `PREVIEW_USER_ID` → preview environment only
 - Excludes local-only vars: `TEST_*`, `VERCEL_OIDC_TOKEN`
 
-**Docs:** [docs/vercel-cli-guide.md](docs/vercel-cli-guide.md)
-**Rules:** [.ai/skills/vercel-cli-usage/SKILL.md](.ai/skills/vercel-cli-usage/SKILL.md)
+**Docs:** [docs/template/vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
+**Rules:** [.ai/skills/template/vercel-cli-usage/SKILL.md](.ai/skills/template/vercel-cli-usage/SKILL.md)
 
 ---
 
@@ -955,7 +1004,7 @@ Common pitfalls when deploying to production.
    - `extractMarkdown()` properly handles nested code blocks
    - Fixed in `src/agents/shared/claude.ts:253-317`
 
-**Docs:** [docs/critical-deployment-issues.md](docs/critical-deployment-issues.md)
+**Docs:** [docs/template/critical-deployment-issues.md](docs/template/critical-deployment-issues.md)
 
 ---
 
@@ -965,27 +1014,27 @@ Project coding standards and guidelines to follow when writing code.
 
 | Topic | Rule File |
 |-------|-----------|
-| AI Model API Usage | [.ai/skills/ai-models-api-usage/SKILL.md](.ai/skills/ai-models-api-usage/SKILL.md) |
-| App Guidelines Checklist | [.ai/skills/app-guidelines-checklist/SKILL.md](.ai/skills/app-guidelines-checklist/SKILL.md) |
-| Client-Server Communications | [.ai/skills/client-server-communications/SKILL.md](.ai/skills/client-server-communications/SKILL.md) |
-| ESLint Custom Rules | [.ai/skills/eslint-custom-guidelines/SKILL.md](.ai/skills/eslint-custom-guidelines/SKILL.md) |
-| Feature-Based Structure | [.ai/skills/feature-based-structure/SKILL.md](.ai/skills/feature-based-structure/SKILL.md) |
-| Feature Planning | [.ai/skills/feature-planning/SKILL.md](.ai/skills/feature-planning/SKILL.md) |
-| Mobile-First UI | [.ai/skills/ui-mobile-first-shadcn/SKILL.md](.ai/skills/ui-mobile-first-shadcn/SKILL.md) |
-| MongoDB Usage | [.ai/skills/mongodb-usage/SKILL.md](.ai/skills/mongodb-usage/SKILL.md) |
-| Pages & Routing | [.ai/skills/pages-and-routing-guidelines/SKILL.md](.ai/skills/pages-and-routing-guidelines/SKILL.md) |
-| React Component Organization | [.ai/skills/react-component-organization/SKILL.md](.ai/skills/react-component-organization/SKILL.md) |
-| React Hook Organization | [.ai/skills/react-hook-organization/SKILL.md](.ai/skills/react-hook-organization/SKILL.md) |
-| Settings Usage | [.ai/skills/settings-usage-guidelines/SKILL.md](.ai/skills/settings-usage-guidelines/SKILL.md) |
-| shadcn Usage | [.ai/skills/shadcn-usage/SKILL.md](.ai/skills/shadcn-usage/SKILL.md) |
-| State Management | [.ai/skills/state-management-guidelines/SKILL.md](.ai/skills/state-management-guidelines/SKILL.md) |
-| Theming Guidelines | [.ai/skills/theming-guidelines/SKILL.md](.ai/skills/theming-guidelines/SKILL.md) |
-| TypeScript Guidelines | [.ai/skills/typescript-guidelines/SKILL.md](.ai/skills/typescript-guidelines/SKILL.md) |
-| UI Design Guidelines | [.ai/skills/ui-design-guidelines/SKILL.md](.ai/skills/ui-design-guidelines/SKILL.md) |
-| User Access | [.ai/skills/user-access/SKILL.md](.ai/skills/user-access/SKILL.md) |
-| Vercel Composition Patterns | [.ai/skills/vercel-composition-patterns/SKILL.md](.ai/skills/vercel-composition-patterns/SKILL.md) |
-| Vercel React Best Practices | [.ai/skills/vercel-react-best-practices/SKILL.md](.ai/skills/vercel-react-best-practices/SKILL.md) |
-| Web Design Guidelines | [.ai/skills/web-design-guidelines/SKILL.md](.ai/skills/web-design-guidelines/SKILL.md) |
+| AI Model API Usage | [.ai/skills/template/ai-models-api-usage/SKILL.md](.ai/skills/template/ai-models-api-usage/SKILL.md) |
+| App Guidelines Checklist | [.ai/skills/template/app-guidelines-checklist/SKILL.md](.ai/skills/template/app-guidelines-checklist/SKILL.md) |
+| Client-Server Communications | [.ai/skills/template/client-server-communications/SKILL.md](.ai/skills/template/client-server-communications/SKILL.md) |
+| ESLint Custom Rules | [.ai/skills/template/eslint-custom-guidelines/SKILL.md](.ai/skills/template/eslint-custom-guidelines/SKILL.md) |
+| Feature-Based Structure | [.ai/skills/template/feature-based-structure/SKILL.md](.ai/skills/template/feature-based-structure/SKILL.md) |
+| Feature Planning | [.ai/skills/template/feature-planning/SKILL.md](.ai/skills/template/feature-planning/SKILL.md) |
+| Mobile-First UI | [.ai/skills/template/ui-mobile-first-shadcn/SKILL.md](.ai/skills/template/ui-mobile-first-shadcn/SKILL.md) |
+| MongoDB Usage | [.ai/skills/template/mongodb-usage/SKILL.md](.ai/skills/template/mongodb-usage/SKILL.md) |
+| Pages & Routing | [.ai/skills/template/pages-and-routing-guidelines/SKILL.md](.ai/skills/template/pages-and-routing-guidelines/SKILL.md) |
+| React Component Organization | [.ai/skills/template/react-component-organization/SKILL.md](.ai/skills/template/react-component-organization/SKILL.md) |
+| React Hook Organization | [.ai/skills/template/react-hook-organization/SKILL.md](.ai/skills/template/react-hook-organization/SKILL.md) |
+| Settings Usage | [.ai/skills/template/settings-usage-guidelines/SKILL.md](.ai/skills/template/settings-usage-guidelines/SKILL.md) |
+| shadcn Usage | [.ai/skills/template/shadcn-usage/SKILL.md](.ai/skills/template/shadcn-usage/SKILL.md) |
+| State Management | [.ai/skills/template/state-management-guidelines/SKILL.md](.ai/skills/template/state-management-guidelines/SKILL.md) |
+| Theming Guidelines | [.ai/skills/template/theming-guidelines/SKILL.md](.ai/skills/template/theming-guidelines/SKILL.md) |
+| TypeScript Guidelines | [.ai/skills/template/typescript-guidelines/SKILL.md](.ai/skills/template/typescript-guidelines/SKILL.md) |
+| UI Design Guidelines | [.ai/skills/template/ui-design-guidelines/SKILL.md](.ai/skills/template/ui-design-guidelines/SKILL.md) |
+| User Access | [.ai/skills/template/user-access/SKILL.md](.ai/skills/template/user-access/SKILL.md) |
+| Vercel Composition Patterns | [.ai/skills/template/vercel-composition-patterns/SKILL.md](.ai/skills/template/vercel-composition-patterns/SKILL.md) |
+| Vercel React Best Practices | [.ai/skills/template/vercel-react-best-practices/SKILL.md](.ai/skills/template/vercel-react-best-practices/SKILL.md) |
+| Web Design Guidelines | [.ai/skills/template/web-design-guidelines/SKILL.md](.ai/skills/template/web-design-guidelines/SKILL.md) |
 
 ---
 
@@ -995,9 +1044,9 @@ Skills invoked on user request to perform specific actions or workflows.
 
 | Command | Skill File |
 |---------|------------|
-| Contribute to Template | [.ai/skills/contribute-to-template/SKILL.md](.ai/skills/contribute-to-template/SKILL.md) |
-| Debug Bug Report | [.ai/skills/debug-bug-report/SKILL.md](.ai/skills/debug-bug-report/SKILL.md) |
-| Full Project Audit | [.ai/skills/full-project-audit/SKILL.md](.ai/skills/full-project-audit/SKILL.md) |
-| Sync Template | [.ai/skills/sync-template/SKILL.md](.ai/skills/sync-template/SKILL.md) |
-| Template Diff | [.ai/skills/template-diff/SKILL.md](.ai/skills/template-diff/SKILL.md) |
-| Vercel CLI Usage | [.ai/skills/vercel-cli-usage/SKILL.md](.ai/skills/vercel-cli-usage/SKILL.md) |
+| Contribute to Template | [.ai/skills/template/contribute-to-template/SKILL.md](.ai/skills/template/contribute-to-template/SKILL.md) |
+| Debug Bug Report | [.ai/skills/template/debug-bug-report/SKILL.md](.ai/skills/template/debug-bug-report/SKILL.md) |
+| Full Project Audit | [.ai/skills/template/full-project-audit/SKILL.md](.ai/skills/template/full-project-audit/SKILL.md) |
+| Sync Template | [.ai/skills/template/sync-template/SKILL.md](.ai/skills/template/sync-template/SKILL.md) |
+| Template Diff | [.ai/skills/template/template-diff/SKILL.md](.ai/skills/template/template-diff/SKILL.md) |
+| Vercel CLI Usage | [.ai/skills/template/vercel-cli-usage/SKILL.md](.ai/skills/template/vercel-cli-usage/SKILL.md) |
