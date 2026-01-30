@@ -209,7 +209,8 @@ export async function sendNotificationToOwner(
     message: string,
     options?: SendMessageOptions
 ): Promise<SendMessageResult> {
-    const ownerChatId = appConfig.ownerTelegramChatId;
+    // Priority: AGENT_TELEGRAM_CHAT_ID env var (supports topics) → app.config fallback
+    const ownerChatId = process.env.AGENT_TELEGRAM_CHAT_ID || appConfig.ownerTelegramChatId;
 
     if (!ownerChatId) {
         console.warn('[Telegram] Owner notification skipped: ownerTelegramChatId not configured');
