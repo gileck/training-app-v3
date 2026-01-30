@@ -72,31 +72,52 @@ export async function syncFiles(
     const projectFilePath = path.join(context.projectRoot, change.path);
 
     try {
-      // Special handling for package.json with auto-merge
-      if (change.path === 'package.json' && analysis.packageJsonMerge?.success && analysis.packageJsonMerge.merged) {
+      // Special handling for package.json - ALWAYS merge, never copy directly
+      // This preserves project-specific dependencies that the template doesn't have
+      if (change.path === 'package.json') {
+        // Use pre-computed merge result if available, otherwise compute it now
         let mergeResult = analysis.packageJsonMerge;
 
-        // If there are field conflicts, prompt user to resolve them interactively
-        if (mergeResult.conflicts.length > 0 && !context.options.dryRun) {
-          mergeResult = await resolveFieldConflictsInteractively(mergeResult);
+        if (!mergeResult || !mergeResult.success) {
+          // Compute merge on-the-fly if not already done
+          // This ensures we never just copy package.json and lose project dependencies
+          const templatePkg = readPackageJson(templateFilePath);
+          const projectPkg = readPackageJson(projectFilePath);
+
+          if (templatePkg && projectPkg) {
+            // Use 2-way merge (no baseline) as fallback - preserves all project keys
+            mergeResult = mergePackageJson(null, templatePkg, projectPkg);
+          }
         }
 
-        if (!context.options.dryRun && mergeResult.merged) {
-          // Write the merged package.json
-          writePackageJson(projectFilePath, mergeResult.merged);
+        if (mergeResult?.success && mergeResult.merged) {
+          // If there are field conflicts, prompt user to resolve them interactively
+          if (mergeResult.conflicts.length > 0 && !context.options.dryRun) {
+            mergeResult = await resolveFieldConflictsInteractively(mergeResult);
+          }
 
-          // Calculate and store hash of the merged content
-          const mergedContent = JSON.stringify(mergeResult.merged, null, 2) + '\n';
-          const hash = crypto.createHash('md5').update(mergedContent).digest('hex');
-          storeFileHash(context.config, change.path, hash);
-        }
+          if (!context.options.dryRun && mergeResult.merged) {
+            // Write the merged package.json
+            writePackageJson(projectFilePath, mergeResult.merged);
 
-        // Display merge summary
-        console.log('  📦 package.json - auto-merged');
-        console.log(formatMergeSummary(mergeResult));
+            // Calculate and store hash of the merged content
+            const mergedContent = JSON.stringify(mergeResult.merged, null, 2) + '\n';
+            const hash = crypto.createHash('md5').update(mergedContent).digest('hex');
+            storeFileHash(context.config, change.path, hash);
+          }
 
-        if (mergeResult.conflicts.length > 0) {
-          console.log(formatConflictMessage(mergeResult.conflicts));
+          // Display merge summary
+          console.log('  📦 package.json - auto-merged');
+          console.log(formatMergeSummary(mergeResult));
+
+          if (mergeResult.conflicts.length > 0) {
+            console.log(formatConflictMessage(mergeResult.conflicts));
+          }
+        } else {
+          // Merge failed - skip this file to avoid data loss
+          console.log('  ⚠️  package.json - merge failed, skipping to preserve project dependencies');
+          result.skipped.push(change.path);
+          continue;
         }
 
         result.autoMerged.push(change.path);

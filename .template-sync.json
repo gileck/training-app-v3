@@ -2,8 +2,8 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
-  "lastSyncCommit": "bd45ff40a16fab093b1d24ac4b1cadb7cc257aaf",
-  "lastSyncDate": "2026-01-30T09:00:41.296Z",
+  "lastSyncCommit": "217865d531418df2f5e70e4d1a19684e43e73c33",
+  "lastSyncDate": "2026-01-30T09:49:31.847Z",
   "templatePaths": [
     "package.json",
     "tsconfig.json",
@@ -32,9 +32,7 @@
   ],
   "projectOverrides": [
     "src/client/features/index.ts",
-    "src/server/database/collections/index.ts",
-    "src/client/components/ui/checkbox.tsx",
-    "src/client/components/ui/tabs.tsx"
+    "src/server/database/collections/index.ts"
   ],
   "overrideHashes": {}
 }
