@@ -372,7 +372,7 @@ export function Home() {
             {/* SUCCESS Test Box */}
             <Card className="rounded-2xl border-2 border-success bg-success/10">
                 <CardContent className="p-6">
-                    <p className="text-3xl font-bold text-success text-center">SUCCESS</p>
+                    <p className="text-3xl font-bold text-success text-center">SUCCESS!!!</p>
                 </CardContent>
             </Card>
 
