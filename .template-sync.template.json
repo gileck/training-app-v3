@@ -1,0 +1,34 @@
+{
+  "templatePaths": [
+    "package.json",
+    "tsconfig.json",
+    ".eslintrc.js",
+    "eslint.config.mjs",
+    "postcss.config.mjs",
+    "next.config.ts",
+    "CLAUDE.md",
+    "docs/template/**",
+    "scripts/template/**",
+    ".ai/skills/template/**",
+    "src/client/components/ui/**",
+    "src/client/query/**",
+    "src/client/stores/**",
+    "src/server/middleware/**",
+    "src/server/utils/**",
+    "src/server/database/connection.ts",
+    "src/server/database/index.ts",
+    "src/pages/api/process/**",
+    ".template-sync.template.json"
+  ],
+  "templateIgnoredFiles": [
+    ".claude/commands/sync-children.md",
+    "scripts/sync-child-projects.ts",
+    "scripts/push-and-sync.sh",
+    "scripts/hooks/**",
+    "src/apis/todos/**",
+    "src/client/routes/Todos/**",
+    "src/client/routes/SingleTodo/**",
+    "src/server/database/collections/todos/**",
+    "src/client/styles/todos.css"
+  ]
+}
