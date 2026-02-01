@@ -2,8 +2,8 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
-  "lastSyncCommit": "ba60084d7bd0469a882f137cce4abf47c4368fc4",
-  "lastSyncDate": "2026-02-01T06:54:59.628Z",
+  "lastSyncCommit": "dab835f6b951ef98c0af4bcceeffa13ecc082607",
+  "lastSyncDate": "2026-02-01T07:01:19.388Z",
   "projectOverrides": [
     "src/app.config.js",
     "src/client/routes/index.ts",

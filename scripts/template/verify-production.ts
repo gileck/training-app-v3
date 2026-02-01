@@ -20,7 +20,7 @@
  *   yarn verify-production --skip-vercel  # Skip env var checks
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 import { Command } from 'commander';
 import { execSync } from 'child_process';
 

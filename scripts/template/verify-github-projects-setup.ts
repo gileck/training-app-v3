@@ -15,7 +15,7 @@
  *   yarn verify-setup --skip-vercel    # Skip Vercel checks (no vercel CLI required)
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 import { Command } from 'commander';
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';

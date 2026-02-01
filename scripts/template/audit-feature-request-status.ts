@@ -11,7 +11,7 @@
  *   yarn audit-feature-status --fix --target in_progress  # Migrate to specific status
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 import { getDb } from '@/server/database';
 import { FeatureRequestStatus } from '@/server/database/collections/feature-requests/types';
 

@@ -14,7 +14,7 @@
  *   yarn verify-credentials
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 import { Command } from 'commander';
 import { Octokit } from '@octokit/rest';
 

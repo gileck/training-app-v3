@@ -12,7 +12,7 @@
  *   - TELEGRAM_BOT_TOKEN must be set in .env
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 

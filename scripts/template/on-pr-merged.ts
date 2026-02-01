@@ -24,7 +24,7 @@
  * - Single-phase: "✅ Merged PR #Z - Issue complete!"
  */
 
-import '../src/agents/shared/loadEnv';
+import '../../src/agents/shared/loadEnv';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import type { ProjectManagementAdapter } from '@/server/project-management/types';
 import { STATUSES } from '@/server/project-management/config';
