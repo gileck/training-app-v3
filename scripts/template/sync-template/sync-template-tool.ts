@@ -320,6 +320,13 @@ export class TemplateSyncTool {
   }
 
   async run(): Promise<void> {
+    // Handle JSON mode first - run silently and output structured result
+    if (this.context.options.json) {
+      await runJsonMode(this.context);
+      this.rl.close();
+      return;
+    }
+
     // Route to folder ownership sync if using new config format
     if (this.folderOwnershipConfig) {
       try {
@@ -327,13 +334,6 @@ export class TemplateSyncTool {
       } finally {
         this.rl.close();
       }
-      return;
-    }
-
-    // Handle JSON mode - run silently and output structured result
-    if (this.context.options.json) {
-      await runJsonMode(this.context);
-      this.rl.close();
       return;
     }
 
