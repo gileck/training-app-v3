@@ -44,6 +44,7 @@
     "verify-credentials": "tsx scripts/template/verify-credentials.ts",
     "verify-production": "tsx scripts/template/verify-production.ts",
     "init-agents-copy": "tsx scripts/template/init-agents-copy-project.ts",
+    "copy-to-agents": "tsx scripts/template/copy-non-git-files-to-agents-copy.ts",
     "test-cursor-adapter": "tsx scripts/template/test-cursor-adapter.ts",
     "test-gemini-adapter": "tsx scripts/template/test-gemini-adapter.ts",
     "test-openai-codex-adapter": "tsx scripts/template/test-openai-codex-adapter.ts",
