@@ -8,7 +8,8 @@ import * as readline from 'readline';
 // Constants
 // ============================================================================
 
-export const CONFIG_FILE = '.template-sync.json';
+export const CONFIG_FILE = '.template-sync.json';  // Project-owned config
+export const TEMPLATE_CONFIG_FILE = '.template-sync.template.json';  // Template-owned config (synced)
 export const TEMPLATE_DIR = '.template-sync-temp';
 export const DIFF_SUMMARY_FILE = 'template-diff-summary.md';
 export const SYNC_REPORT_FILE = 'SYNC-REPORT.md';
@@ -63,22 +64,36 @@ export interface TemplateSyncConfig {
 export type LegacyTemplateSyncConfig = TemplateSyncConfig;
 
 /**
- * New config format - uses explicit path ownership model.
- * Replaces hash-based conflict detection with explicit template/project ownership.
+ * Template-owned config file (.template-sync.template.json)
+ * This file is synced FROM the template and defines what the template owns.
+ * Projects should NOT modify this file.
  */
-export interface FolderOwnershipConfig {
-  templateRepo: string;
-  templateBranch: string;
-  templateLocalPath?: string;  // Local path to template repo (for faster sync)
-  lastSyncCommit: string | null;
-  lastSyncDate: string | null;
-
+export interface TemplateOwnedConfig {
   /**
    * Paths owned by template (files, folders, globs).
    * These paths are synced exactly - including deletions.
    * Examples: ["package.json", "docs/template/**", "src/client/components/ui/**"]
    */
   templatePaths: string[];
+
+  /**
+   * Template files to never sync to child projects.
+   * Example: demo/example code that exists in template but shouldn't be synced.
+   * Examples: ["src/apis/todos/**", "src/client/routes/Todos/**"]
+   */
+  templateIgnoredFiles?: string[];
+}
+
+/**
+ * Project-owned config file (.template-sync.json)
+ * This file is owned by the project and is NOT synced from template.
+ */
+export interface ProjectOwnedConfig {
+  templateRepo: string;
+  templateBranch: string;
+  templateLocalPath?: string;  // Local path to template repo (for faster sync)
+  lastSyncCommit: string | null;
+  lastSyncDate: string | null;
 
   /**
    * Files within templatePaths that project wants to keep different.
@@ -94,16 +109,15 @@ export interface FolderOwnershipConfig {
    */
   overrideHashes?: Record<string, string>;
 
-  /**
-   * Template files to never sync to child projects.
-   * Read from template's config and merged during sync.
-   * Examples: ["src/apis/todos/**", "src/client/routes/Todos/**"]
-   */
-  templateIgnoredFiles?: string[];
-
   // Optional - for tracking history
   syncHistory?: SyncHistoryEntry[];
 }
+
+/**
+ * Combined config (merged in memory for sync operations)
+ * This is the old FolderOwnershipConfig format, kept for backwards compatibility.
+ */
+export interface FolderOwnershipConfig extends TemplateOwnedConfig, ProjectOwnedConfig {}
 
 /**
  * Union type for any config format (used for loading/detecting config type)

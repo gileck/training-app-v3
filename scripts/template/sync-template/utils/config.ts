@@ -6,18 +6,78 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   CONFIG_FILE,
+  TEMPLATE_CONFIG_FILE,
   TemplateSyncConfig,
   AnyTemplateSyncConfig,
   FolderOwnershipConfig,
+  TemplateOwnedConfig,
+  ProjectOwnedConfig,
   isFolderOwnershipConfig,
   isLegacyConfig
 } from '../types';
 
 /**
+ * Check if split config files exist (new pattern)
+ */
+export function hasSplitConfig(projectRoot: string): boolean {
+  const templateConfigPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  return fs.existsSync(templateConfigPath);
+}
+
+/**
+ * Load the template-owned config (.template-sync.template.json)
+ */
+export function loadTemplateConfig(projectRoot: string): TemplateOwnedConfig | null {
+  const configPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
+/**
+ * Load the project-owned config (.template-sync.json)
+ */
+export function loadProjectConfig(projectRoot: string): ProjectOwnedConfig | null {
+  const configPath = path.join(projectRoot, CONFIG_FILE);
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
+/**
+ * Load and merge split configs into a FolderOwnershipConfig
+ */
+export function loadSplitConfig(projectRoot: string): FolderOwnershipConfig | null {
+  const templateConfig = loadTemplateConfig(projectRoot);
+  const projectConfig = loadProjectConfig(projectRoot);
+
+  if (!templateConfig || !projectConfig) {
+    return null;
+  }
+
+  // Merge both configs
+  return {
+    ...projectConfig,
+    ...templateConfig,
+  };
+}
+
+/**
  * Load the template sync configuration from disk.
- * Returns the raw config - use type guards to determine format.
+ * Supports both split config (new) and single file (legacy/old folder ownership).
  */
 export function loadConfig(projectRoot: string): AnyTemplateSyncConfig {
+  // Try split config first (new pattern)
+  if (hasSplitConfig(projectRoot)) {
+    const merged = loadSplitConfig(projectRoot);
+    if (merged) {
+      return merged;
+    }
+  }
+
+  // Fall back to single file
   const configPath = path.join(projectRoot, CONFIG_FILE);
 
   if (!fs.existsSync(configPath)) {
@@ -42,15 +102,63 @@ export function loadLegacyConfig(projectRoot: string): TemplateSyncConfig {
 }
 
 /**
- * Save the template sync configuration to disk
+ * Save the template-owned config (.template-sync.template.json)
  */
-export function saveConfig(projectRoot: string, config: AnyTemplateSyncConfig): void {
+export function saveTemplateConfig(projectRoot: string, config: TemplateOwnedConfig): void {
+  const configPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(config, null, 2) + '\n',
+    'utf-8'
+  );
+}
+
+/**
+ * Save the project-owned config (.template-sync.json)
+ */
+export function saveProjectConfig(projectRoot: string, config: ProjectOwnedConfig): void {
   const configPath = path.join(projectRoot, CONFIG_FILE);
   fs.writeFileSync(
     configPath,
     JSON.stringify(config, null, 2) + '\n',
     'utf-8'
   );
+}
+
+/**
+ * Save the template sync configuration to disk.
+ * If using split config, saves to both files appropriately.
+ */
+export function saveConfig(projectRoot: string, config: AnyTemplateSyncConfig): void {
+  if (hasSplitConfig(projectRoot) && isFolderOwnershipConfig(config)) {
+    // Save to split files
+    const templateConfig: TemplateOwnedConfig = {
+      templatePaths: config.templatePaths,
+      templateIgnoredFiles: config.templateIgnoredFiles,
+    };
+
+    const projectConfig: ProjectOwnedConfig = {
+      templateRepo: config.templateRepo,
+      templateBranch: config.templateBranch,
+      templateLocalPath: config.templateLocalPath,
+      lastSyncCommit: config.lastSyncCommit,
+      lastSyncDate: config.lastSyncDate,
+      projectOverrides: config.projectOverrides,
+      overrideHashes: config.overrideHashes,
+      syncHistory: config.syncHistory,
+    };
+
+    saveTemplateConfig(projectRoot, templateConfig);
+    saveProjectConfig(projectRoot, projectConfig);
+  } else {
+    // Save to single file (legacy or non-split folder ownership)
+    const configPath = path.join(projectRoot, CONFIG_FILE);
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(config, null, 2) + '\n',
+      'utf-8'
+    );
+  }
 }
 
 /**

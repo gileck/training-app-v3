@@ -4,7 +4,19 @@
 
 export { log, logVerbose, logError } from './logging';
 export { exec, stripAnsi, type ExecOptions } from './exec';
-export { loadConfig, saveConfig, mergeTemplateIgnoredFiles, needsMigration, isNewConfigFormat, getConfigFormatDescription } from './config';
+export {
+  loadConfig,
+  saveConfig,
+  loadTemplateConfig,
+  loadProjectConfig,
+  saveTemplateConfig,
+  saveProjectConfig,
+  hasSplitConfig,
+  mergeTemplateIgnoredFiles,
+  needsMigration,
+  isNewConfigFormat,
+  getConfigFormatDescription
+} from './config';
 export {
   mergePackageJson,
   mergePackageJsonFiles,

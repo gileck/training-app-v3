@@ -136,52 +136,60 @@ export async function runMigrationWizard(
     return null;
   }
 
-  // Step 2: Choose template paths
+  // Step 2: Get template paths from the TEMPLATE's config
   console.log('\n📁 Template Paths');
   console.log('─'.repeat(40));
-  console.log('\nDefault template paths:');
-  for (const p of DEFAULT_TEMPLATE_PATHS.slice(0, 10)) {
-    console.log(`  - ${p}`);
-  }
-  if (DEFAULT_TEMPLATE_PATHS.length > 10) {
-    console.log(`  ... and ${DEFAULT_TEMPLATE_PATHS.length - 10} more`);
+
+  // Try to read templatePaths from the template's folder ownership config
+  const templateDir = path.join(projectRoot, TEMPLATE_DIR);
+  const templateConfigPath = path.join(templateDir, '.template-sync.json');
+
+  let templatePaths: string[] = [];
+
+  if (fs.existsSync(templateConfigPath)) {
+    try {
+      const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8'));
+      if (templateConfig.templatePaths && Array.isArray(templateConfig.templatePaths)) {
+        templatePaths = templateConfig.templatePaths;
+        console.log('\nTemplate paths from template config:');
+        for (const p of templatePaths.slice(0, 10)) {
+          console.log(`  - ${p}`);
+        }
+        if (templatePaths.length > 10) {
+          console.log(`  ... and ${templatePaths.length - 10} more`);
+        }
+
+        const useTemplatePaths = await confirm('\nUse these template paths?', true);
+        if (!useTemplatePaths) {
+          console.log('\n⚠️  Edit .template-sync.json manually after migration to customize.');
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
   }
 
-  const useDefaults = await confirm('\nUse default template paths?', true);
+  if (templatePaths.length === 0) {
+    console.log('\n⚠️  No templatePaths found in template config.');
+    console.log('   You must configure templatePaths manually in .template-sync.json');
+    console.log('   after migration.');
+    console.log('\n   templatePaths defines which paths the template owns and syncs.');
+    console.log('   Example: ["package.json", "docs/template/**", "src/client/components/ui/**"]');
 
-  let templatePaths: string[];
-  if (useDefaults) {
-    templatePaths = [...DEFAULT_TEMPLATE_PATHS];
-  } else {
-    // Let user customize (in a real implementation, this would be more interactive)
-    console.log('\n⚠️  Custom path editing not yet implemented.');
-    console.log('   Using defaults. Edit .template-sync.json manually after migration.');
-    templatePaths = [...DEFAULT_TEMPLATE_PATHS];
+    const continueAnyway = await confirm('\nContinue with empty templatePaths?', false);
+    if (!continueAnyway) {
+      return null;
+    }
   }
 
-  // Step 3: Identify project overrides
+  // Step 3: Project overrides (start empty, user adds as needed)
   console.log('\n📝 Project Overrides');
   console.log('─'.repeat(40));
+  console.log('\nProject overrides are files within templatePaths that you want to');
+  console.log('keep different from the template. Start with none - add them as needed');
+  console.log('when sync shows conflicts for files you want to customize.');
 
-  const inferredOverrides = inferProjectOverrides(legacyConfig);
-  const suggestedOverrides = [...new Set([...inferredOverrides, ...COMMON_PROJECT_OVERRIDES])];
-
-  console.log('\nSuggested project overrides (files you\'ve customized):');
-  for (const p of suggestedOverrides.slice(0, 10)) {
-    console.log(`  - ${p}`);
-  }
-
-  const useInferred = await confirm('\nUse suggested overrides?', true);
-
-  let projectOverrides: string[];
-  if (useInferred) {
-    projectOverrides = suggestedOverrides.filter(p => {
-      const fullPath = path.join(projectRoot, p);
-      return fs.existsSync(fullPath);
-    });
-  } else {
-    projectOverrides = [];
-  }
+  let projectOverrides: string[] = [];
 
   // Step 4: Create new config
   const newConfig = migrateConfig(legacyConfig, {

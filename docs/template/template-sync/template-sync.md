@@ -6,13 +6,9 @@ This template includes a powerful template sync system that allows you to merge 
 
 When you create a new app from this template, you can continue to receive updates and improvements from the template while maintaining your own customizations.
 
-## Two Sync Models
+## Configuration Model
 
-The sync system supports two configuration models:
-
-### 1. Path Ownership Model (New - Recommended)
-
-The **Path Ownership Model** uses explicit path declarations to determine what the template owns:
+The sync system uses the **Path Ownership Model** with explicit path declarations:
 
 - **`templatePaths`**: Paths owned by the template (synced exactly, including deletions)
 - **`projectOverrides`**: Files within templatePaths that the project wants to keep different
@@ -23,30 +19,7 @@ The **Path Ownership Model** uses explicit path declarations to determine what t
 - Project overrides are kept different from template
 - Clear, explicit ownership - no hash drift issues
 
-### 2. Hash-Based Model (Legacy)
-
-The **Hash-Based Model** uses file hashes to detect who changed what:
-
-- **`ignoredFiles`**: Files never synced
-- **`projectSpecificFiles`**: Your custom code
-- **`templateIgnoredFiles`**: Template example code to skip
-- **`fileHashes`**: Auto-managed baseline hashes
-
-**Key behaviors:**
-- Uses MD5 hashes to track changes
-- Flags conflicts when BOTH template and project changed a file
-- Never deletes files (only adds/modifies)
-
-### Which Model Should I Use?
-
-| Use Case | Recommended Model |
-|----------|-------------------|
-| New projects | **Path Ownership** (simpler, more reliable) |
-| Existing projects with legacy config | Keep legacy OR migrate |
-| Projects with many customizations | Hash-Based (more fine-grained control) |
-| Projects that need deletion sync | **Path Ownership** (handles deletions) |
-
-**Migration:** Run `yarn sync-template --migrate` to convert legacy config to Path Ownership model.
+> **Note:** The legacy hash-based config is no longer supported. If you have a project using the old format (with `ignoredFiles`, `projectSpecificFiles`, `fileHashes`), run `yarn sync-template --migrate` to convert to the Path Ownership model.
 
 ---
 
@@ -59,7 +32,78 @@ The **Hash-Based Model** uses file hashes to detect who changed what:
 3. **Project overrides** let you keep specific files different from template
 4. **package.json** uses 3-way merge to preserve project dependencies
 
-### Configuration
+### Split Config Files (Recommended)
+
+The Path Ownership model uses **two separate config files** to prevent merge conflicts:
+
+| File | Owner | Contents | Synced? |
+|------|-------|----------|---------|
+| `.template-sync.template.json` | Template | `templatePaths`, `templateIgnoredFiles` | ✅ Yes |
+| `.template-sync.json` | Project | `templateRepo`, `projectOverrides`, etc. | ❌ No |
+
+**Benefits:**
+- When template adds new paths, they sync automatically
+- No merge conflicts (files have completely different fields)
+- Clear ownership: template controls what to sync, project controls its overrides
+
+#### Template Config (`.template-sync.template.json`)
+
+This file is **synced from the template** and defines what the template owns:
+
+```json
+{
+  "templatePaths": [
+    "package.json",
+    "tsconfig.json",
+    ".eslintrc.js",
+    "CLAUDE.md",
+    "docs/template/**",
+    "scripts/template/**",
+    ".ai/skills/template/**",
+    "src/client/components/ui/**",
+    "src/server/middleware/**",
+    ".template-sync.template.json"
+  ],
+  "templateIgnoredFiles": [
+    "src/apis/todos/**",
+    "src/client/routes/Todos/**"
+  ]
+}
+```
+
+> **Note:** The template config file includes itself in `templatePaths` to ensure it stays synced.
+
+#### Project Config (`.template-sync.json`)
+
+This file is **project-owned** and never synced:
+
+```json
+{
+  "templateRepo": "git@github.com:yourusername/app-template-ai.git",
+  "templateBranch": "main",
+  "templateLocalPath": "../app-template-ai",
+  "lastSyncCommit": "abc123...",
+  "lastSyncDate": "2024-01-01T00:00:00.000Z",
+  "projectOverrides": [
+    "src/client/components/ui/badge.tsx"
+  ],
+  "overrideHashes": {}
+}
+```
+
+### Sync Process
+
+When you run `yarn sync-template`:
+
+1. **Template config synced first** - `.template-sync.template.json` is updated from template
+2. **Config reloaded** - New `templatePaths` are now active
+3. **Files synced** - All files matching the (possibly updated) `templatePaths` are synced
+
+This ensures that when the template adds new paths to `templatePaths`, those files are synced in the same operation.
+
+### Legacy Single-File Config
+
+For backwards compatibility, the sync tool also supports a single `.template-sync.json` file containing all fields:
 
 ```json
 {
@@ -135,29 +179,6 @@ For each file matching `templatePaths`:
 
 ---
 
-## Hash-Based Model (Legacy)
-
-For projects using the legacy configuration format:
-
-### How It Works
-
-The sync system uses **hash-based change detection** to accurately track who changed what:
-
-1. **Stores baseline hashes** for each file at sync time
-2. **Compares** current project and template hashes against the baseline
-3. **Auto-merges** files that only changed in the template
-4. **Flags true conflicts** only when files changed in BOTH template and project
-5. **Preserves project customizations** - files you changed that the template didn't touch are NOT flagged as conflicts
-6. **Skips** ignored, project-specific, and template-ignored files
-
-### Hash-Based Change Detection
-
-The sync tool tracks MD5 hashes of files to determine:
-- **Template changed**: Template hash ≠ stored baseline → Safe to apply
-- **Project changed**: Project hash ≠ stored baseline → Project customization (kept as-is)
-- **Both changed**: Both hashes ≠ baseline → True conflict (needs resolution)
-- **Neither changed**: Files are identical → No action needed
-
 ## Initial Setup (For New Projects)
 
 When you create a new project from this template:
@@ -216,50 +237,6 @@ This creates a `.template-sync.json` configuration file.
 - `projectOverrides`: Files you want to keep different from template (won't be overwritten)
 - `overrideHashes`: Auto-managed hashes for tracking template changes to your overrides
 
-#### Legacy Hash-Based Config
-
-```json
-{
-  "templateRepo": "git@github.com:yourusername/app-template-ai.git",
-  "templateBranch": "main",
-  "templateLocalPath": "../app-template-ai",
-  "baseCommit": "abc123...",
-  "lastSyncCommit": "abc123...",
-  "lastSyncDate": "2024-01-01T00:00:00.000Z",
-  "ignoredFiles": [
-    ".template-sync.json",
-    "README.md",
-    ".env",
-    ".env.local",
-    "src/client/routes/index.ts",
-    "src/client/components/NavLinks.tsx",
-    "src/apis/apis.ts",
-    "src/server/database/collections/index.ts"
-  ],
-  "projectSpecificFiles": [
-    "src/client/features/myCustomFeature",
-    "src/server/myCustomLogic.ts"
-  ],
-  "templateIgnoredFiles": [
-    "src/apis/todos",
-    "src/apis/chat",
-    "src/client/routes/Todos",
-    "src/client/routes/Chat",
-    "src/client/routes/Home",
-    "src/server/database/collections/todos"
-  ],
-  "fileHashes": {}
-}
-```
-
-**Legacy key fields:**
-- `templateRepo`: Remote git URL for the template (used as fallback)
-- `templateLocalPath`: Local path to template repo for faster syncing (optional, see below)
-- `ignoredFiles`: Files that should never be synced (config files, registry files)
-- `projectSpecificFiles`: Your custom code that doesn't exist in template
-- `templateIgnoredFiles`: Template example/demo code to completely ignore (never sync, never show)
-- `fileHashes`: Auto-managed baseline hashes for change detection (don't edit manually)
-
 ### Local Template Path (Performance Optimization)
 
 If you have the template repository cloned locally (e.g., you're developing both the template and child projects), you can configure `templateLocalPath` for much faster syncing:
@@ -283,18 +260,9 @@ If you have the template repository cloned locally (e.g., you're developing both
 
 ---
 
-## Migration: Legacy to Path Ownership
+## Migration: Legacy to Path Ownership (Required)
 
-If you have a project using the legacy hash-based config, you can migrate to the Path Ownership model.
-
-### Why Migrate?
-
-| Issue | Legacy Model | Path Ownership Model |
-|-------|-------------|---------------------|
-| Deleted files | Not handled (orphan files remain) | ✅ Synced (deleted from project) |
-| Conflict detection | Hash drift can cause false positives | ✅ Explicit path ownership |
-| Configuration | Complex (3 ignore arrays + hashes) | ✅ Simple (2 arrays) |
-| Behavior | Implicit (hash comparison) | ✅ Explicit (path declarations) |
+If you have a project using the legacy hash-based config (with `ignoredFiles`, `projectSpecificFiles`, `fileHashes`), you **must** migrate to the Path Ownership model. The legacy config format is no longer supported.
 
 ### Migration Process
 
@@ -310,39 +278,6 @@ The wizard will:
 3. Create a backup of your legacy config (`.template-sync.legacy.json`)
 4. Save the new config to `.template-sync.json`
 
-### Manual Migration
-
-Or migrate manually by editing `.template-sync.json`:
-
-**Before (Legacy):**
-```json
-{
-  "templateRepo": "...",
-  "ignoredFiles": ["...", "..."],
-  "projectSpecificFiles": ["...", "..."],
-  "templateIgnoredFiles": ["...", "..."],
-  "fileHashes": {"...": "..."}
-}
-```
-
-**After (Path Ownership):**
-```json
-{
-  "templateRepo": "...",
-  "templatePaths": [
-    "package.json",
-    "tsconfig.json",
-    "docs/template/**",
-    "scripts/template/**",
-    "src/client/components/ui/**"
-  ],
-  "projectOverrides": [
-    "src/client/components/ui/badge.tsx"
-  ],
-  "overrideHashes": {}
-}
-```
-
 ### Migration Help
 
 For more details on the migration process:
@@ -353,63 +288,24 @@ yarn sync-template --migration-help
 
 ---
 
-**Glob pattern support (for both models):**
-Both arrays support glob patterns:
+**Glob pattern support:**
+Both `templatePaths` and `projectOverrides` support glob patterns:
 - `*` - Matches any characters except `/` (within a single directory)
 - `**` - Matches any characters including `/` (across directories)
 
 **Examples:**
 ```json
 {
-  "ignoredFiles": [
-    "src/client/routes/MyRoute",           // Exact directory
-    "src/client/routes/Search/**",         // Everything under Search
-    "src/apis/my-*.ts",                    // All files matching pattern
-    "src/custom/**/*.test.ts"              // All test files in custom/
+  "templatePaths": [
+    "docs/template/**",                    // Everything under docs/template
+    "src/client/components/ui/**",         // All UI components
+    "scripts/template/*.ts"                // All .ts files in scripts/template
   ],
-  "projectSpecificFiles": [
-    "src/client/features/myCustomFeature/**",  // Entire feature
-    "src/server/custom-*.ts"                   // All custom server files
+  "projectOverrides": [
+    "src/client/components/ui/badge.tsx"   // Specific file to keep different
   ]
 }
 ```
-
-### Understanding the Three Ignore Types
-
-| Config Field | Purpose | Examples |
-|--------------|---------|----------|
-| `ignoredFiles` | System/config files + registry files you'll customize | `.env`, `.env.local`, `apis.ts`, `NavLinks.tsx` |
-| `projectSpecificFiles` | Your custom code that doesn't exist in template | `src/client/features/myFeature` |
-| `templateIgnoredFiles` | Template example/demo code you don't want | `src/apis/todos`, `src/client/routes/Chat` |
-
-> **⚠️ CRITICAL: Never Ignore package.json**
->
-> **Do NOT add `package.json` to `ignoredFiles`!** The template's `package.json` contains essential scripts for GitHub Projects workflow, template sync, agent commands, and more. Ignoring it will break these features. You can safely add custom scripts to your `package.json` - just keep it synced from the template.
-
-**Key difference:**
-- `ignoredFiles` and `projectSpecificFiles`: Files show in "Skipped" during sync
-- `templateIgnoredFiles`: Files are **completely invisible** - never synced, never shown
-
-### ⚠️ One-Time Migration for Existing Projects
-
-> **If your project was created before commit `4b8502a` (Jan 18, 2026)**, you need to manually update 5 index files to use the new template + project pattern.
-
-The template now splits aggregation files (like `apis.ts`, `routes/index.ts`, etc.) into two parts:
-- **`.template.ts` files** - Template code (auto-syncs from template)
-- **Main index files** - Your project code + imports from template
-
-This prevents merge conflicts during template sync.
-
-**📖 Migration Guide:** [migrate-to-split-index-files.md](migrate-to-split-index-files.md)
-
-The migration guide provides step-by-step instructions for updating:
-1. `src/apis/apis.ts`
-2. `src/client/features/index.ts`
-3. `src/client/components/NavLinks.tsx`
-4. `src/client/routes/index.ts`
-5. `src/server/database/collections/index.ts`
-
-Since these files are in `ignoredFiles`, this one-time manual update is required to adopt the new pattern.
 
 ### 3. Commit the Configuration
 
@@ -750,30 +646,29 @@ The results reflect your conflict resolution choices:
 
 ### 1. Keep package.json Synced
 
-**Always keep `package.json` synced from the template.** You can add project-specific dependencies and custom scripts - the sync system will preserve them while updating template scripts. Never add `package.json` to `ignoredFiles` or you'll miss critical updates to agent commands, workflow scripts, and tooling.
+**Always keep `package.json` in `templatePaths`.** You can add project-specific dependencies and custom scripts - the sync system uses 3-way merge to preserve them while updating template scripts.
 
-### 2. Be Careful with Skipped Files
+### 2. Be Careful with Project Overrides
 
-> ⚠️ **Important:** Only add files to `ignoredFiles` or `projectSpecificFiles` when you are **100% sure** you will NEVER want to receive template updates for those files.
+> ⚠️ **Important:** Only add files to `projectOverrides` when you truly need them different from the template.
 
-**Risks of skipping files:**
+**Risks of overriding files:**
 
-1. **No updates**: Skipped files will NOT receive improvements, bug fixes, or security patches from the template.
+1. **No updates**: Override files won't receive automatic updates from the template.
 
-2. **Breaking changes**: If template changes in synced files depend on changes in skipped files, your code may break after syncing. For example:
+2. **Breaking changes**: If template changes depend on override files, your code may break after syncing. For example:
    - Template updates a shared component API
-   - Your skipped file still uses the old API
-   - After sync: your skipped file is now incompatible
+   - Your override file still uses the old API
+   - After sync: your override file is now incompatible
 
-3. **Hidden drift**: Over time, skipped files drift further from the template, making future manual merges harder.
+3. **Hidden drift**: Over time, override files drift further from the template, making future manual merges harder.
 
-**Before skipping a file, ask:**
-- Is this file truly project-specific (e.g., your custom features)?
-- Or is it a template file I've modified (e.g., `Layout.tsx`)?
+**Before adding an override:**
+- Is this file truly needs to be different?
+- Can you achieve the same result by extending rather than modifying?
 
 **Recommendation:**
-- For **truly project-specific files** → Add to `projectSpecificFiles` ✅
-- For **template files you've customized** → Leave them syncable, handle as conflicts ⚠️
+- When template changes an override file, you'll see a conflict and can decide how to handle it
 
 **Reviewing all template differences:**
 
@@ -788,22 +683,21 @@ This generates `template-diff-summary.md` showing diffs for ALL files - includin
 - Catch important template changes you may want to manually apply
 - Understand how your project has diverged from the template
 
-### 3. Mark Custom Code
+### 3. Mark Override Files
 
-Add your **truly** project-specific features to `projectSpecificFiles` in `.template-sync.json`:
+If you need to keep specific template files different in your project, add them to `projectOverrides`:
 
 ```json
 {
-  "projectSpecificFiles": [
-    "src/client/features/myFeature",
-    "src/server/custom-api.ts"
+  "projectOverrides": [
+    "src/client/components/ui/badge.tsx"
   ]
 }
 ```
 
-**Note:** Only use this for files that don't exist in the template at all, or example files you've completely replaced.
+**Note:** Only use this for files within `templatePaths` that you've intentionally modified.
 
-### 3. Sync Regularly
+### 4. Sync Regularly
 
 Sync frequently to avoid large conflicts:
 
@@ -849,19 +743,19 @@ Edit `.template-sync.json`:
 }
 ```
 
-### Ignore Additional Files
+### Override Additional Files
 
-Add patterns to `ignoredFiles`:
+Add files to `projectOverrides` if you want to keep them different from template:
 
 ```json
 {
-  "ignoredFiles": [
-    "docs/project-specific",
-    "scripts/custom-deploy.sh",
-    "*.local.ts"
+  "projectOverrides": [
+    "src/client/components/ui/custom-button.tsx"
   ]
 }
 ```
+
+**Note:** Files not in `templatePaths` are never synced, so you don't need to list them anywhere.
 
 ## Workflow Example
 
@@ -923,28 +817,7 @@ If you get many conflicts after a long time:
 
 1. Use `--dry-run` first to understand the scope
 2. Consider syncing in stages (manually cherry-pick some changes)
-3. Mark conflicting areas as `projectSpecificFiles` if they're truly custom
-
-### "Conflicts - no baseline" Messages
-
-If you see many files showing as "Conflicts - no baseline":
-
-```
-⚠️  Conflicts - no baseline (8 files):
-   Files differ from template with no sync history:
-   • src/apis/auth/shared.ts
-   ...
-```
-
-This means the sync tool doesn't have baseline hashes for these files (common for projects synced before the hash system was introduced).
-
-**Solution:** Run `--init-hashes` to establish baselines:
-
-```bash
-yarn sync-template --init-hashes
-```
-
-After this, files you've modified will correctly show as "Project customizations" instead of conflicts.
+3. Add files to `projectOverrides` if you need to keep them different
 
 ## For Template Maintainers
 
@@ -972,7 +845,8 @@ yarn sync-template --dry-run
 
 ## Files Created
 
-- `.template-sync.json` - Configuration (commit this)
+- `.template-sync.json` - Project config (commit this)
+- `.template-sync.template.json` - Template config, synced from template (commit this)
 - `*.template` - Template versions during conflicts (temporary, delete after merging)
 - `.template-sync-temp/` - Temporary directory (auto-cleaned)
 
@@ -1023,12 +897,12 @@ jobs:
 
 ## Summary
 
-### Config Models
+### Config Files
 
-| Model | Key Fields | Behavior |
-|-------|------------|----------|
-| **Path Ownership** (new) | `templatePaths`, `projectOverrides` | Explicit ownership, handles deletions |
-| **Hash-Based** (legacy) | `ignoredFiles`, `fileHashes` | Hash comparison, no deletions |
+| File | Owner | Purpose |
+|------|-------|---------|
+| `.template-sync.template.json` | Template | Defines `templatePaths` and `templateIgnoredFiles` (auto-synced) |
+| `.template-sync.json` | Project | Contains `projectOverrides`, sync tracking, and template repo info |
 
 ### Commands
 
