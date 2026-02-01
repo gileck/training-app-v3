@@ -331,12 +331,12 @@ function categorizeFile(
         };
       }
 
-      // Files differ - this is a DIVERGED file (project modified without adding to overrides)
-      // User needs to decide: override, add to overrides, or merge
+      // Files differ - template wins (this is the whole point of folder ownership)
+      // If project wants to keep their version, they should add it to projectOverrides
       return {
         path: filePath,
-        action: 'diverged',
-        reason: 'Project modified this template file (not in overrides)',
+        action: 'copy',
+        reason: 'Updated in template',
         inTemplate,
         inProject,
         isOverride,

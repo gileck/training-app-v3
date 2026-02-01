@@ -377,10 +377,15 @@ Quick actions allow admins to perform workflow operations with a single button c
 - Action: Approves and merges design PR, advances status
 - Response: Confirmation + next phase notification
 
-**Reject Design:**
-- Button: `[Reject Design]` on design PR notification
-- Action: Requests changes on PR, updates issue status
-- Response: Confirmation + reminder to add explanation comment
+**Request Changes on Design:**
+- Button: `[📝 Request Changes]` on design PR notification
+- Action: Requests changes on PR, updates review status
+- Response: Confirmation + reminder to add explanation comment + **Undo button**
+
+**Request Changes/Reject on Design Review:**
+- Button: `[📝 Request Changes]` or `[❌ Reject]` on design review notification
+- Action: Updates review status to Changes Requested or Rejected
+- Response: Confirmation message + **Undo button**
 
 ### Implementation Review Actions
 
@@ -392,7 +397,7 @@ Quick actions allow admins to perform workflow operations with a single button c
 **Request Changes:**
 - Button: `[Request Changes]` on PR review notification
 - Action: Updates review status to Changes Requested
-- Response: Confirmation + reminder to add explanation comment
+- Response: Confirmation + reminder to add explanation comment + **Undo button**
 
 ### Clarification Actions
 
@@ -407,6 +412,69 @@ Quick actions allow admins to perform workflow operations with a single button c
 - Action: Sets review status to "Clarification Received"
 - Use this if you answered manually in GitHub comment
 - Response: Confirmation message
+
+### Undo Actions (5-Minute Window)
+
+All "Request Changes" and "Reject" actions show an **Undo button** that remains active for 5 minutes. This allows you to recover from accidental clicks without manual intervention.
+
+**Undo Implementation PR Request Changes:**
+- Button: `[↩️ Undo (4:32)]` on confirmation message
+- Action: Restores status to PR Review, clears review status
+- Response: Re-sends the PR Ready notification with Merge/Request Changes buttons
+
+**Undo Design PR Request Changes:**
+- Button: `[↩️ Undo (4:32)]` on confirmation message
+- Action: Clears review status (keeps design phase status)
+- Response: Re-sends the Design PR Ready notification with Approve/Request Changes buttons
+
+**Undo Design Review (Changes/Reject):**
+- Button: `[↩️ Undo (4:32)]` on confirmation message
+- Action: Clears review status
+- Response: Sends new notification with Approve/Request Changes/Reject buttons
+
+**After 5 Minutes:**
+- Clicking Undo shows error: "Undo window expired (5 minutes)"
+- Manual recovery required via GitHub Projects UI
+
+**Example Undo Flow:**
+
+1. Admin accidentally clicks `[Request Changes]` on PR Review:
+```
+✅ PR Review Passed #45
+...
+[Merge PR] [Request Changes]
+```
+
+2. Confirmation with Undo button appears:
+```
+🔄 Marked for Changes
+
+📊 Status: Implementation
+📋 Review Status: Request Changes
+
+Next: Comment on the PR explaining what needs to change.
+
+Changed your mind? Click Undo within 5 minutes.
+
+[↩️ Undo (4:58)]
+```
+
+3. Admin clicks Undo within 5 minutes:
+```
+↩️ Undone!
+
+📊 Status restored to: PR Review
+📋 Review Status: (cleared)
+
+Re-sending PR Ready notification...
+```
+
+4. Original notification re-sent:
+```
+✅ PR Review Passed #45
+...
+[Merge PR] [Request Changes]
+```
 
 ## Action Flow Examples
 
@@ -553,6 +621,11 @@ action:param1:param2:...
 - `merge_pr:45:124` - Merge implementation PR #124 for issue #45
 - `request_changes:45:124` - Request changes on PR #124 for issue #45
 - `clarified:45` - Mark clarification received for issue #45
+
+**Undo Callbacks (5-minute window):**
+- `u_rc:45:124:1234567890` - Undo implementation PR request changes (issue #45, PR #124, timestamp)
+- `u_dc:123:45:tech:1234567890` - Undo design PR request changes (PR #123, issue #45, type, timestamp)
+- `u_dr:45:changes:product-design:1234567890` - Undo design review changes/reject (issue #45, action, previous status, timestamp)
 
 **URL Buttons:**
 - `💬 ANSWER QUESTIONS` → Opens `/clarify/:issueNumber?token=...` (web UI for answering)
@@ -795,6 +868,7 @@ curl -X POST https://api.telegram.org/bot<TOKEN>/setWebhook \
 - Route to workflow phases
 - Approve/reject designs
 - Merge/request changes on PRs
+- **Undo accidental clicks** (5-minute window for Request Changes/Reject actions)
 
 **See also:**
 - [Running Agents](./running-agents.md) - How to run agents and view logs

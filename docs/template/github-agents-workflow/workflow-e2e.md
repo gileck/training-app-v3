@@ -12,12 +12,13 @@ This document provides comprehensive visual workflows for all scenarios in the G
 4. [Bug Report - Happy Flow](#4-bug-report---happy-flow)
 5. [Request Changes Flow - Design Phase](#5-request-changes-flow---design-phase)
 6. [Request Changes Flow - Implementation Phase](#6-request-changes-flow---implementation-phase)
-7. [Clarification Flow](#7-clarification-flow)
-8. [Multi-Phase with Mid-Phase Changes Requested](#8-multi-phase-with-mid-phase-changes-requested)
-9. [Rejection Scenarios](#9-rejection-scenarios)
-10. [Skip Design Phases](#10-skip-design-phases)
-11. [Status Transitions Reference](#11-status-transitions-reference)
-12. [Decision Points Reference](#12-decision-points-reference)
+7. [Undo Accidental Request Changes (5-Minute Window)](#7-undo-accidental-request-changes-5-minute-window)
+8. [Clarification Flow](#8-clarification-flow)
+9. [Multi-Phase with Mid-Phase Changes Requested](#9-multi-phase-with-mid-phase-changes-requested)
+10. [Rejection Scenarios](#10-rejection-scenarios)
+11. [Skip Design Phases](#11-skip-design-phases)
+12. [Status Transitions Reference](#12-status-transitions-reference)
+13. [Decision Points Reference](#13-decision-points-reference)
 
 ---
 
@@ -831,7 +832,200 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ---
 
-## 7. Clarification Flow
+## 7. Undo Accidental Request Changes (5-Minute Window)
+
+**Scenario:** Admin accidentally clicks "Request Changes" and needs to undo within 5 minutes.
+
+### 7.1 Undo Implementation PR Request Changes
+
+```
+┌─────────────────────────────────────┐
+│ PR REVIEW APPROVED                  │
+│ - PR #80                            │
+│ - Review Status: Approved           │
+│ - Commit message generated          │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM MERGE NOTIFICATION         │
+│ ┌─────────────────────────────────┐ │
+│ │ PR #80 Approved                 │ │
+│ │ "feat: Add dark mode toggle"    │ │
+│ │                                 │ │
+│ │ [Merge] [Request Changes]       │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │ Admin ACCIDENTALLY clicks
+              │ "Request Changes"
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM CONFIRMATION WITH UNDO     │
+│ ┌─────────────────────────────────┐ │
+│ │ 🔄 Marked for Changes           │ │
+│ │                                 │ │
+│ │ 📊 Status: Implementation       │ │
+│ │ 📋 Review Status: Changes       │ │
+│ │    Requested                    │ │
+│ │                                 │ │
+│ │ Next: Comment on the PR         │ │
+│ │ explaining what needs to change │ │
+│ │                                 │ │
+│ │ Changed your mind? Click Undo   │ │
+│ │ within 5 minutes.               │ │
+│ │                                 │ │
+│ │ [↩️ Undo (4:58)]                │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │ Admin clicks "Undo" within 5 min
+              ▼
+┌─────────────────────────────────────┐
+│ SERVER RESTORES PREVIOUS STATE      │
+│ - Status: PR Review (restored)      │
+│ - Review Status: (cleared)          │
+│ - No changes to PR or issue         │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM UNDO CONFIRMATION          │
+│ ┌─────────────────────────────────┐ │
+│ │ ↩️ Undone!                      │ │
+│ │                                 │ │
+│ │ 📊 Status restored to: PR Review│ │
+│ │ 📋 Review Status: (cleared)     │ │
+│ │                                 │ │
+│ │ Re-sending PR Ready             │ │
+│ │ notification...                 │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ NEW TELEGRAM NOTIFICATION SENT      │
+│ ┌─────────────────────────────────┐ │
+│ │ PR #80 Approved                 │ │
+│ │ "feat: Add dark mode toggle"    │ │
+│ │                                 │ │
+│ │ [Merge] [Request Changes]       │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+
+✅ UNDO SUCCESSFUL - ADMIN CAN NOW MERGE
+```
+
+### 7.2 Undo Design PR Request Changes
+
+```
+┌─────────────────────────────────────┐
+│ DESIGN PR READY FOR REVIEW          │
+│ - PR #70                            │
+│ - Column: Product Design            │
+│ - Review Status: Waiting for Review │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM DESIGN APPROVAL            │
+│ ┌─────────────────────────────────┐ │
+│ │ Design PR #70 Ready             │ │
+│ │                                 │ │
+│ │ [Approve & Merge]               │ │
+│ │ [Request Changes]               │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │ Admin accidentally clicks
+              │ "Request Changes"
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM CONFIRMATION WITH UNDO     │
+│ ┌─────────────────────────────────┐ │
+│ │ 🔄 Changes Requested            │ │
+│ │                                 │ │
+│ │ 📊 Status: Product Design       │ │
+│ │ 📋 Review: Changes Requested    │ │
+│ │                                 │ │
+│ │ [↩️ Undo (4:55)]                │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │ Admin clicks "Undo"
+              ▼
+┌─────────────────────────────────────┐
+│ SERVER RESTORES STATE               │
+│ - Review Status: (cleared)          │
+│ - Design status unchanged           │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ NEW DESIGN PR NOTIFICATION SENT     │
+│ ┌─────────────────────────────────┐ │
+│ │ Design PR #70 Ready             │ │
+│ │                                 │ │
+│ │ [Approve & Merge]               │ │
+│ │ [Request Changes]               │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+
+✅ UNDO SUCCESSFUL - ADMIN CAN NOW APPROVE
+```
+
+### 7.3 Undo Expired (After 5 Minutes)
+
+```
+┌─────────────────────────────────────┐
+│ TELEGRAM CONFIRMATION WITH UNDO     │
+│ ┌─────────────────────────────────┐ │
+│ │ 🔄 Marked for Changes           │ │
+│ │                                 │ │
+│ │ [↩️ Undo (0:00)]                │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │ Admin clicks "Undo" after 5 min
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM ERROR TOAST                │
+│ ┌─────────────────────────────────┐ │
+│ │ ❌ Undo window expired          │ │
+│ │    (5 minutes)                  │ │
+│ └─────────────────────────────────┘ │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ MANUAL RECOVERY REQUIRED            │
+│ ┌─────────────────────────────────┐ │
+│ │ Options:                        │ │
+│ │ • Fix manually in GitHub        │ │
+│ │   Projects UI                   │ │
+│ │ • Let agent address the         │ │
+│ │   "changes" and re-submit       │ │
+│ │ • Move item status manually     │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+
+⚠️ UNDO EXPIRED - MANUAL INTERVENTION NEEDED
+```
+
+**Key Points:**
+- **5-minute window:** Undo button only works within 5 minutes of the original action
+- **Timestamp in callback:** The undo button includes a timestamp to enforce the window
+- **State restoration:** Undo restores the previous status and clears the review status
+- **Re-sends notification:** After undo, a fresh notification with action buttons is sent
+- **No data loss:** The PR and issue remain unchanged - only the status is restored
+- **Works for all "Request Changes" actions:**
+  - Implementation PR request changes
+  - Design PR request changes
+  - Design review changes/reject
+
+**When Undo is NOT Available:**
+- Merge actions (irreversible - code is merged)
+- Approve actions (item advances to next phase)
+- After 5-minute window expires
+
+---
+
+## 8. Clarification Flow
 
 **Scenario:** Agent encounters ambiguity and needs admin input.
 
@@ -923,7 +1117,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ---
 
-## 8. Multi-Phase with Mid-Phase Changes Requested
+## 9. Multi-Phase with Mid-Phase Changes Requested
 
 **Scenario:** Phase 2 of 3 needs revisions.
 
@@ -1003,9 +1197,9 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ---
 
-## 9. Rejection Scenarios
+## 10. Rejection Scenarios
 
-### 9.1 Reject Design
+### 10.1 Reject Design
 
 ```
 ┌─────────────────────────────────────┐
@@ -1049,7 +1243,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 ⚠️ DESIGN REJECTED - MANUAL INTERVENTION NEEDED
 ```
 
-### 9.2 Reject Implementation
+### 10.2 Reject Implementation
 
 ```
 ┌─────────────────────────────────────┐
@@ -1099,9 +1293,9 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ---
 
-## 10. Skip Design Phases
+## 11. Skip Design Phases
 
-### 10.1 Simple Bug - Skip to Implementation
+### 11.1 Simple Bug - Skip to Implementation
 
 ```
 ┌─────────────────────────────────────┐
@@ -1146,7 +1340,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 ✅ FAST-TRACKED BUG FIX
 ```
 
-### 10.2 Internal Refactor - Skip Product Design
+### 11.2 Internal Refactor - Skip Product Design
 
 ```
 ┌─────────────────────────────────────┐
@@ -1192,7 +1386,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ---
 
-## 11. Status Transitions Reference
+## 12. Status Transitions Reference
 
 Comprehensive table of all state transitions in the workflow.
 
@@ -1222,14 +1416,18 @@ Comprehensive table of all state transitions in the workflow.
 | GitHub: Ready (Phase 1)<br/>Review: (empty) | Implementation agent creates Phase 1 PR | GitHub: PR Review<br/>Review: Waiting for Review<br/>**Phase 1 in progress** | Agent (Cron) |
 | GitHub: Done (Phase 1)<br/>Phases: 1✅ 2⬜ 3⬜ | Webhook detects merge | GitHub: Ready for development<br/>Review: (empty)<br/>**Phase 2 unlocked** | Webhook |
 | GitHub: Done (Phase 3)<br/>Phases: 1✅ 2✅ 3✅ | Webhook detects final phase merge | GitHub: Done<br/>Review: (empty)<br/>MongoDB: 'done'<br/>**All phases complete** | Webhook |
+| **Undo Actions (5-minute window)** |
+| GitHub: Implementation<br/>Review: Changes Requested | Admin clicks "Undo" (within 5 min) | GitHub: PR Review<br/>Review: (empty)<br/>**New notification sent** | Admin (Telegram) |
+| Any design column<br/>Review: Changes Requested | Admin clicks "Undo" (within 5 min) | Same column<br/>Review: (empty)<br/>**New notification sent** | Admin (Telegram) |
+| Any column<br/>Review: Changes Requested | Admin clicks "Undo" (after 5 min) | **Error: Undo window expired**<br/>No state change | Admin (Telegram) |
 
 ---
 
-## 12. Decision Points Reference
+## 13. Decision Points Reference
 
 Key decision points where admin makes manual choices.
 
-### 12.1 Initial Routing (After Approval)
+### 13.1 Initial Routing (After Approval)
 
 **When:** After admin clicks "Approve" on new request
 
@@ -1250,7 +1448,7 @@ Key decision points where admin makes manual choices.
 
 ---
 
-### 12.2 Design Review
+### 13.2 Design Review
 
 **When:** Design PR created, Review Status = "Waiting for Review"
 
@@ -1270,7 +1468,7 @@ Key decision points where admin makes manual choices.
 
 ---
 
-### 12.3 Implementation Review
+### 13.3 Implementation Review
 
 **When:** Implementation PR approved by PR Review agent
 
@@ -1290,7 +1488,7 @@ Key decision points where admin makes manual choices.
 
 ---
 
-### 12.4 Clarification Questions
+### 13.4 Clarification Questions
 
 **When:** Agent posts clarification question, Review Status = "Waiting for Clarification"
 
@@ -1306,7 +1504,7 @@ Key decision points where admin makes manual choices.
 
 ---
 
-### 12.5 Phase Approval (Multi-Phase Items)
+### 13.5 Phase Approval (Multi-Phase Items)
 
 **When:** Each phase completes, before next phase starts
 
