@@ -56,14 +56,9 @@ export function saveConfig(projectRoot: string, config: AnyTemplateSyncConfig): 
 /**
  * Load template's config and merge templateIgnoredFiles into project config.
  * This allows the template to specify files that should never be synced to children.
- * Only applies to legacy config format.
+ * Works with both legacy and folder ownership config formats.
  */
 export function mergeTemplateIgnoredFiles(projectRoot: string, config: AnyTemplateSyncConfig, templateDir: string): void {
-  // Only applicable to legacy config
-  if (!isLegacyConfig(config)) {
-    return;
-  }
-
   const templateConfigPath = path.join(projectRoot, templateDir, CONFIG_FILE);
 
   if (!fs.existsSync(templateConfigPath)) {

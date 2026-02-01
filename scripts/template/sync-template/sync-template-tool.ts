@@ -126,6 +126,9 @@ export class TemplateSyncTool {
     const templateDir = path.join(this.projectRoot, TEMPLATE_DIR);
     await cloneTemplate(this.context);
 
+    // Step 1.5: Merge template's ignored files into config
+    mergeTemplateIgnoredFiles(this.projectRoot, config, TEMPLATE_DIR);
+
     // Step 2: Analyze changes
     console.log('\n🔍 Analyzing changes...');
     const analysis = analyzeFolderSync(config, this.projectRoot, templateDir);

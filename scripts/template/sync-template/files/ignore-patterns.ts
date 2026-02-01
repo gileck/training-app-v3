@@ -17,22 +17,14 @@ function matchesPatterns(filePath: string, patterns: string[]): boolean {
     // Exact match
     if (normalized === normalizedPattern) return true;
 
-    // Handle ** (match any number of path segments)
-    if (normalizedPattern.includes('**')) {
+    // Handle glob patterns with * or **
+    if (normalizedPattern.includes('*')) {
+      // Use placeholder to avoid replacing * inside .* from **
       const regexPattern = normalizedPattern
-        .replace(/\*\*/g, '.*')  // ** matches anything
-        .replace(/\*/g, '[^/]*') // * matches anything except /
-        .replace(/\//g, '\\/');  // escape slashes
-
-      const regex = new RegExp('^' + regexPattern + '$');
-      if (regex.test(normalized)) return true;
-    }
-
-    // Handle * (match within a single path segment)
-    if (normalizedPattern.includes('*') && !normalizedPattern.includes('**')) {
-      const regexPattern = normalizedPattern
-        .replace(/\*/g, '[^/]*')  // * matches anything except /
-        .replace(/\//g, '\\/');   // escape slashes
+        .replace(/\*\*/g, '<<<GLOBSTAR>>>')  // Temporarily replace **
+        .replace(/\*/g, '[^/]*')              // * matches anything except /
+        .replace(/<<<GLOBSTAR>>>/g, '.*')     // ** matches anything (including /)
+        .replace(/\//g, '\\/');               // escape slashes
 
       const regex = new RegExp('^' + regexPattern + '$');
       if (regex.test(normalized)) return true;

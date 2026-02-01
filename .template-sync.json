@@ -12,7 +12,12 @@
     ".claude/commands/sync-children.md",
     "scripts/sync-child-projects.ts",
     "scripts/push-and-sync.sh",
-    "scripts/hooks/**"
+    "scripts/hooks/**",
+    "src/apis/todos/**",
+    "src/client/routes/Todos/**",
+    "src/client/routes/SingleTodo/**",
+    "src/server/database/collections/todos/**",
+    "src/client/styles/todos.css"
   ],
   "fileHashes": {
     ".ai/skills/template/ai-models-api-usage/SKILL.md": "416053787908ddf2e6e98c18567747ed",

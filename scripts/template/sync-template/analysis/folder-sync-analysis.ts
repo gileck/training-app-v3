@@ -409,11 +409,23 @@ export function analyzeFolderSync(
   };
 
   // Get all files that should be synced from template
-  const templateFiles = expandTemplatePaths(config, templateDir);
+  let templateFiles = expandTemplatePaths(config, templateDir);
+
+  // Filter out template-ignored files (e.g., example/demo code)
+  const templateIgnored = config.templateIgnoredFiles || [];
+  if (templateIgnored.length > 0) {
+    templateFiles = templateFiles.filter(file => !matchesPatterns(file, templateIgnored));
+  }
+
   analysis.expandedTemplatePaths = templateFiles;
 
   // Get all project files that match template paths (for deletion detection)
-  const projectFiles = getProjectFilesMatchingTemplatePaths(config, projectDir);
+  let projectFiles = getProjectFilesMatchingTemplatePaths(config, projectDir);
+
+  // Also filter project files - don't delete ignored files
+  if (templateIgnored.length > 0) {
+    projectFiles = projectFiles.filter(file => !matchesPatterns(file, templateIgnored));
+  }
 
   // Combine both sets of files
   const allFiles = new Set([...templateFiles, ...projectFiles]);

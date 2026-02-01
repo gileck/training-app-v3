@@ -94,6 +94,13 @@ export interface FolderOwnershipConfig {
    */
   overrideHashes?: Record<string, string>;
 
+  /**
+   * Template files to never sync to child projects.
+   * Read from template's config and merged during sync.
+   * Examples: ["src/apis/todos/**", "src/client/routes/Todos/**"]
+   */
+  templateIgnoredFiles?: string[];
+
   // Optional - for tracking history
   syncHistory?: SyncHistoryEntry[];
 }
