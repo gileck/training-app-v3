@@ -22,9 +22,10 @@
   ],
   "templateIgnoredFiles": [
     ".claude/commands/sync-children.md",
-    "scripts/sync-child-projects.ts",
-    "scripts/push-and-sync.sh",
+    "scripts/template/sync-child-projects.ts",
+    "scripts/template/push-and-sync.sh",
     "scripts/hooks/**",
+    "scripts/template/test-*.ts",
     "src/apis/todos/**",
     "src/client/routes/Todos/**",
     "src/client/routes/SingleTodo/**",

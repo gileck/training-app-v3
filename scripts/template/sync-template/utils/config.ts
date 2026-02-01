@@ -17,11 +17,26 @@ import {
 } from '../types';
 
 /**
- * Check if split config files exist (new pattern)
+ * Check if split config files exist AND project config is in the new format.
+ * Returns false if project config still has legacy fields (needs migration).
  */
 export function hasSplitConfig(projectRoot: string): boolean {
   const templateConfigPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
-  return fs.existsSync(templateConfigPath);
+  if (!fs.existsSync(templateConfigPath)) {
+    return false;
+  }
+
+  // Also check that project config is NOT legacy format
+  const projectConfigPath = path.join(projectRoot, CONFIG_FILE);
+  if (fs.existsSync(projectConfigPath)) {
+    const projectConfig = JSON.parse(fs.readFileSync(projectConfigPath, 'utf-8'));
+    // If project config has legacy fields, it needs migration
+    if ('fileHashes' in projectConfig || 'ignoredFiles' in projectConfig) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
