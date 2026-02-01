@@ -1,3 +1,12 @@
+---
+title: Client-Server Communication
+description: Single API endpoint pattern with React Query. Use this when creating/calling APIs.
+summary: All APIs route through `/api/process/{api_name}`. Components use React Query hooks, never call API client functions directly. All domain types in `apis/<domain>/types.ts`.
+priority: 2
+related_rules:
+  - client-server-communications
+---
+
 # API Endpoint Format
 
 ## Overview

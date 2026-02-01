@@ -1,3 +1,10 @@
+---
+title: iOS PWA Fixes
+description: iOS-specific keyboard and viewport issues. Use this when fixing iOS PWA bugs.
+summary: iOS keyboard overlays viewport instead of resizing it. Use `visualViewport` API and `translateY` transform to move elements above keyboard.
+priority: 3
+---
+
 # iOS PWA Known Issues and Fixes
 
 This document covers iOS-specific issues encountered in PWA (Progressive Web App) mode and their solutions.

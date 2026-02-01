@@ -1,3 +1,16 @@
+---
+title: UI & Styling
+description: shadcn/ui components with semantic theming. Use this when adding/editing UI components.
+summary: Use shadcn/ui as the ONLY component library. All colors must use semantic tokens (`bg-background`, `text-foreground`), never hardcode colors (`bg-white`, `text-black`).
+priority: 3
+related_docs:
+  - theming.md
+related_rules:
+  - shadcn-usage
+  - theming-guidelines
+  - ui-design-guidelines
+---
+
 # shadcn/ui Component Library Guide
 
 This document provides a comprehensive guide to using shadcn/ui components in this application. shadcn/ui is a collection of re-usable components built using Radix UI and Tailwind CSS.

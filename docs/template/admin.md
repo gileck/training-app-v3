@@ -1,3 +1,10 @@
+---
+title: Admin System
+description: Single-admin setup via environment variable. Use this when implementing admin features.
+summary: Admin controlled by `ADMIN_USER_ID` env var. `/admin/*` routes and `admin/*` APIs protected automatically. Use `useIsAdmin()` hook for conditional UI.
+priority: 3
+---
+
 # Admin System
 
 This app supports a lightweight **single-admin** setup controlled by an environment variable.

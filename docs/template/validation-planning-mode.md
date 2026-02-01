@@ -1,3 +1,10 @@
+---
+title: Validation & Quality Checks
+description: Code validation and linting requirements. Use this before completing any work.
+summary: "**CRITICAL: Always run `yarn checks` before completing work.** Runs both TypeScript and ESLint checks, shows ALL errors at once. Must pass with 0 errors before committing, creating PRs, or deploying."
+priority: 1
+---
+
 # Validation & Quality Checks - Planning Mode Guide
 
 This document provides detailed guidance on validation and quality checks, with special focus on planning mode workflows.

@@ -1,3 +1,10 @@
+---
+title: Telegram Notifications (App Runtime)
+description: Application feature for sending notifications via Telegram. Use this when adding app notifications.
+summary: Two types - Owner notifications (system alerts) and User notifications (personal alerts). Requires `TELEGRAM_BOT_TOKEN`. Run `yarn telegram-setup` for chat IDs.
+priority: 4
+---
+
 # Telegram Notifications
 
 Server-side notification system that sends Telegram messages to users and administrators.

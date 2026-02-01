@@ -1,6 +1,12 @@
 ---
 name: react-component-organization
-description: when developing React components
+description: Component organization and patterns. Use this when creating/organizing components.
+title: React Components
+summary: "Feature-based organization with small, focused components (<150 lines). Route-specific code in route folder, shared features in `features/`. **CRITICAL: Always check Loading → Error → Empty → Data order.**"
+priority: 3
+related_rules:
+  - react-hook-organization
+  - feature-based-structure
 ---
 # React Component Organization Pattern
 

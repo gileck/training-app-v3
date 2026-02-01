@@ -1,3 +1,12 @@
+---
+title: MongoDB Usage
+description: Database layer patterns and schema evolution. Use this when working with MongoDB.
+summary: "All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**"
+priority: 3
+related_rules:
+  - mongodb-usage
+---
+
 # MongoDB Usage Guidelines
 
 This document covers all MongoDB-related patterns, including database layer organization, ID handling, and schema evolution.

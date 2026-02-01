@@ -1,105 +1,44 @@
-import type { NextConfig } from "next";
-import withPWA from 'next-pwa';
+/**
+ * Next.js Configuration
+ *
+ * Combines template and project Next.js configs.
+ * - config/next/next.template.ts: Template config (synced from template)
+ * - config/next/next.project.ts: Project overrides (not synced)
+ */
 
-const nextConfig: NextConfig = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  // Prevent automatic page reload when coming back online (iOS airplane mode fix)
-  // Default is true, which calls location.reload() on the 'online' event
-  // @ts-expect-error - reloadOnOnline exists but types are outdated
-  reloadOnOnline: false,
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts-cache',
-        expiration: {
-          maxEntries: 10,
-          maxAgeSeconds: 60 * 60 * 24 * 365, // 365 days
-        },
-        cacheableResponse: {
-          statuses: [0, 200],
-        },
-      },
-    },
-    {
-      urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'gstatic-fonts-cache',
-        expiration: {
-          maxEntries: 10,
-          maxAgeSeconds: 60 * 60 * 24 * 365, // 365 days
-        },
-        cacheableResponse: {
-          statuses: [0, 200],
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:js|css)$/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'static-js-css-cache',
-        expiration: {
-          maxEntries: 60,
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'images-cache',
-        expiration: {
-          maxEntries: 60,
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-        },
-      },
-    },
-    {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: {
-          maxEntries: 200,
-          maxAgeSeconds: 60 * 60 * 24, // 24 hours
-        },
-        networkTimeoutSeconds: 3,
-      },
-    },
-  ],
-})({
-  /* config options here */
-  reactStrictMode: false,
-  eslint: {
-    ignoreDuringBuilds: true,
+import type { NextConfig } from "next";
+import { pwaConfig, nextTemplateConfig, withPWA } from "./config/next/next.template";
+import { nextProjectConfig } from "./config/next/next.project";
+
+// Deep merge template and project configs
+const mergedConfig: NextConfig = {
+  ...nextTemplateConfig,
+  ...nextProjectConfig,
+  // Merge webpack if both have it
+  webpack(config, options) {
+    let result = config;
+    if (nextTemplateConfig.webpack) {
+      result = nextTemplateConfig.webpack(result, options);
+    }
+    if (nextProjectConfig.webpack) {
+      result = nextProjectConfig.webpack(result, options);
+    }
+    return result;
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  webpack(config) {
-    // Enable WebAssembly
-    config.experiments = {
-      ...config.experiments,
-      asyncWebAssembly: true,
-    };
-    return config;
-  },
+  // Merge rewrites if both have them
   async rewrites() {
-    return [
-      {
-        // Rewrite all paths to root EXCEPT /api (handled by Next.js API routes)
-        source: '/:path((?!api).*)*',
-        destination: '/',
-      },
-    ];
+    const templateRewrites = nextTemplateConfig.rewrites ? await nextTemplateConfig.rewrites() : [];
+    const projectRewrites = nextProjectConfig.rewrites ? await nextProjectConfig.rewrites() : [];
+
+    // Handle both array and object formats
+    const templateArray = Array.isArray(templateRewrites) ? templateRewrites : [];
+    const projectArray = Array.isArray(projectRewrites) ? projectRewrites : [];
+
+    return [...templateArray, ...projectArray];
   },
-});
+};
+
+// Apply PWA wrapper
+const nextConfig = withPWA(pwaConfig)(mergedConfig);
 
 export default nextConfig;

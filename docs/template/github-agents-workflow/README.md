@@ -22,6 +22,19 @@ Complete guide to the AI-powered feature request and bug fix workflow using GitH
 - Agent identity prefixes and roles
 - Design documents as versioned files
 
+**[Entry Points](./entry-points.md)** - How items enter the workflow
+- UI Feature Request form
+- UI Bug Report (+ auto error capture)
+- CLI (`yarn agent-workflow`)
+- Shared notification functions
+- How all entry points converge into unified flow
+
+**[CLI Tool](./cli.md)** - Command-line interface for creating items
+- Interactive mode (`yarn agent-workflow start`)
+- Direct creation with arguments
+- `--auto-approve` and `--route` options
+- Workflow modes and examples
+
 **[MongoDB vs GitHub Status](./mongodb-github-status.md)** - Status tracking architecture
 - Why two status systems
 - MongoDB statuses (4 values: new → in_progress → done → rejected)

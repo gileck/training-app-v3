@@ -1,3 +1,10 @@
+---
+title: GitHub PR CLI Tool
+description: CLI for managing GitHub pull requests. Use this when creating/managing PRs programmatically.
+summary: Auto-detects `owner/repo` from git remote. Use `--cloud-proxy` in Claude Code cloud. Commands - `yarn github-pr create`, `yarn github-pr list`, `yarn github-pr merge`.
+priority: 4
+---
+
 # GitHub PR CLI Tool
 
 > This is the detailed guide for the GitHub PR CLI. For a quick reference, see [CLAUDE.md](../CLAUDE.md#github-pr-cli-tool).

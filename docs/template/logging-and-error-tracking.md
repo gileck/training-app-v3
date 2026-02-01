@@ -1,3 +1,10 @@
+---
+title: Logging & Error Tracking
+description: Session logging with bug reporting. Use this when adding logging or debugging.
+summary: Session logger captures events in Zustand store. Bug reports include full session logs. Use `logger.info('feature', 'Message', { meta })`.
+priority: 3
+---
+
 # Logging, Bug Reporting, and Error Tracking
 
 This document describes the application's logging system, bug reporting feature, and automatic error tracking.

@@ -1,6 +1,9 @@
 ---
 name: pages-and-routing-guidelines
-description: for adding new routes and pages
+description: Adding routes and keeping navigation menus in sync. Use this when adding client routes.
+title: Routes & Navigation
+summary: "Routes defined in `src/client/routes/index.ts`. Add to `navItems`/`menuItems` in `NavLinks.tsx` if user-accessible. Options: `public`, `fullScreen`, `adminOnly`."
+priority: 3
 ---
 # SPA Routing Guidelines
 

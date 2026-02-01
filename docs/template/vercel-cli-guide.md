@@ -1,3 +1,12 @@
+---
+title: Vercel CLI Tool
+description: CLI for managing Vercel deployments and env vars. Use this for deployment operations.
+summary: "Run `vercel link` first. **CRITICAL: Never use `npx vercel env add` with piped input** - use `yarn vercel-cli env:sync` instead. Commands - `yarn vercel-cli list`, `yarn vercel-cli env:sync`, `yarn vercel-cli logs`."
+priority: 4
+related_rules:
+  - vercel-cli-usage
+---
+
 # Vercel CLI Tool
 
 > This is the detailed guide for the Vercel CLI. For a quick reference, see [CLAUDE.md](../CLAUDE.md#vercel-cli-tool).

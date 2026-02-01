@@ -1,3 +1,10 @@
+---
+title: Critical Deployment Issues
+description: Common deployment pitfalls. Use this before deploying to production.
+summary: Always run `vercel link` first. Verify env vars match with `yarn verify-production`. Use `src/pages/` not `pages/`.
+priority: 4
+---
+
 # Critical Deployment Issues & Best Practices
 
 Common pitfalls and solutions when deploying to production.

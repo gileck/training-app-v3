@@ -4,9 +4,23 @@ This document describes the automated AI agent workflow that manages feature req
 
 ## Overview
 
-The integration creates a complete pipeline using a 6-column workflow for **both feature requests and bug reports**:
+The integration creates a complete pipeline using a 6-column workflow for **both feature requests and bug reports**.
 
-1. **User submits** feature request or bug report via app UI → stored in MongoDB
+### Entry Points
+
+Items can enter the workflow through three paths (all converge into the same pipeline):
+
+| Entry Point | Description | Command/Location |
+|-------------|-------------|------------------|
+| **UI Feature Request** | User submits via app form | `/feature-requests` page |
+| **UI Bug Report** | User submits or auto-captured error | Bug report dialog |
+| **CLI** | Developer creates directly | `yarn agent-workflow create` |
+
+**See [Entry Points](./entry-points.md) for detailed documentation on each path.**
+
+### Workflow Steps
+
+1. **User submits** feature request or bug report via app UI (or CLI) → stored in MongoDB
 2. **Admin gets Telegram notification** with one-click "Approve" button
 3. **Admin approves** (via Telegram button) → server creates GitHub Issue + adds to "Backlog"
 4. **Admin receives routing message** → chooses where item should start:

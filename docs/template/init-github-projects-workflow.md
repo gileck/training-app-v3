@@ -1,3 +1,10 @@
+---
+title: GitHub Agents Workflow
+description: AI-powered feature request and bug fix pipeline. Use this for automated feature/bug workflows.
+summary: 6-column workflow (Backlog → Product Design → Tech Design → Ready → PR Review → Done) with AI agents at each stage. Multi-phase features split into sequential PRs.
+priority: 4
+---
+
 # GitHub Projects Workflow - Getting Started Guide
 
 Complete setup guide for child projects that want to use the GitHub Projects workflow from this template.

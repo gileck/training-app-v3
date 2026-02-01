@@ -1,3 +1,10 @@
+---
+title: React Rendering & Infinite Loops
+description: Common pitfalls causing infinite re-renders. Use this when debugging render loops.
+summary: Never return `{}` or `[]` literals in Zustand selector fallbacks - use module-level constants. Never return object literals from selectors to extract multiple values - use individual selectors instead.
+priority: 3
+---
+
 # React Rendering Guidelines
 
 This document covers common React rendering pitfalls that cause infinite loops, performance issues, and hard-to-debug bugs. These issues often pass TypeScript and ESLint checks but fail at runtime.

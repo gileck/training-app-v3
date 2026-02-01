@@ -1,6 +1,13 @@
 ---
 name: react-hook-organization
-description: when developing React components and hooks
+description: React Query hooks and Zustand integration patterns. Use this when creating data fetching hooks.
+title: React Hook Organization
+summary: React Query for server state, Zustand for client state. Colocate hooks in `hooks.ts` within route or feature folder. All mutations must handle empty `{}` responses (offline mode).
+priority: 3
+key_points:
+  - "Query hooks: use `useQueryDefaults()` for centralized cache config"
+  - "Mutation hooks: optimistic updates in `onMutate`, rollback on error, empty `onSuccess`/`onSettled`"
+  - "**CRITICAL:** Check `data === undefined` alongside `isLoading` - only show empty state when data is defined AND empty"
 ---
 # React Hook Organization Pattern
 

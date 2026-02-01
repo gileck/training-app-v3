@@ -1,3 +1,10 @@
+---
+title: Exit Codes
+description: How to properly check command success/failure. Use this when running shell commands.
+summary: "**CRITICAL: Never parse command output to determine success/failure. Always use exit codes.** Exit code 0 = Success, non-zero = Failure. Use try/catch with execSync."
+priority: 1
+---
+
 # Exit Codes: The ONLY Reliable Way to Check Success/Failure
 
 > This is the detailed guide for exit code handling. For a quick reference, see [CLAUDE.md](../CLAUDE.md#exit-codes).

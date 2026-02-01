@@ -1,3 +1,12 @@
+---
+title: Template Sync
+description: Merge updates from template repository. Use this when syncing template changes to project.
+summary: "Path ownership model with `templatePaths` (synced) and `projectOverrides` (kept different). Three-file pattern (`index.template.ts`, `index.project.ts`, `index.ts`) eliminates override conflicts."
+priority: 4
+related_docs:
+  - sync-flows-reference.md
+---
+
 # Template Sync Guide
 
 This template includes a powerful template sync system that allows you to merge updates from the template repository into projects created from it.

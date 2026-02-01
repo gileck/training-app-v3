@@ -1,3 +1,15 @@
+---
+title: State Management
+description: Dual-store architecture for PWA with offline support. Use this when managing application state.
+summary: React Query for server/API data, Zustand for client state, useState for ephemeral UI. All Zustand stores MUST use `createStore` factory from `@/client/stores`.
+priority: 2
+related_docs:
+  - react-query-mutations.md
+  - zustand-stores.md
+related_rules:
+  - state-management-guidelines
+---
+
 # State Management Deep Dive
 
 This document provides a comprehensive guide to state management in the application, covering Zustand stores, React Query, offline support, and best practices.

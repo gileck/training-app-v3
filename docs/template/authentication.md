@@ -1,3 +1,10 @@
+---
+title: Authentication
+description: Instant-boot authentication pattern for PWA. Use this when working with auth flows.
+summary: Uses `isProbablyLoggedIn` hint in localStorage for instant render, validates with server in background. JWT in HttpOnly cookie. Use `useUser()` for validated user, `useAuthStore(s => s.userPublicHint)` for instant-boot UI.
+priority: 2
+---
+
 # Authentication System Documentation
 
 This document explains the authentication system, including the **preflight optimization** and instant-boot pattern for PWA support.

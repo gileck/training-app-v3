@@ -1,6 +1,13 @@
 ---
 name: eslint-custom-guidelines
-description: when fixing eslint issues
+description: Custom ESLint rules and when to use disable comments. Use this when fixing lint issues.
+title: ESLint Custom Rules
+summary: Never use ESLint disable comments unless specifically instructed. Exception - `state-management/prefer-state-architecture` - add disable comment WITH explanation for valid `useState` usage.
+priority: 4
+key_points:
+  - "Valid `useState` justifications: ephemeral modal state, form input before submission, local loading indicator"
+  - "If warning triggers and none apply: use React Query (API data) or Zustand (preferences, auth, persistent UI)"
+  - Always run `yarn checks` after fixing lint issues
 ---
 # ESLint Custom Guidelines
 

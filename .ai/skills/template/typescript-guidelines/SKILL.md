@@ -1,6 +1,9 @@
 ---
 name: typescript-guidelines
-description: when writing Typescript code
+description: Strict TypeScript guidelines. Use this when writing TypeScript code.
+title: TypeScript
+summary: Strict mode enabled, no `any` types allowed. Prefer union types over enums. All domain types in `apis/<domain>/types.ts`.
+priority: 3
 ---
 # TypeScript Guidelines
 

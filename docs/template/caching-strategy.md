@@ -1,3 +1,10 @@
+---
+title: Caching Strategy
+description: Single-layer client cache using localStorage. Use this when configuring query caching.
+summary: React Query handles all API caching with localStorage persistence. Configure via `useQueryDefaults()`. User can toggle cache in Settings.
+priority: 2
+---
+
 # Caching Strategy
 
 This document describes the application's caching architecture, including what is cached, where it's stored, and how to manage caches.

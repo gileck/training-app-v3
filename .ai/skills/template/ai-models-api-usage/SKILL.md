@@ -1,6 +1,14 @@
 ---
 name: ai-models-api-usage
-description: AI Models API Usage Guidelines
+description: Server-side AI model integration patterns. Use this when calling AI APIs.
+title: AI Model API Usage
+summary: Never call AI APIs directly - always use `AIModelAdapter` from `src/server/ai/baseModelAdapter.ts`. Server-side only, include caching and cost tracking.
+priority: 4
+key_points:
+  - All AI calls must be server-side only
+  - Validate model IDs using `isModelExists()` before adapter initialization
+  - Always return 200 status codes with error fields, never throw uncaught errors
+  - Track and return cost of each AI call
 ---
 # AI Models API Usage Guidelines
 

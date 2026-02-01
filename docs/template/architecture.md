@@ -1,3 +1,15 @@
+---
+title: Architecture Overview
+description: Next.js PWA with offline-first capabilities. Use this to understand the project structure and core principles.
+summary: Offline-first app with instant boot using cached state (localStorage). All mutations use optimistic updates. Code organized by feature, not type.
+priority: 1
+key_points:
+  - "`src/client/features/` - Feature modules (stores, hooks, components)"
+  - "`src/client/routes/` - Route/page components"
+  - "`src/apis/` - API definitions"
+  - "`template/` folders are synced from template, `project/` folders are project-specific"
+---
+
 # Application Architecture
 
 This document provides a high-level overview of the application architecture, designed for a Progressive Web App (PWA) with offline-first capabilities and native-like performance.

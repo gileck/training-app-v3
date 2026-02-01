@@ -1,3 +1,10 @@
+---
+title: Wixpress Registry Issues
+description: Handling npm package issues in Wix corporate network. Use this if experiencing lock file or ESLint issues.
+summary: Run `yarn setup-hooks` once after cloning. Always use `yarn install`, never `npm install`.
+priority: 5
+---
+
 # Wixpress Registry Issues (Lock Files & ESLint)
 
 > **Comprehensive documentation** for managing npm package issues in the Wix corporate network environment.

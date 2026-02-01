@@ -1,3 +1,10 @@
+---
+title: Theming System
+description: Application theming with semantic color tokens. Use this when customizing colors and themes.
+summary: Comprehensive theming with semantic color tokens. Never hardcode colors - always use theme variables like `bg-background`, `text-foreground`.
+priority: 3
+---
+
 # Theming System
 
 This document describes the application's comprehensive theming system, which allows users to customize the look and feel of the entire application.

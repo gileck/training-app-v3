@@ -1,3 +1,10 @@
+---
+title: Git Worktree Workflow
+description: Isolated development with clean commit history. Use this for feature/fix development.
+summary: Create worktree for development, squash merge to main for single clean commit. Always run `yarn checks` before merging.
+priority: 4
+---
+
 # Git Worktree Workflow
 
 Best practices for using git worktrees to implement features and fixes with clean commit history.
