@@ -4,6 +4,13 @@ export const appConfig = {
     appName: 'training-app-v3',
     cacheType: isProduction ? 's3' : 's3',
     dbName: 'training_app_v3_db',
+
+    // Production URL for the app (used for clarification links in Telegram)
+    appUrl: process.env.NEXT_PUBLIC_APP_URL ||
+            process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` ||
+            process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` ||
+            'https://training-app-v3.vercel.app',
+
     // Defaults to AGENT_TELEGRAM_CHAT_ID env var, then falls back to ownerTelegramChatId
     // If not set, uses the hardcoded fallback below
     ownerTelegramChatId: process.env.AGENT_TELEGRAM_CHAT_ID ||

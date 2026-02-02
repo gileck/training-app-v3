@@ -17,7 +17,7 @@ import {
     Plus,
 } from 'lucide-react';
 import type { Activity, ActivityType, ActivityAction } from '../types';
-import { formatRelativeTime } from '../../Todos/utils/dateUtils';
+import { formatRelativeTime } from '../utils/dateUtils';
 import { formatDurationSeconds, formatCurrency } from '../utils/mockData';
 
 interface ActivityItemProps {
