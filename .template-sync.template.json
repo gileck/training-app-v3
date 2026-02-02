@@ -12,7 +12,6 @@
     "CLAUDE.md",
     "docs/template/**",
     "scripts/template/**",
-    "scripts/hooks/**",
     ".ai/skills/template/**",
     "src/client/components/ui/**",
     "src/client/query/**",

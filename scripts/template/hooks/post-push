@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# Post-push hook - runs after git push
+# This hook is triggered by the git alias configured in setup-hooks.sh
+#
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
+# Check if child-projects.json exists
+if [ ! -f "$PROJECT_DIR/child-projects.json" ]; then
+    exit 0
+fi
+
+# Check if running in interactive shell
+if [ -t 0 ]; then
+    # Interactive: ask user
+    echo ""
+    read -p "🔄 Sync child projects? (y/N): " response
+    case "$response" in
+        [yY]|[yY][eE][sS])
+            echo ""
+            cd "$PROJECT_DIR" && yarn sync-children
+            ;;
+        *)
+            echo "Skipping child sync."
+            ;;
+    esac
+else
+    # Non-interactive: just print a hint
+    echo ""
+    echo "💡 To sync child projects, run: yarn sync-children"
+fi
