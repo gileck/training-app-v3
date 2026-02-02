@@ -68,6 +68,40 @@ src/client/components/ui/
 └── ... (other components)
 ```
 
+### Template vs Project Components
+
+**IMPORTANT:** The `ui/` folder is **template-owned** and synced automatically. Never modify files directly in `ui/`.
+
+For project-specific components or customizations, use the `project/` folder:
+
+```
+src/client/components/
+├── ui/              # Template-owned (synced, DON'T modify)
+│   ├── button.tsx
+│   ├── card.tsx
+│   └── ...
+└── project/         # Project-specific (NOT synced)
+    ├── sheet.tsx    # Your customized sheet
+    └── ...
+```
+
+**When to use `project/`:**
+- Customizing a shadcn component (copy from `ui/`, modify in `project/`)
+- Adding components unique to your project
+- Adding shadcn components not included in the template
+
+**Example - Customizing Sheet:**
+```bash
+# 1. Copy the component
+cp src/client/components/ui/sheet.tsx src/client/components/project/sheet.tsx
+
+# 2. Modify as needed
+
+# 3. Update imports in your code
+# Before: import { Sheet } from '@/client/components/ui/sheet';
+# After:  import { Sheet } from '@/client/components/project/sheet';
+```
+
 ### Adding New Components
 
 Use the shadcn CLI to add components:
@@ -878,7 +912,8 @@ function SettingsList() {
 
 ### Key Files
 
-- Components: `src/client/components/ui/*`
+- Template Components: `src/client/components/ui/*` (synced, don't modify)
+- Project Components: `src/client/components/project/*` (not synced, your customizations)
 - Theme: `src/client/styles/globals.css`
 - Theme Provider: `src/pages/_app.tsx` (next-themes)
 

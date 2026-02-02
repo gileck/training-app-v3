@@ -4,19 +4,17 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { TemplateSyncConfig } from '../types';
-import { shouldIgnore } from './ignore-patterns';
 
 /**
  * Get all files in a directory recursively
  */
-export function getAllFiles(
-  config: TemplateSyncConfig,
-  dir: string,
-  baseDir: string = dir,
-  includeIgnored: boolean = false
-): string[] {
+export function getAllFiles(dir: string, baseDir: string = dir): string[] {
   const files: string[] = [];
+
+  if (!fs.existsSync(dir)) {
+    return files;
+  }
+
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -28,13 +26,8 @@ export function getAllFiles(
       continue;
     }
 
-    // Skip ignored files/directories (unless includeIgnored is true)
-    if (!includeIgnored && shouldIgnore(config, relativePath)) {
-      continue;
-    }
-
     if (entry.isDirectory()) {
-      files.push(...getAllFiles(config, fullPath, baseDir, includeIgnored));
+      files.push(...getAllFiles(fullPath, baseDir));
     } else if (entry.isSymbolicLink()) {
       // For symlinks, check if target is a directory
       try {

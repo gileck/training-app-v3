@@ -12,10 +12,10 @@ import { getAllFiles } from './scanning';
 /**
  * Compare files between template and project
  */
-export function compareFiles(context: SyncContext, includeIgnored: boolean = false): FileChange[] {
+export function compareFiles(context: SyncContext): FileChange[] {
   const templatePath = path.join(context.projectRoot, TEMPLATE_DIR);
-  const templateFiles = getAllFiles(context.config, templatePath, templatePath, includeIgnored);
-  const projectFiles = getAllFiles(context.config, context.projectRoot, context.projectRoot, includeIgnored);
+  const templateFiles = getAllFiles(templatePath);
+  const projectFiles = getAllFiles(context.projectRoot);
 
   const allFiles = Array.from(new Set([...templateFiles, ...projectFiles]));
   const changes: FileChange[] = [];

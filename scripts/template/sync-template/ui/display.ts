@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SyncContext, TotalDiffSummary, TEMPLATE_DIR } from '../types';
 import { getFileHash } from '../files';
-import { shouldIgnore, shouldIgnoreByProjectSpecificFiles, shouldIgnoreTemplateFile } from '../files/ignore-patterns';
+import { shouldIgnoreTemplateFile, matchesTemplatePaths, isProjectOverride } from '../files/ignore-patterns';
 import { getAllFiles } from '../files/scanning';
 
 /**
@@ -17,19 +17,19 @@ import { getAllFiles } from '../files/scanning';
 export function displayTotalDiffSummary(context: SyncContext): TotalDiffSummary {
   const templatePath = path.join(context.projectRoot, TEMPLATE_DIR);
 
-  // Get all files including ignored ones for complete picture
-  const templateFiles = getAllFiles(context.config, templatePath, templatePath, true);
-  const projectFiles = getAllFiles(context.config, context.projectRoot, context.projectRoot, true);
+  // Get all files from both locations
+  const templateFiles = getAllFiles(templatePath);
+  const projectFiles = getAllFiles(context.projectRoot);
 
   const allFiles = Array.from(new Set([...templateFiles, ...projectFiles]));
 
   // Categorize all differences
   const summary: TotalDiffSummary = {
-    newInTemplate: [],        // In template, not in project (not ignored/project-specific)
-    modified: [],             // Different content (not ignored/project-specific)
+    newInTemplate: [],        // In template, not in project (within templatePaths)
+    modified: [],             // Different content (within templatePaths, not override)
     identical: 0,             // Same content
-    ignoredDiffs: [],         // Different AND in both AND matches ignored pattern
-    projectSpecificDiffs: [], // Different AND in both AND matches project-specific pattern
+    ignoredDiffs: [],         // Not in templatePaths (won't be synced)
+    projectSpecificDiffs: [], // Project overrides that differ
   };
 
   for (const file of allFiles) {
@@ -44,15 +44,14 @@ export function displayTotalDiffSummary(context: SyncContext): TotalDiffSummary 
     const inTemplate = fs.existsSync(templateFilePath);
     const inProject = fs.existsSync(projectFilePath);
 
-    const isIgnored = shouldIgnore(context.config, file);
-    const isProjectSpecific = shouldIgnoreByProjectSpecificFiles(context.config, file);
+    const inTemplatePaths = matchesTemplatePaths(context.config, file);
+    const isOverride = isProjectOverride(context.config, file);
 
     if (inTemplate && !inProject) {
-      // New in template - only count if NOT ignored/project-specific
-      if (!isIgnored && !isProjectSpecific) {
+      // New in template - only count if in templatePaths
+      if (inTemplatePaths) {
         summary.newInTemplate.push(file);
       }
-      // If ignored or project-specific and missing from project, don't count it
     } else if (inProject && !inTemplate) {
       // Project-only file (not in template) - don't count these at all
       // These are project additions, not template drift
@@ -62,12 +61,14 @@ export function displayTotalDiffSummary(context: SyncContext): TotalDiffSummary 
       const projectHash = getFileHash(projectFilePath);
 
       if (templateHash !== projectHash) {
-        // Only count ignored/project-specific if they exist in BOTH and are different
-        if (isIgnored) {
+        if (!inTemplatePaths) {
+          // Not in templatePaths - won't be synced
           summary.ignoredDiffs.push(file);
-        } else if (isProjectSpecific) {
+        } else if (isOverride) {
+          // Project override - intentionally different
           summary.projectSpecificDiffs.push(file);
         } else {
+          // Regular modified file
           summary.modified.push(file);
         }
       } else {
@@ -105,10 +106,10 @@ export function displayTotalDiffSummary(context: SyncContext): TotalDiffSummary 
       rows.push(['Modified (different from template)', summary.modified.length, '📝']);
     }
     if (summary.projectSpecificDiffs.length > 0) {
-      rows.push(['Project-specific (in config)', summary.projectSpecificDiffs.length, '⚙️']);
+      rows.push(['Project overrides', summary.projectSpecificDiffs.length, '⚙️']);
     }
     if (summary.ignoredDiffs.length > 0) {
-      rows.push(['Ignored (in config)', summary.ignoredDiffs.length, '🚫']);
+      rows.push(['Not in templatePaths', summary.ignoredDiffs.length, '🚫']);
     }
 
     // Calculate max width for alignment
@@ -157,14 +158,14 @@ export function displayTotalDiffDetails(summary: TotalDiffSummary | null): void 
   }
 
   if (summary.projectSpecificDiffs.length > 0) {
-    console.log(`\n⚙️  Project-specific (${summary.projectSpecificDiffs.length} files):`);
-    console.log('   Files matching projectSpecificFiles patterns that differ:');
+    console.log(`\n⚙️  Project overrides (${summary.projectSpecificDiffs.length} files):`);
+    console.log('   Files in projectOverrides that differ:');
     summary.projectSpecificDiffs.forEach(f => console.log(`   • ${f}`));
   }
 
   if (summary.ignoredDiffs.length > 0) {
-    console.log(`\n🚫 Ignored (${summary.ignoredDiffs.length} files):`);
-    console.log('   Files matching ignoredFiles patterns that differ:');
+    console.log(`\n🚫 Not in templatePaths (${summary.ignoredDiffs.length} files):`);
+    console.log('   Files outside of templatePaths that differ:');
     summary.ignoredDiffs.forEach(f => console.log(`   • ${f}`));
   }
 

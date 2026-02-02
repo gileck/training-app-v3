@@ -5,8 +5,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE, isLegacyConfig, isFolderOwnershipConfig, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
-import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, getConfigFormatDescription, hasSplitConfig } from './utils/config';
+import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
+import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, hasSplitConfig } from './utils/config';
 import { log, logError } from './utils/logging';
 import { exec } from './utils';
 import { confirm, isInteractive } from '../cli-utils';
@@ -30,7 +30,7 @@ import { syncFiles, syncFolderOwnership } from './sync';
 import { printResults, generateSyncReport, getTemplateCommitsSinceLastSync, formatSyncCommitMessage, addSyncHistoryEntry } from './reporting';
 
 // Modes
-import { runInitHashes, runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, initializeIdenticalFileHashes, runJsonMode, runMergePackageJson } from './modes';
+import { runProjectDiffs, runShowDrift, runChangelog, runDiffSummary, runValidation, runJsonMode, runMergePackageJson } from './modes';
 
 /**
  * Main Template Sync Tool class
@@ -45,46 +45,19 @@ export class TemplateSyncTool {
   constructor(options: SyncOptions) {
     this.projectRoot = process.cwd();
     this.options = options;
-    const rawConfig = loadConfig(this.projectRoot);
+    const config = loadConfig(this.projectRoot);
 
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
     });
 
-    // Check config format - only support folder ownership config
-    if (!isFolderOwnershipConfig(rawConfig)) {
-      console.error('');
-      console.error('❌ Legacy config format detected.');
-      console.error('');
-      console.error('The hash-based sync config is no longer supported.');
-      console.error('Please migrate to the Path Ownership config format.');
-      console.error('');
-      console.error('To migrate, run:');
-      console.error('  yarn sync-template --migrate');
-      console.error('');
-      console.error('Or see docs/template/template-sync/template-sync.md for manual migration.');
-      console.error('');
-      process.exit(1);
-    }
-
     // Store folder ownership config
-    this.folderOwnershipConfig = rawConfig;
+    this.folderOwnershipConfig = config;
 
-    // Create a minimal context for compatibility
+    // Create context
     this.context = {
-      config: {
-        templateRepo: rawConfig.templateRepo,
-        templateBranch: rawConfig.templateBranch,
-        templateLocalPath: rawConfig.templateLocalPath,
-        baseCommit: null,
-        lastSyncCommit: rawConfig.lastSyncCommit,
-        lastProjectCommit: null,
-        lastSyncDate: rawConfig.lastSyncDate,
-        ignoredFiles: [],
-        projectSpecificFiles: [],
-        syncHistory: rawConfig.syncHistory,
-      },
+      config,
       options,
       projectRoot: this.projectRoot,
       rl: this.rl,
@@ -154,23 +127,20 @@ export class TemplateSyncTool {
     const config = this.folderOwnershipConfig;
     const { dryRun, quiet, autoMode, verbose } = this.options;
 
-    console.log('🔄 Template Sync Tool (Folder Ownership Model)');
+    console.log('🔄 Template Sync Tool');
     console.log('='.repeat(60));
-    console.log(`📁 Config format: ${getConfigFormatDescription(config)}`);
 
     // Step 1: Clone/update template
     console.log('\n📦 Preparing template...');
     const templateDir = path.join(this.projectRoot, TEMPLATE_DIR);
     await cloneTemplate(this.context);
 
-    // Step 1.5: Sync template config first (if template uses split config)
+    // Step 1.5: Sync template config first
     this.syncTemplateConfig(templateDir, dryRun);
 
     // Step 1.6: Reload config after syncing template config
     const reloadedConfig = loadConfig(this.projectRoot);
-    if (isFolderOwnershipConfig(reloadedConfig)) {
-      Object.assign(config, reloadedConfig);
-    }
+    Object.assign(config, reloadedConfig);
 
     // Step 1.7: Merge template's ignored files into config (for legacy support)
     mergeTemplateIgnoredFiles(this.projectRoot, config, TEMPLATE_DIR);

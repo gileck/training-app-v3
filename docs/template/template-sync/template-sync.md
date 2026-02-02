@@ -28,7 +28,7 @@ The sync system uses the **Path Ownership Model** with explicit path declaration
 - Project overrides are kept different from template
 - Clear, explicit ownership - no hash drift issues
 
-> **Note:** The legacy hash-based config is no longer supported. If you have a project using the old format (with `ignoredFiles`, `projectSpecificFiles`, `fileHashes`), run `yarn sync-template --migrate` to convert to the Path Ownership model.
+> **Note:** The legacy hash-based config is no longer supported. Projects must use the Path Ownership model with `templatePaths` and `projectOverrides`.
 
 ---
 
@@ -266,34 +266,6 @@ If you have the template repository cloned locally (e.g., you're developing both
 - Absolute paths (e.g., `/Users/me/projects/app-template-ai`) work too
 
 **Note:** The local path must be a valid git repository with a `.git` directory.
-
----
-
-## Migration: Legacy to Path Ownership (Required)
-
-If you have a project using the legacy hash-based config (with `ignoredFiles`, `projectSpecificFiles`, `fileHashes`), you **must** migrate to the Path Ownership model. The legacy config format is no longer supported.
-
-### Migration Process
-
-Run the interactive migration wizard:
-
-```bash
-yarn sync-template --migrate
-```
-
-The wizard will:
-1. Show you the suggested `templatePaths` based on common patterns
-2. Identify your `projectOverrides` from your current customizations
-3. Create a backup of your legacy config (`.template-sync.legacy.json`)
-4. Save the new config to `.template-sync.json`
-
-### Migration Help
-
-For more details on the migration process:
-
-```bash
-yarn sync-template --migration-help
-```
 
 ---
 
@@ -762,7 +734,33 @@ This generates `template-diff-summary.md` showing diffs for ALL files - includin
 - Catch important template changes you may want to manually apply
 - Understand how your project has diverged from the template
 
-### 3. Mark Override Files
+### 3. UI Components: Use `project/` Folder Instead of Overrides
+
+**Don't add individual UI components to `projectOverrides`.** Instead, use the `project/` folder for customizations:
+
+```
+src/client/components/
+├── ui/              # Template-owned (synced, DON'T modify)
+│   ├── button.tsx
+│   ├── card.tsx
+│   └── ...
+└── project/         # Project-specific (NOT synced)
+    ├── sheet.tsx    # Your customized sheet
+    └── ...
+```
+
+**Why this is better:**
+- No need to track individual files in `projectOverrides`
+- Clear separation - you know what's safe to edit
+- Template can update shadcn components without conflicts
+- Consistent import pattern: `@/client/components/ui/...` vs `@/client/components/project/...`
+
+**To customize a shadcn component:**
+1. Copy from `ui/` to `project/`
+2. Modify as needed
+3. Update imports to use `@/client/components/project/`
+
+### 4. Mark Override Files (When Necessary)
 
 If you need to keep specific template files different in your project, add them to `projectOverrides`:
 
@@ -776,7 +774,7 @@ If you need to keep specific template files different in your project, add them 
 
 **Note:** Only use this for files within `templatePaths` that you've intentionally modified.
 
-### 4. Sync Regularly
+### 5. Sync Regularly
 
 Sync frequently to avoid large conflicts:
 
@@ -785,7 +783,7 @@ Sync frequently to avoid large conflicts:
 yarn sync-template --dry-run
 ```
 
-### 4. Review Before Merging
+### 6. Review Before Merging
 
 Always review auto-merged changes:
 
@@ -795,7 +793,7 @@ git diff
 
 Make sure automatic merges didn't break anything.
 
-### 5. Test After Sync
+### 7. Test After Sync
 
 ```bash
 yarn checks
@@ -998,8 +996,6 @@ jobs:
 | `yarn sync-template --init-hashes` | Initialize baseline hashes for all files (legacy) |
 | `yarn sync-template --changelog` | Show template commits since last sync |
 | `yarn sync-template --show-drift` | Show total project drift with file list |
-| `yarn sync-template --migrate` | Migrate from legacy to Path Ownership config |
-| `yarn sync-template --migration-help` | Show migration help information |
 
 ### Auto Mode Flags
 

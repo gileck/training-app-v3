@@ -77,11 +77,11 @@ export function formatDiffStats(context: SyncContext, filePath: string): string 
  * Get the local diff for a file (changes since last sync)
  */
 export function getLocalDiff(context: SyncContext, filePath: string): string {
-  if (!context.config.lastProjectCommit) return '';
+  if (!context.config.lastSyncCommit) return '';
 
   try {
     return exec(
-      `git diff ${context.config.lastProjectCommit} HEAD -- "${filePath}" || true`,
+      `git diff ${context.config.lastSyncCommit} HEAD -- "${filePath}" || true`,
       context.projectRoot,
       { silent: true }
     );

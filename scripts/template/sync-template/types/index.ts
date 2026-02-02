@@ -40,30 +40,6 @@ export interface SyncHistoryEntry {
 }
 
 /**
- * Legacy config format - uses hash-based conflict detection.
- * This is the default config type used throughout the existing codebase.
- */
-export interface TemplateSyncConfig {
-  templateRepo: string;
-  templateBranch: string;
-  baseCommit: string | null;
-  lastSyncCommit: string | null;
-  lastProjectCommit: string | null;
-  lastSyncDate: string | null;
-  ignoredFiles: string[];
-  projectSpecificFiles: string[];
-  templateIgnoredFiles?: string[];  // Template files to never sync (e.g., example/demo code)
-  templateLocalPath?: string;  // Local path to template repo (for faster sync and contributing changes)
-  syncHistory?: SyncHistoryEntry[];  // Track sync history
-  fileHashes?: Record<string, string>;  // Hash of each file at last sync time
-}
-
-/**
- * Alias for backward compatibility
- */
-export type LegacyTemplateSyncConfig = TemplateSyncConfig;
-
-/**
  * Template-owned config file (.template-sync.template.json)
  * This file is synced FROM the template and defines what the template owns.
  * Projects should NOT modify this file.
@@ -115,28 +91,8 @@ export interface ProjectOwnedConfig {
 
 /**
  * Combined config (merged in memory for sync operations)
- * This is the old FolderOwnershipConfig format, kept for backwards compatibility.
  */
 export interface FolderOwnershipConfig extends TemplateOwnedConfig, ProjectOwnedConfig {}
-
-/**
- * Union type for any config format (used for loading/detecting config type)
- */
-export type AnyTemplateSyncConfig = TemplateSyncConfig | FolderOwnershipConfig;
-
-/**
- * Type guard to check if config is the new FolderOwnershipConfig format
- */
-export function isFolderOwnershipConfig(config: AnyTemplateSyncConfig): config is FolderOwnershipConfig {
-  return 'templatePaths' in config && Array.isArray((config as FolderOwnershipConfig).templatePaths);
-}
-
-/**
- * Type guard to check if config is the legacy format
- */
-export function isLegacyConfig(config: AnyTemplateSyncConfig): config is TemplateSyncConfig {
-  return !isFolderOwnershipConfig(config);
-}
 
 export interface FileChange {
   path: string;
@@ -250,7 +206,7 @@ export interface DiffSummary {
  * Holds shared state and configuration.
  */
 export interface SyncContext {
-  config: TemplateSyncConfig;
+  config: FolderOwnershipConfig;
   options: SyncOptions;
   projectRoot: string;
   rl: readline.Interface;
@@ -258,7 +214,7 @@ export interface SyncContext {
 }
 
 // ============================================================================
-// Folder Ownership Analysis Types (New Path Ownership Model)
+// Folder Ownership Analysis Types
 // ============================================================================
 
 /**

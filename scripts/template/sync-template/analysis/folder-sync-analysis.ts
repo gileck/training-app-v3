@@ -287,30 +287,20 @@ function categorizeFile(
 
   // File in template
   if (inTemplate) {
-    // Project override - check if template changed
+    // Project override - always keep project version
     if (isOverride) {
       const templateChanged = templateChangedFile(filePath, templateDir, config);
-
-      if (templateChanged) {
-        return {
-          path: filePath,
-          action: 'conflict',
-          reason: 'Project override, but template changed this file',
-          inTemplate,
-          inProject,
-          isOverride,
-          templateChanged: true,
-        };
-      }
 
       return {
         path: filePath,
         action: 'skip',
-        reason: 'Project override, template unchanged',
+        reason: templateChanged
+          ? 'Project override (⚠️ template changed - review manually)'
+          : 'Project override, template unchanged',
         inTemplate,
         inProject,
         isOverride,
-        templateChanged: false,
+        templateChanged,
       };
     }
 
@@ -466,9 +456,12 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: b
   console.log('\n📊 Folder Ownership Analysis');
   console.log('='.repeat(60));
 
-  // Count "already up to date" files separately
+  // Categorize skipped files
   const upToDate = analysis.toSkip.filter(f => f.reason === 'Already up to date');
-  const otherSkipped = analysis.toSkip.filter(f => f.reason !== 'Already up to date');
+  const overridesWithTemplateChanges = analysis.toSkip.filter(f => f.isOverride && f.templateChanged);
+  const otherSkipped = analysis.toSkip.filter(f =>
+    f.reason !== 'Already up to date' && !(f.isOverride && f.templateChanged)
+  );
 
   const hasActions = analysis.toCopy.length > 0 ||
                      analysis.toDelete.length > 0 ||
@@ -519,6 +512,18 @@ export function printFolderSyncAnalysis(analysis: FolderSyncAnalysis, verbose: b
       console.log(`   ... and ${analysis.diverged.length - 10} more`);
     }
     console.log(`   ℹ️  These files were modified in your project but not added to projectOverrides`);
+  }
+
+  // Show override files where template changed (needs manual review)
+  if (overridesWithTemplateChanges.length > 0) {
+    console.log(`\n⚠️  Override files with template changes (${overridesWithTemplateChanges.length}):`);
+    console.log(`   ℹ️  These files are kept as-is, but template has updates you may want to review:`);
+    for (const file of overridesWithTemplateChanges.slice(0, 10)) {
+      console.log(`   ⚠️  ${file.path}`);
+    }
+    if (overridesWithTemplateChanges.length > 10) {
+      console.log(`   ... and ${overridesWithTemplateChanges.length - 10} more`);
+    }
   }
 
   // Only show other skipped files (not "already up to date") unless verbose

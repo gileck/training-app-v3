@@ -40,18 +40,7 @@ export async function runMergePackageJson(context: SyncContext): Promise<void> {
     }
 
     // Get the baseline package.json for 3-way merge
-    // IMPORTANT: If package.json is in ignoredFiles, it was never synced, so the project's
-    // package.json may be older than lastSyncCommit. In this case, use NULL baseline to
-    // trigger a 2-way merge that correctly identifies template additions as new fields.
-    const isPackageJsonIgnored = context.config.ignoredFiles?.some(pattern =>
-      pattern === 'package.json' || pattern.endsWith('/package.json')
-    );
-
-    const basePackageJson = isPackageJsonIgnored ? null : getBaselinePackageJson(context);
-
-    if (isPackageJsonIgnored) {
-      log(context.options, '\n⚠️  package.json is in ignoredFiles - using 2-way merge (no baseline)');
-    }
+    const basePackageJson = getBaselinePackageJson(context);
 
     // Perform the merge
     let mergeResult = mergePackageJsonFiles(context.projectRoot, basePackageJson);

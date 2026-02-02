@@ -8,7 +8,7 @@ import { SyncContext, TEMPLATE_DIR } from '../types';
 import { exec } from '../utils';
 import { cloneTemplate, cleanupTemplate } from '../git';
 import { getAllFiles, getFileHash, getChangeStatus } from '../files';
-import { shouldIgnore, shouldIgnoreByProjectSpecificFiles, shouldIgnoreTemplateFile } from '../files/ignore-patterns';
+import { shouldIgnoreTemplateFile, matchesTemplatePaths } from '../files/ignore-patterns';
 
 /**
  * Run project-diffs mode - show diffs for files that differ between project and template.
@@ -37,8 +37,8 @@ export async function runProjectDiffs(context: SyncContext): Promise<void> {
     console.log(`# Generated: ${new Date().toISOString()}`);
     console.log('');
 
-    // Get all files from both repos
-    const templateFiles = getAllFiles(context.config, templatePath, templatePath);
+    // Get all files from template
+    const templateFiles = getAllFiles(templatePath);
 
     // Find files that exist in both and might differ
     const filesToCheck = templateFiles.filter(file => {
@@ -46,10 +46,11 @@ export async function runProjectDiffs(context: SyncContext): Promise<void> {
       const projectFilePath = path.join(context.projectRoot, file);
       if (!fs.existsSync(projectFilePath)) return false;
 
-      // Skip ignored files
-      if (shouldIgnore(context.config, file)) return false;
-      if (shouldIgnoreByProjectSpecificFiles(context.config, file)) return false;
+      // Skip template-ignored files
       if (shouldIgnoreTemplateFile(context.config, file)) return false;
+
+      // Only check files in templatePaths
+      if (!matchesTemplatePaths(context.config, file)) return false;
 
       return true;
     });

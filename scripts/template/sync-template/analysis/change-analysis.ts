@@ -6,7 +6,7 @@ import * as path from 'path';
 import { SyncContext, FileChange, AnalysisResult, TEMPLATE_DIR, PackageJsonMergeResult } from '../types';
 import { exec } from '../utils';
 import { logVerbose } from '../utils/logging';
-import { shouldIgnoreByProjectSpecificFiles } from '../files';
+import { isProjectOverride } from '../files';
 import { getChangeStatus } from '../files/comparison';
 import {
   mergePackageJsonFiles,
@@ -116,8 +116,8 @@ export function analyzeChanges(context: SyncContext, changes: FileChange[]): Ana
   let packageJsonIsConflict = false;
 
   for (const change of changes) {
-    // Skip project-specific files (with glob pattern support)
-    if (shouldIgnoreByProjectSpecificFiles(context.config, change.path)) {
+    // Skip project override files
+    if (isProjectOverride(context.config, change.path)) {
       result.skipped.push(change.path);
       continue;
     }

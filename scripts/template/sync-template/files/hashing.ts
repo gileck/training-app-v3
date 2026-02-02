@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { TemplateSyncConfig, TEMPLATE_DIR } from '../types';
+import { FolderOwnershipConfig, TEMPLATE_DIR } from '../types';
 
 /**
  * Get the MD5 hash of a file or symlink.
@@ -52,18 +52,18 @@ export function getFileHash(filePath: string): string {
  * Get the stored hash for a file from the last sync.
  * Returns null if no hash is stored (first sync or file was never synced).
  */
-export function getStoredHash(config: TemplateSyncConfig, filePath: string): string | null {
-  return config.fileHashes?.[filePath] ?? null;
+export function getStoredHash(config: FolderOwnershipConfig, filePath: string): string | null {
+  return config.overrideHashes?.[filePath] ?? null;
 }
 
 /**
  * Store the hash of a synced file for future comparison.
  */
-export function storeFileHash(config: TemplateSyncConfig, filePath: string, hash: string): void {
-  if (!config.fileHashes) {
-    config.fileHashes = {};
+export function storeFileHash(config: FolderOwnershipConfig, filePath: string, hash: string): void {
+  if (!config.overrideHashes) {
+    config.overrideHashes = {};
   }
-  config.fileHashes[filePath] = hash;
+  config.overrideHashes[filePath] = hash;
 }
 
 /**

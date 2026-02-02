@@ -1,5 +1,9 @@
 /**
  * Configuration file I/O utilities
+ *
+ * Uses split config model:
+ * - .template-sync.template.json (template-owned, synced from template)
+ * - .template-sync.json (project-owned, your overrides)
  */
 
 import * as fs from 'fs';
@@ -7,36 +11,16 @@ import * as path from 'path';
 import {
   CONFIG_FILE,
   TEMPLATE_CONFIG_FILE,
-  TemplateSyncConfig,
-  AnyTemplateSyncConfig,
   FolderOwnershipConfig,
   TemplateOwnedConfig,
   ProjectOwnedConfig,
-  isFolderOwnershipConfig,
-  isLegacyConfig
 } from '../types';
 
 /**
- * Check if split config files exist AND project config is in the new format.
- * Returns false if project config still has legacy fields (needs migration).
+ * Check if the config has legacy fields that are no longer supported
  */
-export function hasSplitConfig(projectRoot: string): boolean {
-  const templateConfigPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
-  if (!fs.existsSync(templateConfigPath)) {
-    return false;
-  }
-
-  // Also check that project config is NOT legacy format
-  const projectConfigPath = path.join(projectRoot, CONFIG_FILE);
-  if (fs.existsSync(projectConfigPath)) {
-    const projectConfig = JSON.parse(fs.readFileSync(projectConfigPath, 'utf-8'));
-    // If project config has legacy fields, it needs migration
-    if ('fileHashes' in projectConfig || 'ignoredFiles' in projectConfig) {
-      return false;
-    }
-  }
-
-  return true;
+function hasLegacyFields(config: Record<string, unknown>): boolean {
+  return 'fileHashes' in config || 'ignoredFiles' in config || 'projectSpecificFiles' in config;
 }
 
 /**
@@ -62,58 +46,59 @@ export function loadProjectConfig(projectRoot: string): ProjectOwnedConfig | nul
 }
 
 /**
- * Load and merge split configs into a FolderOwnershipConfig
+ * Load the template sync configuration from disk.
+ * Requires both config files to exist in the new split format.
  */
-export function loadSplitConfig(projectRoot: string): FolderOwnershipConfig | null {
-  const templateConfig = loadTemplateConfig(projectRoot);
-  const projectConfig = loadProjectConfig(projectRoot);
+export function loadConfig(projectRoot: string): FolderOwnershipConfig {
+  const templateConfigPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  const projectConfigPath = path.join(projectRoot, CONFIG_FILE);
 
-  if (!templateConfig || !projectConfig) {
-    return null;
+  // Check for template config
+  if (!fs.existsSync(templateConfigPath)) {
+    console.error(`❌ Error: ${TEMPLATE_CONFIG_FILE} not found.`);
+    console.error('');
+    console.error('This file should be copied from the template repository.');
+    console.error('Copy it manually:');
+    console.error(`  cp <template-repo>/${TEMPLATE_CONFIG_FILE} .`);
+    process.exit(1);
   }
+
+  // Check for project config
+  if (!fs.existsSync(projectConfigPath)) {
+    console.error(`❌ Error: ${CONFIG_FILE} not found.`);
+    console.error('');
+    console.error('Run "yarn init-template <template-url>" to initialize template tracking.');
+    process.exit(1);
+  }
+
+  // Load and validate project config
+  const projectConfig = JSON.parse(fs.readFileSync(projectConfigPath, 'utf-8'));
+
+  if (hasLegacyFields(projectConfig)) {
+    console.error('❌ Error: Legacy config format detected.');
+    console.error('');
+    console.error('The hash-based sync config is no longer supported.');
+    console.error('Please manually update your .template-sync.json to the new format.');
+    console.error('');
+    console.error('Remove these fields: fileHashes, ignoredFiles, projectSpecificFiles, baseCommit');
+    console.error('');
+    console.error('Required fields in .template-sync.json:');
+    console.error('  - templateRepo: URL of the template repository');
+    console.error('  - templateBranch: Branch to sync from (usually "main")');
+    console.error('  - projectOverrides: Array of files to keep different from template');
+    console.error('');
+    console.error('See docs/template/template-sync/template-sync.md for details.');
+    process.exit(1);
+  }
+
+  // Load template config
+  const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8'));
 
   // Merge both configs
   return {
     ...projectConfig,
     ...templateConfig,
   };
-}
-
-/**
- * Load the template sync configuration from disk.
- * Supports both split config (new) and single file (legacy/old folder ownership).
- */
-export function loadConfig(projectRoot: string): AnyTemplateSyncConfig {
-  // Try split config first (new pattern)
-  if (hasSplitConfig(projectRoot)) {
-    const merged = loadSplitConfig(projectRoot);
-    if (merged) {
-      return merged;
-    }
-  }
-
-  // Fall back to single file
-  const configPath = path.join(projectRoot, CONFIG_FILE);
-
-  if (!fs.existsSync(configPath)) {
-    console.error('❌ Error: .template-sync.json not found.');
-    console.error('Run "yarn init-template" first to initialize template tracking.');
-    process.exit(1);
-  }
-
-  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-}
-
-/**
- * Load config and assert it's the legacy format.
- * Use this in existing code that expects legacy config.
- */
-export function loadLegacyConfig(projectRoot: string): TemplateSyncConfig {
-  const config = loadConfig(projectRoot);
-  if (!isLegacyConfig(config)) {
-    throw new Error('Expected legacy config format but found folder ownership config');
-  }
-  return config;
 }
 
 /**
@@ -142,54 +127,51 @@ export function saveProjectConfig(projectRoot: string, config: ProjectOwnedConfi
 
 /**
  * Save the template sync configuration to disk.
- * If using split config, saves to both files appropriately.
+ * Saves to both split config files.
  */
-export function saveConfig(projectRoot: string, config: AnyTemplateSyncConfig): void {
-  if (hasSplitConfig(projectRoot) && isFolderOwnershipConfig(config)) {
-    // Save to split files
-    const templateConfig: TemplateOwnedConfig = {
-      templatePaths: config.templatePaths,
-      templateIgnoredFiles: config.templateIgnoredFiles,
-    };
+export function saveConfig(projectRoot: string, config: FolderOwnershipConfig): void {
+  const templateConfig: TemplateOwnedConfig = {
+    templatePaths: config.templatePaths,
+    templateIgnoredFiles: config.templateIgnoredFiles,
+  };
 
-    const projectConfig: ProjectOwnedConfig = {
-      templateRepo: config.templateRepo,
-      templateBranch: config.templateBranch,
-      templateLocalPath: config.templateLocalPath,
-      lastSyncCommit: config.lastSyncCommit,
-      lastSyncDate: config.lastSyncDate,
-      projectOverrides: config.projectOverrides,
-      overrideHashes: config.overrideHashes,
-      syncHistory: config.syncHistory,
-    };
+  const projectConfig: ProjectOwnedConfig = {
+    templateRepo: config.templateRepo,
+    templateBranch: config.templateBranch,
+    templateLocalPath: config.templateLocalPath,
+    lastSyncCommit: config.lastSyncCommit,
+    lastSyncDate: config.lastSyncDate,
+    projectOverrides: config.projectOverrides,
+    overrideHashes: config.overrideHashes,
+    syncHistory: config.syncHistory,
+  };
 
-    saveTemplateConfig(projectRoot, templateConfig);
-    saveProjectConfig(projectRoot, projectConfig);
-  } else {
-    // Save to single file (legacy or non-split folder ownership)
-    const configPath = path.join(projectRoot, CONFIG_FILE);
-    fs.writeFileSync(
-      configPath,
-      JSON.stringify(config, null, 2) + '\n',
-      'utf-8'
-    );
-  }
+  saveTemplateConfig(projectRoot, templateConfig);
+  saveProjectConfig(projectRoot, projectConfig);
+}
+
+/**
+ * Check if split config files exist
+ */
+export function hasSplitConfig(projectRoot: string): boolean {
+  const templateConfigPath = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  const projectConfigPath = path.join(projectRoot, CONFIG_FILE);
+  return fs.existsSync(templateConfigPath) && fs.existsSync(projectConfigPath);
 }
 
 /**
  * Load template's config and merge templateIgnoredFiles into project config.
  * This allows the template to specify files that should never be synced to children.
- * Works with both legacy and folder ownership config formats.
  */
-export function mergeTemplateIgnoredFiles(projectRoot: string, config: AnyTemplateSyncConfig, templateDir: string): void {
-  const templateConfigPath = path.join(projectRoot, templateDir, CONFIG_FILE);
+export function mergeTemplateIgnoredFiles(projectRoot: string, config: FolderOwnershipConfig, templateDir: string): void {
+  const templateConfigPath = path.join(projectRoot, templateDir, TEMPLATE_CONFIG_FILE);
 
   if (!fs.existsSync(templateConfigPath)) {
     return;
   }
 
   try {
-    const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8')) as Partial<TemplateSyncConfig>;
+    const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8')) as Partial<TemplateOwnedConfig>;
     const templateIgnored = templateConfig.templateIgnoredFiles || [];
 
     if (templateIgnored.length > 0) {
@@ -201,28 +183,4 @@ export function mergeTemplateIgnoredFiles(projectRoot: string, config: AnyTempla
   } catch {
     // Ignore errors reading template config
   }
-}
-
-/**
- * Check if the config is using the new folder ownership model
- */
-export function isNewConfigFormat(config: AnyTemplateSyncConfig): config is FolderOwnershipConfig {
-  return isFolderOwnershipConfig(config);
-}
-
-/**
- * Check if the config needs migration to the new format
- */
-export function needsMigration(config: AnyTemplateSyncConfig): boolean {
-  return isLegacyConfig(config);
-}
-
-/**
- * Get config format description for logging
- */
-export function getConfigFormatDescription(config: AnyTemplateSyncConfig): string {
-  if (isFolderOwnershipConfig(config)) {
-    return 'Folder Ownership Model (new)';
-  }
-  return 'Hash-Based Model (legacy)';
 }

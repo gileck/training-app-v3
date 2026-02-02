@@ -7,7 +7,7 @@ import * as path from 'path';
 import { SyncContext, FileChange, TEMPLATE_DIR, DIFF_SUMMARY_FILE } from '../types';
 import { exec } from '../utils';
 import { cloneTemplate, cleanupTemplate } from '../git';
-import { compareFiles, shouldIgnore, shouldIgnoreByProjectSpecificFiles } from '../files';
+import { compareFiles, isProjectOverride, matchesTemplatePaths } from '../files';
 import { generateFileDiff } from '../analysis';
 import { displayTotalDiffSummary } from '../ui';
 
@@ -36,23 +36,20 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
 
     console.log('');
 
-    // Compare files - include ignored files unless --skip-ignored or --modified-only is set
-    const includeIgnored = !context.options.skipIgnored && !context.options.modifiedOnly;
+    // Compare files
     if (context.options.modifiedOnly) {
       console.log('🔍 Comparing template with project (modified files only)...');
-    } else if (includeIgnored) {
-      console.log('🔍 Comparing template with project (including ignored files)...');
     } else {
-      console.log('🔍 Comparing template with project (skipping ignored files)...');
+      console.log('🔍 Comparing template with project...');
     }
-    const changes = compareFiles(context, includeIgnored);
+    const changes = compareFiles(context);
 
     if (changes.length === 0) {
       console.log('✅ No differences found. Your project matches the template!');
       return;
     }
 
-    // Build the diff summary - simple categorization by file status and ignore patterns
+    // Build the diff summary - categorize by file status
     const lines: string[] = [];
     lines.push('# Template Diff Summary');
     lines.push('');
@@ -60,9 +57,7 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
     lines.push(`Template: ${context.config.templateRepo}`);
     lines.push(`Template Commit: ${templateCommit}`);
     if (context.options.modifiedOnly) {
-      lines.push('Mode: Modified files only (new, ignored, and project-specific files excluded)');
-    } else if (!includeIgnored) {
-      lines.push('Note: Ignored files were excluded (--skip-ignored)');
+      lines.push('Mode: Modified files only (new files excluded)');
     }
     lines.push('');
     lines.push('This file shows differences between the template and your current project.');
@@ -70,15 +65,15 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
     lines.push('---');
     lines.push('');
 
-    // Simple categorization: new files, modified files, ignored files
+    // Categorize: new files, modified files, override files
     const newFiles: FileChange[] = [];
     const modifiedFiles: FileChange[] = [];
-    const ignoredFiles: FileChange[] = [];
+    const overrideFiles: FileChange[] = [];
 
     for (const change of changes) {
-      // Check if file is in ignore list (ignoredFiles or projectSpecificFiles)
-      if (shouldIgnore(context.config, change.path) || shouldIgnoreByProjectSpecificFiles(context.config, change.path)) {
-        ignoredFiles.push(change);
+      // Check if file is a project override
+      if (isProjectOverride(context.config, change.path)) {
+        overrideFiles.push(change);
       } else if (change.status === 'added') {
         // Skip new files if --modified-only is set
         if (!context.options.modifiedOnly) {
@@ -96,13 +91,11 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
       lines.push(`- **New in template** (not in project): ${newFiles.length} files`);
     }
     lines.push(`- **Modified** (different from template): ${modifiedFiles.length} files`);
-    if (includeIgnored) {
-      lines.push(`- **Ignored** (in ignore list): ${ignoredFiles.length} files`);
-    }
+    lines.push(`- **Project overrides**: ${overrideFiles.length} files`);
     if (context.options.modifiedOnly) {
       lines.push(`- **Total**: ${modifiedFiles.length} modified files`);
     } else {
-      lines.push(`- **Total differences**: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      lines.push(`- **Total differences**: ${newFiles.length + modifiedFiles.length + overrideFiles.length} files`);
     }
     lines.push('');
 
@@ -128,10 +121,10 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
       lines.push('');
     }
 
-    if (includeIgnored && ignoredFiles.length > 0) {
-      lines.push('### Ignored Files (In Ignore List)');
-      ignoredFiles.forEach((c, i) => {
-        const anchor = `ignored-${c.path.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+    if (overrideFiles.length > 0) {
+      lines.push('### Project Override Files');
+      overrideFiles.forEach((c, i) => {
+        const anchor = `override-${c.path.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         lines.push(`${i + 1}. [${c.path}](#${anchor}) (${c.status})`);
       });
       lines.push('');
@@ -164,9 +157,7 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
 
     addDiffSection('New Files (In Template, Not In Project)', newFiles, 'new');
     addDiffSection('Modified Files (Different From Template)', modifiedFiles, 'mod');
-    if (includeIgnored) {
-      addDiffSection('Ignored Files (In Ignore List)', ignoredFiles, 'ignored');
-    }
+    addDiffSection('Project Override Files', overrideFiles, 'override');
 
     // Write to file
     const outputPath = path.join(context.projectRoot, DIFF_SUMMARY_FILE);
@@ -181,19 +172,15 @@ export async function runDiffSummary(context: SyncContext): Promise<void> {
       console.log(`   • New in template: ${newFiles.length} files`);
     }
     console.log(`   • Modified: ${modifiedFiles.length} files`);
-    if (includeIgnored) {
-      console.log(`   • Ignored: ${ignoredFiles.length} files`);
-    }
+    console.log(`   • Project overrides: ${overrideFiles.length} files`);
     if (context.options.modifiedOnly) {
       console.log(`   • Total: ${modifiedFiles.length} modified files`);
     } else {
-      console.log(`   • Total: ${newFiles.length + modifiedFiles.length + (includeIgnored ? ignoredFiles.length : 0)} files`);
+      console.log(`   • Total: ${newFiles.length + modifiedFiles.length + overrideFiles.length} files`);
     }
     console.log('\n💡 Run "yarn sync-template" to see which changes can be safely applied.');
     if (context.options.modifiedOnly) {
       console.log('   Note: Showing modified files only. Remove --modified-only to see all changes.');
-    } else if (!includeIgnored) {
-      console.log('   Note: Ignored files were excluded. Remove --skip-ignored to include them.');
     }
 
   } finally {

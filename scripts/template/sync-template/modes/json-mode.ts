@@ -15,7 +15,6 @@ import { compareFiles } from '../files';
 import { analyzeChanges } from '../analysis';
 import { syncFiles } from '../sync';
 import { getTemplateCommitsSinceLastSync, formatSyncCommitMessage, addSyncHistoryEntry } from '../reporting';
-import { initializeIdenticalFileHashes } from './init-hashes';
 import { runValidationWithDetails } from './validation';
 
 /**
@@ -73,9 +72,6 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
       silent: true,
     });
     jsonResult.templateCommit = templateCommit;
-
-    // Initialize hashes for identical files
-    initializeIdenticalFileHashes(context);
 
     // Compare files
     const changes = compareFiles(context);
@@ -176,7 +172,6 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
 
       // Add to sync history
       addSyncHistoryEntry(context, templateCommit, projectCommit, result, templateCommitsForReport);
-      context.config.lastProjectCommit = projectCommit;
       saveConfig(context.projectRoot, context.config);
 
       // Amend to include updated config

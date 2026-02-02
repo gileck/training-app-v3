@@ -1,13 +1,13 @@
 /**
- * File ignore pattern matching utilities
+ * File pattern matching utilities
  */
 
-import { TemplateSyncConfig } from '../types';
+import { FolderOwnershipConfig } from '../types';
 
 /**
  * Check if a file matches a list of patterns
  */
-function matchesPatterns(filePath: string, patterns: string[]): boolean {
+export function matchesPatterns(filePath: string, patterns: string[]): boolean {
   const normalized = filePath.replace(/\\/g, '/');
 
   return patterns.some(pattern => {
@@ -41,27 +41,27 @@ function matchesPatterns(filePath: string, patterns: string[]): boolean {
 }
 
 /**
- * Check if a file should be ignored (in ignoredFiles list)
+ * Check if a file is in the project overrides list.
+ * Override files are kept different from the template.
  */
-export function shouldIgnore(config: TemplateSyncConfig, filePath: string): boolean {
-  return matchesPatterns(filePath, config.ignoredFiles);
-}
-
-/**
- * Check if a file should be ignored as project-specific
- */
-export function shouldIgnoreByProjectSpecificFiles(config: TemplateSyncConfig, filePath: string): boolean {
-  return matchesPatterns(filePath, config.projectSpecificFiles);
+export function isProjectOverride(config: FolderOwnershipConfig, filePath: string): boolean {
+  return matchesPatterns(filePath, config.projectOverrides);
 }
 
 /**
  * Check if a file should be ignored from the template side.
  * These are template files that should never be synced (e.g., example/demo code).
- * Projects can delete these after cloning and never see them again.
  */
-export function shouldIgnoreTemplateFile(config: TemplateSyncConfig, filePath: string): boolean {
+export function shouldIgnoreTemplateFile(config: FolderOwnershipConfig, filePath: string): boolean {
   const templateIgnored = config.templateIgnoredFiles || [];
   if (templateIgnored.length === 0) return false;
 
   return matchesPatterns(filePath, templateIgnored);
+}
+
+/**
+ * Check if a file matches the template paths (should be synced)
+ */
+export function matchesTemplatePaths(config: FolderOwnershipConfig, filePath: string): boolean {
+  return matchesPatterns(filePath, config.templatePaths);
 }
