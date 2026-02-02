@@ -114,7 +114,7 @@ async function main() {
                     const cbChatId = cb.message?.chat?.id ? String(cb.message.chat.id) : null;
                     const cbThreadId = cb.message?.message_thread_id;
 
-                    if (!verifyMessage({
+                    if (!cbChatId || !verifyMessage({
                         chatId: cbChatId,
                         threadId: cbThreadId,
                         userId: cb.from.id,
@@ -130,7 +130,7 @@ async function main() {
 
                     if (cb.data) {
                         const callbackText = getCallback(cb.data) || cb.data;
-                        const chatKey = allowedThreadId ? `${cbChatId}:${allowedThreadId}` : cbChatId;
+                        const chatKey = allowedThreadId ? `${cbChatId}:${allowedThreadId}` : cbChatId as string;
                         const userName = cb.from.first_name;
 
                         console.log(`\n${'='.repeat(60)}`);
