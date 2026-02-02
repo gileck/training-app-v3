@@ -38,7 +38,7 @@
     "sync-children": "tsx scripts/template/sync-child-projects.ts",
     "sync-agent-logs": "./scripts/template/sync-agent-logs.sh",
     "push-sync": "./scripts/template/push-and-sync.sh",
-    "setup-hooks": "./scripts/hooks/setup-hooks.sh",
+    "setup-hooks": "./scripts/template/hooks/setup-hooks.sh",
     "audit-feature-status": "tsx scripts/template/audit-feature-request-status.ts",
     "verify-setup": "tsx scripts/template/verify-github-projects-setup.ts",
     "verify-credentials": "tsx scripts/template/verify-credentials.ts",
