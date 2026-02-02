@@ -540,7 +540,6 @@ async function run(options: PRReviewOptions): Promise<void> {
         console.log('🔍 DRY RUN MODE - No changes will be made\n');
     }
 
-    console.log('Connecting to GitHub...');
     const adapter = getProjectManagementAdapter();
     await adapter.init();
 
@@ -555,11 +554,7 @@ async function run(options: PRReviewOptions): Promise<void> {
     const items = await adapter.listItems(filter);
 
     if (items.length === 0) {
-        if (options.id) {
-            console.log(`No item found with ID: ${options.id}`);
-        } else {
-            console.log('No items pending PR review');
-        }
+        console.log('No items to process.');
         return;
     }
 

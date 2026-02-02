@@ -368,12 +368,31 @@ export interface ProjectManagementAdapter {
 
     /**
      * Merge a pull request using squash merge
+     * @returns The merge commit SHA
      */
     mergePullRequest(
         prNumber: number,
         commitTitle: string,
         commitMessage: string
-    ): Promise<void>;
+    ): Promise<string>;
+
+    /**
+     * Get the merge commit SHA for a merged pull request
+     */
+    getMergeCommitSha(prNumber: number): Promise<string | null>;
+
+    /**
+     * Create a revert PR for a previously merged commit
+     * @param mergeCommitSha The SHA of the merge commit to revert
+     * @param originalPrNumber The original PR number that was merged
+     * @param issueNumber The issue number associated with the PR
+     * @returns The revert PR details, or null if revert failed
+     */
+    createRevertPR(
+        mergeCommitSha: string,
+        originalPrNumber: number,
+        issueNumber: number
+    ): Promise<{ prNumber: number; url: string } | null>;
 
     /**
      * Find a PR comment by marker and return its body
@@ -425,9 +444,11 @@ export interface ProjectManagementAdapter {
     getDefaultBranch(): Promise<string>;
 
     /**
-     * Create a new branch from the default branch
+     * Create a new branch from the default branch (or specified base branch)
+     * @param branchName - Name of the new branch to create
+     * @param baseBranch - Optional base branch to create from (defaults to default branch)
      */
-    createBranch(branchName: string): Promise<void>;
+    createBranch(branchName: string, baseBranch?: string): Promise<void>;
 
     /**
      * Check if a branch exists

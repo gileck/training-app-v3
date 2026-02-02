@@ -35,13 +35,14 @@
 /**
  * Main status values (GitHub Project board columns)
  *
- * 7-column workflow:
+ * 8-column workflow:
  * - Backlog: New items, not yet started
  * - Product Development: (OPTIONAL) AI transforms vague ideas into product specs
  * - Product Design: AI generates UX/UI design, human reviews
  * - Technical Design: AI generates tech design, human reviews
  * - Implementation: AI implements and creates PR, human reviews
  * - PR Review: PR created, awaiting human review/merge
+ * - Final Review: (Multi-phase only) Final PR from feature branch to main, admin verifies complete feature
  * - Done: Completed and merged
  *
  * Review Status field tracks sub-states within each phase:
@@ -58,6 +59,7 @@ export const STATUSES = {
     techDesign: 'Technical Design',
     implementation: 'Ready for development',
     prReview: 'PR Review',
+    finalReview: 'Final Review',
     done: 'Done',
 } as const;
 

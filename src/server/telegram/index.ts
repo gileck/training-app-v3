@@ -252,6 +252,57 @@ function getBaseUrl(): string {
 }
 
 /**
+ * Send feature request notification when a new feature request is created
+ * Includes "Approve" button for admin to approve and sync to GitHub
+ */
+export async function sendFeatureRequestNotification(request: FeatureRequestDocument): Promise<SendMessageResult> {
+    const priorityEmoji = request.priority === 'critical' ? '🔴' : request.priority === 'high' ? '🟠' : '🟡';
+    const description = request.description?.slice(0, 200) || 'No description';
+    const truncated = (request.description?.length || 0) > 200 ? '...' : '';
+
+    const messageParts = [
+        '✨ <b>New Feature Request!</b>',
+        '',
+        `📋 <b>${request.title}</b>`,
+        '',
+        `${description}${truncated}`,
+        '',
+        `${priorityEmoji} Priority: ${request.priority || 'medium'}`,
+    ];
+
+    if (request.requestedByName) {
+        messageParts.push(`👤 Requested by: ${request.requestedByName}`);
+    }
+
+    const message = messageParts.join('\n');
+
+    // Add approve button
+    const inlineKeyboard: InlineKeyboardButton[][] = [];
+    const baseUrl = getBaseUrl();
+
+    if (baseUrl.startsWith('https') && request.approvalToken) {
+        // Callback data format: "approve_request:requestId"
+        // Note: Token is verified from database when webhook is called
+        // (Telegram has 64-byte limit on callback_data, so we can't include the token)
+        inlineKeyboard.push([{
+            text: '✅ Approve & Create GitHub Issue',
+            callback_data: `approve_request:${request._id}`,
+        }]);
+    } else if (request.approvalToken) {
+        // Fallback to URL button for non-HTTPS
+        inlineKeyboard.push([{
+            text: '✅ Approve & Create GitHub Issue',
+            url: `${baseUrl}/api/feature-requests/approve/${request._id}?token=${request.approvalToken}`,
+        }]);
+    }
+
+    return sendNotificationToOwner(message, {
+        parseMode: 'HTML',
+        inlineKeyboard: inlineKeyboard.length > 0 ? inlineKeyboard : undefined,
+    });
+}
+
+/**
  * Send bug report notification when user submits a new bug
  * Includes "Approve" button if running on HTTPS
  */

@@ -152,8 +152,6 @@ async function main() {
     await adapter.init();
 
     // Find all items with Review Status = Approved (excluding Done items)
-    console.log('\nSearching for approved items...\n');
-
     const allItems = await adapter.listItems({});
     const approvedItems = allItems.filter(
         (item) =>
@@ -162,7 +160,7 @@ async function main() {
     );
 
     if (approvedItems.length === 0) {
-        console.log('No approved items found.\n');
+        console.log('No items to process.');
         return;
     }
 

@@ -52,7 +52,8 @@
     "test-clarification-flow": "tsx scripts/template/test-clarification-flow.ts",
     "task": "tsx task-manager/tasks-cli.ts",
     "build:claude": "tsx scripts/build-claude-md.ts CLAUDE.md",
-    "agent-workflow": "tsx src/agents/cli/index.ts"
+    "agent-workflow": "tsx src/agents/cli/index.ts",
+    "telegram-bot": "tsx scripts/poc/telegram-claude-bot.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",

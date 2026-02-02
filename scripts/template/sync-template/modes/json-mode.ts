@@ -163,7 +163,7 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
       const commitMessage = formatSyncCommitMessage(templateCommit, templateCommitsForReport);
       const tempFile = path.join(context.projectRoot, '.sync-commit-msg.tmp');
       fs.writeFileSync(tempFile, commitMessage, 'utf-8');
-      exec(`git commit -F "${tempFile}"`, context.projectRoot, { silent: true });
+      exec(`git commit --no-verify -F "${tempFile}"`, context.projectRoot, { silent: true });
       fs.unlinkSync(tempFile);
 
       // Get project commit
@@ -176,7 +176,7 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
 
       // Amend to include updated config
       exec('git add .template-sync.json', context.projectRoot, { silent: true });
-      exec('git commit --amend --no-edit', context.projectRoot, { silent: true });
+      exec('git commit --amend --no-edit --no-verify', context.projectRoot, { silent: true });
 
       jsonResult.projectCommit = exec('git rev-parse HEAD', context.projectRoot, { silent: true });
       jsonResult.status = 'success';

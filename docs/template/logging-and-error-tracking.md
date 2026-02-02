@@ -283,7 +283,7 @@ The dashboard is a public route (no auth required for viewing).
 Fetch a report directly from MongoDB:
 
 ```bash
-node scripts/get-report.mjs <report-id>
+node scripts/template/get-report.mjs <report-id>
 ```
 
 Output includes:

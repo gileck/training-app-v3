@@ -63,12 +63,16 @@ export type {
     TechDesignOutput,
     ImplementationOutput,
     ImplementationPhase,
+    ClarificationFields,
+    ClarificationOption,
+    StructuredClarification,
 } from './output-schemas';
 export {
     PRODUCT_DEVELOPMENT_OUTPUT_FORMAT,
     PRODUCT_DESIGN_OUTPUT_FORMAT,
     TECH_DESIGN_OUTPUT_FORMAT,
     IMPLEMENTATION_OUTPUT_FORMAT,
+    CLARIFICATION_SCHEMA_PROPERTIES,
 } from './output-schemas';
 
 // Agent library abstraction
@@ -136,8 +140,10 @@ export {
     getIssueType,
     getBugDiagnostics,
     formatSessionLogs,
-    extractClarification,
+    extractClarificationFromResult,
     handleClarificationRequest,
+    formatStructuredClarification,
+    getClarificationText,
     extractFeedbackResolution,
     formatFeedbackResolution,
     extractPRSummary,
@@ -147,6 +153,7 @@ export {
     hasAgentLock,
     type BugDiagnostics,
     type FeedbackResolution,
+    type ExtractedClarification,
 } from './utils';
 
 // Agent Identity

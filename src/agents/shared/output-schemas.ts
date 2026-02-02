@@ -6,10 +6,106 @@
  */
 
 // ============================================================
+// SHARED CLARIFICATION TYPES
+// ============================================================
+
+/**
+ * A single option in a clarification question.
+ * Used in structured agent output for reliable parsing.
+ */
+export interface ClarificationOption {
+    /** Short label for the option (e.g., "Phased approach") */
+    label: string;
+    /** Detailed description or explanation */
+    description: string;
+    /** Whether this is the recommended option */
+    isRecommended: boolean;
+}
+
+/**
+ * Structured clarification request from an agent.
+ * This replaces the old markdown string format for reliable parsing.
+ */
+export interface StructuredClarification {
+    /** Context describing what's ambiguous or unclear */
+    context: string;
+    /** The specific question being asked */
+    question: string;
+    /** Available options to choose from (2-4 options) */
+    options: ClarificationOption[];
+    /** Agent's recommendation text explaining why they recommend a specific option */
+    recommendation: string;
+}
+
+/**
+ * Clarification fields that are added to all agent output schemas.
+ * When an agent needs clarification, it sets needsClarification=true
+ * and provides structured clarification data.
+ */
+export interface ClarificationFields {
+    /** Set to true if clarification is needed before proceeding */
+    needsClarification?: boolean;
+    /** Structured clarification data (required when needsClarification=true) */
+    clarification?: StructuredClarification;
+}
+
+/**
+ * JSON schema properties for clarification fields.
+ * Merge this into each agent's output schema.
+ */
+export const CLARIFICATION_SCHEMA_PROPERTIES = {
+    needsClarification: {
+        type: 'boolean',
+        description: 'Set to true if you need clarification before proceeding. When true, provide structured clarification data and leave other fields empty.',
+    },
+    clarification: {
+        type: 'object',
+        description: 'Structured clarification request. Required when needsClarification=true.',
+        properties: {
+            context: {
+                type: 'string',
+                description: 'Context describing what is ambiguous or unclear. Explain the situation and why clarification is needed.',
+            },
+            question: {
+                type: 'string',
+                description: 'The specific question being asked. Should be clear and actionable.',
+            },
+            options: {
+                type: 'array',
+                description: 'Available options to choose from. Provide 2-4 options with clear descriptions.',
+                items: {
+                    type: 'object',
+                    properties: {
+                        label: {
+                            type: 'string',
+                            description: 'Short label for the option (e.g., "Phased approach", "Build all upfront")',
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Detailed description explaining this option, its benefits, and tradeoffs. Use bullet points with newlines.',
+                        },
+                        isRecommended: {
+                            type: 'boolean',
+                            description: 'Set to true for the recommended option (only one option should be recommended)',
+                        },
+                    },
+                    required: ['label', 'description', 'isRecommended'],
+                },
+            },
+            recommendation: {
+                type: 'string',
+                description: 'Explain why you recommend the recommended option. Be specific about the reasoning.',
+            },
+        },
+        required: ['context', 'question', 'options', 'recommendation'],
+    },
+};
+
+// ============================================================
 // PRODUCT DEVELOPMENT OUTPUT
 // ============================================================
 
-export interface ProductDevelopmentOutput {
+export interface ProductDevelopmentOutput extends ClarificationFields {
     document: string;
     comment: string;
 }
@@ -19,18 +115,21 @@ export const PRODUCT_DEVELOPMENT_OUTPUT_FORMAT = {
     schema: {
         type: 'object',
         properties: {
+            ...CLARIFICATION_SCHEMA_PROPERTIES,
             document: {
                 type: 'string',
                 description: 'Complete product development document in markdown format. ' +
                     'Should include: size estimate, problem statement, target users, ' +
-                    'requirements with acceptance criteria, success metrics, scope (in/out).',
+                    'requirements with acceptance criteria, success metrics, scope (in/out). ' +
+                    'Leave empty if needsClarification=true.',
             },
             comment: {
                 type: 'string',
                 description:
                     'High-level summary to post as GitHub comment. ' +
                     'For new documents: "Here\'s the product spec overview: 1. ... 2. ..." (3-5 items). ' +
-                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made). ' +
+                    'Leave empty if needsClarification=true.',
             },
         },
         required: ['document', 'comment'],
@@ -41,7 +140,7 @@ export const PRODUCT_DEVELOPMENT_OUTPUT_FORMAT = {
 // PRODUCT DESIGN OUTPUT
 // ============================================================
 
-export interface ProductDesignOutput {
+export interface ProductDesignOutput extends ClarificationFields {
     design: string;
     comment: string;
 }
@@ -51,16 +150,19 @@ export const PRODUCT_DESIGN_OUTPUT_FORMAT = {
     schema: {
         type: 'object',
         properties: {
+            ...CLARIFICATION_SCHEMA_PROPERTIES,
             design: {
                 type: 'string',
-                description: 'Complete product design document in markdown format',
+                description: 'Complete product design document in markdown format. ' +
+                    'Leave empty if needsClarification=true.',
             },
             comment: {
                 type: 'string',
                 description:
                     'High-level summary to post as GitHub comment. ' +
                     'For new designs: "Here\'s the design overview: 1. ... 2. ..." (3-5 items). ' +
-                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made). ' +
+                    'Leave empty if needsClarification=true.',
             },
         },
         required: ['design', 'comment'],
@@ -88,7 +190,7 @@ export interface ImplementationPhase {
     estimatedSize: 'S' | 'M';
 }
 
-export interface TechDesignOutput {
+export interface TechDesignOutput extends ClarificationFields {
     design: string;
     /** Implementation phases for L/XL features (optional - only for multi-PR workflow) */
     phases?: ImplementationPhase[];
@@ -100,16 +202,19 @@ export const TECH_DESIGN_OUTPUT_FORMAT = {
     schema: {
         type: 'object',
         properties: {
+            ...CLARIFICATION_SCHEMA_PROPERTIES,
             design: {
                 type: 'string',
-                description: 'Complete technical design document in markdown format',
+                description: 'Complete technical design document in markdown format. ' +
+                    'Leave empty if needsClarification=true.',
             },
             phases: {
                 type: 'array',
                 description:
                     'Implementation phases for L/XL features only. Split large features into multiple ' +
                     'independently mergeable phases, each of size S or M. Each phase should be a complete, ' +
-                    'testable unit of work. Leave empty/null for S/M features that can be done in a single PR.',
+                    'testable unit of work. Leave empty/null for S/M features that can be done in a single PR. ' +
+                    'Leave empty if needsClarification=true.',
                 items: {
                     type: 'object',
                     properties: {
@@ -144,7 +249,8 @@ export const TECH_DESIGN_OUTPUT_FORMAT = {
                 description:
                     'High-level implementation plan to post as GitHub comment. ' +
                     'For new designs: "Here\'s the implementation plan: 1. ... 2. ..." (3-5 items). ' +
-                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made). ' +
+                    'Leave empty if needsClarification=true.',
             },
         },
         required: ['design', 'comment'],
@@ -169,7 +275,7 @@ export interface VisualVerification {
     issuesFound?: string;
 }
 
-export interface ImplementationOutput {
+export interface ImplementationOutput extends ClarificationFields {
     prSummary: string;
     comment: string;
     /** Visual verification status for UI changes (optional - only required when PR includes UI changes) */
@@ -181,22 +287,25 @@ export const IMPLEMENTATION_OUTPUT_FORMAT = {
     schema: {
         type: 'object',
         properties: {
+            ...CLARIFICATION_SCHEMA_PROPERTIES,
             prSummary: {
                 type: 'string',
-                description: 'Complete PR description in markdown format',
+                description: 'Complete PR description in markdown format. ' +
+                    'Leave empty if needsClarification=true.',
             },
             comment: {
                 type: 'string',
                 description:
                     'High-level summary of what was done to post as GitHub comment. ' +
                     'For new implementations: "Here\'s what I did: 1. ... 2. ..." (3-5 items). ' +
-                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made).',
+                    'For revisions: "Here\'s what I changed: 1. ... 2. ..." (list specific changes made). ' +
+                    'Leave empty if needsClarification=true.',
             },
             visualVerification: {
                 type: 'object',
                 description:
                     'Visual verification status for UI changes. Required when PR includes UI changes (.tsx files with visual components). ' +
-                    'Omit this field if the PR has no UI changes.',
+                    'Omit this field if the PR has no UI changes or needsClarification=true.',
                 properties: {
                     verified: {
                         type: 'boolean',

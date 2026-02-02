@@ -20,7 +20,10 @@
     "src/server/utils/**",
     "src/server/database/connection.ts",
     "src/server/database/index.ts",
+    "src/server/project-management/**",
+    "src/server/telegram/**",
     "src/pages/api/process/**",
+    "src/agents/**",
     ".template-sync.template.json"
   ],
   "templateIgnoredFiles": [

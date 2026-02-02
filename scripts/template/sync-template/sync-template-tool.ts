@@ -73,7 +73,7 @@ export class TemplateSyncTool {
       exec('git add -A', this.projectRoot, { silent: true });
       const stagedChanges = exec('git diff --cached --name-only', this.projectRoot, { silent: true });
       if (stagedChanges.trim()) {
-        exec('git commit -m "chore: sync template updates"', this.projectRoot, { silent: true });
+        exec('git commit --no-verify -m "chore: sync template updates"', this.projectRoot, { silent: true });
         if (!quiet) {
           console.log('📝 Auto-committed sync changes');
         }

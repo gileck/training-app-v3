@@ -1,0 +1,22 @@
+header: |
+  # Project Guidelines
+
+  This file provides Claude with context about the project's architecture, coding standards, and best practices. Read the referenced docs/rules for detailed information.
+
+  ---
+
+docs_paths:
+  - docs/template
+  - docs/project
+
+skills_paths:
+  - .ai/skills/template
+  - .ai/skills/project
+
+# Priority levels:
+# 1 = Critical/Architecture (read first)
+# 2 = Core patterns (state, auth, API)
+# 3 = Standard guidelines (UI, components)
+# 4 = Utilities/Tools (CLI, deployment)
+# 5 = Reference (additional rules)
+default_priority: 3

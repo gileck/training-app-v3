@@ -16,6 +16,7 @@
  *
  * Options:
  *   --skip-pull       Skip pulling latest changes from master (not recommended)
+ *   --reset           Reset to clean main branch (discards ALL local changes and switches to main)
  *   --dry-run         Preview without changes (passed to agents)
  *   --id <id>         Process specific item (passed to agents)
  *   --limit <n>       Limit items to process (passed to agents)
@@ -29,6 +30,7 @@
  *   yarn github-workflows-agent --all --dry-run
  *   yarn github-workflows-agent --all --global-limit          # Stop after first agent runs
  *   yarn github-workflows-agent --implement --skip-pull       # Run without pulling
+ *   yarn github-workflows-agent --implement --reset           # Reset to clean main first
  */
 
 import { spawn, execSync } from 'child_process';
@@ -78,6 +80,42 @@ function hasUncommittedChanges(): boolean {
 }
 
 /**
+ * Reset to clean main branch
+ * Discards ALL local changes (staged, unstaged, and untracked) and switches to main
+ */
+function resetToCleanMain(): void {
+    console.log('\n🔄 Resetting to clean main branch...');
+
+    try {
+        // Get the default branch name
+        const defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true })
+            .replace('origin/', '');
+
+        // Fetch latest from remote
+        console.log('  Fetching from remote...');
+        git('fetch origin', { silent: true });
+
+        // Reset to main branch, discarding all local changes
+        console.log(`  Checking out ${defaultBranch}...`);
+        git(`checkout ${defaultBranch}`, { silent: true });
+
+        // Hard reset to origin/main (discards all committed changes not on remote)
+        console.log(`  Hard reset to origin/${defaultBranch}...`);
+        git(`reset --hard origin/${defaultBranch}`, { silent: true });
+
+        // Clean untracked files and directories
+        console.log('  Cleaning untracked files...');
+        git('clean -fd', { silent: true });
+
+        console.log(`✅ Reset to clean ${defaultBranch}\n`);
+    } catch (error) {
+        console.error('❌ Error: Failed to reset to clean main.');
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
+}
+
+/**
  * Pull latest changes from the default branch
  */
 function pullLatestChanges(): void {
@@ -88,6 +126,7 @@ function pullLatestChanges(): void {
         console.error('❌ Error: Uncommitted changes in working directory.');
         console.error('Please commit or stash your changes before running agents.');
         console.error('Or use --skip-pull to run with current code (not recommended).\n');
+        console.error('Or use --reset to discard all changes and reset to main.\n');
         process.exit(1);
     }
 
@@ -126,6 +165,7 @@ Usage:
 
 Options:
   --skip-pull       Skip pulling latest changes from master (not recommended)
+  --reset           Reset to clean main branch (discards ALL local changes and switches to main)
   --dry-run         Preview without changes (passed to agents)
   --id <id>         Process specific item (passed to agents)
   --limit <n>       Limit items to process (passed to agents)
@@ -139,6 +179,7 @@ Examples:
   yarn github-workflows-agent --all --dry-run
   yarn github-workflows-agent --all --global-limit          # Stop after first agent runs
   yarn github-workflows-agent --implement --skip-pull       # Run without pulling
+  yarn github-workflows-agent --implement --reset           # Reset to clean main first
 `);
 }
 
@@ -187,10 +228,15 @@ async function main() {
         process.exit(0);
     }
 
+    // Log working directory
+    const workingDir = process.cwd();
+    console.log(`\n📁 Working directory: ${workingDir}`);
+
     // Find which script(s) to run
     const scriptsToRun: string[] = [];
     const passThrough: string[] = [];
     let skipPull = false;
+    let resetToMain = false;
     let globalLimit = false;
 
     for (let i = 0; i < args.length; i++) {
@@ -212,10 +258,12 @@ async function main() {
             scriptsToRun.push('auto-advance');
         } else if (arg === '--skip-pull') {
             skipPull = true;
+        } else if (arg === '--reset') {
+            resetToMain = true;
         } else if (arg === '--global-limit') {
             globalLimit = true;
         } else {
-            // Pass through to scripts (but not --skip-pull or --global-limit)
+            // Pass through to scripts (but not --skip-pull, --reset, or --global-limit)
             passThrough.push(arg);
         }
     }
@@ -226,10 +274,18 @@ async function main() {
         process.exit(1);
     }
 
+    // Reset to clean main if requested (discards ALL local changes)
+    if (resetToMain) {
+        resetToCleanMain();
+        // After reset, we're already on latest main, no need to pull
+        skipPull = true;
+    }
+
     // Pull latest changes from master (unless --skip-pull is specified)
     if (!skipPull) {
         pullLatestChanges();
-    } else {
+    } else if (!resetToMain) {
+        // Only show skip warning if we didn't just reset
         console.log('\n⚠️  Skipping git pull (--skip-pull specified)');
         console.log('   Running with current code - may be outdated!\n');
     }
@@ -289,7 +345,7 @@ async function main() {
     console.log('Syncing agent logs to dev repo...');
     console.log('='.repeat(60));
     try {
-        const syncScript = resolve(__dirname, '../../scripts/sync-agent-logs.sh');
+        const syncScript = resolve(__dirname, '../../scripts/template/sync-agent-logs.sh');
         execSync(`bash "${syncScript}"`, {
             cwd: process.cwd(),
             encoding: 'utf-8',

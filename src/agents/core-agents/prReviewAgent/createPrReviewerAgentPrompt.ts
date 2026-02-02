@@ -210,6 +210,13 @@ function createInstructionsSection(): string {
 
 Review this PR and make your final decision. Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.
 
+**⚠️ STRICT APPROVAL CRITERIA:**
+- **Request changes** if there are ANY Minor Issues, Suggestions, or Improvements
+- **Only approve** if there are absolutely ZERO Minor Issues, ZERO Suggestions, and ZERO Improvements recommended
+- **Never approve** a PR that has minor suggestions, minor improvements, or minor issues - these should ALL trigger "Request Changes"
+- If you find yourself wanting to say "Approved with minor suggestions" or "Looks good but consider..." - that is a REQUEST_CHANGES, not an approval
+- **All feedback must be in scope** - issues, suggestions, and improvements must be within the context of the task/PR scope. Do not request changes for unrelated code or out-of-scope improvements
+
 **CRITICAL: Project Docs Override Generic Best Practices**
 
 This project has specific patterns documented in \`docs/\` and \`.ai/skills/\` that may differ from generic best practices. These project-specific patterns exist for good reasons (e.g., to prevent known bugs).

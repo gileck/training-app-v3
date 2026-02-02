@@ -1171,12 +1171,12 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         prNumber: number,
         commitTitle: string,
         commitMessage: string
-    ): Promise<void> {
+    ): Promise<string> {
         return withRetry(async () => {
             const oc = this.getOctokit(); // Use admin token for merging
             const { owner, repo } = this.config.github;
 
-            await oc.pulls.merge({
+            const result = await oc.pulls.merge({
                 owner,
                 repo,
                 pull_number: prNumber,
@@ -1184,7 +1184,130 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
                 commit_title: commitTitle,
                 commit_message: commitMessage,
             });
+
+            return result.data.sha;
         });
+    }
+
+    async getMergeCommitSha(prNumber: number): Promise<string | null> {
+        try {
+            const oc = this.getOctokit();
+            const { owner, repo } = this.config.github;
+
+            const { data: pr } = await oc.pulls.get({
+                owner,
+                repo,
+                pull_number: prNumber,
+            });
+
+            return pr.merge_commit_sha || null;
+        } catch {
+            return null;
+        }
+    }
+
+    async createRevertPR(
+        mergeCommitSha: string,
+        originalPrNumber: number,
+        issueNumber: number
+    ): Promise<{ prNumber: number; url: string } | null> {
+        try {
+            const oc = this.getOctokit();
+            const botOc = this.getBotOctokit();
+            const { owner, repo } = this.config.github;
+
+            // Get the original PR info for the title
+            const { data: originalPr } = await oc.pulls.get({
+                owner,
+                repo,
+                pull_number: originalPrNumber,
+            });
+
+            const defaultBranch = await this.getDefaultBranch();
+            const revertBranchName = `revert-${originalPrNumber}-${mergeCommitSha.slice(0, 7)}`;
+
+            // Get the current HEAD of the default branch
+            const { data: defaultBranchRef } = await oc.git.getRef({
+                owner,
+                repo,
+                ref: `heads/${defaultBranch}`,
+            });
+
+            // Create a new branch for the revert
+            try {
+                await oc.git.createRef({
+                    owner,
+                    repo,
+                    ref: `refs/heads/${revertBranchName}`,
+                    sha: defaultBranchRef.object.sha,
+                });
+            } catch (error: unknown) {
+                // Branch might already exist
+                const isRefExists = error instanceof Error &&
+                    'status' in error &&
+                    (error as { status: number }).status === 422;
+                if (!isRefExists) throw error;
+            }
+
+            // Create a revert commit using the GitHub API
+            // We need to create a commit that reverses the changes from the merge commit
+            const { data: mergeCommit } = await oc.git.getCommit({
+                owner,
+                repo,
+                commit_sha: mergeCommitSha,
+            });
+
+            // For a squash merge, we need to revert to the parent
+            const parentSha = mergeCommit.parents[0]?.sha;
+            if (!parentSha) {
+                console.error('Cannot revert: merge commit has no parent');
+                return null;
+            }
+
+            // Get the tree from the parent commit (this is the state before the merge)
+            const { data: parentCommit } = await oc.git.getCommit({
+                owner,
+                repo,
+                commit_sha: parentSha,
+            });
+
+            // Create a new commit on the revert branch that reverts to the parent tree
+            const { data: revertCommit } = await oc.git.createCommit({
+                owner,
+                repo,
+                message: `Revert "${originalPr.title}"\n\nThis reverts commit ${mergeCommitSha}.\n\nPart of #${issueNumber}`,
+                tree: parentCommit.tree.sha,
+                parents: [defaultBranchRef.object.sha],
+            });
+
+            // Update the revert branch to point to our new commit
+            await oc.git.updateRef({
+                owner,
+                repo,
+                ref: `heads/${revertBranchName}`,
+                sha: revertCommit.sha,
+                force: true,
+            });
+
+            // Create a PR for the revert
+            const { data: revertPr } = await botOc.pulls.create({
+                owner,
+                repo,
+                title: `Revert: ${originalPr.title}`,
+                head: revertBranchName,
+                base: defaultBranch,
+                body: `This reverts PR #${originalPrNumber} (commit ${mergeCommitSha}).\n\nPart of #${issueNumber}`,
+            });
+
+            console.log(`Created revert PR #${revertPr.number} for PR #${originalPrNumber}`);
+            return {
+                prNumber: revertPr.number,
+                url: revertPr.html_url,
+            };
+        } catch (error) {
+            console.error('Failed to create revert PR:', error);
+            return null;
+        }
     }
 
     async findPRCommentByMarker(prNumber: number, marker: string): Promise<{
@@ -1298,15 +1421,16 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }
     }
 
-    async createBranch(branchName: string): Promise<void> {
+    async createBranch(branchName: string, baseBranch?: string): Promise<void> {
         const oc = this.getOctokit();
         const { owner, repo } = this.config.github;
 
-        const defaultBranch = await this.getDefaultBranch();
+        // Use specified base branch or fall back to default branch
+        const sourceBranch = baseBranch || await this.getDefaultBranch();
         const { data: refData } = await oc.git.getRef({
             owner,
             repo,
-            ref: `heads/${defaultBranch}`,
+            ref: `heads/${sourceBranch}`,
         });
 
         await oc.git.createRef({

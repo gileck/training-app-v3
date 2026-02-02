@@ -64,7 +64,7 @@ import {
     // Utils
     getIssueType,
     getBugDiagnostics,
-    extractClarification,
+    extractClarificationFromResult,
     handleClarificationRequest,
     // Output schemas
     TECH_DESIGN_OUTPUT_FORMAT,
@@ -297,9 +297,8 @@ async function processItem(
                     console.log(`  Loaded product design from issue body (fallback)`);
                 }
             }
-
-            else {
-                console.log(` ⚠️  No product design found for issue ⚠️`);
+            if (!productDesign) {
+                console.log(`  ⚠️  No product design found for issue ⚠️`);
             }
 
             // Check for existing tech design in file (for idempotency)
@@ -381,8 +380,8 @@ async function processItem(
                 return { success: false, error };
             }
 
-            // Check if agent needs clarification
-            const clarificationRequest = extractClarification(result.content);
+            // Check if agent needs clarification (in both raw content and structured output)
+            const clarificationRequest = extractClarificationFromResult(result);
             if (clarificationRequest) {
                 console.log('  🤔 Agent needs clarification');
                 return await handleClarificationRequest(
@@ -642,7 +641,6 @@ async function main(): Promise<void> {
     console.log('');
 
     // Initialize project management adapter
-    console.log('Connecting to GitHub...');
     const adapter = getProjectManagementAdapter();
     await adapter.init();
 
@@ -651,7 +649,6 @@ async function main(): Promise<void> {
 
     if (options.id) {
         // Process specific item
-        console.log(`\nFetching item: ${options.id}`);
         const item = await adapter.getItem(options.id);
         if (!item) {
             console.error(`Item not found: ${options.id}`);
@@ -688,17 +685,14 @@ async function main(): Promise<void> {
         itemsToProcess.push({ item, mode, existingPR });
     } else {
         // Flow A: Fetch items ready for new design (Technical Design status with empty Review Status)
-        console.log(`\nFetching items in "${STATUSES.techDesign}" with empty Review Status...`);
         const allTechDesignItems = await adapter.listItems({ status: STATUSES.techDesign, limit: options.limit || 50 });
         const newItems = allTechDesignItems.filter((item) => !item.reviewStatus);
         for (const item of newItems) {
             itemsToProcess.push({ item, mode: 'new' });
         }
-        console.log(`  Found ${newItems.length} item(s) for new design`);
 
         // Flow B: Fetch items needing revision (Technical Design status with Request Changes)
         if (adapter.hasReviewStatusField()) {
-            console.log(`\nFetching items with Review Status "${REVIEW_STATUSES.requestChanges}"...`);
             const feedbackItems = allTechDesignItems.filter(
                 (item) => item.reviewStatus === REVIEW_STATUSES.requestChanges
             );
@@ -711,17 +705,14 @@ async function main(): Promise<void> {
                 }
                 itemsToProcess.push({ item, mode: 'feedback', existingPR });
             }
-            console.log(`  Found ${feedbackItems.length} item(s) needing revision`);
 
             // Flow C: Fetch items with clarification received
-            console.log(`\nFetching items with Review Status "${REVIEW_STATUSES.clarificationReceived}"...`);
             const clarificationItems = allTechDesignItems.filter(
                 (item) => item.reviewStatus === REVIEW_STATUSES.clarificationReceived
             );
             for (const item of clarificationItems) {
                 itemsToProcess.push({ item, mode: 'clarification' });
             }
-            console.log(`  Found ${clarificationItems.length} item(s) with clarification received`);
         }
 
         // Apply limit
@@ -731,7 +722,7 @@ async function main(): Promise<void> {
     }
 
     if (itemsToProcess.length === 0) {
-        console.log('\nNo items to process.');
+        console.log('No items to process.');
         return;
     }
 
