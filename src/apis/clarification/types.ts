@@ -3,6 +3,9 @@
  *
  * Types for the interactive clarification flow that allows
  * admins to answer agent clarification questions via a web UI.
+ *
+ * These types align with StructuredClarification from output-schemas.ts
+ * but are kept separate for API boundary clarity.
  */
 
 // ============================================================
@@ -10,21 +13,23 @@
 // ============================================================
 
 /**
- * A single option in a clarification question
+ * A single option in a clarification question.
+ * Parsed from agent's structured output or markdown.
  */
 export interface ParsedOption {
-    /** Emoji indicator (✅ for recommended, ⚠️ for others) */
+    /** Emoji indicator (✅ for recommended, ⚠️ for others) - added during parsing */
     emoji: string;
     /** Option label/name */
     label: string;
-    /** Bullet point details */
+    /** Description split into bullet points for display */
     bullets: string[];
     /** Whether this is the recommended option */
     isRecommended: boolean;
 }
 
 /**
- * A parsed clarification question from agent output
+ * A parsed clarification question from agent output.
+ * This is the UI-facing structure - compatible with agent's StructuredClarification.
  */
 export interface ParsedQuestion {
     /** Context describing what's ambiguous or unclear */

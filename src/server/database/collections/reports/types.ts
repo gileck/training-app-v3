@@ -16,6 +16,11 @@ export type BugCategory = 'bug' | 'performance';
 export type ReportStatus = 'new' | 'investigating' | 'resolved' | 'closed';
 
 /**
+ * Source of the report - where it was created from
+ */
+export type ReportSource = 'ui' | 'cli' | 'auto';
+
+/**
  * Session log entry stored with the report
  */
 export interface SessionLogEntry {
@@ -177,6 +182,9 @@ export interface ReportDocument {
     githubProjectItemId?: string;
     approvalToken?: string;
 
+    // Source tracking
+    source?: ReportSource;            // Where this was created from (ui, cli, auto)
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -232,6 +240,9 @@ export interface ReportClient {
     githubIssueNumber?: number;
     githubProjectItemId?: string;
 
+    // Source tracking
+    source?: ReportSource;
+
     createdAt: string;
     updatedAt: string;
 }
@@ -242,6 +253,7 @@ export interface ReportClient {
 export interface ReportFilters {
     type?: ReportType;
     status?: ReportStatus;
+    source?: ReportSource;
     startDate?: Date;
     endDate?: Date;
 }

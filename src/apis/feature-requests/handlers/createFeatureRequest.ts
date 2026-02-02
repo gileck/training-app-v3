@@ -5,7 +5,7 @@ import { featureRequests, users } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
 import { toDocumentId } from '@/server/utils';
-import { sendNotificationToOwner } from '@/server/telegram';
+import { sendFeatureRequestNotification } from '@/server/telegram';
 import type { ObjectId } from 'mongodb';
 
 /**
@@ -13,20 +13,6 @@ import type { ObjectId } from 'mongodb';
  */
 function generateApprovalToken(): string {
     return crypto.randomBytes(32).toString('hex');
-}
-
-/**
- * Get the base URL for the app
- */
-function getBaseUrl(): string {
-    // Use VERCEL_URL in production, fallback to localhost
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-        return process.env.NEXT_PUBLIC_APP_URL;
-    }
-    return 'http://localhost:3000';
 }
 
 export const createFeatureRequest = async (
@@ -63,6 +49,7 @@ export const createFeatureRequest = async (
             requestedByName,
             comments: [],
             approvalToken,
+            source: 'ui' as const,
             createdAt: now,
             updatedAt: now,
         };
@@ -71,36 +58,7 @@ export const createFeatureRequest = async (
 
         // Send Telegram notification to admin with approval button
         try {
-            const baseUrl = getBaseUrl();
-            const isHttps = baseUrl.startsWith('https://');
-
-            const message = [
-                `📝 New Feature Request!`,
-                ``,
-                `📋 ${newRequest.title}`,
-                ``,
-                `${newRequest.description.slice(0, 300)}${newRequest.description.length > 300 ? '...' : ''}`,
-                newRequest.page ? `\n📍 Page: ${newRequest.page}` : '',
-            ].filter(Boolean).join('\n');
-
-            // Use callback button for webhook (works in production)
-            // Fall back to URL link for localhost (webhook not available)
-            if (isHttps) {
-                // Callback data format: "approve_request:requestId"
-                // Note: Token is verified from database when webhook is called
-                // (Telegram has 64-byte limit on callback_data, so we can't include the token)
-                const callbackData = `approve_request:${newRequest._id}`;
-                await sendNotificationToOwner(message, {
-                    inlineKeyboard: [[
-                        { text: '✅ Approve & Create GitHub Issue', callback_data: callbackData }
-                    ]]
-                });
-            } else {
-                // Localhost fallback - use URL button
-                const approveUrl = `${baseUrl}/api/feature-requests/approve/${newRequest._id}?token=${approvalToken}`;
-                const localMessage = `${message}\n\n🔗 Approve: ${approveUrl}`;
-                await sendNotificationToOwner(localMessage);
-            }
+            await sendFeatureRequestNotification(newRequest);
         } catch (notifyError) {
             // Don't fail the request if notification fails
             console.error('[Telegram] Failed to send notification:', notifyError);

@@ -36,6 +36,7 @@ export function toFeatureRequestClient(doc: FeatureRequestDocument): FeatureRequ
         comments: (doc.comments || []).map(toCommentClient),
         adminNotes: doc.adminNotes,
         priority: doc.priority,
+        source: doc.source,
         // GitHub integration fields
         githubIssueUrl: doc.githubIssueUrl,
         githubIssueNumber: doc.githubIssueNumber,

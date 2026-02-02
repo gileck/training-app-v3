@@ -24,6 +24,10 @@ export const getFeatureRequests = async (
             filters.priority = request.priority;
         }
 
+        if (request.source) {
+            filters.source = request.source;
+        }
+
         if (request.startDate) {
             filters.startDate = new Date(request.startDate);
         }

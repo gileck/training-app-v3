@@ -33,7 +33,11 @@ export const findReports = async (
     if (filters?.status) {
         query.status = filters.status;
     }
-    
+
+    if (filters?.source) {
+        query.source = filters.source;
+    }
+
     if (filters?.startDate || filters?.endDate) {
         query.createdAt = {};
         if (filters.startDate) {

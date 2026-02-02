@@ -132,6 +132,8 @@ function parseSingleQuestion(section: string): ParsedQuestion | null {
  *
  * ⚠️ Option 2: Another label
  *    - Bullet 1
+ *
+ * Also handles bold markers: ✅ **Option 1: Label here**
  */
 function parseOptions(optionsSection: string): ParsedOption[] {
     const options: ParsedOption[] = [];
@@ -143,13 +145,14 @@ function parseOptions(optionsSection: string): ParsedOption[] {
     for (const block of optionBlocks) {
         if (!block.trim()) continue;
 
-        // Match the option header: emoji + "Option N:" + label
-        // Use alternation for proper Unicode emoji matching
-        const headerMatch = block.match(/^(✅|⚠️)\s*Option\s*\d+:\s*(.+?)(?:\n|$)/);
+        // Match the option header: emoji + optional bold + "Option N:" + label + optional bold
+        // Supports both: "✅ Option 1: Label" and "✅ **Option 1: Label**"
+        const headerMatch = block.match(/^(✅|⚠️)\s*\*{0,2}\s*Option\s*\d+:\s*(.+?)(?:\*{0,2})(?:\n|$)/);
         if (!headerMatch) continue;
 
         const emoji = headerMatch[1];
-        const label = headerMatch[2].trim();
+        // Remove any trailing bold markers from label
+        const label = headerMatch[2].trim().replace(/\*+$/, '').trim();
         const isRecommended = emoji === '✅';
 
         // Extract bullets (lines starting with "- " or "   - ")
@@ -247,9 +250,9 @@ export function isClarificationComment(body: string): boolean {
  * @returns Just the clarification content (Context, Question, Options, Recommendation)
  */
 export function extractClarificationFromComment(body: string): string {
-    // Remove agent prefix if present (e.g., "[🎨 Product Design Agent]")
-    // Using [\s\S] instead of . with 's' flag for ES5 compatibility
-    let content = body.replace(/^\[[\s\S]*?\]\s*/, '');
+    // Remove agent prefix if present
+    // Handles formats like: "🏗️ **[Tech Design Agent]**" or "[🎨 Product Design Agent]"
+    let content = body.replace(/^[^\[]*\*{0,2}\[[^\]]+\]\*{0,2}\s*/m, '');
 
     // Remove the "## 🤔 Agent Needs Clarification" header
     content = content.replace(/## 🤔 Agent Needs Clarification\s*/g, '');

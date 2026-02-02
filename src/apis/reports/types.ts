@@ -2,6 +2,7 @@ import {
     ReportClient,
     ReportType,
     ReportStatus,
+    ReportSource,
     SessionLogEntry,
     ReportUserInfo,
     ReportBrowserInfo,
@@ -39,6 +40,7 @@ export interface CreateReportResponse {
 export interface GetReportsRequest {
     type?: ReportType;
     status?: ReportStatus;
+    source?: ReportSource;
     startDate?: string; // ISO string
     endDate?: string; // ISO string
     sortBy?: 'createdAt' | 'updatedAt';
@@ -149,6 +151,7 @@ export type {
     ReportClient,
     ReportType,
     ReportStatus,
+    ReportSource,
     SessionLogEntry,
     ReportUserInfo,
     ReportBrowserInfo,

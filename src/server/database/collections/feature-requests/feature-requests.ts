@@ -43,6 +43,10 @@ export const findFeatureRequests = async (
             : filters.requestedBy;
     }
 
+    if (filters?.source) {
+        query.source = filters.source;
+    }
+
     if (filters?.startDate || filters?.endDate) {
         query.createdAt = {};
         if (filters.startDate) {

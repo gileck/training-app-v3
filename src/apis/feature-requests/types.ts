@@ -3,6 +3,7 @@ import {
     FeatureRequestStatus,
     FeatureRequestPriority,
     FeatureRequestCommentClient,
+    FeatureRequestSource,
 } from '@/server/database/collections/feature-requests/types';
 
 // ============================================================
@@ -48,6 +49,7 @@ export interface AddUserCommentResponse {
 export interface GetFeatureRequestsRequest {
     status?: FeatureRequestStatus;
     priority?: FeatureRequestPriority;
+    source?: FeatureRequestSource;
     startDate?: string; // ISO string
     endDate?: string; // ISO string
     sortBy?: 'createdAt' | 'updatedAt';
@@ -261,4 +263,5 @@ export type {
     FeatureRequestStatus,
     FeatureRequestPriority,
     FeatureRequestCommentClient,
+    FeatureRequestSource,
 };

@@ -23,13 +23,22 @@
  * 5. Routing (after initial sync):
  *    - Callback: "route_feature:requestId:destination" | "route_bug:reportId:destination"
  *
+ * 6. Undo Actions (5-minute window to revert accidental clicks):
+ *    - Callback: "u_rc:issueNumber:prNumber:timestamp" - Undo implementation PR request changes
+ *    - Callback: "u_dc:prNumber:issueNumber:type:timestamp" - Undo design PR request changes
+ *    - Callback: "u_dr:issueNumber:action:previousStatus:timestamp" - Undo design review changes/reject
+ *
+ * 7. Revert Merge:
+ *    - Callback: "rv:issueNumber:prNumber:shortSha:prevStatus:phase" - Create revert PR and reset status
+ *    - Callback: "merge_rv:issueNumber:revertPrNumber" - Merge the revert PR
+ *
  * This is a direct API route because Telegram sends webhook requests directly to this URL.
  * It cannot go through the standard API architecture.
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getProjectManagementAdapter } from '@/server/project-management';
-import { STATUSES, REVIEW_STATUSES, COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
+import { STATUSES, REVIEW_STATUSES, COMMIT_MESSAGE_MARKER, getIssueUrl } from '@/server/project-management/config';
 import { featureRequests, reports } from '@/server/database';
 import { approveFeatureRequest, approveBugReport } from '@/server/github-sync';
 import { parseCommitMessageComment } from '@/agents/lib/commitMessage';
@@ -43,6 +52,9 @@ import {
     getDesignDocLink,
     updateImplementationPhaseArtifact,
     parseArtifactComment,
+    getTaskBranch,
+    generateTaskBranchName,
+    clearTaskBranch,
 } from '@/agents/lib';
 import { sendNotificationToOwner } from '@/server/telegram';
 import { appConfig } from '@/app.config';
@@ -65,6 +77,28 @@ const STATUS_TRANSITIONS: Record<string, string> = {
 };
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
+
+/**
+ * Undo timeout in milliseconds (5 minutes)
+ */
+const UNDO_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Check if undo is still within the time window
+ */
+function isUndoValid(timestamp: number): boolean {
+    return Date.now() - timestamp < UNDO_TIMEOUT_MS;
+}
+
+/**
+ * Format remaining undo time for display
+ */
+function formatUndoTimeRemaining(timestamp: number): string {
+    const remaining = Math.max(0, UNDO_TIMEOUT_MS - (Date.now() - timestamp));
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
 interface TelegramCallbackQuery {
     id: string;
@@ -126,38 +160,6 @@ async function answerCallbackQuery(
 }
 
 /**
- * Edit the original message to show the action taken (for design review)
- */
-async function editMessageTextWithExtra(
-    botToken: string,
-    chatId: number,
-    messageId: number,
-    originalText: string,
-    action: ReviewAction,
-    extraInfo: string = ''
-): Promise<void> {
-    const emoji = ACTION_EMOJIS[action];
-    const label = ACTION_LABELS[action];
-
-    // Append the action to the original message (escape originalText for HTML safety)
-    const newText = `${escapeHtml(originalText)}\n\n${emoji} <b>${label}</b>${extraInfo}`;
-
-    await fetch(`${TELEGRAM_API_URL}${botToken}/editMessageText`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: chatId,
-            message_id: messageId,
-            text: newText,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true,
-            // Remove the inline keyboard after action
-            reply_markup: { inline_keyboard: [] },
-        }),
-    });
-}
-
-/**
  * Edit message with custom content (for initial approval)
  */
 async function editMessageWithResult(
@@ -211,6 +213,37 @@ async function editMessageText(
             text,
             parse_mode: parseMode,
             disable_web_page_preview: true,
+        }),
+    });
+}
+
+/**
+ * Edit message with an undo button
+ * The undo button includes a timestamp to enforce time window
+ */
+async function editMessageWithUndoButton(
+    botToken: string,
+    chatId: number,
+    messageId: number,
+    text: string,
+    undoCallbackData: string,
+    timestamp: number
+): Promise<void> {
+    const timeRemaining = formatUndoTimeRemaining(timestamp);
+    await fetch(`${TELEGRAM_API_URL}${botToken}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chatId,
+            message_id: messageId,
+            text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: `↩️ Undo (${timeRemaining})`, callback_data: undoCallbackData },
+                ]],
+            },
         }),
     });
 }
@@ -689,6 +722,9 @@ async function handleDesignReviewAction(
 
     // Build detailed status message for the edited message
     let statusDetails = '';
+    const timestamp = Date.now();
+    const previousStatus = item.status || '';
+
     if (action === 'approve') {
         if (advancedTo) {
             statusDetails = `\n\n✅ <b>Success!</b>\n📊 Status: ${advancedTo}\n📋 Review Status: (ready for agent)`;
@@ -697,9 +733,9 @@ async function handleDesignReviewAction(
             statusDetails = `\n\n✅ <b>Success!</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}\n\n💡 Merge the PR to complete.`;
         }
     } else if (action === 'changes') {
-        statusDetails = `\n\n📝 <b>Changes Requested</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}\n\n💡 Add comments on the issue, then run agents.`;
+        statusDetails = `\n\n📝 <b>Changes Requested</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}\n\n💡 Add comments on the issue, then run agents.\n\n<i>Changed your mind? Click Undo within 5 minutes.</i>`;
     } else if (action === 'reject') {
-        statusDetails = `\n\n❌ <b>Rejected</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}`;
+        statusDetails = `\n\n❌ <b>Rejected</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}\n\n<i>Changed your mind? Click Undo within 5 minutes.</i>`;
     }
 
     // Acknowledge the button click (toast notification)
@@ -710,14 +746,32 @@ async function handleDesignReviewAction(
 
     // Edit the message to show the action taken with full details
     if (callbackQuery.message) {
-        await editMessageTextWithExtra(
-            botToken,
-            callbackQuery.message.chat.id,
-            callbackQuery.message.message_id,
-            callbackQuery.message.text || '',
-            action,
-            statusDetails
-        );
+        const emoji = ACTION_EMOJIS[action];
+        const label = ACTION_LABELS[action];
+        const originalText = callbackQuery.message.text || '';
+        const newText = `${escapeHtml(originalText)}\n\n${emoji} <b>${label}</b>${statusDetails}`;
+
+        // For changes/reject, show undo button; for approve, no undo needed
+        if (action === 'changes' || action === 'reject') {
+            // u_dr = undo design review (changes or reject)
+            const undoCallback = `u_dr:${issueNumber}:${action}:${previousStatus}:${timestamp}`;
+            await editMessageWithUndoButton(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                newText,
+                undoCallback,
+                timestamp
+            );
+        } else {
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                newText,
+                'HTML'
+            );
+        }
     }
 
     console.log(`Telegram webhook: ${action} issue #${issueNumber} (item ${item.itemId})`);
@@ -803,6 +857,279 @@ async function handleClarificationReceived(
 }
 
 /**
+ * Create the final PR from feature branch to main for multi-phase workflow
+ *
+ * Called after the last phase PR is merged to the feature branch.
+ * This creates a single PR that contains all the work from all phases.
+ *
+ * @param adapter - Project management adapter
+ * @param issueNumber - GitHub issue number
+ * @param totalPhases - Total number of phases that were completed
+ * @param issueTitle - Title of the issue
+ * @returns The created PR number, or null if creation failed
+ */
+async function createFinalPRToMain(
+    adapter: Awaited<ReturnType<typeof getProjectManagementAdapter>>,
+    issueNumber: number,
+    totalPhases: number,
+    issueTitle: string
+): Promise<{ prNumber: number; prUrl: string } | null> {
+    console.log(`  [LOG:FEATURE_BRANCH] Creating final PR for issue #${issueNumber}`);
+
+    const taskBranch = generateTaskBranchName(issueNumber);
+    const defaultBranch = await adapter.getDefaultBranch();
+
+    // Build comprehensive PR description
+    const prTitle = `feat: ${issueTitle}`;
+    const prBody = `## Summary
+
+This PR contains all ${totalPhases} phases of the implementation for issue #${issueNumber}.
+
+### Phases Completed
+${Array.from({ length: totalPhases }, (_, i) => `- Phase ${i + 1}/${totalPhases}`).join('\n')}
+
+Closes #${issueNumber}
+
+---
+
+**Feature Branch Workflow:**
+This is the final PR from the feature branch (\`${taskBranch}\`) to \`${defaultBranch}\`.
+All individual phase PRs have been reviewed and merged to the feature branch.
+
+*Generated by Agent Workflow*`;
+
+    try {
+        const pr = await adapter.createPullRequest(
+            taskBranch,
+            defaultBranch,
+            prTitle,
+            prBody,
+            [] // No reviewers - admin will merge via Telegram
+        );
+
+        console.log(`  [LOG:FEATURE_BRANCH] Final PR created: #${pr.number}`);
+        console.log(`  [LOG:FEATURE_BRANCH] Final PR: ${taskBranch} → ${defaultBranch}`);
+
+        if (logExists(issueNumber)) {
+            logWebhookAction(issueNumber, 'final_pr_created', `Final PR #${pr.number} created: ${taskBranch} → ${defaultBranch}`, {
+                prNumber: pr.number,
+                taskBranch,
+                defaultBranch,
+                totalPhases,
+            });
+        }
+
+        return { prNumber: pr.number, prUrl: pr.url };
+    } catch (error) {
+        console.error(`  [LOG:ERROR] [FEATURE_BRANCH] Failed to create final PR: ${error instanceof Error ? error.message : String(error)}`);
+
+        if (logExists(issueNumber)) {
+            logExternalError(issueNumber, 'webhook', error instanceof Error ? error : new Error(String(error)));
+        }
+
+        return null;
+    }
+}
+
+/**
+ * Handle merge final PR callback from Telegram (feature branch workflow)
+ * Callback format: "merge_final:issueNumber:prNumber"
+ *
+ * This is called when admin merges the final PR from feature branch to main.
+ * Actions:
+ * 1. Merge the final PR
+ * 2. Update status: Final Review → Done
+ * 3. Update MongoDB (feature request or bug report)
+ * 4. Delete feature branch and all phase branches
+ * 5. Clear task branch from artifact
+ * 6. Update Telegram message
+ */
+async function handleMergeFinalPRCallback(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    prNumber: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        console.log(`  [LOG:FINAL_REVIEW] Admin merging final PR #${prNumber} for issue #${issueNumber}`);
+
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // Log phase start
+        if (logExists(issueNumber)) {
+            logWebhookPhaseStart(issueNumber, 'Final Review Merge', 'telegram');
+        }
+
+        // 1. Get PR info to build commit message
+        const prInfo = await adapter.getPRInfo(prNumber);
+        if (!prInfo) {
+            return { success: false, error: 'Could not fetch PR info' };
+        }
+
+        // Build commit message for squash merge
+        const commitTitle = prInfo.title;
+        const commitBody = `Closes #${issueNumber}\n\nFeature branch workflow - final merge to main.`;
+
+        // 2. Merge the final PR
+        let mergeCommitSha: string | null = null;
+        try {
+            mergeCommitSha = await adapter.mergePullRequest(prNumber, commitTitle, commitBody);
+            console.log(`  [LOG:FINAL_REVIEW] Final PR #${prNumber} merged, commit: ${mergeCommitSha}`);
+
+            if (logExists(issueNumber)) {
+                logWebhookAction(issueNumber, 'final_pr_merged', `Final PR #${prNumber} merged to main`, {
+                    prNumber,
+                    commitTitle,
+                    mergeCommitSha,
+                });
+            }
+        } catch (mergeError) {
+            const errorMsg = mergeError instanceof Error ? mergeError.message : String(mergeError);
+            // Check if already merged
+            if (errorMsg.includes('already been merged') || errorMsg.includes('not open')) {
+                console.log(`  [LOG:FINAL_REVIEW] Final PR #${prNumber} already merged, continuing`);
+                mergeCommitSha = await adapter.getMergeCommitSha(prNumber);
+            } else {
+                throw mergeError;
+            }
+        }
+
+        // 3. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            console.warn(`  [LOG:WARNING] Project item not found for issue #${issueNumber}`);
+        }
+
+        // 4. Get artifact to find task branch
+        const issueComments = await adapter.getIssueComments(issueNumber);
+        const artifact = parseArtifactComment(issueComments);
+        const taskBranch = getTaskBranch(artifact);
+
+        // 5. Update status to Done
+        if (item) {
+            await adapter.updateItemStatus(item.itemId, STATUSES.done);
+            console.log(`  [LOG:FINAL_REVIEW] Status transition: Final Review → Done`);
+
+            // Clear review status
+            if (adapter.hasReviewStatusField() && item.reviewStatus) {
+                await adapter.clearItemReviewStatus(item.itemId);
+            }
+
+            // Clear implementation phase field
+            await adapter.clearImplementationPhase(item.itemId);
+
+            if (logExists(issueNumber)) {
+                logWebhookAction(issueNumber, 'status_done', 'Final PR merged, issue marked as Done', {
+                    status: STATUSES.done,
+                    prNumber,
+                });
+            }
+        }
+
+        // 6. Update MongoDB
+        const featureRequest = await featureRequests.findByGitHubIssueNumber(issueNumber);
+        if (featureRequest) {
+            await featureRequests.updateFeatureRequestStatus(featureRequest._id, 'done');
+            console.log('Telegram webhook: feature request marked as done in database');
+            if (logExists(issueNumber)) {
+                logWebhookAction(issueNumber, 'mongodb_updated', 'Feature request marked as done', {
+                    featureRequestId: featureRequest._id.toString(),
+                });
+            }
+        } else {
+            const bugReport = await reports.findByGitHubIssueNumber(issueNumber);
+            if (bugReport) {
+                await reports.updateReport(bugReport._id.toString(), { status: 'resolved' });
+                console.log('Telegram webhook: bug report marked as resolved in database');
+            }
+        }
+
+        // 7. Delete branches - feature branch and all phase branches
+        console.log(`  [LOG:FEATURE_BRANCH] Cleaning up branches for task-${issueNumber}`);
+
+        // Delete feature branch
+        if (taskBranch) {
+            try {
+                await adapter.deleteBranch(taskBranch);
+                console.log(`  [LOG:FEATURE_BRANCH] Deleted branch: ${taskBranch}`);
+                if (logExists(issueNumber)) {
+                    logWebhookAction(issueNumber, 'branch_deleted', `Deleted feature branch: ${taskBranch}`, {
+                        branch: taskBranch,
+                    });
+                }
+            } catch {
+                console.log(`  [LOG:FEATURE_BRANCH] Feature branch ${taskBranch} already deleted`);
+            }
+        }
+
+        // Delete phase branches (try common patterns)
+        const phasesToCheck = 10; // Check up to 10 phases
+        for (let i = 1; i <= phasesToCheck; i++) {
+            const phaseBranch = `feature/task-${issueNumber}-phase-${i}`;
+            try {
+                await adapter.deleteBranch(phaseBranch);
+                console.log(`  [LOG:FEATURE_BRANCH] Deleted branch: ${phaseBranch}`);
+            } catch {
+                // Branch doesn't exist - that's fine
+            }
+        }
+
+        // 8. Clear task branch from artifact
+        try {
+            await clearTaskBranch(adapter, issueNumber);
+            console.log(`  [LOG:FEATURE_BRANCH] Cleared task branch from artifact`);
+        } catch (artifactError) {
+            console.warn('Failed to clear task branch from artifact:', artifactError);
+        }
+
+        // 9. Post completion comment
+        const completionComment = `🎉 **Feature Complete!**\n\nFinal PR #${prNumber} has been merged to main.\nAll phases have been successfully integrated.`;
+        await adapter.addIssueComment(issueNumber, completionComment);
+
+        // Log phase end
+        if (logExists(issueNumber)) {
+            logWebhookPhaseEnd(issueNumber, 'Final Review Merge', 'success', 'telegram');
+        }
+
+        // 10. Update Telegram message
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const statusUpdate = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '✅ <b>Final PR Merged Successfully!</b>',
+                `PR #${prNumber} merged to main.`,
+                '🎉 Feature is now complete!',
+                '📊 Status: Done',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(originalText) + statusUpdate,
+                'HTML'
+            );
+        }
+
+        console.log(`  [LOG:FINAL_REVIEW] Completed final merge for issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling final PR merge:', error);
+
+        if (logExists(issueNumber)) {
+            logExternalError(issueNumber, 'telegram', error instanceof Error ? error : new Error(String(error)));
+        }
+
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
  * Handle merge callback from Telegram - SINGLE SOURCE OF TRUTH for PR merge handling
  * Callback format: "merge:issueNumber:prNumber"
  *
@@ -845,13 +1172,15 @@ async function handleMergeCallback(
 
         // 2. Try to merge the PR (skip if already merged)
         let alreadyMerged = false;
+        let mergeCommitSha: string | null = null;
         try {
-            await adapter.mergePullRequest(prNumber, commitMsg.title, commitMsg.body);
-            console.log(`Telegram webhook: merged PR #${prNumber}`);
+            mergeCommitSha = await adapter.mergePullRequest(prNumber, commitMsg.title, commitMsg.body);
+            console.log(`Telegram webhook: merged PR #${prNumber}, commit: ${mergeCommitSha}`);
             if (logExists(issueNumber)) {
                 logWebhookAction(issueNumber, 'pr_merged', `PR #${prNumber} squash-merged`, {
                     prNumber,
                     commitTitle: commitMsg.title,
+                    mergeCommitSha,
                 });
             }
         } catch (mergeError) {
@@ -862,9 +1191,12 @@ async function handleMergeCallback(
                 errorMsg.includes('not open')) {
                 console.log(`Telegram webhook: PR #${prNumber} already merged, continuing with status updates`);
                 alreadyMerged = true;
+                // Try to get the merge commit SHA from the already-merged PR
+                mergeCommitSha = await adapter.getMergeCommitSha(prNumber);
                 if (logExists(issueNumber)) {
                     logWebhookAction(issueNumber, 'pr_already_merged', `PR #${prNumber} was already merged`, {
                         prNumber,
+                        mergeCommitSha,
                     });
                 }
             } else {
@@ -879,15 +1211,21 @@ async function handleMergeCallback(
         const item = await findItemByIssueNumber(adapter, issueNumber);
         if (!item) {
             console.warn(`Telegram webhook: project item not found for issue #${issueNumber}`);
+            console.warn(`  DEBUG: This prevents artifact update to 'merged' status`);
             // Still return success if PR was merged - issue just wasn't in project
             if (alreadyMerged || !commitComment) {
                 return { success: true };
             }
+        } else {
+            console.log(`Telegram webhook: found project item for issue #${issueNumber} (itemId: ${item.itemId})`);
         }
 
         // 4. Check for multi-phase implementation
         const phase = item ? await adapter.getImplementationPhase(item.itemId) : null;
+        console.log(`Telegram webhook: Implementation Phase field value: ${phase || '(not set)'}`);
         const parsedPhase = parsePhaseString(phase);
+        console.log(`Telegram webhook: Parsed phase: ${parsedPhase ? `${parsedPhase.current}/${parsedPhase.total}` : '(null)'}`);
+        console.log(`Telegram webhook: Artifact update condition: item=${!!item}, parsedPhase=${!!parsedPhase}`);
 
         // Get phase name from artifact comment if available
         const issueComments = await adapter.getIssueComments(issueNumber);
@@ -901,10 +1239,17 @@ async function handleMergeCallback(
         let isMultiPhaseMiddle = false;
 
         if (parsedPhase && item) {
-            console.log(`Telegram webhook: Multi-phase feature: Phase ${parsedPhase.current}/${parsedPhase.total}`);
+            const taskBranch = getTaskBranch(artifact);
+            const isFeatureBranchWorkflow = !!taskBranch;
+            const workflowType = isFeatureBranchWorkflow ? 'feature branch' : 'direct-to-main';
+            console.log(`Telegram webhook: Multi-phase feature: Phase ${parsedPhase.current}/${parsedPhase.total} (${workflowType})`);
+            if (isFeatureBranchWorkflow) {
+                console.log(`  [LOG:FEATURE_BRANCH] Phase ${parsedPhase.current}/${parsedPhase.total} PR merged to feature branch`);
+            }
 
             // Update artifact comment to mark phase as merged
             try {
+                console.log(`Telegram webhook: updating artifact - phase ${parsedPhase.current}/${parsedPhase.total} to 'merged' for PR #${prNumber}`);
                 await updateImplementationPhaseArtifact(
                     adapter,
                     issueNumber,
@@ -914,9 +1259,13 @@ async function handleMergeCallback(
                     'merged',
                     prNumber
                 );
-                console.log('Telegram webhook: updated artifact comment - phase marked as merged');
+                console.log('Telegram webhook: ✅ artifact comment updated - phase marked as merged');
             } catch (artifactError) {
-                console.warn('Telegram webhook: failed to update artifact comment:', artifactError);
+                console.error('Telegram webhook: ❌ failed to update artifact comment');
+                console.error('  Error:', artifactError instanceof Error ? artifactError.message : String(artifactError));
+                if (artifactError instanceof Error && artifactError.stack) {
+                    console.error('  Stack:', artifactError.stack);
+                }
             }
 
             if (parsedPhase.current < parsedPhase.total) {
@@ -959,30 +1308,123 @@ async function handleMergeCallback(
 
                 statusMessage = `📋 Phase ${parsedPhase.current}/${parsedPhase.total} complete\n🔄 Starting Phase ${nextPhase}/${parsedPhase.total}`;
             } else {
-                // Final phase - mark as Done
-                console.log(`Telegram webhook: All ${parsedPhase.total} phases complete!`);
+                // Final phase complete - check if using feature branch workflow
+                console.log(`  [LOG:FEATURE_BRANCH] All ${parsedPhase.total} phases complete!`);
 
-                // Post final completion comment
-                const allPhasesCompleteComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n🎉 **All ${parsedPhase.total} phases complete!** Issue is now Done.`;
-                await adapter.addIssueComment(issueNumber, allPhasesCompleteComment);
+                // taskBranch already defined above for this block
 
-                // Clear phase field
-                await adapter.clearImplementationPhase(item.itemId);
-                console.log('Telegram webhook: cleared Implementation Phase field');
+                if (taskBranch) {
+                    // Feature branch workflow: Create Final PR to main
+                    console.log(`  [LOG:FEATURE_BRANCH] Using feature branch workflow - creating final PR`);
 
-                // Log final phase completion
-                if (logExists(issueNumber)) {
-                    logWebhookAction(issueNumber, 'all_phases_complete', `All ${parsedPhase.total} phases complete`, {
-                        totalPhases: parsedPhase.total,
-                        prNumber,
-                    });
+                    // Get issue details for PR title
+                    const issueDetails = await adapter.getIssueDetails(issueNumber);
+                    const issueTitle = issueDetails?.title || `Issue #${issueNumber}`;
+
+                    // Create the final PR
+                    const finalPR = await createFinalPRToMain(
+                        adapter,
+                        issueNumber,
+                        parsedPhase.total,
+                        issueTitle
+                    );
+
+                    if (finalPR) {
+                        // Post comment about final PR
+                        const finalPRComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n🚀 **All phases merged to feature branch!**\n📋 Final PR created: #${finalPR.prNumber}\n\nAwaiting admin verification via Vercel preview before merge to main.`;
+                        await adapter.addIssueComment(issueNumber, finalPRComment);
+
+                        // Set status to Final Review
+                        await adapter.updateItemStatus(item.itemId, STATUSES.finalReview);
+                        console.log(`  [LOG:FINAL_REVIEW] Status transition: PR Review → Final Review`);
+
+                        // Clear review status for final review
+                        if (adapter.hasReviewStatusField() && item.reviewStatus) {
+                            await adapter.clearItemReviewStatus(item.itemId);
+                            console.log('Telegram webhook: cleared review status for final review');
+                        }
+
+                        // Log final review transition
+                        if (logExists(issueNumber)) {
+                            logWebhookAction(issueNumber, 'final_review', `All phases complete, final PR #${finalPR.prNumber} created`, {
+                                totalPhases: parsedPhase.total,
+                                finalPrNumber: finalPR.prNumber,
+                                taskBranch,
+                            });
+                        }
+
+                        // Mark as needing final review (not done yet)
+                        isMultiPhaseMiddle = true; // Reuse this flag to prevent marking as Done
+
+                        // Send notification with Final PR merge button
+                        if (appConfig.ownerTelegramChatId && process.env.TELEGRAM_BOT_TOKEN) {
+                            const finalReviewMessage = [
+                                '🚀 <b>All Phases Complete - Final Review</b>',
+                                '',
+                                `📋 Issue: <b>${escapeHtml(issueTitle)}</b>`,
+                                `🔗 Issue #${issueNumber}`,
+                                '',
+                                `✅ All ${parsedPhase.total} phases have been merged to the feature branch.`,
+                                `📋 Final PR: #${finalPR.prNumber}`,
+                                '',
+                                '🔍 <b>Please verify the complete feature via Vercel preview before merging.</b>',
+                            ].join('\n');
+
+                            // Callback format: merge_final:issueNumber:prNumber
+                            const mergeFinalCallback = `merge_final:${issueNumber}:${finalPR.prNumber}`;
+
+                            await sendNotificationToOwner(finalReviewMessage, {
+                                parseMode: 'HTML',
+                                inlineKeyboard: [
+                                    [
+                                        { text: '✅ Merge Final PR', callback_data: mergeFinalCallback },
+                                        { text: '🔗 View PR', url: finalPR.prUrl },
+                                    ],
+                                ],
+                            });
+                            console.log('Telegram webhook: sent final review notification');
+                        }
+
+                        statusMessage = `🚀 All ${parsedPhase.total} phases complete!\n📋 Final PR #${finalPR.prNumber} created\n📊 Status: Final Review`;
+                    } else {
+                        // Failed to create final PR - fall back to Done status
+                        console.error('  [LOG:ERROR] [FEATURE_BRANCH] Failed to create final PR, falling back to Done');
+
+                        const fallbackComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n⚠️ Failed to create final PR. Please manually merge the feature branch (\`${taskBranch}\`) to main.`;
+                        await adapter.addIssueComment(issueNumber, fallbackComment);
+
+                        // Clear phase field
+                        await adapter.clearImplementationPhase(item.itemId);
+
+                        statusMessage = `🎉 All ${parsedPhase.total} phases complete!\n⚠️ Final PR creation failed\n📊 Status: Done`;
+                    }
+                } else {
+                    // Old workflow (no feature branch) - mark as Done directly
+                    console.log(`Telegram webhook: All ${parsedPhase.total} phases complete (old workflow)!`);
+
+                    // Post final completion comment
+                    const allPhasesCompleteComment = `✅ **Phase ${parsedPhase.current}/${parsedPhase.total}** complete - Merged PR #${prNumber}\n\n🎉 **All ${parsedPhase.total} phases complete!** Issue is now Done.`;
+                    await adapter.addIssueComment(issueNumber, allPhasesCompleteComment);
+
+                    // Clear phase field
+                    await adapter.clearImplementationPhase(item.itemId);
+                    console.log('Telegram webhook: cleared Implementation Phase field');
+
+                    // Log final phase completion
+                    if (logExists(issueNumber)) {
+                        logWebhookAction(issueNumber, 'all_phases_complete', `All ${parsedPhase.total} phases complete`, {
+                            totalPhases: parsedPhase.total,
+                            prNumber,
+                        });
+                    }
+
+                    statusMessage = `🎉 All ${parsedPhase.total} phases complete!\n📊 Status: Done`;
                 }
-
-                statusMessage = `🎉 All ${parsedPhase.total} phases complete!\n📊 Status: Done`;
             }
         } else if (item) {
             // Single-phase feature
             try {
+                console.log(`Telegram webhook: updating artifact - single-phase to 'merged' for PR #${prNumber}`);
                 // Use Phase 1/1 format for consistency
                 await updateImplementationPhaseArtifact(
                     adapter,
@@ -993,9 +1435,10 @@ async function handleMergeCallback(
                     'merged',
                     prNumber
                 );
-                console.log('Telegram webhook: updated artifact comment - implementation marked as merged');
+                console.log('Telegram webhook: ✅ artifact comment updated - implementation marked as merged');
             } catch (artifactError) {
-                console.warn('Telegram webhook: failed to update artifact comment:', artifactError);
+                console.error('Telegram webhook: ❌ failed to update artifact comment (single-phase)');
+                console.error('  Error:', artifactError instanceof Error ? artifactError.message : String(artifactError));
             }
 
             // Post completion comment
@@ -1003,6 +1446,11 @@ async function handleMergeCallback(
             await adapter.addIssueComment(issueNumber, completionComment);
 
             statusMessage = '📊 Status: Done';
+        } else {
+            // Neither condition met - item not found
+            console.warn(`Telegram webhook: ⚠️ SKIPPING artifact update - item not found in project`);
+            console.warn(`  DEBUG: item=${!!item}, parsedPhase=${!!parsedPhase}`);
+            console.warn(`  DEBUG: This means the artifact will NOT be updated to 'merged' status`);
         }
 
         // 5. For final/single phase: Update status to Done, update MongoDB
@@ -1109,10 +1557,302 @@ Run <code>yarn agent:implement</code> to continue.`;
             console.log('Telegram webhook: sent multi-phase notification');
         }
 
+        // 9. Send merge success notification with Revert button
+        if (mergeCommitSha && appConfig.ownerTelegramChatId && process.env.TELEGRAM_BOT_TOKEN) {
+            // Get issue title for the notification
+            const issueDetails = await adapter.getIssueDetails(issueNumber);
+            const issueTitle = issueDetails?.title || `Issue #${issueNumber}`;
+
+            // Get PR info for the notification
+            const prInfo = await adapter.getPRInfo(prNumber);
+            const prTitle = prInfo?.title || `PR #${prNumber}`;
+
+            // Build progress message
+            let progressMessage = '';
+            if (isMultiPhaseMiddle && parsedPhase) {
+                const nextPhase = parsedPhase.current + 1;
+                progressMessage = `📊 Progress: Phase ${parsedPhase.current} of ${parsedPhase.total} complete\n⏭️ Next: Phase ${nextPhase}`;
+            } else if (parsedPhase && parsedPhase.current === parsedPhase.total) {
+                progressMessage = `🎉 All ${parsedPhase.total} phases complete! Feature ready.`;
+            } else {
+                progressMessage = `🎉 Implementation complete! Issue is now Done.`;
+            }
+
+            // Encode previous status for revert callback
+            // Status abbreviations to fit within 64-byte callback limit
+            const prevStatus = isMultiPhaseMiddle ? 'prrev' : 'impl';
+            const phaseStr = parsedPhase ? `${parsedPhase.current}/${parsedPhase.total}` : '';
+            const shortSha = mergeCommitSha.slice(0, 7);
+
+            // Callback format: rv:issueNum:prNum:shortSha:prevStatus:phase
+            const revertCallback = `rv:${issueNumber}:${prNumber}:${shortSha}:${prevStatus}:${phaseStr}`;
+
+            const successMessage = [
+                '✅ <b>PR Merged Successfully</b>',
+                '',
+                `📝 PR: #${prNumber} - ${escapeHtml(prTitle)}`,
+                `🔗 Issue: #${issueNumber} - ${escapeHtml(issueTitle)}`,
+                '',
+                progressMessage,
+            ].join('\n');
+
+            await sendNotificationToOwner(successMessage, {
+                parseMode: 'HTML',
+                inlineKeyboard: [
+                    [
+                        { text: '📄 View PR', url: getPrUrl(prNumber) },
+                        { text: '📋 View Issue', url: getIssueUrl(issueNumber) },
+                    ],
+                    [
+                        { text: '↩️ Revert', callback_data: revertCallback },
+                    ],
+                ],
+            });
+            console.log('Telegram webhook: sent merge success notification with revert button');
+        }
+
         console.log(`Telegram webhook: completed merge handling for PR #${prNumber}, issue #${issueNumber}`);
         return { success: true };
     } catch (error) {
         console.error('Error handling merge:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle revert merge callback
+ * Callback format: "rv:issueNumber:prNumber:shortSha:prevStatus:phase"
+ *
+ * Actions:
+ * 1. Create a revert PR using GitHub API
+ * 2. Update GitHub Project status back to previous status
+ * 3. Restore phase info for multi-phase features
+ * 4. Update MongoDB status if needed
+ * 5. Send confirmation message with link to revert PR
+ */
+async function handleRevertMerge(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    prNumber: number,
+    shortSha: string,
+    prevStatus: string,
+    phase: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // Get the full merge commit SHA from the PR
+        const fullSha = await adapter.getMergeCommitSha(prNumber);
+        if (!fullSha) {
+            return { success: false, error: 'Could not find merge commit SHA' };
+        }
+
+        // Verify the short SHA matches
+        if (!fullSha.startsWith(shortSha)) {
+            return { success: false, error: 'Merge commit SHA mismatch' };
+        }
+
+        console.log(`Telegram webhook: creating revert PR for merge commit ${fullSha}`);
+
+        // Create the revert PR
+        const revertResult = await adapter.createRevertPR(fullSha, prNumber, issueNumber);
+        if (!revertResult) {
+            return { success: false, error: 'Failed to create revert PR. There may be conflicts - please revert manually.' };
+        }
+
+        console.log(`Telegram webhook: created revert PR #${revertResult.prNumber}`);
+
+        // Find the project item
+        const items = await adapter.listItems();
+        const item = items.find(i =>
+            i.content?.type === 'Issue' &&
+            i.content.number === issueNumber
+        );
+
+        if (item) {
+            // Restore to Implementation status (code needs to be fixed)
+            await adapter.updateItemStatus(item.id, STATUSES.implementation);
+            console.log(`Telegram webhook: restored status to ${STATUSES.implementation}`);
+
+            // Set review status to Request Changes (indicating there's feedback to address)
+            if (adapter.hasReviewStatusField()) {
+                await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.requestChanges);
+                console.log(`Telegram webhook: set review status to ${REVIEW_STATUSES.requestChanges}`);
+            }
+
+            // Restore phase if applicable
+            if (phase && adapter.hasImplementationPhaseField()) {
+                await adapter.setImplementationPhase(item.id, phase);
+                console.log(`Telegram webhook: restored phase to ${phase}`);
+            }
+        }
+
+        // Update MongoDB status back to in_progress/investigating
+        const featureRequest = await featureRequests.findByGitHubIssueNumber(issueNumber);
+        if (featureRequest) {
+            await featureRequests.updateFeatureRequestStatus(featureRequest._id, 'in_progress');
+            console.log('Telegram webhook: feature request status reverted to in_progress');
+        } else {
+            const bugReport = await reports.findByGitHubIssueNumber(issueNumber);
+            if (bugReport) {
+                await reports.updateReport(bugReport._id.toString(), { status: 'investigating' });
+                console.log('Telegram webhook: bug report status reverted to investigating');
+            }
+        }
+
+        // Update the original message to show revert was initiated
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const revertNote = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '↩️ <b>Revert Initiated</b>',
+                `Revert PR #${revertResult.prNumber} created`,
+                '',
+                `<a href="${revertResult.url}">View Revert PR</a>`,
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(originalText) + revertNote,
+                'HTML'
+            );
+        }
+
+        // Send confirmation notification
+        const issueDetails = await adapter.getIssueDetails(issueNumber);
+        const issueTitle = issueDetails?.title || `Issue #${issueNumber}`;
+
+        const confirmMessage = [
+            '↩️ <b>Merge Reverted</b>',
+            '',
+            `📋 Issue: #${issueNumber} - ${escapeHtml(issueTitle)}`,
+            `🔀 Original PR: #${prNumber}`,
+            `🔄 Revert PR: #${revertResult.prNumber}`,
+            '',
+            phase ? `📊 Status: Implementation (Phase ${phase})` : '📊 Status: Implementation',
+            '📝 Review Status: Request Changes',
+            '',
+            '<b>Next steps:</b>',
+            '1️⃣ Click "Merge Revert PR" below to undo the changes',
+            `2️⃣ Go to Issue #${issueNumber} and add a comment explaining what went wrong`,
+            '3️⃣ Run <code>yarn agent:implement</code> - the agent will read your feedback and create a new PR',
+        ].join('\n');
+
+        // Callback format: merge_rv:issueNumber:revertPrNumber
+        const mergeRevertCallback = `merge_rv:${issueNumber}:${revertResult.prNumber}`;
+
+        await sendNotificationToOwner(confirmMessage, {
+            parseMode: 'HTML',
+            inlineKeyboard: [
+                [
+                    { text: '✅ Merge Revert PR', callback_data: mergeRevertCallback },
+                ],
+                [
+                    { text: '📄 View Revert PR', url: revertResult.url },
+                    { text: '📋 View Issue', url: getIssueUrl(issueNumber) },
+                ],
+            ],
+        });
+
+        console.log(`Telegram webhook: completed revert handling for PR #${prNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling revert:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle merge revert PR callback
+ * Callback format: "merge_rv:issueNumber:revertPrNumber"
+ *
+ * Actions:
+ * 1. Merge the revert PR (squash)
+ * 2. Delete the revert branch
+ * 3. Update the Telegram message
+ * 4. Does NOT change status (stays as Implementation with Request Changes)
+ */
+async function handleMergeRevertPR(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    revertPrNumber: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // Get revert PR info for commit message
+        const prInfo = await adapter.getPRInfo(revertPrNumber);
+        if (!prInfo) {
+            return { success: false, error: 'Revert PR not found' };
+        }
+
+        // Check if PR is still open
+        const prDetails = await adapter.getPRDetails(revertPrNumber);
+        if (!prDetails) {
+            return { success: false, error: 'Could not get revert PR details' };
+        }
+        if (prDetails.merged) {
+            return { success: false, error: 'Revert PR already merged' };
+        }
+        if (prDetails.state === 'closed') {
+            return { success: false, error: 'Revert PR is closed' };
+        }
+
+        // Merge the revert PR
+        const commitTitle = prInfo.title;
+        const commitBody = `Part of #${issueNumber}`;
+
+        await adapter.mergePullRequest(revertPrNumber, commitTitle, commitBody);
+        console.log(`Telegram webhook: merged revert PR #${revertPrNumber}`);
+
+        // Delete the revert branch
+        try {
+            await adapter.deleteBranch(prDetails.headBranch);
+            console.log(`Telegram webhook: deleted revert branch ${prDetails.headBranch}`);
+        } catch {
+            console.log('Telegram webhook: revert branch already deleted or not found');
+        }
+
+        // Update the original message
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const mergedNote = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '✅ <b>Revert PR Merged</b>',
+                'Changes have been reverted on main.',
+                '',
+                '<b>Next steps:</b>',
+                `1️⃣ Go to Issue #${issueNumber} and add a comment explaining what went wrong`,
+                '2️⃣ Run <code>yarn agent:implement</code> - the agent will read your feedback and create a new PR',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(originalText) + mergedNote,
+                'HTML'
+            );
+        }
+
+        console.log(`Telegram webhook: completed merge revert PR #${revertPrNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error merging revert PR:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : String(error)
@@ -1339,8 +2079,9 @@ async function handleDesignPRRequestChanges(
             });
         }
 
-        // 3. Update the message with instructions
+        // 3. Update the message with instructions and undo button
         const prUrl = getPrUrl(prNumber);
+        const timestamp = Date.now();
         if (callbackQuery.message) {
             const originalText = callbackQuery.message.text || '';
             const statusUpdate = [
@@ -1353,14 +2094,19 @@ async function handleDesignPRRequestChanges(
                 '',
                 `<b>Next:</b> <a href="${prUrl}">Comment on the ${designLabel} PR</a> explaining what needs to change.`,
                 'Design agent will revise on next run.',
+                '',
+                '<i>Changed your mind? Click Undo within 5 minutes.</i>',
             ].join('\n');
 
-            await editMessageText(
+            // u_dc = undo design changes
+            const undoCallback = `u_dc:${prNumber}:${issueNumber}:${designType}:${timestamp}`;
+            await editMessageWithUndoButton(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
                 escapeHtml(originalText) + statusUpdate,
-                'HTML'
+                undoCallback,
+                timestamp
             );
         }
 
@@ -1408,8 +2154,9 @@ async function handleRequestChangesCallback(
             });
         }
 
-        // 3. Update the message with instructions
+        // 3. Update the message with instructions and undo button
         const prUrl = getPrUrl(prNumber);
+        const timestamp = Date.now();
         if (callbackQuery.message) {
             const originalText = callbackQuery.message.text || '';
             const statusUpdate = [
@@ -1422,14 +2169,19 @@ async function handleRequestChangesCallback(
                 '',
                 `<b>Next:</b> <a href="${prUrl}">Comment on the PR</a> explaining what needs to change.`,
                 'Implementor will pick it up on next run.',
+                '',
+                '<i>Changed your mind? Click Undo within 5 minutes.</i>',
             ].join('\n');
 
-            await editMessageText(
+            // u_rc = undo request changes (implementation PR)
+            const undoCallback = `u_rc:${issueNumber}:${prNumber}:${timestamp}`;
+            await editMessageWithUndoButton(
                 botToken,
                 callbackQuery.message.chat.id,
                 callbackQuery.message.message_id,
                 escapeHtml(originalText) + statusUpdate,
-                'HTML'
+                undoCallback,
+                timestamp
             );
         }
 
@@ -1437,6 +2189,324 @@ async function handleRequestChangesCallback(
         return { success: true };
     } catch (error) {
         console.error('Error handling request changes:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle undo for implementation PR request changes
+ * Callback format: "u_rc:issueNumber:prNumber:timestamp"
+ *
+ * Restores status to PR Review and re-sends the PR Ready notification
+ */
+async function handleUndoRequestChanges(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    prNumber: number,
+    timestamp: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check if undo is still valid
+        if (!isUndoValid(timestamp)) {
+            return { success: false, error: 'Undo window expired (5 minutes)' };
+        }
+
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // 2. Restore status to PR Review and clear review status
+        await adapter.updateItemStatus(item.itemId, STATUSES.prReview);
+        await adapter.clearItemReviewStatus(item.itemId);
+
+        // 3. Log the undo action
+        if (logExists(issueNumber)) {
+            logWebhookAction(issueNumber, 'undo_request_changes', `Undid request changes for PR #${prNumber}`, {
+                prNumber,
+                restoredStatus: STATUSES.prReview,
+            });
+        }
+
+        // 4. Update the message to show undo was successful
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            // Find and remove the undo-related text
+            const cleanedText = originalText
+                .replace(/\n*<i>Changed your mind\?.*<\/i>/g, '')
+                .replace(/\n*Changed your mind\?.*5 minutes\./g, '');
+
+            const undoConfirmation = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '↩️ <b>Undone!</b>',
+                '',
+                `📊 Status restored to: ${STATUSES.prReview}`,
+                '📋 Review Status: (cleared)',
+                '',
+                'Re-sending PR Ready notification...',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(cleanedText) + undoConfirmation,
+                'HTML'
+            );
+        }
+
+        // 5. Re-send the PR Ready notification with buttons
+        // First, get the commit message from the PR
+        const { Octokit } = await import('@octokit/rest');
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+        const { getProjectConfig } = await import('@/server/project-management/config');
+        const projectConfig = getProjectConfig();
+        const { owner, repo } = projectConfig.github;
+
+        // Get PR details
+        const { data: pr } = await octokit.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber,
+        });
+
+        // Get commit message from PR comments
+        const { data: comments } = await octokit.issues.listComments({
+            owner,
+            repo,
+            issue_number: prNumber,
+        });
+
+        let commitMessage = { title: pr.title, body: pr.body || '' };
+        for (const comment of comments) {
+            if (comment.body?.includes(COMMIT_MESSAGE_MARKER)) {
+                const parsed = parseCommitMessageComment(comment.body);
+                if (parsed) {
+                    commitMessage = parsed;
+                    break;
+                }
+            }
+        }
+
+        // Re-send the notification
+        const { notifyPRReadyToMerge } = await import('@/agents/shared/notifications');
+        await notifyPRReadyToMerge(
+            item.title,
+            issueNumber,
+            prNumber,
+            commitMessage,
+            'feature' // Default to feature, could be improved
+        );
+
+        console.log(`Telegram webhook: undid request changes for PR #${prNumber}, issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling undo request changes:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle undo for design PR request changes
+ * Callback format: "u_dc:prNumber:issueNumber:designType:timestamp"
+ *
+ * Clears review status and re-sends the Design PR Ready notification
+ */
+async function handleUndoDesignChanges(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    prNumber: number,
+    issueNumber: number,
+    designType: 'product-dev' | 'product' | 'tech',
+    timestamp: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check if undo is still valid
+        if (!isUndoValid(timestamp)) {
+            return { success: false, error: 'Undo window expired (5 minutes)' };
+        }
+
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // 2. Clear review status (design status unchanged)
+        await adapter.clearItemReviewStatus(item.itemId);
+
+        const designLabel = designType === 'product-dev'
+            ? 'Product Development'
+            : designType === 'product'
+                ? 'Product Design'
+                : 'Technical Design';
+
+        // 3. Log the undo action
+        if (logExists(issueNumber)) {
+            logWebhookAction(issueNumber, 'undo_design_changes', `Undid request changes for ${designLabel} PR #${prNumber}`, {
+                prNumber,
+                designType,
+            });
+        }
+
+        // 4. Update the message to show undo was successful
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const cleanedText = originalText
+                .replace(/\n*<i>Changed your mind\?.*<\/i>/g, '')
+                .replace(/\n*Changed your mind\?.*5 minutes\./g, '');
+
+            const undoConfirmation = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '↩️ <b>Undone!</b>',
+                '',
+                `📊 Status: ${item.status}`,
+                '📋 Review Status: (cleared)',
+                '',
+                'Re-sending Design PR Ready notification...',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(cleanedText) + undoConfirmation,
+                'HTML'
+            );
+        }
+
+        // 5. Re-send the Design PR Ready notification with buttons
+        const { notifyDesignPRReady } = await import('@/agents/shared/notifications');
+        await notifyDesignPRReady(
+            designType,
+            item.title,
+            issueNumber,
+            prNumber,
+            false, // Not a revision since we're undoing
+            'feature' // Default to feature
+        );
+
+        console.log(`Telegram webhook: undid design changes for ${designType} PR #${prNumber}, issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling undo design changes:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+}
+
+/**
+ * Handle undo for design review (changes/reject)
+ * Callback format: "u_dr:issueNumber:action:previousStatus:timestamp"
+ *
+ * Clears review status and re-sends the design review notification
+ */
+async function handleUndoDesignReview(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    issueNumber: number,
+    originalAction: 'changes' | 'reject',
+    previousStatus: string,
+    timestamp: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check if undo is still valid
+        if (!isUndoValid(timestamp)) {
+            return { success: false, error: 'Undo window expired (5 minutes)' };
+        }
+
+        const adapter = getProjectManagementAdapter();
+        await adapter.init();
+
+        // 1. Find the project item
+        const item = await findItemByIssueNumber(adapter, issueNumber);
+        if (!item) {
+            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // 2. Clear review status
+        await adapter.clearItemReviewStatus(item.itemId);
+
+        // 3. Log the undo action
+        if (logExists(issueNumber)) {
+            logWebhookAction(issueNumber, 'undo_design_review', `Undid ${originalAction} for design review`, {
+                issueNumber,
+                originalAction,
+                status: item.status,
+            });
+        }
+
+        // 4. Update the message to show undo was successful
+        if (callbackQuery.message) {
+            const originalText = callbackQuery.message.text || '';
+            const cleanedText = originalText
+                .replace(/\n*<i>Changed your mind\?.*<\/i>/g, '')
+                .replace(/\n*Changed your mind\?.*5 minutes\./g, '');
+
+            const undoConfirmation = [
+                '',
+                '━━━━━━━━━━━━━━━━━━━━',
+                '↩️ <b>Undone!</b>',
+                '',
+                `📊 Status: ${item.status}`,
+                '📋 Review Status: (cleared)',
+                '',
+                'Re-sending review notification...',
+            ].join('\n');
+
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(cleanedText) + undoConfirmation,
+                'HTML'
+            );
+        }
+
+        // 5. Re-send the appropriate notification based on the current status
+        const { getIssueUrl } = await import('@/server/project-management/config');
+        const issueUrl = getIssueUrl(issueNumber);
+
+        // Send a new message with the review buttons
+        await sendNotificationToOwner(
+            `<b>🔄 Review Restored</b>\n\n📋 ${escapeHtml(item.title)}\n🔗 Issue #${issueNumber}\n📊 Status: ${item.status}\n\nReady for review again.`,
+            {
+                parseMode: 'HTML',
+                inlineKeyboard: [
+                    [
+                        { text: '📋 View Issue', url: issueUrl },
+                    ],
+                    [
+                        { text: '✅ Approve', callback_data: `approve:${issueNumber}` },
+                        { text: '📝 Request Changes', callback_data: `changes:${issueNumber}` },
+                        { text: '❌ Reject', callback_data: `reject:${issueNumber}` },
+                    ],
+                ],
+            }
+        );
+
+        console.log(`Telegram webhook: undid ${originalAction} for issue #${issueNumber}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error handling undo design review:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : String(error)
@@ -1728,6 +2798,42 @@ export default async function handler(
             return res.status(200).json({ ok: true });
         }
 
+        // Merge Final PR (feature branch workflow): "merge_final:issueNumber:prNumber"
+        if (action === 'merge_final' && parts.length === 3) {
+            const issueNumber = parsed.getInt(1);
+            const prNumber = parsed.getInt(2);
+
+            if (!issueNumber || !prNumber) {
+                console.error('Telegram webhook: Invalid merge_final callback data', {
+                    callbackData,
+                    issueNumber,
+                    prNumber,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid issue or PR number');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleMergeFinalPRCallback(
+                botToken,
+                callback_query,
+                issueNumber,
+                prNumber
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '✅ Final PR Merged!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
         // Request changes (admin requests changes after approval): "reqchanges:issueNumber:prNumber"
         if (action === 'reqchanges' && parts.length === 3) {
             const issueNumber = parsed.getInt(1);
@@ -1831,6 +2937,210 @@ export default async function handler(
 
             if (result.success) {
                 await answerCallbackQuery(botToken, callback_query.id, '🔄 Changes requested');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Revert merge: "rv:issueNumber:prNumber:shortSha:prevStatus:phase"
+        if (action === 'rv' && parts.length >= 5) {
+            const issueNumber = parsed.getInt(1);
+            const prNumber = parsed.getInt(2);
+            const shortSha = parsed.getString(3);
+            const prevStatus = parsed.getString(4);
+            const phase = parts.length >= 6 ? parsed.getString(5) : '';
+
+            if (!issueNumber || !prNumber || !shortSha || !prevStatus) {
+                console.error('Telegram webhook: Invalid revert callback data', {
+                    callbackData,
+                    issueNumber,
+                    prNumber,
+                    shortSha,
+                    prevStatus,
+                    phase,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid revert data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleRevertMerge(
+                botToken,
+                callback_query,
+                issueNumber,
+                prNumber,
+                shortSha,
+                prevStatus,
+                phase
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '↩️ Revert PR created!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Merge revert PR: "merge_rv:issueNumber:revertPrNumber"
+        if (action === 'merge_rv' && parts.length === 3) {
+            const issueNumber = parsed.getInt(1);
+            const revertPrNumber = parsed.getInt(2);
+
+            if (!issueNumber || !revertPrNumber) {
+                console.error('Telegram webhook: Invalid merge_rv callback data', {
+                    callbackData,
+                    issueNumber,
+                    revertPrNumber,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid merge data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleMergeRevertPR(
+                botToken,
+                callback_query,
+                issueNumber,
+                revertPrNumber
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '✅ Revert PR merged!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Undo request changes (implementation PR): "u_rc:issueNumber:prNumber:timestamp"
+        if (action === 'u_rc' && parts.length === 4) {
+            const issueNumber = parsed.getInt(1);
+            const prNumber = parsed.getInt(2);
+            const timestamp = parsed.getInt(3);
+
+            if (!issueNumber || !prNumber || !timestamp) {
+                console.error('Telegram webhook: Invalid u_rc callback data', {
+                    callbackData,
+                    issueNumber,
+                    prNumber,
+                    timestamp,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid undo data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleUndoRequestChanges(
+                botToken,
+                callback_query,
+                issueNumber,
+                prNumber,
+                timestamp
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '↩️ Undone!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Undo design changes (design PR): "u_dc:prNumber:issueNumber:designType:timestamp"
+        if (action === 'u_dc' && parts.length === 5) {
+            const prNumber = parsed.getInt(1);
+            const issueNumber = parsed.getInt(2);
+            const designType = parsed.getString(3).toLowerCase() as 'product-dev' | 'product' | 'tech';
+            const timestamp = parsed.getInt(4);
+
+            if (!prNumber || !issueNumber || !['product-dev', 'product', 'tech'].includes(designType) || !timestamp) {
+                console.error('Telegram webhook: Invalid u_dc callback data', {
+                    callbackData,
+                    prNumber,
+                    issueNumber,
+                    designType,
+                    timestamp,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid undo data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleUndoDesignChanges(
+                botToken,
+                callback_query,
+                prNumber,
+                issueNumber,
+                designType,
+                timestamp
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '↩️ Undone!');
+            } else {
+                await answerCallbackQuery(
+                    botToken,
+                    callback_query.id,
+                    `❌ ${result.error?.slice(0, 150)}`
+                );
+            }
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // Undo design review (changes/reject): "u_dr:issueNumber:action:previousStatus:timestamp"
+        if (action === 'u_dr' && parts.length === 5) {
+            const issueNumber = parsed.getInt(1);
+            const originalAction = parsed.getString(2) as 'changes' | 'reject';
+            const previousStatus = parsed.getString(3);
+            const timestamp = parsed.getInt(4);
+
+            if (!issueNumber || !['changes', 'reject'].includes(originalAction) || !previousStatus || !timestamp) {
+                console.error('Telegram webhook: Invalid u_dr callback data', {
+                    callbackData,
+                    issueNumber,
+                    originalAction,
+                    previousStatus,
+                    timestamp,
+                    parts,
+                });
+                await answerCallbackQuery(botToken, callback_query.id, 'Invalid undo data');
+                return res.status(200).json({ ok: true });
+            }
+
+            const result = await handleUndoDesignReview(
+                botToken,
+                callback_query,
+                issueNumber,
+                originalAction,
+                previousStatus,
+                timestamp
+            );
+
+            if (result.success) {
+                await answerCallbackQuery(botToken, callback_query.id, '↩️ Undone!');
             } else {
                 await answerCallbackQuery(
                     botToken,

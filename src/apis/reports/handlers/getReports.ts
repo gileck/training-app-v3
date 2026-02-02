@@ -17,7 +17,11 @@ export const getReports = async (
         if (request.status) {
             filters.status = request.status;
         }
-        
+
+        if (request.source) {
+            filters.source = request.source;
+        }
+
         if (request.startDate) {
             filters.startDate = new Date(request.startDate);
         }
@@ -66,6 +70,7 @@ export const getReports = async (
                 githubIssueUrl: doc.githubIssueUrl,
                 githubIssueNumber: doc.githubIssueNumber,
                 githubProjectItemId: doc.githubProjectItemId,
+                source: doc.source,
                 createdAt,
                 updatedAt,
             };

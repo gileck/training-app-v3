@@ -22,6 +22,11 @@ export type FeatureRequestStatus =
 export type FeatureRequestPriority = 'low' | 'medium' | 'high' | 'critical';
 
 /**
+ * Source of the feature request - where it was created from
+ */
+export type FeatureRequestSource = 'ui' | 'cli';
+
+/**
  * Comment in a feature request discussion
  */
 export interface FeatureRequestComment {
@@ -69,6 +74,9 @@ export interface FeatureRequestDocument {
     adminNotes?: string;              // Internal notes (not shown to user)
     priority?: FeatureRequestPriority;
 
+    // Source tracking
+    source?: FeatureRequestSource;    // Where this was created from (ui, cli)
+
     // GitHub integration fields
     githubIssueUrl?: string;          // URL to the GitHub issue
     githubIssueNumber?: number;       // GitHub issue number
@@ -102,6 +110,7 @@ export interface FeatureRequestClient {
     comments: FeatureRequestCommentClient[];
     adminNotes?: string;
     priority?: FeatureRequestPriority;
+    source?: FeatureRequestSource;
     // GitHub integration fields
     githubIssueUrl?: string;
     githubIssueNumber?: number;
@@ -117,6 +126,7 @@ export interface FeatureRequestFilters {
     status?: FeatureRequestStatus;
     priority?: FeatureRequestPriority;
     requestedBy?: ObjectId | string;
+    source?: FeatureRequestSource;
     startDate?: Date;
     endDate?: Date;
 }
