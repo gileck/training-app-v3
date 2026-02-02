@@ -1,8 +1,13 @@
 /**
  * GitHub Sync Service
  *
- * Server-side service for syncing feature requests to GitHub.
+ * Server-side service for syncing feature requests and bug reports to GitHub.
  * Used by both the API (approve action) and CLI (batch sync).
+ *
+ * Architecture:
+ * - index.ts: Public API (this file) - type-specific wrappers
+ * - sync-core.ts: Shared sync logic
+ * - types.ts: Shared types
  */
 
 import { featureRequests, reports } from '@/server/database';
@@ -12,14 +17,17 @@ import {
     sendFeatureRoutingNotification,
     sendBugRoutingNotification,
 } from '@/server/telegram';
-import { getProjectManagementAdapter, STATUSES } from '@/server/project-management';
-import { ensureArtifactComment } from '@/agents/lib';
+import { syncItemToGitHub, approveItem } from './sync-core';
+import type { SyncToGitHubResult, SyncOptions, SyncItemConfig, ApproveItemConfig } from './types';
+
+// Re-export types for consumers
+export type { SyncToGitHubResult, SyncOptions } from './types';
 
 // ============================================================
-// HELPERS
+// FEATURE REQUEST CONFIG
 // ============================================================
 
-function buildIssueBody(request: FeatureRequestDocument): string {
+function buildFeatureIssueBody(request: FeatureRequestDocument): string {
     const sections: string[] = [];
 
     sections.push(`## Description\n\n${request.description}`);
@@ -43,13 +51,42 @@ function buildIssueBody(request: FeatureRequestDocument): string {
     return sections.join('\n\n');
 }
 
-function getLabels(request: FeatureRequestDocument): string[] {
+function getFeatureLabels(request: FeatureRequestDocument): string[] {
     const labels: string[] = ['feature-request'];
     if (request.priority) {
         labels.push(`priority:${request.priority}`);
     }
     return labels;
 }
+
+const featureRequestSyncConfig: SyncItemConfig<FeatureRequestDocument> = {
+    getFromDB: (id) => featureRequests.findFeatureRequestById(id),
+
+    isAlreadySynced: (item) => !!item.githubIssueUrl,
+
+    getExistingSyncResult: (item) => ({
+        success: true,
+        issueNumber: item.githubIssueNumber,
+        issueUrl: item.githubIssueUrl,
+        projectItemId: item.githubProjectItemId,
+    }),
+
+    getTitle: (item) => item.title,
+
+    buildBody: buildFeatureIssueBody,
+
+    getLabels: getFeatureLabels,
+
+    updateDBWithGitHubFields: (id, fields) =>
+        featureRequests.updateGitHubFields(id, fields).then(() => {}),
+
+    sendRoutingNotification: (item, issueResult) =>
+        sendFeatureRoutingNotification(item, issueResult).then(() => {}),
+};
+
+// ============================================================
+// BUG REPORT CONFIG
+// ============================================================
 
 function buildBugIssueBody(report: ReportDocument): string {
     const sections: string[] = [];
@@ -111,88 +148,44 @@ function getBugLabels(report: ReportDocument): string[] {
     return labels;
 }
 
-// ============================================================
-// PUBLIC API
-// ============================================================
+const bugReportSyncConfig: SyncItemConfig<ReportDocument> = {
+    getFromDB: (id) => reports.findReportById(id),
 
-export interface SyncToGitHubResult {
-    success: boolean;
-    issueNumber?: number;
-    issueUrl?: string;
-    projectItemId?: string;
-    error?: string;
-}
+    isAlreadySynced: (item) => !!item.githubIssueUrl,
+
+    getExistingSyncResult: (item) => ({
+        success: true,
+        issueNumber: item.githubIssueNumber,
+        issueUrl: item.githubIssueUrl,
+        projectItemId: item.githubProjectItemId,
+    }),
+
+    getTitle: (item) => item.description?.slice(0, 100) || 'Bug Report',
+
+    buildBody: buildBugIssueBody,
+
+    getLabels: getBugLabels,
+
+    updateDBWithGitHubFields: (id, fields) =>
+        reports.updateReport(id, fields).then(() => {}),
+
+    sendRoutingNotification: (item, issueResult) =>
+        sendBugRoutingNotification(item, issueResult).then(() => {}),
+};
+
+// ============================================================
+// PUBLIC API - Feature Requests
+// ============================================================
 
 /**
  * Sync a feature request to GitHub
  * Creates an issue and adds it to the project with Backlog status
  */
 export async function syncFeatureRequestToGitHub(
-    requestId: string
+    requestId: string,
+    options?: SyncOptions
 ): Promise<SyncToGitHubResult> {
-    try {
-        // Get the feature request
-        const request = await featureRequests.findFeatureRequestById(requestId);
-        if (!request) {
-            return { success: false, error: 'Feature request not found' };
-        }
-
-        // Check if already synced
-        if (request.githubIssueUrl) {
-            return {
-                success: true,
-                issueNumber: request.githubIssueNumber,
-                issueUrl: request.githubIssueUrl,
-                projectItemId: request.githubProjectItemId,
-            };
-        }
-
-        // Initialize project management adapter
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
-
-        // Create the issue
-        const issueBody = buildIssueBody(request);
-        const labels = getLabels(request);
-
-        const issueResult = await adapter.createIssue(request.title, issueBody, labels);
-        const { number: issueNumber, url: issueUrl, nodeId: issueNodeId } = issueResult;
-
-        // Add issue to project
-        const projectItemId = await adapter.addIssueToProject(issueNodeId);
-
-        // Set status to Backlog
-        await adapter.updateItemStatus(projectItemId, STATUSES.backlog);
-
-        // Create empty artifact comment (design docs and implementation PRs will be tracked here)
-        await ensureArtifactComment(adapter, issueNumber);
-
-        // Update MongoDB with GitHub fields
-        await featureRequests.updateGitHubFields(requestId, {
-            githubIssueUrl: issueUrl,
-            githubIssueNumber: issueNumber,
-            githubProjectItemId: projectItemId,
-        });
-
-        // Send routing notification
-        try {
-            await sendFeatureRoutingNotification(request, { number: issueNumber, url: issueUrl });
-        } catch (error) {
-            // Don't fail if notification fails
-            console.warn('Failed to send routing notification:', error);
-        }
-
-        return {
-            success: true,
-            issueNumber,
-            issueUrl,
-            projectItemId,
-        };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('GitHub sync error:', errorMsg);
-        return { success: false, error: errorMsg };
-    }
+    return syncItemToGitHub(requestId, featureRequestSyncConfig, options);
 }
 
 /**
@@ -207,119 +200,36 @@ export async function approveFeatureRequest(
     githubResult?: SyncToGitHubResult;
     error?: string;
 }> {
-    try {
-        // First update the MongoDB status to in_progress
-        const updated = await featureRequests.updateFeatureRequestStatus(
-            requestId,
-            'in_progress'
-        );
+    const approveConfig: ApproveItemConfig<FeatureRequestDocument> = {
+        getFromDB: (id) => featureRequests.findFeatureRequestById(id),
+        setInProgressStatus: (id) => featureRequests.updateFeatureRequestStatus(id, 'in_progress'),
+        revertToNewStatus: (id) => featureRequests.updateFeatureRequestStatus(id, 'new').then(() => {}),
+        syncToGitHub: syncFeatureRequestToGitHub,
+    };
 
-        if (!updated) {
-            return { success: false, error: 'Feature request not found' };
-        }
+    const result = await approveItem(requestId, approveConfig);
 
-        // Then sync to GitHub (creates issue with Backlog status)
-        const githubResult = await syncFeatureRequestToGitHub(requestId);
-
-        if (!githubResult.success) {
-            // Revert status if GitHub sync failed
-            await featureRequests.updateFeatureRequestStatus(requestId, 'new');
-            return {
-                success: false,
-                error: `GitHub sync failed: ${githubResult.error}`,
-            };
-        }
-
-        // NOTE: Status stays in Backlog after approval
-        // Admin will route to appropriate phase via Telegram routing buttons
-        // This allows admin to choose: Product Design, Tech Design, Implementation, or keep in Backlog
-
-        // Fetch the updated request with GitHub fields
-        const finalRequest = await featureRequests.findFeatureRequestById(requestId);
-
-        return {
-            success: true,
-            featureRequest: finalRequest || undefined,
-            githubResult,
-        };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('Approve feature request error:', errorMsg);
-        return { success: false, error: errorMsg };
-    }
+    return {
+        success: result.success,
+        featureRequest: result.item,
+        githubResult: result.githubResult,
+        error: result.error,
+    };
 }
+
+// ============================================================
+// PUBLIC API - Bug Reports
+// ============================================================
 
 /**
  * Sync a bug report to GitHub
  * Creates an issue and adds it to the project with Backlog status
  */
 export async function syncBugReportToGitHub(
-    reportId: string
+    reportId: string,
+    options?: SyncOptions
 ): Promise<SyncToGitHubResult> {
-    try {
-        // Get the bug report
-        const report = await reports.findReportById(reportId);
-        if (!report) {
-            return { success: false, error: 'Bug report not found' };
-        }
-
-        // Check if already synced
-        if (report.githubIssueUrl) {
-            return {
-                success: true,
-                issueNumber: report.githubIssueNumber,
-                issueUrl: report.githubIssueUrl,
-                projectItemId: report.githubProjectItemId,
-            };
-        }
-
-        // Initialize project management adapter
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
-
-        // Create the issue
-        const issueBody = buildBugIssueBody(report);
-        const labels = getBugLabels(report);
-        const title = report.description?.slice(0, 100) || 'Bug Report';
-
-        const issueResult = await adapter.createIssue(title, issueBody, labels);
-        const { number: issueNumber, url: issueUrl, nodeId: issueNodeId } = issueResult;
-
-        // Add issue to project
-        const projectItemId = await adapter.addIssueToProject(issueNodeId);
-
-        // Set status to Backlog
-        await adapter.updateItemStatus(projectItemId, STATUSES.backlog);
-
-        // Create empty artifact comment (implementation PRs will be tracked here)
-        await ensureArtifactComment(adapter, issueNumber);
-
-        // Update MongoDB with GitHub fields
-        await reports.updateReport(reportId, {
-            githubIssueUrl: issueUrl,
-            githubIssueNumber: issueNumber,
-            githubProjectItemId: projectItemId,
-        });
-
-        // Send routing notification
-        try {
-            await sendBugRoutingNotification(report, { number: issueNumber, url: issueUrl });
-        } catch (error) {
-            // Don't fail if notification fails
-            console.warn('Failed to send routing notification:', error);
-        }
-
-        return {
-            success: true,
-            issueNumber,
-            issueUrl,
-            projectItemId,
-        };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('GitHub sync error:', errorMsg);
-        return { success: false, error: errorMsg };
-    }
+    return syncItemToGitHub(reportId, bugReportSyncConfig, options);
 }
 
 /**
@@ -334,39 +244,22 @@ export async function approveBugReport(
     githubResult?: SyncToGitHubResult;
     error?: string;
 }> {
-    try {
-        // First update the MongoDB status to investigating
-        const updated = await reports.updateReport(reportId, {
-            status: 'investigating',
-        });
+    const approveConfig: ApproveItemConfig<ReportDocument> = {
+        getFromDB: (id) => reports.findReportById(id),
+        setInProgressStatus: async (id) => {
+            const updated = await reports.updateReport(id, { status: 'investigating' });
+            return updated ? await reports.findReportById(id) : null;
+        },
+        revertToNewStatus: (id) => reports.updateReport(id, { status: 'new' }).then(() => {}),
+        syncToGitHub: syncBugReportToGitHub,
+    };
 
-        if (!updated) {
-            return { success: false, error: 'Bug report not found' };
-        }
+    const result = await approveItem(reportId, approveConfig);
 
-        // Then sync to GitHub (creates issue with Backlog status)
-        const githubResult = await syncBugReportToGitHub(reportId);
-
-        if (!githubResult.success) {
-            // Revert status if GitHub sync failed
-            await reports.updateReport(reportId, { status: 'new' });
-            return {
-                success: false,
-                error: `GitHub sync failed: ${githubResult.error}`,
-            };
-        }
-
-        // Fetch the updated report with GitHub fields
-        const finalReport = await reports.findReportById(reportId);
-
-        return {
-            success: true,
-            bugReport: finalReport || undefined,
-            githubResult,
-        };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('Approve bug report error:', errorMsg);
-        return { success: false, error: errorMsg };
-    }
+    return {
+        success: result.success,
+        bugReport: result.item,
+        githubResult: result.githubResult,
+        error: result.error,
+    };
 }

@@ -22,6 +22,7 @@
     "src/server/database/index.ts",
     "src/server/database/collections/feature-requests/**",
     "src/server/database/collections/reports/**",
+    "src/server/github-sync/**",
     "src/server/project-management/**",
     "src/server/telegram/**",
     "src/apis/feature-requests/**",
