@@ -420,6 +420,13 @@ export function analyzeFolderSync(
   // Combine both sets of files
   const allFiles = new Set([...templateFiles, ...projectFiles]);
 
+  // Always include package.json for smart merge (even if not in templatePaths)
+  // This allows template scripts/dependencies to be synced without owning the entire file
+  if (fs.existsSync(path.join(templateDir, 'package.json')) &&
+      fs.existsSync(path.join(projectDir, 'package.json'))) {
+    allFiles.add('package.json');
+  }
+
   // Categorize each file
   for (const filePath of allFiles) {
     const file = categorizeFile(filePath, config, templateDir, projectDir);

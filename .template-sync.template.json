@@ -1,6 +1,5 @@
 {
   "templatePaths": [
-    "package.json",
     "tsconfig.json",
     ".eslintrc.js",
     "eslint.config.mjs",
