@@ -14,12 +14,24 @@ PROJECT_CONFIG=".template-sync.json"
 
 # Check if config files exist
 if [ ! -f "$TEMPLATE_CONFIG" ]; then
-    # No template config - this might be the template itself or not a synced project
+    # No template config - not a synced project
     exit 0
 fi
 
 if [ ! -f "$PROJECT_CONFIG" ]; then
     # No project config - skip check
+    exit 0
+fi
+
+# Check if this is the template itself (templateRepo is empty)
+# Only run this check in child projects, not in the template
+TEMPLATE_REPO=$(node -e "
+const config = JSON.parse(require('fs').readFileSync('$PROJECT_CONFIG', 'utf-8'));
+console.log(config.templateRepo || '');
+" 2>/dev/null)
+
+if [ -z "$TEMPLATE_REPO" ]; then
+    # This is the template itself - skip check
     exit 0
 fi
 
