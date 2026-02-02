@@ -1,6 +1,5 @@
 {
   "templatePaths": [
-    "tsconfig.json",
     ".eslintrc.js",
     "eslint.config.mjs",
     "postcss.config.mjs",
