@@ -23,6 +23,7 @@
  *   --use-https              Use HTTPS instead of SSH for cloning (SSH is default)
  *   --merge-package-json     Only merge package.json from template (no full sync)
  *   --migrate                Migrate from legacy config to folder ownership model
+ *   --yes, -y                Non-interactive mode: accept all template changes
  *
  * Note: Validation checks (TypeScript + ESLint) are automatically run before committing.
  *       If checks fail, changes are applied but NOT committed - you must fix issues and commit manually.
@@ -72,6 +73,7 @@ const options: SyncOptions = {
   projectDiffs: args.includes('--project-diffs'),
   json: args.includes('--json'),
   mergePackageJson: args.includes('--merge-package-json'),
+  acceptAll: args.includes('--yes') || args.includes('-y'),  // Non-interactive accept all
 };
 
 // Handle migration mode
@@ -93,11 +95,14 @@ if (args.includes('--migrate')) {
 
         // Save new config
         saveConfig(projectRoot, newConfig);
-        console.log('✅ Migration complete! New config saved to .template-sync.json');
+        console.log('✅ Migration complete!');
+        console.log('\nConfig files:');
+        console.log('  - .template-sync.template.json (template-owned, synced from template)');
+        console.log('  - .template-sync.json (project-owned, your overrides)');
         console.log('\nNext steps:');
-        console.log('  1. Review .template-sync.json');
-        console.log('  2. Adjust templatePaths and projectOverrides as needed');
-        console.log('  3. Run: yarn sync-template --dry-run');
+        console.log('  1. Review .template-sync.json and add any projectOverrides');
+        console.log('  2. Run: yarn sync-template --dry-run');
+        console.log('  3. Commit both config files');
       } else {
         console.log('❌ Migration cancelled.');
       }

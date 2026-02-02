@@ -4,8 +4,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { TemplateSyncConfig, FolderOwnershipConfig, TEMPLATE_DIR } from '../types';
+import { TemplateSyncConfig, FolderOwnershipConfig, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE } from '../types';
 import { select, confirm } from '../../cli-utils';
+import { exec } from './exec';
 
 /**
  * Default template paths - common patterns for template-owned files
@@ -54,6 +55,88 @@ export const COMMON_PROJECT_OVERRIDES: string[] = [
   'src/client/routes/index.ts',
   'src/client/components/NavLinks.tsx',
 ];
+
+/**
+ * Clone the template repository for migration.
+ * Returns the path to the cloned template directory.
+ */
+function cloneTemplateForMigration(legacyConfig: TemplateSyncConfig, projectRoot: string): string {
+  const templatePath = path.join(projectRoot, TEMPLATE_DIR);
+
+  // Clean up any existing template directory
+  if (fs.existsSync(templatePath)) {
+    fs.rmSync(templatePath, { recursive: true, force: true });
+  }
+
+  // Check if local path is configured and valid
+  const localPath = legacyConfig.templateLocalPath;
+  if (localPath) {
+    const resolvedLocalPath = path.isAbsolute(localPath)
+      ? localPath
+      : path.resolve(projectRoot, localPath);
+
+    if (fs.existsSync(resolvedLocalPath) && fs.existsSync(path.join(resolvedLocalPath, '.git'))) {
+      console.log(`📥 Using local template from ${localPath}...`);
+      exec(
+        `git clone --local --branch ${legacyConfig.templateBranch} "${resolvedLocalPath}" ${TEMPLATE_DIR}`,
+        projectRoot,
+        { silent: true }
+      );
+      return templatePath;
+    }
+  }
+
+  // Convert HTTPS to SSH for better authentication
+  let repoUrl = legacyConfig.templateRepo;
+  if (!repoUrl.startsWith('git@')) {
+    const httpsMatch = repoUrl.match(/^https?:\/\/([^/]+)\/(.+)$/);
+    if (httpsMatch) {
+      const [, host, repoPath] = httpsMatch;
+      repoUrl = `git@${host}:${repoPath}`;
+    }
+  }
+
+  console.log(`📥 Cloning template from ${repoUrl}...`);
+  exec(
+    `git clone --branch ${legacyConfig.templateBranch} ${repoUrl} ${TEMPLATE_DIR}`,
+    projectRoot,
+    { silent: true }
+  );
+
+  return templatePath;
+}
+
+/**
+ * Read templatePaths from the template's .template-sync.template.json
+ */
+function readTemplatePathsFromTemplate(templateDir: string): string[] | null {
+  const templateConfigPath = path.join(templateDir, TEMPLATE_CONFIG_FILE);
+
+  if (!fs.existsSync(templateConfigPath)) {
+    return null;
+  }
+
+  try {
+    const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8'));
+    if (templateConfig.templatePaths && Array.isArray(templateConfig.templatePaths)) {
+      return templateConfig.templatePaths;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  return null;
+}
+
+/**
+ * Clean up the temporary template directory
+ */
+function cleanupTemplateDir(projectRoot: string): void {
+  const templatePath = path.join(projectRoot, TEMPLATE_DIR);
+  if (fs.existsSync(templatePath)) {
+    fs.rmSync(templatePath, { recursive: true, force: true });
+  }
+}
 
 /**
  * Infer template paths from a legacy config
@@ -136,48 +219,56 @@ export async function runMigrationWizard(
     return null;
   }
 
-  // Step 2: Get template paths from the TEMPLATE's config
-  console.log('\n📁 Template Paths');
+  // Step 2: Clone template and get templatePaths from its config
+  console.log('\n📁 Fetching Template Configuration');
   console.log('─'.repeat(40));
 
-  // Try to read templatePaths from the template's folder ownership config
-  const templateDir = path.join(projectRoot, TEMPLATE_DIR);
-  const templateConfigPath = path.join(templateDir, '.template-sync.json');
-
   let templatePaths: string[] = [];
+  let templateDir: string | null = null;
 
-  if (fs.existsSync(templateConfigPath)) {
-    try {
-      const templateConfig = JSON.parse(fs.readFileSync(templateConfigPath, 'utf-8'));
-      if (templateConfig.templatePaths && Array.isArray(templateConfig.templatePaths)) {
-        templatePaths = templateConfig.templatePaths;
-        console.log('\nTemplate paths from template config:');
-        for (const p of templatePaths.slice(0, 10)) {
-          console.log(`  - ${p}`);
-        }
-        if (templatePaths.length > 10) {
-          console.log(`  ... and ${templatePaths.length - 10} more`);
-        }
+  try {
+    // Clone the template to get its config
+    templateDir = cloneTemplateForMigration(legacyConfig, projectRoot);
 
-        const useTemplatePaths = await confirm('\nUse these template paths?', true);
-        if (!useTemplatePaths) {
-          console.log('\n⚠️  Edit .template-sync.json manually after migration to customize.');
-        }
+    // Read templatePaths from the template's .template-sync.template.json
+    const pathsFromTemplate = readTemplatePathsFromTemplate(templateDir);
+
+    if (pathsFromTemplate && pathsFromTemplate.length > 0) {
+      templatePaths = pathsFromTemplate;
+      console.log('\n✅ Found templatePaths from template:');
+      for (const p of templatePaths.slice(0, 10)) {
+        console.log(`  - ${p}`);
       }
-    } catch {
-      // Ignore parse errors
-    }
-  }
+      if (templatePaths.length > 10) {
+        console.log(`  ... and ${templatePaths.length - 10} more`);
+      }
 
-  if (templatePaths.length === 0) {
-    console.log('\n⚠️  No templatePaths found in template config.');
-    console.log('   You must configure templatePaths manually in .template-sync.json');
-    console.log('   after migration.');
-    console.log('\n   templatePaths defines which paths the template owns and syncs.');
-    console.log('   Example: ["package.json", "docs/template/**", "src/client/components/ui/**"]');
+      const useTemplatePaths = await confirm('\nUse these template paths?', true);
+      if (!useTemplatePaths) {
+        templatePaths = [];
+        console.log('\n⚠️  Edit .template-sync.json manually after migration to customize.');
+      }
+    } else {
+      console.log('\n⚠️  No .template-sync.template.json found in template.');
+      console.log('   The template repository may need to be updated.');
+      console.log('   You must configure templatePaths manually in .template-sync.json');
+      console.log('   after migration.');
+      console.log('\n   templatePaths defines which paths the template owns and syncs.');
+      console.log('   Example: ["package.json", "docs/template/**", "src/client/components/ui/**"]');
+
+      const continueAnyway = await confirm('\nContinue with empty templatePaths?', false);
+      if (!continueAnyway) {
+        cleanupTemplateDir(projectRoot);
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error('\n❌ Failed to clone template:', error instanceof Error ? error.message : error);
+    console.log('   You can configure templatePaths manually after migration.');
 
     const continueAnyway = await confirm('\nContinue with empty templatePaths?', false);
     if (!continueAnyway) {
+      cleanupTemplateDir(projectRoot);
       return null;
     }
   }
@@ -206,8 +297,23 @@ export async function runMigrationWizard(
   // Step 6: Confirm
   const confirmMigration = await confirm('\nSave new config?', true);
   if (!confirmMigration) {
+    cleanupTemplateDir(projectRoot);
     return null;
   }
+
+  // Step 7: Copy .template-sync.template.json from template to project (if it exists)
+  if (templateDir) {
+    const templateConfigSrc = path.join(templateDir, TEMPLATE_CONFIG_FILE);
+    const templateConfigDst = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+
+    if (fs.existsSync(templateConfigSrc)) {
+      fs.copyFileSync(templateConfigSrc, templateConfigDst);
+      console.log(`\n✅ Copied ${TEMPLATE_CONFIG_FILE} from template`);
+    }
+  }
+
+  // Cleanup temp directory
+  cleanupTemplateDir(projectRoot);
 
   return newConfig;
 }
