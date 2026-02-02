@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Pre-commit hook for app-template-ai
+# - Prevents committing yarn.lock and package-lock.json
+# - Auto-regenerates CLAUDE.md when docs or skills change
+
+# Check if yarn.lock is staged for commit
+if git diff --cached --name-only | grep -q "^yarn.lock$"; then
+    echo ""
+    echo "❌ ERROR: yarn.lock should not be committed"
+    echo ""
+    echo "To unstage yarn.lock, run:"
+    echo "  git restore --staged yarn.lock"
+    echo ""
+    echo "If you intentionally want to update yarn.lock, remove this hook:"
+    echo "  rm .git/hooks/pre-commit"
+    echo ""
+    exit 1
+fi
+
+# Check if package-lock.json is staged for commit
+if git diff --cached --name-only | grep -q "^package-lock.json$"; then
+    echo ""
+    echo "❌ ERROR: package-lock.json should not be committed"
+    echo ""
+    echo "This project uses Yarn, not npm."
+    echo "package-lock.json likely contains private registry URLs."
+    echo ""
+    echo "To unstage package-lock.json, run:"
+    echo "  git restore --staged package-lock.json"
+    echo "  rm package-lock.json"
+    echo ""
+    echo "Always use 'yarn install' instead of 'npm install'"
+    echo ""
+    exit 1
+fi
+
+# Auto-regenerate CLAUDE.md when docs or skills change
+STAGED_DOCS=$(git diff --cached --name-only --diff-filter=ACMRD | grep -E '^(docs/|\.ai/skills/).*\.md$')
+
+if [ -n "$STAGED_DOCS" ]; then
+    echo "[pre-commit] Detected changes in docs/skills, regenerating CLAUDE.md..."
+
+    # Run build:claude
+    yarn build:claude 2>/dev/null
+
+    # Check if CLAUDE.md changed
+    if ! git diff --quiet CLAUDE.md 2>/dev/null; then
+        echo "[pre-commit] Adding updated CLAUDE.md to commit"
+        git add CLAUDE.md
+    fi
+fi
+
+# Check for modifications to template-owned files (child projects only)
+# This check only runs if .template-sync.template.json exists (child project)
+TEMPLATE_CHECK_SCRIPT="scripts/template/check-template-files.sh"
+
+if [ -f ".template-sync.template.json" ] && [ -f "$TEMPLATE_CHECK_SCRIPT" ]; then
+    if ! "$TEMPLATE_CHECK_SCRIPT"; then
+        exit 1
+    fi
+fi
+
+# Run TypeScript and ESLint checks
+echo "[pre-commit] Running yarn checks..."
+if ! yarn checks; then
+    echo ""
+    echo "❌ ERROR: yarn checks failed"
+    echo ""
+    echo "Fix the issues above before committing."
+    echo "Run 'yarn checks' to see all errors."
+    echo ""
+    exit 1
+fi
+
+# Allow commit to proceed
+exit 0
