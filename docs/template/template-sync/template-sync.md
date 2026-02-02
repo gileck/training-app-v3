@@ -396,92 +396,92 @@ When you choose `[2] All changes` and there are conflicts, the script enters **i
    - `[1]` Apply the same action to all conflicting files (bulk)
    - `[2]` Choose an action for each file individually
 
-3. **For each conflict, you choose one of four actions**:
-   - `[1] Override with template` - Replace your version with the template version
-   - `[2] Skip file` - Keep your current version, ignore template changes
-   - `[3] Merge` - Save template version as `.template` file for manual merge
-   - `[4] Do nothing` - Leave file unchanged for now
+3. **For each conflict, you choose one of five actions**:
+   - `[1] Accept template version` - Replace your version with the template version
+   - `[2] Keep project version` - Keep your current version, add to projectOverrides
+   - `[3] Merge manually` - Save template version as `.template` file for manual merge
+   - `[4] Contribute to template` - Mark for upstream contribution
+   - `[5] Skip for now` - Leave file unchanged for now
+
+4. **Apply to all remaining**: When choosing per-file, you can select "apply to all remaining" options to apply the same resolution to all remaining files of the same type.
 
 **Example conflict resolution:**
 
 ```
-============================================================
-📋 FILES WITH POTENTIAL CONFLICTS
-============================================================
-
-These files have changes in both your project AND the template:
-
-  1. src/server/index.ts
-  2. src/client/routes/Home/page.tsx
+⚠️  Found 2 conflict(s) - override files with template changes:
+   • src/server/index.ts - Template changed this override file
+   • src/client/routes/Home/page.tsx - Template changed this override file
 
 ────────────────────────────────────────────────────────────
-⚠️  CONFLICT RESOLUTION (2 files)
+📋 2 conflicts (override files with template changes)
 ────────────────────────────────────────────────────────────
 
-How would you like to handle the conflicting files?
+How would you like to handle these files?
 
-  [1] Apply the same action to all conflicting files
-  [2] Choose an action for each file individually
+❯ [1] Apply same action to all
+  [2] Choose per file
 
-Enter your choice (1/2): 2
+↑/↓ navigate • Enter select • q cancel
+```
 
-📋 Choose an action for each conflicting file:
+When choosing per-file resolution:
 
-🤖 AI descriptions enabled (cursor-agent detected)
-
+```
 ────────────────────────────────────────────────────────────
 
 📄 File 1 of 2: src/server/index.ts
 
    📊 Template changes: +15 lines, -3 lines
    📝 Template: Adds error handling middleware with retry logic
-   📝 Your changes: Custom route registration for auth endpoints
 
-  [1] Override with template - Replace your changes with template version
-  [2] Skip file              - Keep your current version, ignore template
-  [3] Merge                  - Apply template changes (may cause conflicts)
-  [4] Do nothing             - Leave file unchanged for now
+How do you want to resolve this conflict?
 
-Action for src/server/index.ts (1/2/3/4): 3
-   ✓ Will merge (may conflict)
+❯ [1] Accept template version
+  [2] Keep project version
+  [3] Merge manually
+  [4] Contribute to template
+  [5] Skip for now
 
-────────────────────────────────────────────────────────────
-
-📄 File 2 of 2: src/client/routes/Home/page.tsx
-
-   📊 Template changes: +8 lines, -2 lines
-   📝 Template: Updates layout component with new responsive grid
-   📝 Your changes: Added custom hero section for landing page
-
-  [1] Override with template - Replace your changes with template version
-  [2] Skip file              - Keep your current version, ignore template
-  [3] Merge                  - Apply template changes (may cause conflicts)
-  [4] Do nothing             - Leave file unchanged for now
-
-Action for src/client/routes/Home/page.tsx (1/2/3/4): 1
-   ✓ Will override with template
-
-────────────────────────────────────────────────────────────
-📊 CONFLICT RESOLUTION SUMMARY
-────────────────────────────────────────────────────────────
-
-🔄 Override with template (1 files):
-   • src/client/routes/Home/page.tsx
-
-🔀 Merge (1 files):
-   • src/server/index.ts
-
-Proceed with these actions? (y/n): y
+↑/↓ navigate • Enter select • q cancel
 ```
 
 **Resolution actions explained:**
 
 | Action | What happens | When to use |
 |--------|-------------|-------------|
-| **Override** | Your changes are replaced with template version | Template version is better, discard your changes |
-| **Skip** | Your version is kept, template ignored | Your changes are important, don't want template updates |
-| **Merge** | Creates `.template` file for manual merge | Need to combine both versions carefully |
-| **Do nothing** | File left unchanged | Decide later, not ready to handle now |
+| **Accept template** | Your changes are replaced with template version | Template version is better, discard your changes |
+| **Keep project** | Your version is kept, added to projectOverrides | Your changes are important, don't want template updates |
+| **Merge manually** | Creates `.template` file for manual merge | Need to combine both versions carefully |
+| **Contribute** | Keeps your version, marks for upstream contribution | You want to contribute your changes back to the template |
+| **Skip for now** | File left unchanged | Decide later, not ready to handle now |
+
+### Diverged Files Resolution
+
+When your project has modified template files that aren't in `projectOverrides`, these are called **diverged files**. The sync tool detects these and prompts for resolution:
+
+```
+🔶 Found 2 diverged file(s) - project modified but not in overrides:
+   • src/client/features/auth/store.ts
+   • src/server/api/handler.ts
+
+────────────────────────────────────────────────────────────
+📋 2 diverged files (project modified template files)
+────────────────────────────────────────────────────────────
+
+How would you like to handle these files?
+
+❯ [1] Apply same action to all
+  [2] Choose per file
+```
+
+For diverged files, you have four options:
+
+| Action | What happens |
+|--------|-------------|
+| **Accept template** | Overwrites your changes with template version |
+| **Keep project** | Keeps your version and adds to `projectOverrides` |
+| **Merge manually** | Creates `.template` file, adds to `projectOverrides` |
+| **Contribute** | Keeps your version, adds to `projectOverrides`, marks for contribution |
 
 ### AI-Powered Change Descriptions
 
@@ -532,6 +532,51 @@ yarn sync-template --auto-skip-conflicts
 | `--auto-merge-conflicts` | ✅ Applied | 🔀 Creates `.template` files |
 | `--auto-override-conflicts` | ✅ Applied | 🔄 Replaced with template |
 | `--auto-skip-conflicts` | ✅ Applied | ⏭️ Skipped |
+
+### Accept All Mode (`--yes`)
+
+For quick syncing without interactive prompts, use the `--yes` flag:
+
+```bash
+# Accept all template changes (same as --auto-override-conflicts)
+yarn sync-template --yes
+# or
+yarn sync-template -y
+```
+
+This bypasses all confirmation prompts and applies all template changes. Use with caution as it will override any diverged files with the template version.
+
+### Batch Operations
+
+When resolving conflicts interactively, you can apply the same action to all files:
+
+1. **Batch vs Individual**: When conflicts are detected, you'll be asked whether to apply the same action to all or choose per file.
+
+2. **Apply to All**: During individual resolution, options like "Accept template (apply to all)" let you apply the same resolution to remaining files.
+
+3. **Resolution Options**:
+   - **Accept template version** - Replace with template version
+   - **Keep project version** - Keep your version and add to overrides
+   - **Merge manually** - Create .template file for manual merge
+   - **Contribute to template** - Mark for upstream contribution
+   - **Skip for now** - Decide later
+
+### Contribute to Template
+
+When you have project changes you want to contribute back to the template, select "Contribute to template" during conflict resolution. This:
+
+1. Keeps your project version
+2. Adds the file to projectOverrides
+3. Marks the file for contribution
+
+After syncing, you'll see a reminder:
+```
+📤 Files marked for contribution to template:
+   • src/client/features/auth/store.ts
+
+To contribute these files, use:
+  yarn sync-template --project-diffs
+```
 
 ### Initialize Baseline Hashes
 
@@ -646,10 +691,35 @@ After syncing, you'll see:
 ```
 
 The results reflect your conflict resolution choices:
-- **Override** files appear in "Applied successfully"
-- **Merge** files appear in "Needs manual merge"
-- **Skip** files appear in "Skipped"
-- **Do nothing** files don't appear in any list
+- **Accept template** files appear in "Applied successfully"
+- **Merge manually** files appear in "Needs manual merge"
+- **Keep project** files appear in "Skipped" and are added to `projectOverrides`
+- **Contribute** files appear in "Marked for contribution"
+- **Skip for now** files don't appear in any list
+
+**Example with contribution:**
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Sync complete!
+
+   Added: 3 files
+   Updated: 5 files
+   Deleted: 1 files
+   Merged: 1 files (.template created)
+   Skipped: 2 files
+   Marked for contribution: 2 files
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────
+📤 Files marked for contribution to template:
+   • src/client/features/auth/store.ts
+   • src/server/middleware/custom-auth.ts
+
+To contribute these files, use:
+  yarn sync-template --project-diffs
+────────────────────────────────────────────────────────────
+```
 
 ## Best Practices
 
@@ -923,6 +993,7 @@ jobs:
 | `yarn sync-template --dry-run` | Preview changes |
 | `yarn sync-template --force` | Force sync with uncommitted changes |
 | `yarn sync-template --use-https` | Use HTTPS instead of SSH for cloning |
+| `yarn sync-template --yes` or `-y` | Accept all template changes (non-interactive) |
 | `yarn sync-template --diff-summary` | Generate full diff report (all differences) |
 | `yarn sync-template --init-hashes` | Initialize baseline hashes for all files (legacy) |
 | `yarn sync-template --changelog` | Show template commits since last sync |

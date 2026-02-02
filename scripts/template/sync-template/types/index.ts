@@ -21,7 +21,7 @@ export const MAX_SYNC_HISTORY = 20;  // Keep last 20 syncs
 
 export type SyncMode = 'safe' | 'all' | 'none';
 
-export type ConflictResolution = 'override' | 'skip' | 'merge' | 'nothing';
+export type ConflictResolution = 'override' | 'skip' | 'merge' | 'nothing' | 'contribute';
 
 export type AutoMode = 'none' | 'safe-only' | 'merge-conflicts' | 'override-conflicts' | 'skip-conflicts';
 
@@ -200,6 +200,7 @@ export interface SyncOptions {
   projectDiffs: boolean;
   json: boolean;  // Output JSON result (for programmatic use)
   mergePackageJson: boolean;  // Only merge package.json (no full sync)
+  acceptAll: boolean;  // Non-interactive mode: accept all template changes (--yes flag)
 }
 
 /**
@@ -302,4 +303,61 @@ export interface FolderSyncAnalysis {
 
   /** Summary of template paths expanded from globs */
   expandedTemplatePaths: string[];
+}
+
+// ============================================================================
+// Interactive Resolution Types
+// ============================================================================
+
+/**
+ * Resolution options for diverged files (project modified template files)
+ */
+export type DivergedResolution = 'override' | 'keep' | 'merge' | 'contribute';
+
+/**
+ * Resolution options for deleted files (template removed files)
+ */
+export type DeletionResolution = 'delete' | 'keep' | 'skip';
+
+/**
+ * Tracks "apply to all" decisions during interactive resolution.
+ * When a user selects "apply to all" for a resolution type, we store
+ * the decision here to avoid prompting for similar files.
+ */
+export interface InteractiveResolutionContext {
+  /** "Apply to all" decision for diverged files */
+  divergedApplyAll: DivergedResolution | null;
+
+  /** "Apply to all" decision for conflict files */
+  conflictApplyAll: ConflictResolution | null;
+
+  /** "Apply to all" decision for deleted files */
+  deletionApplyAll: DeletionResolution | null;
+
+  /** Files marked for contribution to template */
+  pendingContributions: string[];
+}
+
+/**
+ * Result from an interactive resolution prompt
+ */
+export interface ResolutionPromptResult<T> {
+  /** The resolution chosen */
+  resolution: T;
+
+  /** Whether to apply this to all similar files */
+  applyToAll: boolean;
+}
+
+/**
+ * Enhanced file info for interactive prompts
+ */
+export interface InteractiveFileInfo {
+  path: string;
+  templateLinesAdded?: number;
+  templateLinesRemoved?: number;
+  projectLinesAdded?: number;
+  projectLinesRemoved?: number;
+  templateDescription?: string;
+  projectDescription?: string;
 }

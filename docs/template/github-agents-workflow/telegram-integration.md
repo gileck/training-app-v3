@@ -181,6 +181,49 @@ Issue Status: Done
 Feature successfully deployed!
 ```
 
+**Merge Success Notification (new message with Revert button):**
+```
+✅ PR Merged Successfully
+
+📝 PR: #124 - Add search functionality
+🔗 Issue: #45 - Add search functionality
+
+🎉 Implementation complete! Issue is now Done.
+
+[📄 View PR] [📋 View Issue]
+[↩️ Revert]
+```
+
+**Revert Confirmation:**
+```
+↩️ Merge Reverted
+
+📋 Issue: #45 - Add search functionality
+🔀 Original PR: #124
+🔄 Revert PR: #125
+
+📊 Status: Implementation
+📝 Review Status: Request Changes
+
+Next steps:
+1️⃣ Click "Merge Revert PR" below to undo the changes
+2️⃣ Go to Issue #45 and add a comment explaining what went wrong
+3️⃣ Run `yarn agent:implement` - the agent will read your feedback and create a new PR
+
+[✅ Merge Revert PR]
+[📄 View Revert PR] [📋 View Issue]
+```
+
+**After Revert PR Merged:**
+```
+✅ Revert PR Merged
+Changes have been reverted on main.
+
+Next steps:
+1️⃣ Go to Issue #45 and add a comment explaining what went wrong
+2️⃣ Run `yarn agent:implement` - the agent will read your feedback and create a new PR
+```
+
 **Multi-Phase Progress:**
 ```
 🔨 Phase 2/4 Implementation Ready #45
@@ -392,12 +435,32 @@ Quick actions allow admins to perform workflow operations with a single button c
 **Merge PR:**
 - Button: `[Merge PR]` on PR review notification
 - Action: Squash merges PR using saved commit message
-- Response: Merge confirmation + issue status update
+- Response: Merge confirmation + success notification with Revert button
 
 **Request Changes:**
 - Button: `[Request Changes]` on PR review notification
 - Action: Updates review status to Changes Requested
 - Response: Confirmation + reminder to add explanation comment + **Undo button**
+
+### Revert Actions
+
+**Revert Merge:**
+- Button: `[↩️ Revert]` on merge success notification
+- Action: Creates a revert PR, restores workflow status
+- Response: Confirmation with Merge Revert PR button and links
+
+The Revert action is available after any PR merge and:
+- Creates a revert PR (doesn't directly push to main)
+- Restores the GitHub Project status to "Implementation" with "Request Changes" review status
+- For multi-phase features, restores the phase counter
+- Updates MongoDB status back to in_progress/investigating
+- The agent can then pick up the work and fix the issues based on feedback
+
+**Merge Revert PR:**
+- Button: `[✅ Merge Revert PR]` on revert confirmation notification
+- Action: Merges the revert PR (squash merge), deletes the revert branch
+- Response: Confirmation that changes have been reverted
+- Note: Does not change status (stays as Implementation with Request Changes)
 
 ### Clarification Actions
 
@@ -626,6 +689,10 @@ action:param1:param2:...
 - `u_rc:45:124:1234567890` - Undo implementation PR request changes (issue #45, PR #124, timestamp)
 - `u_dc:123:45:tech:1234567890` - Undo design PR request changes (PR #123, issue #45, type, timestamp)
 - `u_dr:45:changes:product-design:1234567890` - Undo design review changes/reject (issue #45, action, previous status, timestamp)
+
+**Revert Callbacks:**
+- `rv:45:124:abc1234:impl:1/3` - Revert merge (issue #45, PR #124, short SHA, previous status, phase)
+- `merge_rv:45:125` - Merge the revert PR (issue #45, revert PR #125)
 
 **URL Buttons:**
 - `💬 ANSWER QUESTIONS` → Opens `/clarify/:issueNumber?token=...` (web UI for answering)
@@ -868,6 +935,7 @@ curl -X POST https://api.telegram.org/bot<TOKEN>/setWebhook \
 - Route to workflow phases
 - Approve/reject designs
 - Merge/request changes on PRs
+- **Revert merged PRs** (creates revert PR and restores workflow status)
 - **Undo accidental clicks** (5-minute window for Request Changes/Reject actions)
 
 **See also:**

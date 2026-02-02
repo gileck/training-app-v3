@@ -1,6 +1,21 @@
+---
+title: Agent Workflow CLI
+description: CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
+summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live GitHub status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows."
+priority: 3
+key_points:
+  - "list command: filter by --type, --status, --source"
+  - "get command: shows live GitHub Project status"
+  - "update command: change status/priority with --dry-run"
+  - "ID prefix matching supported (first 8 chars of ObjectId)"
+related_docs:
+  - overview.md
+  - workflow-e2e.md
+---
+
 # Agent Workflow CLI
 
-Command-line interface for creating feature requests and bug reports that feed into the GitHub agents workflow.
+Command-line interface for managing feature requests and bug reports that feed into the GitHub agents workflow.
 
 ## Quick Start
 
@@ -8,14 +23,20 @@ Command-line interface for creating feature requests and bug reports that feed i
 # Interactive mode - guided prompts
 yarn agent-workflow start
 
+# List all items
+yarn agent-workflow list
+
+# Get details of a specific item (supports ID prefix)
+yarn agent-workflow get 697f15ce
+
 # Create and wait for approval via Telegram
 yarn agent-workflow create --type feature --title "Add dark mode" --description "User can toggle theme"
 
 # Auto-approve and sync to GitHub immediately
 yarn agent-workflow create --type feature --title "Add dark mode" --description "User can toggle theme" --auto-approve
 
-# Auto-approve and route directly to implementation (no notifications)
-yarn agent-workflow create --type feature --title "Fix typo" --description "..." --route implementation
+# Update item status
+yarn agent-workflow update 697f15ce --status in_progress
 ```
 
 ## Commands
@@ -58,6 +79,102 @@ yarn agent-workflow create [options]
 | `--route <phase>` | Auto-route to phase (implies `--auto-approve`): `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
 | `--priority <level>` | Priority: `low`, `medium`, `high`, `critical` (features only) |
 | `--dry-run` | Preview without creating |
+
+### `list` - List Items
+
+List feature requests and bug reports with optional filters:
+
+```bash
+yarn agent-workflow list [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Filter by type: `feature` or `bug` |
+| `--status <status>` | Filter by status: `new`, `in_progress`, `done`, `resolved`, `rejected` |
+| `--source <source>` | Filter by source: `ui`, `cli`, `auto` |
+
+**Examples:**
+```bash
+# List all items
+yarn agent-workflow list
+
+# List only features
+yarn agent-workflow list --type feature
+
+# List new bug reports
+yarn agent-workflow list --type bug --status new
+
+# List items created via CLI
+yarn agent-workflow list --source cli
+```
+
+### `get` - Get Item Details
+
+Get full details of a specific item by ID or ID prefix:
+
+```bash
+yarn agent-workflow get <id> [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Hint which collection to search: `feature` or `bug` |
+
+**Features:**
+- Supports ID prefix matching (e.g., `697f15ce` matches full ObjectId)
+- Displays GitHub Project status and review status (fetched live from GitHub API)
+- Shows all item details including comments, admin notes, investigation info
+
+**Examples:**
+```bash
+# Get item by full ID
+yarn agent-workflow get 697f15cee8f23c43f4208adb
+
+# Get item by ID prefix (first 8 chars)
+yarn agent-workflow get 697f15ce
+
+# Get feature by ID (faster lookup)
+yarn agent-workflow get 697f15ce --type feature
+```
+
+**Output includes:**
+- Basic info: ID, title, status, priority, source, dates
+- GitHub Issue link and number (if synced)
+- GitHub Project status (fetched live from GitHub Projects API)
+- Description and admin notes
+- Comments with timestamps and authors
+- For bugs: error message, browser info, investigation details
+
+### `update` - Update Item
+
+Update status, priority, or other fields of an item:
+
+```bash
+yarn agent-workflow update <id> [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--status <status>` | New status: `new`, `in_progress`, `done`, `resolved`, `rejected` |
+| `--priority <level>` | New priority: `low`, `medium`, `high`, `critical` (features only) |
+| `--type <type>` | Hint which collection to search: `feature` or `bug` |
+| `--dry-run` | Preview changes without applying |
+
+**Examples:**
+```bash
+# Update status
+yarn agent-workflow update 697f15ce --status in_progress
+
+# Update priority
+yarn agent-workflow update 697f15ce --priority high
+
+# Preview changes without applying
+yarn agent-workflow update 697f15ce --status done --dry-run
+```
 
 ## Workflow Modes
 

@@ -185,6 +185,23 @@ export interface ProjectManagementAdapter {
 
   // Mark item as done
   markAsDone(projectItemId: string): Promise<void>;
+
+  // Merge pull request (returns merge commit SHA)
+  mergePullRequest(
+    prNumber: number,
+    commitTitle: string,
+    commitMessage: string
+  ): Promise<string>;
+
+  // Get merge commit SHA for a merged PR
+  getMergeCommitSha(prNumber: number): Promise<string | null>;
+
+  // Create revert PR for a merged PR
+  createRevertPR(
+    mergeCommitSha: string,
+    originalPrNumber: number,
+    issueNumber: number
+  ): Promise<{ prNumber: number; url: string } | null>;
 }
 ```
 
@@ -332,7 +349,103 @@ Closes #123
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
-### 4. GitHub Action Fallback
+### 4. Merge Success Notification with Revert
+
+After successful merge, admin receives a notification with revert option:
+
+```typescript
+// Send merge success notification with Revert button
+await sendNotificationToOwner(
+  `✅ PR Merged Successfully\n\n📝 PR: #${prNumber}\n🔗 Issue: #${issueNumber}`,
+  'agent',
+  {
+    inline_keyboard: [
+      [
+        { text: '📄 View PR', url: prUrl },
+        { text: '📋 View Issue', url: issueUrl }
+      ],
+      [
+        { text: '↩️ Revert', callback_data: `rv:${issueNumber}:${prNumber}:${shortSha}:${prevStatus}:${phase}` }
+      ]
+    ]
+  }
+);
+```
+
+**Callback Data Format:**
+- `rv:` - Revert action prefix
+- `issueNumber` - Related issue number
+- `prNumber` - Merged PR number
+- `shortSha` - First 7 chars of merge commit SHA
+- `prevStatus` - Status before merge (e.g., `impl` for implementation)
+- `phase` - Phase info for multi-phase features (e.g., `1/3` or `_` for single)
+
+### 5. Revert Handler
+
+When admin clicks Revert:
+
+```typescript
+if (action.startsWith('rv:')) {
+  // 1. Parse callback data
+  const [, issueNumber, prNumber, sha, prevStatus, phase] = action.split(':');
+
+  // 2. Create revert PR (doesn't push directly to main)
+  const revertResult = await adapter.createRevertPR(
+    mergeCommitSha,
+    parseInt(prNumber),
+    parseInt(issueNumber)
+  );
+
+  // 3. Restore workflow status
+  await adapter.updateStatus(projectItemId, STATUSES.implementation);
+  await adapter.updateReviewStatus(projectItemId, REVIEW_STATUSES.requestChanges);
+
+  // If multi-phase, restore phase counter
+  if (phase !== '_') {
+    await adapter.updateImplementationPhase(projectItemId, phase);
+  }
+
+  // 4. Send confirmation with Merge Revert PR button
+  await sendNotificationToOwner(
+    `↩️ Merge Reverted\n\nRevert PR: #${revertResult.prNumber}\nStatus: Implementation with Request Changes`,
+    'agent',
+    {
+      inline_keyboard: [
+        [{ text: '✅ Merge Revert PR', callback_data: `merge_rv:${issueNumber}:${revertResult.prNumber}` }],
+        [{ text: '📄 View Revert PR', url: revertResult.url }]
+      ]
+    }
+  );
+}
+```
+
+### 6. Merge Revert PR Handler
+
+When admin clicks "Merge Revert PR":
+
+```typescript
+if (action.startsWith('merge_rv:')) {
+  // 1. Parse callback data
+  const [, issueNumber, revertPrNumber] = action.split(':');
+
+  // 2. Merge the revert PR
+  await adapter.mergePullRequest(
+    parseInt(revertPrNumber),
+    `Revert: Revert PR #${originalPrNumber}`,
+    `Reverts changes from #${originalPrNumber}`
+  );
+
+  // 3. Delete the revert branch
+  await adapter.deleteBranch(`revert-pr-${originalPrNumber}`);
+
+  // 4. Send confirmation with next steps
+  await sendNotificationToOwner(
+    `✅ Revert PR Merged\n\nNext steps:\n1️⃣ Add comment to issue explaining what went wrong\n2️⃣ Run yarn agent:implement`
+  );
+}
+```
+
+### 7. GitHub Action Fallback
 
 Located in: `.github/workflows/pr-merged-mark-done.yml`
 

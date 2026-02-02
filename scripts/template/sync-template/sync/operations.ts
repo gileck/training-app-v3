@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { SyncContext, SyncMode, AnalysisResult, SyncResult, ConflictResolutionMap, TEMPLATE_DIR, FolderSyncAnalysis, FolderOwnershipConfig, FolderSyncFile, ConflictResolution } from '../types';
+import { SyncContext, SyncMode, AnalysisResult, SyncResult, ConflictResolutionMap, TEMPLATE_DIR, FolderSyncAnalysis, FolderOwnershipConfig, FolderSyncFile, ConflictResolution, DivergedResolution } from '../types';
 import { getFileHash, storeFileHash } from '../files';
 import { writePackageJson, formatMergeSummary, formatConflictMessage, resolveFieldConflictsInteractively, mergePackageJsonFiles, readPackageJson, mergePackageJson } from '../utils/package-json-merge';
 
@@ -260,7 +260,7 @@ export async function syncFolderOwnership(
     dryRun?: boolean;
     quiet?: boolean;
     conflictResolutions?: Map<string, ConflictResolution>;
-    divergedResolutions?: Map<string, 'override' | 'keep' | 'merge'>;
+    divergedResolutions?: Map<string, DivergedResolution>;
   } = {}
 ): Promise<FolderSyncResult> {
   const result: FolderSyncResult = {
@@ -425,6 +425,21 @@ export async function syncFolderOwnership(
       if (!quiet) {
         console.log(`  ⏭️  ${file.path} - keep project version`);
       }
+    } else if (resolution === 'contribute') {
+      // Mark for contribution - keep project version but mark for upstream contribution
+      const templatePath = path.join(templateDir, file.path);
+
+      if (!dryRun && fs.existsSync(templatePath)) {
+        if (!config.overrideHashes) {
+          config.overrideHashes = {};
+        }
+        config.overrideHashes[file.path] = getFileHash(templatePath);
+      }
+
+      result.skipped.push(file.path);
+      if (!quiet) {
+        console.log(`  📤 ${file.path} - marked for contribution to template`);
+      }
     } else {
       // Unresolved conflict
       result.conflicts.push(file.path);
@@ -509,6 +524,30 @@ export async function syncFolderOwnership(
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         result.errors.push(`${file.path}: ${message}`);
+      }
+    } else if (resolution === 'contribute') {
+      // Mark for contribution - keep project version, add to overrides, but also mark for upstream contribution
+      const templatePath = path.join(templateDir, file.path);
+
+      if (!dryRun) {
+        // Add to projectOverrides (keep project version for now)
+        if (!config.projectOverrides.includes(file.path)) {
+          config.projectOverrides.push(file.path);
+        }
+        // Store template hash as baseline
+        if (!config.overrideHashes) {
+          config.overrideHashes = {};
+        }
+        if (fs.existsSync(templatePath)) {
+          config.overrideHashes[file.path] = getFileHash(templatePath);
+        }
+      }
+
+      if (!result.addedToOverrides) result.addedToOverrides = [];
+      result.addedToOverrides.push(file.path);
+      result.skipped.push(file.path);
+      if (!quiet) {
+        console.log(`  📤 ${file.path} - marked for contribution to template`);
       }
     } else {
       // Unresolved - skip (safe-only mode or no resolution provided)

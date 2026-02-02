@@ -363,6 +363,105 @@ CLI for managing GitHub pull requests. Use this when creating/managing PRs progr
 
 ---
 
+## Telegram Notifications (App Runtime)
+
+Application feature for sending notifications via Telegram. Use this when adding app notifications.
+
+**Summary:** Two types - Owner notifications (system alerts) and User notifications (personal alerts). Requires `TELEGRAM_BOT_TOKEN`. Run `yarn telegram-setup` for chat IDs.
+
+**Docs:** [telegram-notifications.md](docs/template/telegram-notifications.md)
+
+---
+
+## Vercel CLI Tool
+
+CLI for managing Vercel deployments and env vars. Use this for deployment operations.
+
+**Summary:** Run `vercel link` first. **CRITICAL: Never use `npx vercel env add` with piped input** - use `yarn vercel-cli env:sync` instead. Commands - `yarn vercel-cli list`, `yarn vercel-cli env:sync`, `yarn vercel-cli logs`.
+
+**Docs:** [vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
+**Rules:** [vercel-cli-usage](.ai/skills/template/vercel-cli-usage/SKILL.md)
+
+---
+
+## Wixpress Registry Issues
+
+Handling npm package issues in Wix corporate network. Use this if experiencing lock file or ESLint issues.
+
+**Summary:** Run `yarn setup-hooks` once after cloning. Always use `yarn install`, never `npm install`.
+
+**Docs:** [wixpress-registry-issues.md](docs/template/wixpress-registry-issues.md)
+
+---
+
+# github-agents-workflow
+
+## GitHub Agents Workflow Overview
+
+Architecture and flow of the AI-powered feature/bug pipeline. Use this to understand the agent workflow system.
+
+**Summary:** 6-column workflow (Backlog → Product Design → Tech Design → Ready → PR Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically.
+
+**Key Points:**
+- Entry points: UI feature request, UI bug report, or CLI
+- Agents: Product Design, Tech Design, Implementor, PR Review
+- Status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)
+- All actions logged to agent-logs/issue-N.md
+
+**Docs:** [overview.md](docs/template/github-agents-workflow/overview.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [cli.md](docs/template/github-agents-workflow/cli.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [mongodb-github-status.md](docs/template/github-agents-workflow/mongodb-github-status.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md), [telegram-integration.md](docs/template/github-agents-workflow/telegram-integration.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md)
+
+---
+
+## Agent Workflow CLI
+
+CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
+
+**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live GitHub status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows.
+
+**Key Points:**
+- list command: filter by --type, --status, --source
+- get command: shows live GitHub Project status
+- update command: change status/priority with --dry-run
+- ID prefix matching supported (first 8 chars of ObjectId)
+
+**Docs:** [cli.md](docs/template/github-agents-workflow/cli.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md)
+
+---
+
+## GitHub Agents Workflow Setup
+
+Complete setup instructions for GitHub Projects and AI agents. Use this when setting up the workflow for the first time.
+
+**Summary:** Setup requires: GitHub Project with 6-column Status field and Review Status field, two GitHub tokens (admin + bot), optional Telegram integration. Run `yarn verify-setup` to check configuration.
+
+**Key Points:**
+- Create GitHub Project with 6-column Status field
+- Create Review Status field (Waiting for Review, Approved, Request Changes, Rejected)
+- Two tokens: GITHUB_TOKEN (admin/projects) + GITHUB_BOT_TOKEN (PRs/issues)
+- Optional: Telegram topics for organized notifications
+
+**Docs:** [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
+
+---
+
+## GitHub Agents Workflow E2E Scenarios
+
+Visual workflows for all workflow scenarios. Use this to understand specific flows like multi-phase features, request changes, or rejections.
+
+**Summary:** Comprehensive visual diagrams for: simple features, multi-phase features (L/XL split into phases), bug fixes, design/implementation request changes flows, undo actions (5-min window), clarification flows, and rejection scenarios.
+
+**Key Points:**
+- Simple features can skip design phases and go straight to implementation
+- Multi-phase features create sequential PRs (Phase 1/3, 2/3, 3/3)
+- Request Changes triggers revision cycle on same PR
+- 5-minute undo window for accidental Request Changes clicks
+
+**Docs:** [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [overview.md](docs/template/github-agents-workflow/overview.md), [mongodb-github-status.md](docs/template/github-agents-workflow/mongodb-github-status.md)
+
+---
+
+# _custom
+
 ## Send Message to User (Claude Code Only)
 
 CLI tool for Claude Code to send Telegram messages to developer. Use this for long-running task notifications.
@@ -380,37 +479,6 @@ Sync template changes to child projects. Use this after pushing template changes
 **Summary:** Syncs safe changes to projects without uncommitted changes. Configure in `child-projects.json`.
 
 **Docs:** [sync-children.md](docs/template/_custom/sync-children.md)
-
----
-
-## Telegram Notifications (App Runtime)
-
-Application feature for sending notifications via Telegram. Use this when adding app notifications.
-
-**Summary:** Two types - Owner notifications (system alerts) and User notifications (personal alerts). Requires `TELEGRAM_BOT_TOKEN`. Run `yarn telegram-setup` for chat IDs.
-
-**Docs:** [telegram-notifications.md](docs/template/telegram-notifications.md)
-
----
-
-## Template Sync
-
-Merge updates from template repository. Use this when syncing template changes to project.
-
-**Summary:** Path ownership model with `templatePaths` (synced) and `projectOverrides` (kept different). Three-file pattern (`index.template.ts`, `index.project.ts`, `index.ts`) eliminates override conflicts.
-
-**Docs:** [template-sync.md](docs/template/template-sync/template-sync.md), [sync-flows-reference.md](docs/template/template-sync/sync-flows-reference.md)
-
----
-
-## Vercel CLI Tool
-
-CLI for managing Vercel deployments and env vars. Use this for deployment operations.
-
-**Summary:** Run `vercel link` first. **CRITICAL: Never use `npx vercel env add` with piped input** - use `yarn vercel-cli env:sync` instead. Commands - `yarn vercel-cli list`, `yarn vercel-cli env:sync`, `yarn vercel-cli logs`.
-
-**Docs:** [vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
-**Rules:** [vercel-cli-usage](.ai/skills/template/vercel-cli-usage/SKILL.md)
 
 ---
 
@@ -434,12 +502,14 @@ Reference table for command-based skills (slash commands).
 
 ---
 
-## Wixpress Registry Issues
+# template-sync
 
-Handling npm package issues in Wix corporate network. Use this if experiencing lock file or ESLint issues.
+## Template Sync
 
-**Summary:** Run `yarn setup-hooks` once after cloning. Always use `yarn install`, never `npm install`.
+Merge updates from template repository. Use this when syncing template changes to project.
 
-**Docs:** [wixpress-registry-issues.md](docs/template/wixpress-registry-issues.md)
+**Summary:** Path ownership model with `templatePaths` (synced) and `projectOverrides` (kept different). Three-file pattern (`index.template.ts`, `index.project.ts`, `index.ts`) eliminates override conflicts.
+
+**Docs:** [template-sync.md](docs/template/template-sync/template-sync.md), [sync-flows-reference.md](docs/template/template-sync/sync-flows-reference.md)
 
 ---

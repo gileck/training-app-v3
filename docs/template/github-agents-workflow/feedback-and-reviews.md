@@ -42,12 +42,23 @@ When an issue description is unclear or incomplete, agents can request clarifica
 - Identifies gaps or ambiguities
 - Decides if work can proceed or clarification needed
 
-**2. Clarification Request**
-- Agent posts GitHub comment with structured question format
+**2. Agent Structured Output**
+- Agent sets `needsClarification: true` in structured output
+- Agent provides structured `clarification` object with:
+  - `context`: What's ambiguous and why clarification is needed
+  - `question`: The specific question being asked
+  - `options`: Array of options (2-4) with labels, descriptions, and `isRecommended` flags
+  - `recommendation`: Why the agent recommends a specific option
+- Agent leaves other output fields empty (design, comment, etc.)
+
+**3. System Handling**
+- System detects `needsClarification=true` flag
+- Formats structured clarification data as markdown
+- Posts clarification question as GitHub issue comment
 - Sets Review Status to "Waiting for Clarification"
 - Sends Telegram notification with "ANSWER QUESTIONS" button
 
-**3. Admin Response (Two Options)**
+**4. Admin Response (Two Options)**
 
 **Option A: Interactive Web UI (Recommended)**
 - Click "ANSWER QUESTIONS" button in Telegram
@@ -61,7 +72,7 @@ When an issue description is unclear or incomplete, agents can request clarifica
 - Click "Clarification Received" button in Telegram
 - Status updates to "Clarification Received"
 
-**4. Agent Resumes**
+**5. Agent Resumes**
 - Agent reads admin's answers
 - Incorporates clarifications into design/implementation
 - Proceeds with normal workflow
@@ -105,8 +116,41 @@ https://your-app.vercel.app/clarify/45?token=abc123
 
 **Issue #45: Add search functionality**
 
-**Agent Comment (structured format):**
+**Agent Structured Output:**
+```json
+{
+  "needsClarification": true,
+  "clarification": {
+    "context": "The feature request asks for 'search functionality' but doesn't specify the scope or type of notifications to send when search results change.",
+    "question": "What notification channels should be supported initially?",
+    "options": [
+      {
+        "label": "Email only",
+        "description": "Send notifications via email.\n- Simpler to implement\n- Most users have email configured\n- No additional infrastructure needed",
+        "isRecommended": true
+      },
+      {
+        "label": "Email + Push notifications",
+        "description": "Send via both email and browser push notifications.\n- More complex, requires service worker\n- Better UX for time-sensitive alerts\n- Requires user opt-in for push",
+        "isRecommended": false
+      },
+      {
+        "label": "In-app only",
+        "description": "Show notifications only within the app.\n- Simplest to implement\n- Users must be in app to see them\n- No external dependencies",
+        "isRecommended": false
+      }
+    ],
+    "recommendation": "I recommend 'Email only' because it provides reliable delivery with minimal complexity. We can add push notifications in a future iteration."
+  },
+  "design": "",
+  "comment": ""
+}
+```
+
+**System Posts to GitHub Issue:**
 ```markdown
+## 🤔 Agent Needs Clarification
+
 ## Context
 The feature request asks for "search functionality" but doesn't specify the scope or type.
 
@@ -129,6 +173,9 @@ What notification channels should be supported initially?
 
 ## Recommendation
 I recommend Option 1 because it provides reliable delivery with minimal complexity.
+
+---
+_Please respond with your answer in a comment below, then click "Clarification Received" in Telegram._
 ```
 
 **Telegram Notification:**
@@ -177,11 +224,41 @@ _Clarification provided via interactive UI. Continue with the selected option(s)
 ### Clarification Best Practices
 
 **For Agents:**
-- Ask specific, numbered questions
-- Provide context for each question
-- Suggest 2-4 options with pros/cons
-- Indicate recommended option with reasoning
-- Keep questions concise and focused
+- Set `needsClarification: true` when clarification is needed
+- **REQUIRED**: Provide structured `clarification` object (string format not supported)
+- Include all required fields: `context`, `question`, `options`, `recommendation`
+- Provide 2-4 options with clear labels and descriptions
+- Set `isRecommended: true` on exactly ONE option
+- Use `\n` for newlines in description text (for bullet points)
+- Leave other output fields empty (design, comment, etc.)
+- Keep questions specific and focused
+
+**Clarification Object Schema (Required):**
+```typescript
+{
+  needsClarification: true,
+  clarification: {
+    context: string;        // What's ambiguous and why
+    question: string;       // The specific question
+    options: [              // 2-4 options (non-empty array required)
+      {
+        label: string;        // Short option name
+        description: string;  // Details with \n for bullets
+        isRecommended: boolean;
+      }
+    ];
+    recommendation: string; // Why you recommend the option
+  },
+  design: "",              // Leave empty
+  comment: ""              // Leave empty
+}
+```
+
+**Error Handling:**
+The system will throw errors if agents use incorrect format:
+- Using legacy `clarificationRequest` string → Error with migration instructions
+- Missing required fields in `clarification` object → Error listing missing fields
+- `needsClarification: true` without `clarification` object → Error with required format
 
 **For Admins:**
 - Use the interactive UI when possible (faster, less error-prone)
@@ -518,6 +595,107 @@ Before submitting review:
 - Update understanding of project guidelines
 - Apply lessons to similar situations
 
+## Reverting Merged PRs
+
+Sometimes a merged PR needs to be reverted due to issues discovered after deployment. The workflow provides a one-click revert option.
+
+### When to Use Revert
+
+- Bug discovered after merging to main
+- Feature behavior doesn't match expectations
+- Performance regression detected
+- Breaking change affects other functionality
+
+### Revert Process
+
+**1. Click Revert Button**
+
+After merging a PR, you receive a success notification with a "Revert" button:
+
+```
+✅ PR Merged Successfully
+
+📝 PR: #124 - Add search functionality
+🔗 Issue: #45 - Add search functionality
+
+🎉 Implementation complete! Issue is now Done.
+
+[📄 View PR] [📋 View Issue]
+[↩️ Revert]
+```
+
+**2. Revert Creates Recovery PR**
+
+Clicking "Revert" does NOT directly push to main. Instead:
+- Creates a new branch with the revert commit
+- Opens a new PR (e.g., #125) for the revert
+- Restores issue status to "Implementation" with "Request Changes" review status
+- For multi-phase features, restores the phase counter
+
+**3. Confirmation with Next Steps**
+
+```
+↩️ Merge Reverted
+
+📋 Issue: #45 - Add search functionality
+🔀 Original PR: #124
+🔄 Revert PR: #125
+
+📊 Status: Implementation
+📝 Review Status: Request Changes
+
+Next steps:
+1️⃣ Click "Merge Revert PR" below to undo the changes
+2️⃣ Go to Issue #45 and add a comment explaining what went wrong
+3️⃣ Run `yarn agent:implement` - the agent will read your feedback and create a new PR
+
+[✅ Merge Revert PR]
+[📄 View Revert PR] [📋 View Issue]
+```
+
+**4. Merge Revert PR**
+
+Click "Merge Revert PR" to complete the revert. Changes are now undone on main.
+
+**5. Provide Feedback on Issue**
+
+Add a comment to the **issue** (not PR) explaining what went wrong. The implementation agent reads issue comments when starting work.
+
+Example feedback comment:
+```markdown
+The search feature has an issue:
+
+1. Search results don't update when the filter changes
+2. Performance is slow with more than 100 items
+3. Search doesn't work in offline mode
+
+Please fix these issues and ensure search works offline.
+```
+
+**6. Agent Creates New PR**
+
+Run `yarn agent:implement` - the agent will:
+- Read your feedback from the issue comments
+- Understand what went wrong
+- Create a new implementation PR addressing the issues
+
+### Revert Best Practices
+
+**Provide Clear Feedback:**
+- Explain what went wrong specifically
+- Include reproduction steps if applicable
+- Reference any error messages or logs
+
+**Use Issue Comments:**
+- Comment on the **issue** (not the PR)
+- Agent reads issue comments for context
+- Previous PR context is still available
+
+**Multi-Phase Features:**
+- Revert affects only the current phase
+- Previous phases remain merged
+- Phase counter is restored to current phase
+
 ## Summary
 
 **Clarification Flow:**
@@ -534,6 +712,12 @@ Before submitting review:
 - PR review agent or admin finds issues
 - Admin requests changes with detailed comments
 - Agent updates PR → re-review cycle
+
+**Reverting Merged PRs:**
+- Click "Revert" on merge success notification
+- Creates revert PR (not direct push to main)
+- Add feedback to issue explaining what went wrong
+- Agent reads feedback and creates new PR
 
 **Effective Reviews:**
 - Be specific with examples

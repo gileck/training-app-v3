@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE, isLegacyConfig, isFolderOwnershipConfig, FolderOwnershipConfig, ConflictResolution } from './types';
+import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE, isLegacyConfig, isFolderOwnershipConfig, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
 import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, getConfigFormatDescription, hasSplitConfig } from './utils/config';
 import { log, logError } from './utils/logging';
 import { exec } from './utils';
@@ -21,7 +21,7 @@ import { compareFiles, storeFileHash, getFileHash } from './files';
 import { analyzeChanges, analyzeFolderSync, printFolderSyncAnalysis } from './analysis';
 
 // UI
-import { promptUser, handleConflictResolution, printConflictResolutionSummary, displayTotalDiffSummary } from './ui';
+import { promptUser, handleConflictResolution, printConflictResolutionSummary, displayTotalDiffSummary, createResolutionContext, promptBatchMode, promptDivergedResolution, promptConflictResolution, promptBulkDivergedResolution, promptDeletionResolution, promptBulkDeletionResolution, displaySyncResults, displayContributionReminder } from './ui';
 
 // Sync operations
 import { syncFiles, syncFolderOwnership } from './sync';
@@ -208,20 +208,23 @@ export class TemplateSyncTool {
       return;
     }
 
+    // Create resolution context for batch operations
+    const resolutionContext = createResolutionContext();
+
     // Step 5: Handle diverged files (project modified template files not in overrides)
-    let divergedResolutions: Map<string, 'override' | 'keep' | 'merge'> = new Map();
+    let divergedResolutions: Map<string, DivergedResolution> = new Map();
 
     if (analysis.diverged.length > 0) {
-      if (autoMode === 'safe-only') {
-        // In safe-only mode, skip diverged files (don't overwrite project changes)
-        console.log(`\n🔶 ${analysis.diverged.length} diverged file(s) will be skipped (safe-only mode)`);
-        console.log(`   To resolve: add files to projectOverrides or run interactive sync`);
-      } else if (autoMode === 'override-conflicts') {
-        // Override mode: use template version
+      if (this.options.acceptAll || autoMode === 'override-conflicts') {
+        // Accept all / Override mode: use template version
         for (const file of analysis.diverged) {
           divergedResolutions.set(file.path, 'override');
         }
         console.log(`\n✅ Auto-overriding ${analysis.diverged.length} diverged file(s) with template version`);
+      } else if (autoMode === 'safe-only') {
+        // In safe-only mode, skip diverged files (don't overwrite project changes)
+        console.log(`\n🔶 ${analysis.diverged.length} diverged file(s) will be skipped (safe-only mode)`);
+        console.log(`   To resolve: add files to projectOverrides or run interactive sync`);
       } else if (autoMode === 'skip-conflicts') {
         // Skip mode: keep project version but add to overrides
         for (const file of analysis.diverged) {
@@ -229,30 +232,45 @@ export class TemplateSyncTool {
         }
         console.log(`\n⏭️  Keeping ${analysis.diverged.length} diverged file(s) and adding to projectOverrides`);
       } else if (!quiet && isInteractive()) {
-        // Interactive resolution
+        // Enhanced interactive resolution with batch support
         console.log(`\n🔶 Found ${analysis.diverged.length} diverged file(s) - project modified but not in overrides:`);
+        analysis.diverged.forEach((f) => console.log(`   • ${f.path}`));
 
-        for (const file of analysis.diverged) {
-          console.log(`\n   File: ${file.path}`);
-          console.log(`   Your project has modified this template file.`);
-          console.log(`\n   Options:`);
-          console.log(`     1. Override - Replace with template version (lose your changes)`);
-          console.log(`     2. Keep - Keep your version and add to projectOverrides`);
-          console.log(`     3. Merge - Create .template file for manual merge, add to overrides`);
+        // Ask for batch vs individual mode
+        const mode = await promptBatchMode(analysis.diverged.length, 'diverged', this.rl);
 
-          const rl = this.rl;
-          const answer = await new Promise<string>((resolve) => {
-            rl.question(`   Choose [1/2/3] (default: 2): `, (ans) => {
-              resolve(ans.trim().toLowerCase() || '2');
-            });
-          });
+        if (mode === 'bulk') {
+          // Bulk resolution
+          const bulkResolution = await promptBulkDivergedResolution(this.rl);
+          for (const file of analysis.diverged) {
+            divergedResolutions.set(file.path, bulkResolution);
+            if (bulkResolution === 'contribute') {
+              resolutionContext.pendingContributions.push(file.path);
+            }
+          }
+        } else {
+          // Individual resolution with "apply to all" support
+          for (let i = 0; i < analysis.diverged.length; i++) {
+            const file = analysis.diverged[i];
+            const fileInfo: InteractiveFileInfo = { path: file.path };
 
-          if (answer === '1' || answer === 'override') {
-            divergedResolutions.set(file.path, 'override');
-          } else if (answer === '3' || answer === 'merge') {
-            divergedResolutions.set(file.path, 'merge');
-          } else {
-            divergedResolutions.set(file.path, 'keep');
+            const result = await promptDivergedResolution(
+              fileInfo,
+              i,
+              analysis.diverged.length,
+              resolutionContext,
+              this.rl
+            );
+
+            divergedResolutions.set(file.path, result.resolution);
+            if (result.resolution === 'contribute') {
+              resolutionContext.pendingContributions.push(file.path);
+            }
+
+            // If user selected "apply to all", store it in context
+            if (result.applyToAll) {
+              resolutionContext.divergedApplyAll = result.resolution;
+            }
           }
         }
       }
@@ -262,38 +280,70 @@ export class TemplateSyncTool {
     let conflictResolutions: Map<string, ConflictResolution> = new Map();
 
     if (analysis.conflicts.length > 0) {
-      if (autoMode === 'skip-conflicts') {
-        for (const conflict of analysis.conflicts) {
-          conflictResolutions.set(conflict.path, 'skip');
-        }
-        console.log(`\n⏭️  Auto-skipping ${analysis.conflicts.length} conflict(s)`);
-      } else if (autoMode === 'override-conflicts') {
+      if (this.options.acceptAll || autoMode === 'override-conflicts') {
         for (const conflict of analysis.conflicts) {
           conflictResolutions.set(conflict.path, 'override');
         }
         console.log(`\n✅ Auto-overriding ${analysis.conflicts.length} conflict(s) with template version`);
+      } else if (autoMode === 'skip-conflicts') {
+        for (const conflict of analysis.conflicts) {
+          conflictResolutions.set(conflict.path, 'skip');
+        }
+        console.log(`\n⏭️  Auto-skipping ${analysis.conflicts.length} conflict(s)`);
       } else if (autoMode === 'safe-only') {
         // Skip conflicts entirely
         console.log(`\n⚠️  ${analysis.conflicts.length} conflict(s) will be skipped (safe-only mode)`);
       } else if (!quiet && isInteractive()) {
-        // Interactive conflict resolution
-        console.log(`\n⚠️  Found ${analysis.conflicts.length} conflict(s) that need resolution:`);
-        for (const conflict of analysis.conflicts) {
-          console.log(`\n   File: ${conflict.path}`);
-          console.log(`   Reason: ${conflict.reason}`);
+        // Enhanced interactive conflict resolution with batch support
+        console.log(`\n⚠️  Found ${analysis.conflicts.length} conflict(s) - override files with template changes:`);
+        analysis.conflicts.forEach((f) => console.log(`   • ${f.path} - ${f.reason}`));
 
-          const answer = await confirm(
-            `   Override with template version?`,
-            false
-          );
+        // Ask for batch vs individual mode
+        const mode = await promptBatchMode(analysis.conflicts.length, 'conflict', this.rl);
 
-          conflictResolutions.set(conflict.path, answer ? 'override' : 'skip');
+        if (mode === 'bulk') {
+          // Bulk resolution - use existing promptBulkConflictResolution
+          const { promptBulkConflictResolution } = await import('./ui/prompts');
+          const bulkResolution = await promptBulkConflictResolution(this.rl);
+          for (const conflict of analysis.conflicts) {
+            conflictResolutions.set(conflict.path, bulkResolution);
+            if (bulkResolution === 'contribute') {
+              resolutionContext.pendingContributions.push(conflict.path);
+            }
+          }
+        } else {
+          // Individual resolution with "apply to all" support
+          for (let i = 0; i < analysis.conflicts.length; i++) {
+            const conflict = analysis.conflicts[i];
+            const fileInfo: InteractiveFileInfo = {
+              path: conflict.path,
+              templateDescription: conflict.reason,
+            };
+
+            const result = await promptConflictResolution(
+              fileInfo,
+              i,
+              analysis.conflicts.length,
+              resolutionContext,
+              this.rl
+            );
+
+            conflictResolutions.set(conflict.path, result.resolution);
+            if (result.resolution === 'contribute') {
+              resolutionContext.pendingContributions.push(conflict.path);
+            }
+
+            // If user selected "apply to all", store it in context
+            if (result.applyToAll) {
+              resolutionContext.conflictApplyAll = result.resolution;
+            }
+          }
         }
       }
     }
 
-    // Step 7: Confirm sync
-    if (!dryRun && !quiet && isInteractive() && autoMode === 'none') {
+    // Step 7: Confirm sync (skip if --yes flag or auto mode)
+    if (!dryRun && !quiet && isInteractive() && autoMode === 'none' && !this.options.acceptAll) {
       const parts = [];
       if (analysis.toCopy.length > 0) parts.push(`${analysis.toCopy.length} copy`);
       if (analysis.toDelete.length > 0) parts.push(`${analysis.toDelete.length} delete`);
@@ -344,27 +394,24 @@ export class TemplateSyncTool {
     }
 
     // Step 9: Print results
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 Sync Results:');
-    console.log(`   ✅ Copied: ${result.copied.length}`);
-    console.log(`   🗑️  Deleted: ${result.deleted.length}`);
-    console.log(`   🔀 Merged: ${result.merged.length}`);
-    console.log(`   ⏭️  Skipped: ${result.skipped.length}`);
-    console.log(`   ⚠️  Conflicts: ${result.conflicts.length}`);
-    if (result.errors.length > 0) {
-      console.log(`   ❌ Errors: ${result.errors.length}`);
-      for (const error of result.errors) {
-        console.log(`      - ${error}`);
-      }
-    }
+    displaySyncResults(
+      result.copied.length,
+      0, // updated (included in copied)
+      result.deleted.length,
+      result.merged.length,
+      result.skipped.length,
+      resolutionContext.pendingContributions.length,
+      result.errors
+    );
+
+    // Show contribution reminder if any files were marked
+    displayContributionReminder(resolutionContext.pendingContributions);
 
     // Step 10: Cleanup
     await cleanupTemplate(this.context);
 
     if (dryRun) {
       console.log('\n📝 Dry run complete. No changes were made.');
-    } else {
-      console.log('\n✅ Sync complete!');
     }
   }
 

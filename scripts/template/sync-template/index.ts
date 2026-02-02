@@ -95,14 +95,11 @@ if (args.includes('--migrate')) {
 
         // Save new config
         saveConfig(projectRoot, newConfig);
-        console.log('✅ Migration complete!');
-        console.log('\nConfig files:');
-        console.log('  - .template-sync.template.json (template-owned, synced from template)');
-        console.log('  - .template-sync.json (project-owned, your overrides)');
+        console.log('✅ Migration complete! New config saved to .template-sync.json');
         console.log('\nNext steps:');
-        console.log('  1. Review .template-sync.json and add any projectOverrides');
-        console.log('  2. Run: yarn sync-template --dry-run');
-        console.log('  3. Commit both config files');
+        console.log('  1. Review .template-sync.json');
+        console.log('  2. Adjust templatePaths and projectOverrides as needed');
+        console.log('  3. Run: yarn sync-template --dry-run');
       } else {
         console.log('❌ Migration cancelled.');
       }

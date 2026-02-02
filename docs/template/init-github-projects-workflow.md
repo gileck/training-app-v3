@@ -192,6 +192,7 @@ The Status field should already exist. Configure it with these **exact** values:
 | `Technical Design` | AI generates tech design, human reviews |
 | `Ready for development` | AI implements feature |
 | `PR Review` | PR created, waiting for human review/merge |
+| `Final Review` | (Multi-phase only) Final PR from feature branch to main, admin verifies complete feature via Vercel preview |
 | `Done` | Completed and merged |
 
 **To configure:**
@@ -1224,6 +1225,12 @@ yarn verify-production --url https://your-app.vercel.app
 - All 6 options are required (see Step 1 for the full list)
 - Go to your project → Edit "Review Status" field → Add missing options
 - Common mistake: Only adding the first 4 options (missing "Waiting for Clarification" and "Clarification Received")
+
+**Error: "Status field missing Final Review"**
+- The "Final Review" status is required for the multi-phase feature branch workflow
+- This status is used when all phases of a multi-phase feature are complete and the final PR from the feature branch to main is ready for admin verification
+- Add the "Final Review" column to your GitHub Project, positioned between "PR Review" and "Done"
+- Single-phase features will skip this status (they go directly from PR Review to Done)
 
 ### Token Permission Issues
 

@@ -536,10 +536,11 @@ async function checkGitHubProject(): Promise<CategoryResults> {
             if (missingStatuses.length === 0) {
                 checks.push({
                     passed: true,
-                    message: `Status field has all 7 columns ✓`,
+                    message: `Status field has all ${requiredStatuses.length} columns ✓`,
                     details: availableStatuses.map(s => `  - ${s}`)
                 });
             } else {
+                const hasFinalReviewMissing = missingStatuses.includes('Final Review');
                 checks.push({
                     passed: false,
                     message: `Status field missing ${missingStatuses.length} column(s)`,
@@ -547,7 +548,13 @@ async function checkGitHubProject(): Promise<CategoryResults> {
                         'Missing columns:',
                         ...missingStatuses.map(s => `  - ${s}`),
                         '',
-                        'Go to your GitHub Project → Add missing columns with exact names above'
+                        'Go to your GitHub Project → Add missing columns with exact names above',
+                        ...(hasFinalReviewMissing ? [
+                            '',
+                            'Note: "Final Review" is a NEW status for multi-phase feature branch workflow.',
+                            'It should be positioned between "PR Review" and "Done".',
+                            'See docs/template/init-github-projects-workflow.md for details.'
+                        ] : [])
                     ]
                 });
             }

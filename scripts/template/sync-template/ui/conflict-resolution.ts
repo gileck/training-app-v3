@@ -141,6 +141,7 @@ export function printConflictResolutionSummary(resolutions: ConflictResolutionMa
     skip: 0,
     merge: 0,
     nothing: 0,
+    contribute: 0,
   };
 
   for (const resolution of Object.values(resolutions)) {
@@ -176,6 +177,13 @@ export function printConflictResolutionSummary(resolutions: ConflictResolutionMa
     console.log(`\n⏸️  Do nothing (${counts.nothing} files):`);
     Object.entries(resolutions)
       .filter(([, r]) => r === 'nothing')
+      .forEach(([filePath]) => console.log(`   • ${filePath}`));
+  }
+
+  if (counts.contribute > 0) {
+    console.log(`\n📤 Contribute to template (${counts.contribute} files):`);
+    Object.entries(resolutions)
+      .filter(([, r]) => r === 'contribute')
       .forEach(([filePath]) => console.log(`   • ${filePath}`));
   }
 
