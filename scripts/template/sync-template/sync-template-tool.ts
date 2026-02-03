@@ -359,8 +359,16 @@ export class TemplateSyncTool {
       config.lastSyncDate = new Date().toISOString();
       saveConfig(this.projectRoot, config);
 
-      // Auto-commit any uncommitted sync changes (including from previous syncs)
-      this.autoCommitChanges(quiet);
+      // Run validation (TypeScript + ESLint) before committing
+      const validationPassed = await runValidation(this.context);
+
+      if (validationPassed) {
+        // Auto-commit only if validation passes
+        this.autoCommitChanges(quiet);
+      } else {
+        console.log('\n⚠️  Changes applied but NOT committed due to validation errors.');
+        console.log('   Fix the issues above, then run: git add -A && git commit -m "chore: sync template updates"');
+      }
     }
 
     // Step 9: Print results
