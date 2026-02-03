@@ -19,7 +19,7 @@ import {
 } from '@/client/components/ui/alert-dialog';
 import { Button } from '@/client/components/ui/button';
 import { AlertTriangle, Cloud, Upload, X } from 'lucide-react';
-import type { PlanConflict } from '@/client/features/plan-data';
+import type { PlanConflict } from '@/client/features/project/plan-data';
 
 interface SyncConflictDialogProps {
     open: boolean;

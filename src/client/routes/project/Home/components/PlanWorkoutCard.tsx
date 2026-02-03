@@ -6,7 +6,7 @@ import {
     Play,
 } from 'lucide-react';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
-import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
+import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 import { ExerciseCardList } from './ExerciseCard';
 
 export interface PlanWorkoutCardProps {

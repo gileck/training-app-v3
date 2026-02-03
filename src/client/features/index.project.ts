@@ -9,6 +9,6 @@
  */
 
 // Training App specific features:
-export * from './plan-data';
-export * from './plan-workouts';
-export * from './workout';
+export * from './project/plan-data';
+export * from './project/plan-workouts';
+export * from './project/workout';

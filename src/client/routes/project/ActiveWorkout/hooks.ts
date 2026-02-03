@@ -41,9 +41,9 @@ import {
     useSetGeneratedWarmup,
     useWarmupCost,
     useSetWarmupCost,
-} from '@/client/features/workout';
-import { useCreatePlanWorkout } from '@/client/features/plan-workouts';
-import { useSetProgress } from '@/client/features/plan-data';
+} from '@/client/features/project/workout';
+import { useCreatePlanWorkout } from '@/client/features/project/plan-workouts';
+import { useSetProgress } from '@/client/features/project/plan-data';
 import { toast } from '@/client/components/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { useDeleteActivity } from '@/client/routes/project/Progress/hooks';

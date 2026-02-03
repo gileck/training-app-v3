@@ -1,4 +1,4 @@
-import { formatTime } from '@/client/features/workout';
+import { formatTime } from '@/client/features/project/workout';
 
 interface TimerZoneProps {
     isInSet: boolean;

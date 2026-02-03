@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/client/components/ui/card';
 import { toast } from '@/client/components/ui/toast';
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, useSetActivePlan, useDuplicatePlan, useExportPlan } from './hooks';
-import { useWorkoutStore } from '@/client/features/workout';
+import { useWorkoutStore } from '@/client/features/project/workout';
 import { useTrainingPlansStore } from './store';
 import { ManagePlan } from '../ManagePlan';
 import {

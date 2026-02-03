@@ -9,7 +9,7 @@ import {
     Info,
     Dumbbell,
 } from 'lucide-react';
-import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
+import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 export interface ExerciseCardProps {
     exercise: ExerciseWeekProgressFromStore;

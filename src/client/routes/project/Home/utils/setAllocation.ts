@@ -1,5 +1,5 @@
 import type { PlanWorkoutClient } from '@/server/database/collections/planWorkouts/types';
-import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
+import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 /**
  * AUTO-FILL SET ALLOCATION LOGIC

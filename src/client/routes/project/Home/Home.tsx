@@ -23,8 +23,8 @@ import {
     useIsSessionActive,
     useExpandedWorkoutId,
     useSetExpandedWorkoutId,
-} from '@/client/features/workout';
-import type { WorkoutTab } from '@/client/features/workout';
+} from '@/client/features/project/workout';
+import type { WorkoutTab } from '@/client/features/project/workout';
 import {
     useLoadPlan,
     useLoadWeekProgress,
@@ -33,8 +33,8 @@ import {
     useSetProgress,
     useWeekWorkoutSets,
     type ExerciseWeekProgressFromStore,
-} from '@/client/features/plan-data';
-import { usePlanWorkouts } from '@/client/features/plan-workouts';
+} from '@/client/features/project/plan-data';
+import { usePlanWorkouts } from '@/client/features/project/plan-workouts';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 import {
     WeekNavigator,

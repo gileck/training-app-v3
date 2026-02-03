@@ -18,7 +18,7 @@ import {
     DropdownMenuTrigger,
 } from '@/client/components/ui/dropdown-menu';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
-import type { PlanConflict } from '@/client/features/plan-data';
+import type { PlanConflict } from '@/client/features/project/plan-data';
 import { SyncConflictDialog } from './SyncConflictDialog';
 
 interface ManagePlanHeaderProps {

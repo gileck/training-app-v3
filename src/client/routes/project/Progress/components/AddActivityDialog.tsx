@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { listPlanExercises } from '@/apis/plan-exercises/client';
-import { usePlans } from '@/client/features/workout/hooks';
-import { useActivePlanId } from '@/client/features/workout/store';
+import { usePlans } from '@/client/features/project/workout/hooks';
+import { useActivePlanId } from '@/client/features/project/workout/store';
 import { useQueryDefaults } from '@/client/query/defaults';
 import { DateTimePicker } from './DateTimePicker';
 

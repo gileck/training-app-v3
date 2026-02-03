@@ -12,7 +12,7 @@ import {
     useStartRestTimer,
     useCancelRestTimer,
     formatTime,
-} from '@/client/features/workout';
+} from '@/client/features/project/workout';
 
 export function FloatingWorkoutBar() {
     const { navigate, currentPath } = useRouter();

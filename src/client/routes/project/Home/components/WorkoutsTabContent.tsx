@@ -4,7 +4,7 @@ import { Skeleton } from '@/client/components/ui/skeleton';
 import { Settings2, Plus, Bookmark } from 'lucide-react';
 import { PlanWorkoutCard } from './PlanWorkoutCard';
 import type { PlanWorkoutClient } from '@/server/database/collections/planWorkouts/types';
-import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
+import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 interface WorkoutsTabContentProps {
     isLoading: boolean;

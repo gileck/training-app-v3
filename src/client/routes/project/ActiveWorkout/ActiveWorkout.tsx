@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
 import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import type { ActiveWorkoutTab } from '@/client/features/workout';
+import type { ActiveWorkoutTab } from '@/client/features/project/workout';
 import {
     AllExercisesView,
     EmptyState,

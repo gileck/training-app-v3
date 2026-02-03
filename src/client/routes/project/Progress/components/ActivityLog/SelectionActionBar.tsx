@@ -1,6 +1,6 @@
 import { Button } from '@/client/components/ui/button';
 import { X, Pencil, Copy, Trash2, Loader2 } from 'lucide-react';
-import { useIsSessionActive } from '@/client/features/workout';
+import { useIsSessionActive } from '@/client/features/project/workout';
 
 interface SelectionActionBarProps {
     selectedCount: number;

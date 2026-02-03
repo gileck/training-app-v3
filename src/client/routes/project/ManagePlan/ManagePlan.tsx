@@ -26,14 +26,14 @@ import {
     usePlanConflict,
     forceSyncToServer,
     useClearAllPlanData,
-} from '@/client/features/plan-data';
+} from '@/client/features/project/plan-data';
 import {
     usePlanWorkouts,
     useCreatePlanWorkout,
     useUpdatePlanWorkout,
     useDeletePlanWorkout,
     useReorderPlanWorkouts,
-} from '@/client/features/plan-workouts';
+} from '@/client/features/project/plan-workouts';
 import { ManagePlanHeader } from './components/ManagePlanHeader';
 import { ExercisesTab } from './components/exercises/ExercisesTab';
 import { WorkoutsTab } from './components/workouts/WorkoutsTab';

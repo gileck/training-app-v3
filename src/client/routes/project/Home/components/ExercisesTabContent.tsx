@@ -3,7 +3,7 @@ import { Button } from '@/client/components/ui/button';
 import { Plus, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { ExerciseCardGrid, ExerciseCardList } from './ExerciseCard';
-import type { ExerciseWeekProgressFromStore } from '@/client/features/plan-data';
+import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 interface ExercisesTabContentProps {
     viewMode: 'grid' | 'list';
