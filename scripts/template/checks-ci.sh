@@ -1,6 +1,7 @@
 #!/bin/bash
 # CI Checks Script
-# Runs both TypeScript and ESLint checks, shows ALL errors, then fails if either failed
+# Runs TypeScript, ESLint, and circular dependency checks
+# Shows ALL errors, then fails if any check failed
 
 set +e  # Don't exit on first error
 
@@ -14,10 +15,15 @@ yarn lint
 LINT_EXIT=$?
 
 echo ""
+echo "🔍 Running circular dependency check..."
+yarn check:circular
+CIRCULAR_EXIT=$?
+
+echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Report results
-if [ $TS_EXIT -eq 0 ] && [ $LINT_EXIT -eq 0 ]; then
+if [ $TS_EXIT -eq 0 ] && [ $LINT_EXIT -eq 0 ] && [ $CIRCULAR_EXIT -eq 0 ]; then
     echo "✅ All checks passed!"
     exit 0
 else
@@ -27,6 +33,9 @@ else
     fi
     if [ $LINT_EXIT -ne 0 ]; then
         echo "   - ESLint check failed (exit code: $LINT_EXIT)"
+    fi
+    if [ $CIRCULAR_EXIT -ne 0 ]; then
+        echo "   - Circular dependency check failed (exit code: $CIRCULAR_EXIT)"
     fi
     exit 1
 fi

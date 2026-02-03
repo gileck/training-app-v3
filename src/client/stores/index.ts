@@ -60,7 +60,7 @@ export type {
 
 /**
  * Import directly from @/client/features instead:
- * - @/client/features/template/auth
- * - @/client/features/template/settings
- * - @/client/features/template/router
+ * - @/client/features/auth
+ * - @/client/features/settings
+ * - @/client/features/router
  */

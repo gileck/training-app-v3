@@ -1,5 +1,5 @@
 import { Collection, ObjectId, Filter, Sort } from 'mongodb';
-import { getDb } from '@/server/database';
+import { getDb } from '../../connection';
 import {
     FeatureRequestDocument,
     FeatureRequestCreate,
