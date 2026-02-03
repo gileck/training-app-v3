@@ -36,8 +36,22 @@
  *   --project-diffs          Show diffs for files changed in project (for contribute-to-template)
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { SyncOptions, AutoMode } from './types';
 import { TemplateSyncTool } from './sync-template-tool';
+
+// Check if running on template project (templateRepo is empty)
+const configPath = path.join(process.cwd(), '.template-sync.json');
+if (fs.existsSync(configPath)) {
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  if (!config.templateRepo) {
+    console.error('❌ Error: Cannot run sync-template on the template repository itself.');
+    console.error('   This script is meant for child projects that sync FROM the template.');
+    console.error('   Use "yarn sync-children" to push changes to child projects instead.');
+    process.exit(1);
+  }
+}
 
 // Main execution
 const args = process.argv.slice(2);
