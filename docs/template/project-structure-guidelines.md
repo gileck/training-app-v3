@@ -26,7 +26,9 @@ This project uses a **template sync system** that automatically updates certain 
 | `src/server/database/collections/reports/**` | Template | ❌ No | Template collection |
 | `src/agents/**` | Template | ❌ No | Template agents |
 | `*.project.ts` files | Project | ✅ Yes | Project-specific exports |
-| `src/client/components/ui/**` | Template | ❌ No | Use `components/project/` instead |
+| `src/client/components/template/**` | Template | ❌ No | UI, layout, and shared components |
+| `src/client/components/project/**` | Project | ✅ Yes | Your custom components |
+| `src/client/components/NavLinks.tsx` | Template | ❌ No | Combiner for navigation items |
 | `scripts/template/**` | Template | ❌ No | Synced from template |
 | `docs/template/**` | Template | ❌ No | Synced from template |
 | `.ai/skills/template/**` | Template | ❌ No | Synced from template |
@@ -44,7 +46,9 @@ These paths are **automatically synced** from the template. Any changes you make
 scripts/template/**                    # Template scripts
 docs/template/**                       # Template documentation
 .ai/skills/template/**                 # Template AI skills
-src/client/components/ui/**            # shadcn UI components
+src/client/components/template/**      # Template components (ui/, layout/, etc.)
+src/client/components/NavLinks.tsx     # Navigation combiner file
+src/client/components/GlobalDialogs.tsx # Dialog combiner file
 src/client/query/**                    # React Query setup
 src/client/stores/**                   # Store factory
 src/client/features/template/**        # Core template features (auth, settings, router, etc.)
@@ -103,9 +107,10 @@ index.project.ts   ← Project-owned (YOUR exports)
 ### Where This Pattern Is Used
 
 1. **Features**: `src/client/features/`
-2. **Collections**: `src/server/database/collections/`
-3. **APIs**: `src/apis/`
-4. **Routes**: `src/client/routes/`
+2. **Routes**: `src/client/routes/`
+3. **Collections**: `src/server/database/collections/`
+4. **APIs**: `src/apis/`
+5. **Navigation**: `src/client/components/` (NavLinks.tsx, NavLinks.template.tsx, NavLinks.project.tsx)
 
 ### Example: Adding a New Feature
 
@@ -203,7 +208,11 @@ export * as myCollection from './my-collection';
 
 ### Custom UI Components
 
-**DO NOT modify** `src/client/components/ui/` - these are template-owned shadcn components.
+**DO NOT modify** `src/client/components/template/` - these are template-owned:
+- `template/ui/` - shadcn components
+- `template/layout/` - Layout components (TopNavBar, BottomNavBar, DrawerMenu, etc.)
+- `template/clarify/` - Clarification components
+- `template/Layout.tsx`, `template/ThemeProvider.tsx`, etc.
 
 Instead, use `src/client/components/project/`:
 
@@ -211,12 +220,28 @@ Instead, use `src/client/components/project/`:
 src/client/components/project/
 ├── CustomButton.tsx      # Your custom button
 ├── SpecialCard.tsx       # Your custom card
+├── NavLinks.project.tsx  # Your navigation items
 └── index.ts              # Exports
 ```
 
 Import as:
 ```typescript
 import { CustomButton } from '@/client/components/project';
+```
+
+### Custom Navigation Items
+
+Edit `src/client/components/project/NavLinks.project.tsx` to customize navigation:
+
+```typescript
+// NavLinks.project.tsx (YOU EDIT THIS)
+export const navItems: NavItem[] = [
+  { path: '/', label: 'Home', icon: <Home size={18} /> },
+  { path: '/my-feature', label: 'My Feature', icon: <Star size={18} /> },
+];
+
+export const menuItems: NavItem[] = [...];
+export const projectAdminMenuItems: NavItem[] = [...];
 ```
 
 ---
@@ -238,7 +263,7 @@ import { CustomButton } from '@/client/components/project';
    ```json
    {
      "projectOverrides": [
-       "src/client/components/ui/button.tsx"
+       "src/client/components/template/ui/button.tsx"
      ]
    }
    ```
@@ -254,9 +279,10 @@ import { CustomButton } from '@/client/components/project';
 
 | Instead of... | Try this... |
 |---------------|-------------|
-| Modifying `ui/button.tsx` | Create `project/CustomButton.tsx` |
+| Modifying `template/ui/button.tsx` | Create `project/CustomButton.tsx` |
 | Modifying template feature | Create your own feature that extends it |
 | Modifying template script | Create `scripts/project/my-script.ts` |
+| Changing navigation items | Edit `project/NavLinks.project.tsx` |
 
 ---
 
@@ -280,13 +306,15 @@ This is better than overriding because:
 ### ❌ DON'T: Modify template files directly
 
 ```typescript
-// ❌ WRONG: Editing src/client/components/ui/button.tsx
+// ❌ WRONG: Editing src/client/components/template/ui/button.tsx
+// ❌ WRONG: Editing src/client/components/template/layout/TopNavBar.tsx
 ```
 
 ### ✅ DO: Create project versions
 
 ```typescript
 // ✅ CORRECT: Create src/client/components/project/CustomButton.tsx
+// ✅ CORRECT: Edit src/client/components/project/NavLinks.project.tsx for navigation
 ```
 
 ---
@@ -350,8 +378,10 @@ project-root/
 │   │   └── my-api/            # ✅ Your API
 │   ├── client/
 │   │   ├── components/
-│   │   │   ├── ui/            # ❌ Template-owned (shadcn)
-│   │   │   └── project/       # ✅ Your components
+│   │   │   ├── template/      # ❌ Template-owned (ui/, layout/, etc.)
+│   │   │   ├── project/       # ✅ Your components & NavLinks.project.tsx
+│   │   │   ├── NavLinks.tsx   # ❌ Template-owned (combiner)
+│   │   │   └── GlobalDialogs.tsx # ❌ Template-owned (combiner)
 │   │   ├── features/
 │   │   │   ├── template/      # ❌ Template-owned (auth, settings, router, etc.)
 │   │   │   ├── project/       # ✅ Put your custom features here
@@ -376,7 +406,7 @@ project-root/
 └── .template-sync.template.json  # ❌ Template-owned (defines templatePaths)
 ```
 
-> **Note:** Features and routes now use the `template/` and `project/` subfolder pattern. Template features (auth, settings, router, theme, etc.) and template routes (Settings, Profile, etc.) are synced from the template. Your custom features and routes go in the `project/` subfolders.
+> **Note:** Features, routes, and components use the `template/` and `project/` subfolder pattern. Template code (auth, settings, router, ui components, layout, etc.) is synced from the template. Your custom code goes in the `project/` subfolders. Navigation items are customized via `NavLinks.project.tsx`.
 
 ---
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createContext, useContext } from 'react';
 import { useRouteStore } from './store';
-import { useIsAdmin } from '@/client/features';
+import { useIsAdmin } from '../auth/store';
 
 // Define router context and types
 type RouteParams = Record<string, string>;

@@ -6,7 +6,7 @@ import {
     onOfflineQueueSync,
     onOfflineQueueSyncStart
 } from '@/client/utils/offlinePostQueue';
-import { useSettingsStore, subscribeToEffectiveOfflineChanges } from '@/client/features';
+import { useSettingsStore, subscribeToEffectiveOfflineChanges } from '../settings';
 import { useBatchSyncAlertStore } from './store';
 
 /**

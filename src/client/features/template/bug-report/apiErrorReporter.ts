@@ -1,4 +1,4 @@
-import { getSessionLogs } from '@/client/features';
+import { getSessionLogs } from '../session-logs';
 
 /**
  * Check if we're in production environment

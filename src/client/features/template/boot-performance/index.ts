@@ -20,7 +20,7 @@
  *   logResourceTiming()       // Log all loaded resources with timing
  */
 
-import { logger } from '@/client/features';
+import { logger } from '../session-logs';
 
 // Capture bundle load time immediately (before any other code)
 // This will be logged when logBundleLoaded() is called

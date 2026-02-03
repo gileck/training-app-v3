@@ -5,7 +5,7 @@ import { LoginForm } from './LoginForm';
 import { IOSAuthModal } from './IOSAuthModal';
 import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { markEvent, logStatus, BOOT_PHASES } from '../boot-performance';
-import { useRouter } from '@/client/features';
+import { useRouter } from '../router';
 
 interface AuthWrapperProps {
     children: React.ReactNode;

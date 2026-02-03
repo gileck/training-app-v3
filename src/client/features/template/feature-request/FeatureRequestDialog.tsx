@@ -20,7 +20,7 @@ import { Lightbulb, Send, Loader2 } from 'lucide-react';
 import { useFeatureRequestStore } from './store';
 import { useSubmitFeatureRequest } from './hooks';
 import { toast } from '@/client/components/template/ui/toast';
-import { useRouter } from '@/client/features';
+import { useRouter } from '../router';
 
 export function FeatureRequestDialog() {
     const isOpen = useFeatureRequestStore((state) => state.isOpen);
