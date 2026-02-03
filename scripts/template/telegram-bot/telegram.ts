@@ -243,10 +243,20 @@ export async function deleteWebhook(botToken: string): Promise<boolean> {
     }
 }
 
+// Track connection state for "connection is back" message
+let wasOffline = false;
+
 export async function getUpdates(botToken: string, offset?: number): Promise<TelegramUpdate[]> {
+    // Use shorter timeouts when offline to recover faster
+    const telegramTimeout = wasOffline ? 5 : 30;  // Server-side timeout
+    const clientTimeout = wasOffline ? 10000 : 35000;  // Client-side timeout (ms)
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), clientTimeout);
+
     try {
         const params = new URLSearchParams({
-            timeout: '30',
+            timeout: String(telegramTimeout),
             allowed_updates: JSON.stringify(['message', 'callback_query'])
         });
 
@@ -254,16 +264,44 @@ export async function getUpdates(botToken: string, offset?: number): Promise<Tel
             params.set('offset', String(offset));
         }
 
-        const response = await fetch(`${BOT_CONFIG.telegramApiUrl}${botToken}/getUpdates?${params}`);
+        const response = await fetch(`${BOT_CONFIG.telegramApiUrl}${botToken}/getUpdates?${params}`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
         const data = await response.json() as TelegramResponse;
 
         if (data.ok) {
+            // Connection restored after being offline
+            if (wasOffline) {
+                console.log('✅ Connection restored!');
+                wasOffline = false;
+            }
             return data.result;
         } else {
             console.error('❌ getUpdates failed:', JSON.stringify(data));
         }
     } catch (error) {
-        console.error('❌ Error getting updates:', error);
+        clearTimeout(timeout);
+
+        // Check for abort (client-side timeout)
+        if ((error as Error).name === 'AbortError') {
+            if (!wasOffline) {
+                console.log('⚠️ Connection timeout, retrying...');
+                wasOffline = true;
+            }
+            return [];
+        }
+
+        // Check for network errors
+        const cause = (error as { cause?: { code?: string } })?.cause;
+        if (cause?.code === 'ENOTFOUND' || cause?.code === 'ENETUNREACH' || cause?.code === 'ECONNREFUSED') {
+            if (!wasOffline) {
+                console.log('⚠️ No internet connection, retrying...');
+                wasOffline = true;
+            }
+        } else {
+            console.error('❌ Error getting updates:', (error as Error).message || error);
+        }
     }
 
     return [];
