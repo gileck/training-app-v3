@@ -1,4 +1,4 @@
-import { Home } from '../client/routes/Home';
+import { Home } from '../client/routes/project/Home';
 
 export default function HomePage() {
   return <Home />;

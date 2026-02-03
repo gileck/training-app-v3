@@ -6,7 +6,7 @@
  * - index.project.ts: Project routes (your custom routes)
  */
 
-import { createRoutes } from '../router';
+import { createRoutes } from '../features/template/router';
 import { templateRoutes } from './index.template';
 import { projectRoutes } from './index.project';
 

@@ -3,7 +3,7 @@ import { QueryClientProvider, useIsRestoring } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { getQueryClient } from './queryClient';
 import { createLocalStoragePersister } from './persister';
-import { defaultSettings } from '@/client/features/settings/types';
+import { defaultSettings } from '@/client/features';
 
 interface QueryProviderProps {
     children: React.ReactNode;

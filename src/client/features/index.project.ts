@@ -10,3 +10,5 @@
 
 // Training App specific features:
 export * from './plan-data';
+export * from './plan-workouts';
+export * from './workout';

@@ -7,15 +7,15 @@
  * To add project-specific routes, add them to index.project.ts instead.
  */
 
-import { Settings } from './Settings';
-import { Profile } from './Profile';
-import { Reports } from './Reports';
-import { FeatureRequests, FeatureRequestDetail } from './FeatureRequests';
-import { MyFeatureRequests } from './MyFeatureRequests';
-import { NotFound } from './NotFound';
-import { Theme } from './Theme';
-import { Clarify } from './Clarify';
-import { Routes } from '../router';
+import { Settings } from './template/Settings';
+import { Profile } from './template/Profile';
+import { Reports } from './template/Reports';
+import { FeatureRequests, FeatureRequestDetail } from './template/FeatureRequests';
+import { MyFeatureRequests } from './template/MyFeatureRequests';
+import { NotFound } from './template/NotFound';
+import { Theme } from './template/Theme';
+import { Clarify } from './template/Clarify';
+import { Routes } from '../features/template/router';
 
 /**
  * Template route definitions.

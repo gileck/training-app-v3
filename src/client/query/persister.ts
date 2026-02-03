@@ -1,8 +1,8 @@
 import { get, set, del } from 'idb-keyval';
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
-import { logger } from '@/client/features/session-logs';
+import { logger } from '@/client/features';
 import { formatBytes } from '@/client/lib/utils';
-import { defaultSettings } from '@/client/features/settings/types';
+import { defaultSettings } from '@/client/features';
 
 const CACHE_KEY = 'react-query-cache';
 const CACHE_BUSTER = 'v2'; // Increment to invalidate all cached data (v2: excluded reports from cache)

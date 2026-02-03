@@ -6,13 +6,13 @@
  */
 
 import type { Routes } from '../router';
-import { Home } from './Home';
-import { AIChat } from './AIChat';
-import { TrainingPlans } from './TrainingPlans';
-import { ManagePlan } from './ManagePlan';
-import { Progress } from './Progress';
-import { ActiveWorkout } from './ActiveWorkout';
-import { SharedPlan } from './SharedPlan';
+import { Home } from './project/Home';
+import { AIChat } from './project/AIChat';
+import { TrainingPlans } from './project/TrainingPlans';
+import { ManagePlan } from './project/ManagePlan';
+import { Progress } from './project/Progress';
+import { ActiveWorkout } from './project/ActiveWorkout';
+import { SharedPlan } from './project/SharedPlan';
 
 export const projectRoutes: Routes = {
   // Training App routes:

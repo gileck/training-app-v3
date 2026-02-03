@@ -945,7 +945,7 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
             if (!postChecks.success) {
                 console.log('  ⚠️ Issues found - asking Claude to fix...');
 
-                // Run Claude to fix the issues
+                // Run Claude to fix the issues (skip plan mode - this is a simple fix task)
                 const fixResult = await runAgent({
                     prompt: `The following yarn checks errors need to be fixed:\n\n${postChecks.output}\n\nFix these issues in the codebase. Only fix the issues shown above, do not make any other changes.`,
                     stream: options.stream,
@@ -954,6 +954,7 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
                     progressLabel: 'Fixing yarn checks issues',
                     allowWrite: true,
                     workflow: 'implementation',
+                    shouldUsePlanMode: false,
                 });
 
                 if (!fixResult.success) {

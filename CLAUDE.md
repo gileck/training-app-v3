@@ -41,6 +41,16 @@ How to properly check command success/failure. Use this when running shell comma
 
 ---
 
+## Project Structure Guidelines
+
+Where to put your project code and what not to modify. Use this when adding new features or modifying the codebase.
+
+**Summary:** Template-owned paths sync automatically and should NOT be modified. Put project code in `project/` folders and `*.project.ts` files. Use `projectOverrides` only when absolutely necessary.
+
+**Docs:** [project-structure-guidelines.md](docs/template/project-structure-guidelines.md)
+
+---
+
 ## Validation & Quality Checks
 
 Code validation and linting requirements. Use this before completing any work.

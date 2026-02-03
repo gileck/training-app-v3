@@ -5,7 +5,7 @@
  * This file provides hooks that apply those defaults to React Query.
  */
 
-import { useSettingsStore } from '@/client/features/settings';
+import { useSettingsStore } from '@/client/features';
 import { QUERY_DEFAULTS, MUTATION_DEFAULTS } from '@/client/config';
 
 // Re-export for convenience (single import)

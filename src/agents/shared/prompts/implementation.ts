@@ -416,7 +416,7 @@ Your comment should clearly show HOW each feedback point was addressed. This hel
 Here's how I addressed the feedback:
 1. [Mobile layout issue: buttons too close] → Added gap-3 spacing and min-h-[44px] for touch targets
 2. [Missing error handling in API call] → Added try/catch with toast notification on failure
-3. [Import should use @/ alias] → Changed relative import to @/client/components/ui/Button
+3. [Import should use @/ alias] → Changed relative import to @/client/components/template/ui/Button
 4. [Claude: potential XSS in user input] → Added sanitization with DOMPurify before rendering
 \`\`\`
 

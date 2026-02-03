@@ -7,13 +7,13 @@
  * To add project-specific features, add them to index.project.ts instead.
  */
 
-export * from './auth';
-export * from './settings';
-export * from './router';
-export * from './offline-sync';
-export * from './session-logs';
-export * from './bug-report';
-export * from './feature-request';
-export * from './error-tracking';
-export * from './theme';
-export * from './boot-performance';
+export * from './template/auth';
+export * from './template/settings';
+export * from './template/router';
+export * from './template/offline-sync';
+export * from './template/session-logs';
+export * from './template/bug-report';
+export * from './template/feature-request';
+export * from './template/error-tracking';
+export * from './template/theme';
+export * from './template/boot-performance';
