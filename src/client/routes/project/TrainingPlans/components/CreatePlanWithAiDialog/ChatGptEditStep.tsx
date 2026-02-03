@@ -6,8 +6,8 @@
  * 2. Paste the generated JSON back into the app
  */
 
-import { Button } from '@/client/components/ui/button';
-import { Textarea } from '@/client/components/ui/textarea';
+import { Button } from '@/client/components/template/ui/button';
+import { Textarea } from '@/client/components/template/ui/textarea';
 import {
     ExternalLink,
     ClipboardPaste,

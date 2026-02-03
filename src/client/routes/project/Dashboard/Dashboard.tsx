@@ -5,7 +5,7 @@
  * Phase 3: Added activity feed with filtering and CSV export.
  */
 
-import { Alert, AlertDescription } from '@/client/components/ui/alert';
+import { Alert, AlertDescription } from '@/client/components/template/ui/alert';
 import {
     DashboardHeader,
     DashboardSkeleton,

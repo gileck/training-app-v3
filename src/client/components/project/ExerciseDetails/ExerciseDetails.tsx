@@ -1,18 +1,18 @@
 import { useState } from 'react';
-import { Dialog, DialogContent } from '@/client/components/ui/dialog';
-import { Badge } from '@/client/components/ui/badge';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Separator } from '@/client/components/ui/separator';
-import { Skeleton } from '@/client/components/ui/skeleton';
-import { Button } from '@/client/components/ui/button';
-import { Textarea } from '@/client/components/ui/textarea';
+import { Dialog, DialogContent } from '@/client/components/template/ui/dialog';
+import { Badge } from '@/client/components/template/ui/badge';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Separator } from '@/client/components/template/ui/separator';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { Button } from '@/client/components/template/ui/button';
+import { Textarea } from '@/client/components/template/ui/textarea';
 import { Dumbbell, Clock, Weight, Target, Info, MessageSquare, History, Calendar, CheckCircle2, X, Repeat, Timer, ChevronDown, ChevronUp, Edit2, Save, Plus } from 'lucide-react';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExerciseHistory } from '@/apis/activity-logs/client';
 import { getExerciseNotes, updateExerciseNote } from '@/apis/weekly-progress/client';
 import { useQueryDefaults } from '@/client/query';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 
 interface ExerciseDetailsProps {
     exercise: ExerciseDefinitionClient | null;

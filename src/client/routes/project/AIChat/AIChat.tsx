@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Input } from '@/client/components/ui/input';
-import { Button } from '@/client/components/ui/button';
-import { Card } from '@/client/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/ui/select';
-import { LinearProgress } from '@/client/components/ui/linear-progress';
-import { Badge } from '@/client/components/ui/badge';
+import { Input } from '@/client/components/template/ui/input';
+import { Button } from '@/client/components/template/ui/button';
+import { Card } from '@/client/components/template/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/template/ui/select';
+import { LinearProgress } from '@/client/components/template/ui/linear-progress';
+import { Badge } from '@/client/components/template/ui/badge';
 import { Send, MessageSquare } from 'lucide-react';
 import { type AIModelDefinition, getAllModels } from '@/common/ai/models';
 import { sendChatMessage } from '@/apis/chat/client';
-import { useSettingsStore } from '@/client/features/settings';
+import { useSettingsStore } from '@/client/features/template/settings';
 
 // Message type definition
 interface Message {

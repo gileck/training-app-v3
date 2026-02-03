@@ -1,6 +1,6 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Settings2, Plus, Bookmark } from 'lucide-react';
 import { PlanWorkoutCard } from './PlanWorkoutCard';
 import type { PlanWorkoutClient } from '@/server/database/collections/planWorkouts/types';

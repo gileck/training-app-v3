@@ -14,18 +14,18 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { AlertCircle, LogIn, Plus, Loader2, User } from 'lucide-react';
 import { useRouter } from '@/client/router';
-import { useAuthValidation } from '@/client/features/auth/hooks';
-import { IOSAuthModal } from '@/client/features/auth/IOSAuthModal';
-import { LoginForm } from '@/client/features/auth/LoginForm';
+import { useAuthValidation } from '@/client/features/template/auth/hooks';
+import { IOSAuthModal } from '@/client/features/template/auth/IOSAuthModal';
+import { LoginForm } from '@/client/features/template/auth/LoginForm';
 import { useSharedPlan, exportDataToDraftPlan } from './hooks';
 import { PlanPreview } from '../TrainingPlans/components/PlanPreview';
 import { useCreatePlanFromText } from '../TrainingPlans/hooks';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 
 const SESSION_STORAGE_KEY = 'pendingShareAdd';
 

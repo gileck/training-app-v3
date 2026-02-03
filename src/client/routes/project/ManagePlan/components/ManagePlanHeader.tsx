@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -9,14 +9,14 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog';
+} from '@/client/components/template/ui/alert-dialog';
 import { ChevronLeft, RefreshCw, Loader2, AlertTriangle, Upload, Cloud, MoreVertical, Trash2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { PlanConflict } from '@/client/features/project/plan-data';
 import { SyncConflictDialog } from './SyncConflictDialog';

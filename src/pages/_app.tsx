@@ -17,9 +17,9 @@ import {
 } from '@/client/features';
 import { initializeApiClient } from '@/client/utils/apiClient';
 import { useAllPersistedStoresHydrated } from '@/client/stores';
-import { markEvent, BOOT_PHASES } from '@/client/features/boot-performance';
+import { markEvent, BOOT_PHASES } from '@/client/features/template/boot-performance';
 // Import preflight early to start /me call ASAP (side effect import)
-import '@/client/features/auth/preflight';
+import '@/client/features/template/auth/preflight';
 
 const RouterProvider = dynamic(() => import('@/client/router/index').then(module => module.RouterProvider), { ssr: false });
 

@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { Palette } from 'lucide-react';
-import { ThemeSettings as ThemeSettingsCard } from '@/client/features/theme';
+import { ThemeSettings as ThemeSettingsCard } from '@/client/features/template/theme';
 
 export function ThemeSettings() {
     return (

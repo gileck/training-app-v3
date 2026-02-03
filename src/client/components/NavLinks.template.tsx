@@ -7,7 +7,7 @@
  * To customize navigation, modify NavLinks.tsx instead.
  */
 
-import { NavItem } from './layout/types';
+import { NavItem } from './template/layout/types';
 import { ClipboardList, Lightbulb } from 'lucide-react';
 
 /** Admin-only menu items (shown in separate section) */

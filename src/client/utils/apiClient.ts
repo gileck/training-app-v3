@@ -1,14 +1,14 @@
 import { CacheResult } from "@/common/cache/types";
-import type { Settings } from "@/client/features/settings";
-import { useSettingsStore } from "@/client/features/settings";
+import type { Settings } from "@/client/features/template/settings";
+import { useSettingsStore } from "@/client/features/template/settings";
 import {
   enqueueOfflinePost,
   generateQueueId,
   flushOfflineQueue,
   shouldFlushNow,
 } from '@/client/utils/offlinePostQueue';
-import { logger } from '@/client/features/session-logs';
-import { submitApiErrorReport } from '@/client/features/bug-report/apiErrorReporter';
+import { logger } from '@/client/features/template/session-logs';
+import { submitApiErrorReport } from '@/client/features/template/bug-report/apiErrorReporter';
 
 // Legacy callback support for initialization
 let getSettingsRef: (() => Settings) | null = null;

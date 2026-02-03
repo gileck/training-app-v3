@@ -2,14 +2,14 @@
  * ExercisesTab Toolbar Component
  */
 
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/client/components/ui/select';
+} from '@/client/components/template/ui/select';
 import { Plus, ArrowUpDown } from 'lucide-react';
 import type { PlanExerciseGroupBy } from '../../store';
 

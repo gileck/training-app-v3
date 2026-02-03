@@ -7,7 +7,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog';
+} from '@/client/components/template/ui/alert-dialog';
 
 interface EndWorkoutConfirmationProps {
     open: boolean;

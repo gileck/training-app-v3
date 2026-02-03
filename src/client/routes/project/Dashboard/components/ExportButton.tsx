@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { Download, Check } from 'lucide-react';
 import { exportDashboardToCSV } from '../utils/exportToCsv';
 import type { GetDashboardAnalyticsResponse } from '@/apis/dashboard/types';

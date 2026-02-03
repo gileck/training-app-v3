@@ -1,12 +1,12 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
-import { Checkbox } from '@/client/components/ui/checkbox';
+import { Card, CardHeader, CardTitle, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Checkbox } from '@/client/components/template/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 import { Calendar, MoreVertical, Plus, Check } from 'lucide-react';
 import type { ActivityLogEntry } from '@/apis/activity-logs/types';
 import { GroupedActivityItem } from './GroupedActivityItem';

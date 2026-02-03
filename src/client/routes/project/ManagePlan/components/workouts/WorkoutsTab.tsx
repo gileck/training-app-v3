@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
-import { toast } from '@/client/components/ui/toast';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { toast } from '@/client/components/template/ui/toast';
 import { Plus, ArrowUpDown, Bookmark } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';

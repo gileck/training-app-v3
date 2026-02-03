@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Textarea } from '@/client/components/ui/textarea';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
+import { Textarea } from '@/client/components/template/ui/textarea';
 import {
     Dialog,
     DialogContent,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Dumbbell } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 

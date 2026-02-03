@@ -2,7 +2,7 @@
  * Exercise List Container (Loading/Empty/Grid/List)
  */
 
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import { ExerciseLibraryGrid } from '../ExerciseLibraryGrid';
 import { ExerciseLibraryList } from '../ExerciseLibraryList';

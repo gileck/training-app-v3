@@ -19,9 +19,9 @@
  */
 
 import { useState } from 'react';
-import { Badge } from '@/client/components/ui/badge';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
+import { Badge } from '@/client/components/template/ui/badge';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Dumbbell, Calendar, AlertCircle, CheckCircle2, HelpCircle, Plus } from 'lucide-react';
 import type { DraftPlan, DraftExercise, DraftWorkout } from '@/apis/training-plans/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';

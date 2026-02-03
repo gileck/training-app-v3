@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Button } from '@/client/components/template/ui/button';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogFooter,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import {
     Dumbbell,
     Pencil,

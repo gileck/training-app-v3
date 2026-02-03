@@ -2,8 +2,8 @@
  * ExercisesTab Empty State Component
  */
 
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Dumbbell, Plus } from 'lucide-react';
 
 interface ExercisesEmptyStateProps {

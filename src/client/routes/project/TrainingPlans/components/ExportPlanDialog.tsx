@@ -1,4 +1,4 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,7 +6,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Save, Clipboard } from 'lucide-react';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 

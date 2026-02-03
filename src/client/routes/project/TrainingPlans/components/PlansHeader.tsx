@@ -1,4 +1,4 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { Plus, Sparkles, FileJson, ChevronDown } from 'lucide-react';
 import {
     DropdownMenu,
@@ -6,7 +6,7 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 
 interface PlansHeaderProps {
     onCreateManual: () => void;

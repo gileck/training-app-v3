@@ -1,6 +1,6 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Badge } from '@/client/components/ui/badge';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Badge } from '@/client/components/template/ui/badge';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { TrendingUp } from 'lucide-react';
 import { useActivitySummary } from '../hooks';
 import type { DailySummary } from '@/apis/activity-logs/types';

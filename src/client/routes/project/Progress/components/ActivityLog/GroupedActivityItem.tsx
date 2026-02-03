@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Checkbox } from '@/client/components/ui/checkbox';
+import { Button } from '@/client/components/template/ui/button';
+import { Checkbox } from '@/client/components/template/ui/checkbox';
 import { Dumbbell, ChevronRight, Trash2 } from 'lucide-react';
 import type { ActivityGroup } from './utils';
 import { formatTime } from './utils';

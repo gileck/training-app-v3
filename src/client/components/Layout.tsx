@@ -1,14 +1,14 @@
 import { ReactNode, useState } from 'react';
-import { TopNavBar } from './layout/TopNavBar';
-import { BottomNavBar } from './layout/BottomNavBar';
-import { DrawerMenu } from './layout/DrawerMenu';
-import { Footer } from './layout/Footer';
-import { NavigatorStandalone } from './layout/types';
+import { TopNavBar } from './template/layout/TopNavBar';
+import { BottomNavBar } from './template/layout/BottomNavBar';
+import { DrawerMenu } from './template/layout/DrawerMenu';
+import { Footer } from './template/layout/Footer';
+import { NavigatorStandalone } from './template/layout/types';
 import { filterAdminNavItems, menuItems, navItems, adminMenuItems } from './NavLinks';
 import { useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client/features';
 import { GlobalDialogs } from './GlobalDialogs';
-import { ToastContainer } from './ui/toast';
-import { useIsAdmin } from '@/client/features/auth';
+import { ToastContainer } from './template/ui/toast';
+import { useIsAdmin } from '@/client/features/template/auth';
 import { useRouter } from '@/client/router';
 
 

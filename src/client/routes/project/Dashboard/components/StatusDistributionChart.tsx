@@ -5,7 +5,7 @@
  */
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Card } from '@/client/components/ui/card';
+import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle } from '../utils/chartConfig';
 import { getStatusDisplayName } from '../utils/mockData';
 import type { FeatureRequestMetrics } from '@/apis/dashboard/types';

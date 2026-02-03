@@ -5,7 +5,7 @@
  * icon, and subtitle. Used in the dashboard metrics section.
  */
 
-import { Card } from '@/client/components/ui/card';
+import { Card } from '@/client/components/template/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/client/lib/utils';
 import type { ReactNode } from 'react';

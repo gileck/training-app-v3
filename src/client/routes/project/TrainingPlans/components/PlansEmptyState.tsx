@@ -1,5 +1,5 @@
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Plus, Calendar, Sparkles, FileJson } from 'lucide-react';
 
 interface PlansEmptyStateProps {

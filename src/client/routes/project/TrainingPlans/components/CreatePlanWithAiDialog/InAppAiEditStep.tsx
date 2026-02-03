@@ -5,17 +5,17 @@
  * Includes plan name, duration, model selection, and prompt input.
  */
 
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
-import { Textarea } from '@/client/components/ui/textarea';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
+import { Label } from '@/client/components/template/ui/label';
+import { Textarea } from '@/client/components/template/ui/textarea';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/client/components/ui/select';
+} from '@/client/components/template/ui/select';
 import { ClipboardPaste, X, AlertCircle } from 'lucide-react';
 import type { AIModelDefinition } from '@/common/ai/models';
 import { MAX_TEXT_LENGTH, MAX_PLAN_NAME_LENGTH, type InAppAiEditStepProps } from './types';

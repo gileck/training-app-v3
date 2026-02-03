@@ -1,10 +1,10 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -13,7 +13,7 @@ import {
     SelectLabel,
     SelectTrigger,
     SelectValue,
-} from '@/client/components/ui/select';
+} from '@/client/components/template/ui/select';
 import { Loader2, RefreshCw, Sparkles, Cpu, DollarSign } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getAllModels, type AIModelDefinition } from '@/common/ai/models';

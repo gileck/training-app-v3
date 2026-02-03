@@ -9,18 +9,18 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Share2, Copy, Check, ExternalLink } from 'lucide-react';
-import { useUser } from '@/client/features/auth';
-import { toast } from '@/client/components/ui/toast';
+import { useUser } from '@/client/features/template/auth';
+import { toast } from '@/client/components/template/ui/toast';
 
 interface SharePlanDialogProps {
     open: boolean;

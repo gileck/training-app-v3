@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -15,8 +15,8 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@/client/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+} from '@/client/components/template/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
 import {
     Sparkles,
     ArrowLeft,
@@ -27,11 +27,11 @@ import {
     MessageSquare,
 } from 'lucide-react';
 import { getAllModels } from '@/common/ai/models';
-import { useSettingsStore } from '@/client/features/settings';
-import { useEffectiveOffline } from '@/client/features/settings';
+import { useSettingsStore } from '@/client/features/template/settings';
+import { useEffectiveOffline } from '@/client/features/template/settings';
 import { useGeneratePlanFromText, useCreatePlanFromText, useMatchImportedPlan, useExerciseLibrary } from '../hooks';
 import type { DraftPlan, PlanExportData } from '@/apis/training-plans/types';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 import { PlanPreview } from './PlanPreview';
 import type { ExerciseResolution } from './ExerciseResolver';
 import {

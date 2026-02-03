@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
+import { Label } from '@/client/components/template/ui/label';
 import {
     Dialog,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 
 interface EditPlanDialogProps {

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Battery, Info } from 'lucide-react';
 import { useRecoveryScore } from '../hooks';
 import type { DailyLoad } from '../utils/recoveryScore';

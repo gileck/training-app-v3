@@ -1,6 +1,6 @@
 import Image from 'next/image';
-import { Button } from '@/client/components/ui/button';
-import { Badge } from '@/client/components/ui/badge';
+import { Button } from '@/client/components/template/ui/button';
+import { Badge } from '@/client/components/template/ui/badge';
 import { Check, Dumbbell, Edit2, Trash2 } from 'lucide-react';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 

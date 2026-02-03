@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
 import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 

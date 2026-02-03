@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 
 export function PlansLoadingSkeleton() {
     return (

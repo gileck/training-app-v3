@@ -1,4 +1,4 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { Play, Dumbbell } from 'lucide-react';
 
 interface EmptyStateProps {

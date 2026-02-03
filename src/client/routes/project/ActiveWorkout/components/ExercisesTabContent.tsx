@@ -1,6 +1,6 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
-import { Badge } from '@/client/components/ui/badge';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Badge } from '@/client/components/template/ui/badge';
 import {
     Plus,
     Minus,

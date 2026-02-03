@@ -11,8 +11,8 @@
  */
 
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Textarea } from '@/client/components/ui/textarea';
+import { Button } from '@/client/components/template/ui/button';
+import { Textarea } from '@/client/components/template/ui/textarea';
 import {
     Dialog,
     DialogContent,
@@ -20,7 +20,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import {
     Upload,
     ClipboardPaste,
@@ -30,7 +30,7 @@ import {
     FileJson,
 } from 'lucide-react';
 import type { PlanExportData } from '@/apis/training-plans/types';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 import { PlanPreviewCommit } from './PlanPreviewCommit';
 import { exportDataToDraftPlan, validatePlanExportJson } from '../utils';
 

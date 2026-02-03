@@ -4,7 +4,7 @@
  * Provides handlers for exporting training plans in different formats.
  */
 
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { ExportPlanResponse } from '@/apis/training-plans/types';

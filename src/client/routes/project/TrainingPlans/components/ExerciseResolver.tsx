@@ -8,10 +8,10 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Badge } from '@/client/components/ui/badge';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
+import { Button } from '@/client/components/template/ui/button';
+import { Badge } from '@/client/components/template/ui/badge';
+import { Input } from '@/client/components/template/ui/input';
+import { Label } from '@/client/components/template/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -19,7 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Check, Plus, HelpCircle, Circle, CheckCircle2, Search, ArrowLeft, Dumbbell } from 'lucide-react';
 import type { DraftExercise, SuggestedMatch } from '@/apis/training-plans/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';

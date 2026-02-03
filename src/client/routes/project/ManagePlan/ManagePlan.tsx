@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Card } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+import { Button } from '@/client/components/template/ui/button';
+import { Card } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
 import { ChevronLeft, Dumbbell, Bookmark, Check } from 'lucide-react';
 import { useRouter } from '@/client/features';
 import { useManagePlanStore } from './store';

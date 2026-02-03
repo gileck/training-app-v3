@@ -2,7 +2,7 @@
  * Exercise Search Bar
  */
 
-import { Input } from '@/client/components/ui/input';
+import { Input } from '@/client/components/template/ui/input';
 import { Search, X } from 'lucide-react';
 
 interface ExerciseSearchBarProps {

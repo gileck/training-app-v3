@@ -1,7 +1,7 @@
 import Image from 'next/image';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Badge } from '@/client/components/ui/badge';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Badge } from '@/client/components/template/ui/badge';
 import { ChevronUp, ChevronDown, Trash2, Dumbbell } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Dumbbell } from 'lucide-react';
 import { getMuscleGroups } from '@/apis/exercise-definitions/client';
 import type { DailySummary } from '@/apis/activity-logs/types';

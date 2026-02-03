@@ -4,8 +4,8 @@
  * Loading state for the dashboard with skeleton placeholders.
  */
 
-import { Skeleton } from '@/client/components/ui/skeleton';
-import { Card } from '@/client/components/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { Card } from '@/client/components/template/ui/card';
 
 /**
  * Skeleton for a single metric card

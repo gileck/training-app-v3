@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
 import { Plus, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { ExerciseCardGrid, ExerciseCardList } from './ExerciseCard';

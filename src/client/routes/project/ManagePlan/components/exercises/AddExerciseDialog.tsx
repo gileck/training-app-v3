@@ -3,7 +3,7 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import type { MultiSelectExerciseConfig } from '../../types';
 import { ExerciseLibraryBrowser } from './ExerciseLibraryBrowser';

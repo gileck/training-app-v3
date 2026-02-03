@@ -14,7 +14,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
-import { Card } from '@/client/components/ui/card';
+import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle, gridStyle, axisStyle } from '../utils/chartConfig';
 import { getAgentDisplayName, formatDurationSeconds } from '../utils/mockData';
 import type { AgentPerformancePoint } from '@/apis/dashboard/types';

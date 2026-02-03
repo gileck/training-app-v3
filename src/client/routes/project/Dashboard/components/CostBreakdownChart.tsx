@@ -14,7 +14,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
-import { Card } from '@/client/components/ui/card';
+import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle, gridStyle, axisStyle } from '../utils/chartConfig';
 import { formatWeekLabel, formatCurrency } from '../utils/mockData';
 import type { CostTimeSeriesPoint } from '@/apis/dashboard/types';

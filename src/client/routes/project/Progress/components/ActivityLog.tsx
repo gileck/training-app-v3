@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -10,8 +10,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/client/components/ui/alert-dialog';
-import { toast } from '@/client/components/ui/toast';
+} from '@/client/components/template/ui/alert-dialog';
+import { toast } from '@/client/components/template/ui/toast';
 import { Activity } from 'lucide-react';
 import {
     useActivity,

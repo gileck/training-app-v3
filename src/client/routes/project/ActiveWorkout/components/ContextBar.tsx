@@ -1,11 +1,11 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 import {
     MoreHorizontal,
     Bookmark,

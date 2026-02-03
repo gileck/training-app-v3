@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogFooter,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import type { ActivityLogEntry } from '@/apis/activity-logs/types';
 import { DateTimePicker } from './DateTimePicker';
 

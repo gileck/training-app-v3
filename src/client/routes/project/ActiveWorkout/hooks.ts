@@ -44,7 +44,7 @@ import {
 } from '@/client/features/project/workout';
 import { useCreatePlanWorkout } from '@/client/features/project/plan-workouts';
 import { useSetProgress } from '@/client/features/project/plan-data';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import { useDeleteActivity } from '@/client/routes/project/Progress/hooks';
 import { generateWarmup } from '@/apis/workout-warmup/client';

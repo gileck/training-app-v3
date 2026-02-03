@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { toast } from '@/client/components/ui/toast';
-import { CreateExerciseDialog } from '@/client/components/CreateExerciseDialog';
+import { toast } from '@/client/components/template/ui/toast';
+import { CreateExerciseDialog } from '@/client/components/project/CreateExerciseDialog';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 import { useManagePlanStore } from '../../store';

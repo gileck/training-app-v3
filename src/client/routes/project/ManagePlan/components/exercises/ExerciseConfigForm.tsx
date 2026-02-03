@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Image from 'next/image';
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Textarea } from '@/client/components/ui/textarea';
-import { Label } from '@/client/components/ui/label';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
+import { Textarea } from '@/client/components/template/ui/textarea';
+import { Label } from '@/client/components/template/ui/label';
 import { Dumbbell } from 'lucide-react';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
 

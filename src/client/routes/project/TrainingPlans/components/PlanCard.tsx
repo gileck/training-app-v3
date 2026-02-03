@@ -1,6 +1,6 @@
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Badge } from '@/client/components/ui/badge';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Badge } from '@/client/components/template/ui/badge';
 import {
     CheckCircle,
     Copy,
@@ -22,7 +22,7 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 import type { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
 
 interface PlanCardProps {

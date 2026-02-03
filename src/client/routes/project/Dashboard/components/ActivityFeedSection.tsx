@@ -6,8 +6,8 @@
  */
 
 import { useMemo } from 'react';
-import { Card } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
+import { Card } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
 import { RefreshCw, Activity as ActivityIcon } from 'lucide-react';
 import { ActivityItem } from './ActivityItem';
 import { useDashboardStore } from '../store';

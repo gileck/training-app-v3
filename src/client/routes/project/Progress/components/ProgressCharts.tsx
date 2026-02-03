@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/ui/card';
-import { Skeleton } from '@/client/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
 import {
     TrendingUp,
     BarChart3,

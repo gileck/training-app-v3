@@ -1,5 +1,5 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
-import { Button } from '@/client/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Activity,
     Calendar,
@@ -18,7 +18,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/client/components/ui/dropdown-menu';
+} from '@/client/components/template/ui/dropdown-menu';
 import { ActivityLog } from './components/ActivityLog';
 import { DailySummaries } from './components/DailySummaries';
 import { StatsOverview, ProgressCharts } from './components/ProgressCharts';

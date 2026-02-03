@@ -16,8 +16,8 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogCancel,
-} from '@/client/components/ui/alert-dialog';
-import { Button } from '@/client/components/ui/button';
+} from '@/client/components/template/ui/alert-dialog';
+import { Button } from '@/client/components/template/ui/button';
 import { AlertTriangle, Cloud, Upload, X } from 'lucide-react';
 import type { PlanConflict } from '@/client/features/project/plan-data';
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Pencil } from 'lucide-react';
-import { Input } from '@/client/components/ui/input';
+import { Input } from '@/client/components/template/ui/input';
 
 interface WorkoutNameEditorProps {
     value: string;

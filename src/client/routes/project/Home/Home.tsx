@@ -1,8 +1,8 @@
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Button } from '@/client/components/ui/button';
-import { Skeleton } from '@/client/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
-import { toast } from '@/client/components/ui/toast';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Button } from '@/client/components/template/ui/button';
+import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { toast } from '@/client/components/template/ui/toast';
 import { Calendar, LayoutGrid, List } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useRouter } from '@/client/features';
@@ -35,7 +35,7 @@ import {
     type ExerciseWeekProgressFromStore,
 } from '@/client/features/project/plan-data';
 import { usePlanWorkouts } from '@/client/features/project/plan-workouts';
-import { ExerciseDetails } from '@/client/components/ExerciseDetails/ExerciseDetails';
+import { ExerciseDetails } from '@/client/components/project/ExerciseDetails/ExerciseDetails';
 import {
     WeekNavigator,
     SelectionBar,

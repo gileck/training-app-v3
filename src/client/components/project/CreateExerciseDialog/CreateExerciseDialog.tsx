@@ -1,22 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/client/components/ui/button';
-import { Input } from '@/client/components/ui/input';
-import { Label } from '@/client/components/ui/label';
-import { Checkbox } from '@/client/components/ui/checkbox';
+import { Button } from '@/client/components/template/ui/button';
+import { Input } from '@/client/components/template/ui/input';
+import { Label } from '@/client/components/template/ui/label';
+import { Checkbox } from '@/client/components/template/ui/checkbox';
 import {
     Dialog,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/client/components/ui/select';
+} from '@/client/components/template/ui/select';
 import { Dumbbell, Upload, X, Clipboard } from 'lucide-react';
 
 // Common muscle groups

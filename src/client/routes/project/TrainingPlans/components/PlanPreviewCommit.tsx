@@ -12,12 +12,12 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { AlertCircle, ArrowLeft, Loader2, Check } from 'lucide-react';
 import { useCreatePlanFromText } from '../hooks';
 import type { DraftPlan } from '@/apis/training-plans/types';
 import type { PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
-import { toast } from '@/client/components/ui/toast';
+import { toast } from '@/client/components/template/ui/toast';
 import { PlanPreview } from './PlanPreview';
 
 interface PlanPreviewCommitProps {

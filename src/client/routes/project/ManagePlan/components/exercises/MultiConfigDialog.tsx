@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Image from 'next/image';
-import { Button } from '@/client/components/ui/button';
-import { Card, CardContent } from '@/client/components/ui/card';
-import { Input } from '@/client/components/ui/input';
-import { Textarea } from '@/client/components/ui/textarea';
-import { Label } from '@/client/components/ui/label';
+import { Button } from '@/client/components/template/ui/button';
+import { Card, CardContent } from '@/client/components/template/ui/card';
+import { Input } from '@/client/components/template/ui/input';
+import { Textarea } from '@/client/components/template/ui/textarea';
+import { Label } from '@/client/components/template/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -12,7 +12,7 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import { Dumbbell, MessageSquare, X } from 'lucide-react';
 import type { MultiSelectExerciseConfig } from '../../types';
 

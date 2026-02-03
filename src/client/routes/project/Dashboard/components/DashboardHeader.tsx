@@ -4,7 +4,7 @@
  * Header with title, date range preset buttons, and export button.
  */
 
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { ExportButton } from './ExportButton';
 import { useDashboardStore } from '../store';
 import { useDashboardAnalytics } from '../hooks';

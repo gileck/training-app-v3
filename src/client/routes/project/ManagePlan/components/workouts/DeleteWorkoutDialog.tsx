@@ -1,4 +1,4 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,7 +6,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@/client/components/ui/dialog';
+} from '@/client/components/template/ui/dialog';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
 
 interface DeleteWorkoutDialogProps {

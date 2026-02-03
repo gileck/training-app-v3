@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from '@/client/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/ui/tabs';
+} from '@/client/components/template/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
 import { AlertTriangle } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';

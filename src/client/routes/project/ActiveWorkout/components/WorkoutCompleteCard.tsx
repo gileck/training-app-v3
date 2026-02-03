@@ -1,4 +1,4 @@
-import { Button } from '@/client/components/ui/button';
+import { Button } from '@/client/components/template/ui/button';
 import { Trophy, Flame } from 'lucide-react';
 
 interface WorkoutCompleteCardProps {
