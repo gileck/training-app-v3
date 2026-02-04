@@ -242,17 +242,17 @@ async function processItem(
         const originalBranch = getCurrentBranch();
 
         try {
-            // Always fetch comments - they provide context for any phase
+            // Always fetch issue comments - they provide context for any phase
             const comments = await adapter.getIssueComments(issueNumber);
-            const issueComments = comments.map((c) => ({
+            let allComments = comments.map((c) => ({
                 id: c.id,
                 body: c.body,
                 author: c.author,
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
             }));
-            if (issueComments.length > 0) {
-                console.log(`  Found ${issueComments.length} comment(s) on issue`);
+            if (allComments.length > 0) {
+                console.log(`  Found ${allComments.length} comment(s) on issue`);
             }
 
             // In feedback mode with existing PR, checkout the branch first to read existing design
@@ -272,6 +272,22 @@ async function processItem(
                     // Branch might not exist on remote yet, ignore
                 }
                 alreadyOnPRBranch = true;
+
+                // Also fetch PR comments as potential feedback
+                const prComments = await adapter.getPRComments(existingPR.prNumber);
+                const prFeedback = prComments
+                    .filter((c) => !c.body.includes('<!-- ') && !c.body.includes('ISSUE_ARTIFACT')) // Skip bot/artifact comments
+                    .map((c) => ({
+                        id: c.id,
+                        body: `[PR Comment] ${c.body}`,
+                        author: c.author,
+                        createdAt: c.createdAt,
+                        updatedAt: c.updatedAt,
+                    }));
+                if (prFeedback.length > 0) {
+                    console.log(`  Found ${prFeedback.length} feedback comment(s) on PR #${existingPR.prNumber}`);
+                    allComments = [...allComments, ...prFeedback];
+                }
             }
 
             // Check for existing design in file (for idempotency)
@@ -293,21 +309,21 @@ async function processItem(
                     console.log('  If you want to regenerate, use feedback mode or manually remove the existing design');
                     return { success: false, error: 'Product design file already exists (idempotency check)' };
                 }
-                prompt = buildProductDesignPrompt(content, productDevelopmentDoc, issueComments);
+                prompt = buildProductDesignPrompt(content, productDevelopmentDoc, allComments);
             } else if (mode === 'feedback') {
                 // Flow B: Address feedback
                 if (!existingDesign) {
                     return { success: false, error: 'No existing product design found to revise' };
                 }
 
-                if (issueComments.length === 0) {
+                if (allComments.length === 0) {
                     return { success: false, error: 'No feedback comments found' };
                 }
 
-                prompt = buildProductDesignRevisionPrompt(content, existingDesign, issueComments);
+                prompt = buildProductDesignRevisionPrompt(content, existingDesign, allComments);
             } else {
                 // Flow C: Continue after clarification
-                const clarification = issueComments[issueComments.length - 1];
+                const clarification = allComments[allComments.length - 1];
 
                 if (!clarification) {
                     return { success: false, error: 'No clarification comment found' };
@@ -315,7 +331,7 @@ async function processItem(
 
                 prompt = buildProductDesignClarificationPrompt(
                     { title: content.title, number: issueNumber, body: content.body, labels: content.labels },
-                    issueComments,
+                    allComments,
                     clarification
                 );
             }
