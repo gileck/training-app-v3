@@ -47,6 +47,7 @@
     "src/client/routes/project/Todos/**",
     "src/client/routes/project/SingleTodo/**",
     "src/server/database/collections/todos/**",
-    "src/client/styles/todos.css"
+    "src/client/styles/todos.css",
+    "src/apis/chat/**"
   ]
 }

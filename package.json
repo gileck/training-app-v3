@@ -54,7 +54,11 @@
     "build:claude": "tsx scripts/build-claude-md.ts CLAUDE.md",
     "agent-workflow": "tsx src/agents/cli/index.ts",
     "telegram-bot": "tsx scripts/poc/telegram-claude-bot.ts",
-    "check:circular": "madge --circular --extensions ts,tsx --ts-config tsconfig.json src/"
+    "check:circular": "madge --circular --extensions ts,tsx --ts-config tsconfig.json src/",
+    "check:unused": "knip",
+    "check:unused:ci": "knip --include dependencies,unlisted,unresolved",
+    "setup-s3-logging": "tsx scripts/template/setup-s3-logging.ts",
+    "test-s3-logging": "tsx scripts/template/test-s3-logging.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
@@ -124,7 +128,9 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.6",
+    "eslint-plugin-boundaries": "^5.3.1",
     "gray-matter": "^4.0.3",
+    "knip": "^5.82.1",
     "madge": "^8.0.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
