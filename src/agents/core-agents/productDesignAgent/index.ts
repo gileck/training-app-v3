@@ -27,7 +27,6 @@
  */
 
 import '../../shared/loadEnv';
-import { execSync } from 'child_process';
 import { Command } from 'commander';
 import {
     // Config
@@ -81,6 +80,16 @@ import {
 import {
     generateDesignBranchName,
 } from '../../lib/artifacts';
+import {
+    git,
+    hasUncommittedChanges,
+    branchExistsLocally,
+    checkoutBranch,
+    getCurrentBranch,
+    commitChanges,
+    pushBranch,
+    getDefaultBranch,
+} from '../../lib/git';
 
 // ============================================================
 // TYPES
@@ -94,93 +103,6 @@ interface ProcessableItem {
         prNumber: number;
         branchName: string;
     };
-}
-
-// ============================================================
-// GIT UTILITIES
-// ============================================================
-
-/**
- * Execute a git command and return the output
- */
-function git(command: string, options: { cwd?: string; silent?: boolean } = {}): string {
-    try {
-        const result = execSync(`git ${command}`, {
-            cwd: options.cwd || process.cwd(),
-            encoding: 'utf-8',
-            stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
-        });
-        return result.trim();
-    } catch (error) {
-        if (error instanceof Error && 'stderr' in error) {
-            throw new Error((error as { stderr: string }).stderr || error.message);
-        }
-        throw error;
-    }
-}
-
-/**
- * Check if there are uncommitted changes
- */
-function hasUncommittedChanges(): boolean {
-    const status = git('status --porcelain', { silent: true });
-    return status.length > 0;
-}
-
-/**
- * Check if a branch exists locally
- */
-function branchExistsLocally(branchName: string): boolean {
-    try {
-        git(`rev-parse --verify ${branchName}`, { silent: true });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-/**
- * Checkout a branch (create if doesn't exist)
- */
-function checkoutBranch(branchName: string, createFromDefault: boolean = false): void {
-    if (createFromDefault) {
-        const defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
-        git(`checkout -b ${branchName} origin/${defaultBranch}`);
-    } else {
-        git(`checkout ${branchName}`);
-    }
-}
-
-/**
- * Get current branch name
- */
-function getCurrentBranch(): string {
-    return git('rev-parse --abbrev-ref HEAD', { silent: true });
-}
-
-/**
- * Commit all changes with a message
- */
-function commitChanges(message: string): void {
-    git('add -A');
-    // Use single quotes and escape them properly to avoid shell injection
-    const escapedMessage = message.replace(/'/g, "'\\''");
-    git(`commit -m '${escapedMessage}'`);
-}
-
-/**
- * Push current branch to origin
- */
-function pushBranch(branchName: string, force: boolean = false): void {
-    const forceFlag = force ? '--force-with-lease' : '';
-    git(`push -u origin ${branchName} ${forceFlag}`.trim());
-}
-
-/**
- * Get the default branch name
- */
-function getDefaultBranch(): string {
-    return git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
 }
 
 // ============================================================

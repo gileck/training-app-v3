@@ -537,3 +537,16 @@ export {
     PLAYWRIGHT_TOOLS,
     isPlaywrightMCPAvailable,
 } from './playwright-mcp';
+
+// Re-export git utilities
+export {
+    git,
+    hasUncommittedChanges,
+    branchExistsLocally,
+    checkoutBranch,
+    getCurrentBranch,
+    commitChanges,
+    pushBranch,
+    getDefaultBranch,
+    type GitCommandOptions,
+} from './git';
