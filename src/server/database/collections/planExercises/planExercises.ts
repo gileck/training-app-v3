@@ -1,5 +1,5 @@
 import { Collection, ObjectId } from 'mongodb';
-import { getDb } from '@/server/database';
+import { getDb } from '@/server/database/connection';
 import { PlanExercise, PlanExerciseCreate, PlanExerciseUpdate } from './types';
 import { toQueryId } from '@/server/utils';
 

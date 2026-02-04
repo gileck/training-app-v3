@@ -1,5 +1,5 @@
 import { Collection } from 'mongodb';
-import { getDb } from '@/server/database';
+import { getDb } from '@/server/database/connection';
 import { ExerciseProgress, ExerciseProgressCreate, ExerciseProgressUpdate } from './types';
 import { toQueryId } from '@/server/utils';
 

@@ -1,5 +1,5 @@
 import { Collection, ObjectId } from 'mongodb';
-import { getDb } from '@/server/database';
+import { getDb } from '@/server/database/connection';
 import { WeeklyNote, WeeklyNoteClient } from './types';
 
 /**

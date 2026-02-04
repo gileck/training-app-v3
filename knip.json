@@ -4,11 +4,10 @@
     "src/pages/**/*.{ts,tsx}",
     "src/client/features/index.ts",
     "src/client/routes/index.ts",
+    "src/client/components/project/**/*.{ts,tsx}",
     "src/apis/index.ts",
-    "src/agents/index.ts",
     "scripts/**/*.{ts,js}",
-    "config/**/*.{ts,mjs,js}",
-    "eslint.config.mjs"
+    "config/**/*.{ts,mjs,js}"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
@@ -22,27 +21,20 @@
     "src/pages/api/**",
     "node_modules/**",
     "src/agents/lib/**",
-    "src/server/s3/example.ts"
+    "src/server/s3/example.ts",
+    "scripts/exercises-scripts/**"
   ],
   "ignoreDependencies": [
     "@types/*",
     "tailwindcss",
-    "@tailwindcss/*",
     "postcss",
-    "autoprefixer",
-    "sharp",
-    "tsx",
-    "@eslint/eslintrc",
     "eslint-config-next",
-    "eslint-plugin-boundaries",
     "@playwright/mcp",
     "@anthropic-ai/claude-code",
     "aws-sdk",
     "date-fns",
-    "undici"
-  ],
-  "ignoreBinaries": [
-    "madge"
+    "undici",
+    "react-day-picker"
   ],
   "ignoreExportsUsedInFile": true,
   "next": {
