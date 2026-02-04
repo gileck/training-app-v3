@@ -519,6 +519,19 @@ Part of #${issueNumber}
                 logGitHubAction(logCtx, 'comment', 'Posted document summary comment on PR');
             }
 
+            // In feedback mode, post "Addressed Feedback" marker to help track what was addressed
+            if (mode === 'feedback' && comment) {
+                const addressedMarker = `<!-- ADDRESSED_FEEDBACK_MARKER -->
+**✅ Addressed Feedback** (${new Date().toISOString().split('T')[0]})
+
+The document has been revised to address the feedback above. Key changes:
+
+${comment}`;
+                await adapter.addPRComment(prNumber, addressedMarker);
+                console.log('  Addressed feedback marker posted on PR');
+                logGitHubAction(logCtx, 'comment', 'Posted addressed feedback marker on PR');
+            }
+
             // Return to original branch
             checkoutBranch(originalBranch);
             console.log(`  Returned to branch: ${originalBranch}`);

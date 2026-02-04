@@ -313,6 +313,9 @@ async function processItem(
                     console.log(`  Found ${prFeedback.length} feedback comment(s) on PR #${existingPR.prNumber}`);
                     allComments = [...allComments, ...prFeedback];
                 }
+
+                // Sort all comments chronologically (oldest first, newest last)
+                allComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             }
 
             // Try to get product design from file first, then fall back to issue body
@@ -572,6 +575,19 @@ Part of #${issueNumber}
                 await adapter.addPRComment(prNumber, prefixedComment);
                 console.log('  Summary comment posted on PR');
                 logGitHubAction(logCtx, 'comment', 'Posted design summary comment on PR');
+            }
+
+            // In feedback mode, post "Addressed Feedback" marker to help track what was addressed
+            if (mode === 'feedback' && comment) {
+                const addressedMarker = `<!-- ADDRESSED_FEEDBACK_MARKER -->
+**✅ Addressed Feedback** (${new Date().toISOString().split('T')[0]})
+
+The design has been revised to address the feedback above. Key changes:
+
+${comment}`;
+                await adapter.addPRComment(prNumber, addressedMarker);
+                console.log('  Addressed feedback marker posted on PR');
+                logGitHubAction(logCtx, 'comment', 'Posted addressed feedback marker on PR');
             }
 
             // Post phases comment on PR for multi-PR workflow (L/XL features)

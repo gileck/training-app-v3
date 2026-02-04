@@ -445,18 +445,25 @@ ${productDesignSection}## Existing Technical Design
 
 ${existingTechDesign}
 
-## Admin Feedback
+## Feedback History
 
-The admin has requested changes. Please address ALL of the following feedback:
+The comments below are sorted chronologically (oldest first, newest last).
+- **"✅ Addressed Feedback" markers** - these indicate what was addressed in previous iterations
+- **Focus on ALL comments since the last marker** - if a marker exists, address all feedback that came after it
+- **If no marker exists** - address all feedback comments (this is the first revision)
+- **Older comments before the marker** - use for context only, they have already been addressed
 
 ${feedbackSection}
 
 ## Your Task
 
-1. Carefully read and understand all feedback comments
-2. Research any areas mentioned in the feedback
-3. Revise the Technical Design to address ALL feedback points
-4. Keep the output size proportional to the feature complexity
+1. Carefully read all feedback comments to understand the full context
+2. **Look for the most recent "✅ Addressed Feedback" marker** - this shows where the last revision cycle ended
+3. **Address ALL feedback comments that appear AFTER the marker** (there may be multiple comments covering different areas)
+4. If no marker exists, this is the first revision - address all feedback comments
+5. Research any areas mentioned in the feedback
+6. Revise the Technical Design to address all the relevant feedback points
+7. Keep the output size proportional to the feature complexity
 
 ## Output Format
 
