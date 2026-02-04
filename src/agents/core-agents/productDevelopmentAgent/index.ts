@@ -260,6 +260,25 @@ async function processItem(
                 console.log(`  Found ${issueComments.length} comment(s) on issue`);
             }
 
+            // In feedback mode with existing PR, checkout the branch first to read existing design
+            // This is needed because the design file lives on the PR branch, not main
+            let alreadyOnPRBranch = false;
+            if (mode === 'feedback' && existingPR) {
+                // Ensure clean working directory before branch operations
+                if (hasUncommittedChanges()) {
+                    return { success: false, error: 'Uncommitted changes detected - please commit or stash first' };
+                }
+                console.log(`  Checking out PR branch to read existing design: ${existingPR.branchName}`);
+                checkoutBranch(existingPR.branchName);
+                // Pull latest changes
+                try {
+                    git(`pull origin ${existingPR.branchName}`, { silent: true });
+                } catch {
+                    // Branch might not exist on remote yet, ignore
+                }
+                alreadyOnPRBranch = true;
+            }
+
             // Check for existing document in file (for idempotency)
             const existingDocument = readDesignDoc(issueNumber, 'product-dev');
 
@@ -402,28 +421,30 @@ async function processItem(
                 return { success: true };
             }
 
-            // Ensure clean working directory before branch operations
-            if (hasUncommittedChanges()) {
-                return { success: false, error: 'Uncommitted changes detected - please commit or stash first' };
-            }
-
             // Generate branch name and determine if we're updating existing PR
             const branchName = existingPR?.branchName || generateDesignBranchName(issueNumber, 'product-dev');
             const isExistingBranch = existingPR || branchExistsLocally(branchName);
 
-            // Checkout or create branch
-            if (isExistingBranch) {
-                console.log(`  Checking out existing branch: ${branchName}`);
-                checkoutBranch(branchName);
-                // Pull latest changes
-                try {
-                    git(`pull origin ${branchName}`, { silent: true });
-                } catch {
-                    // Branch might not exist on remote yet, ignore
+            // Checkout or create branch (skip if already on PR branch from earlier checkout)
+            if (!alreadyOnPRBranch) {
+                // Ensure clean working directory before branch operations
+                if (hasUncommittedChanges()) {
+                    return { success: false, error: 'Uncommitted changes detected - please commit or stash first' };
                 }
-            } else {
-                console.log(`  Creating new branch: ${branchName}`);
-                checkoutBranch(branchName, true);
+
+                if (isExistingBranch) {
+                    console.log(`  Checking out existing branch: ${branchName}`);
+                    checkoutBranch(branchName);
+                    // Pull latest changes
+                    try {
+                        git(`pull origin ${branchName}`, { silent: true });
+                    } catch {
+                        // Branch might not exist on remote yet, ignore
+                    }
+                } else {
+                    console.log(`  Creating new branch: ${branchName}`);
+                    checkoutBranch(branchName, true);
+                }
             }
 
             // Write document file
