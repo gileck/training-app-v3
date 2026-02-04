@@ -7,14 +7,14 @@
 
 ## Summary
 
-- **Total Tasks:** 33
-- **Open:** 12
+- **Total Tasks:** 40
+- **Open:** 15
 - **In Progress:** 0
-- **Done:** 21
+- **Done:** 25
 
 ---
 
-## 📋 Open Tasks (12)
+## 📋 Open Tasks (15)
 
 ### 🟠 High Priority
 
@@ -23,6 +23,8 @@
 | 17 | Add QA Verification Step Using Playwright MCP | M | Medium |
 | 25 | Phase PRs Target Issue Branch Instead of Master | L | High |
 | 28 | Issue Workflow Configuration Page from Telegram | XL | High |
+| 37 | Implement Feature Branch Workflow with Phase PRs | L | High |
+| 38 | Implement AWS S3 Issue Log System for Agent Workflow | M | Medium |
 
 ### 🟡 Medium Priority
 
@@ -35,6 +37,7 @@
 | 24 | Standalone Task Creation Agent | L | Medium |
 | 32 | Display Design Docs and PR Links from GitHub Issue Artifacts | M | Medium |
 | 33 | Add sendAgentNotification() Function for Agent-Specific Telegram Notifications | S | Low |
+| 39 | Split telegram-webhook.ts into smaller modules | M | Medium |
 
 ### 🟢 Low Priority
 
@@ -43,10 +46,14 @@
 | 15 | Telegram Button UX Improvements | S | Low |
 | 22 | Per-Issue Plan Subagent Toggle | S | Low |
 
-## ✅ Completed Tasks (21)
+## ✅ Completed Tasks (25)
 
 | # | Title | Completed | Commit |
 |---|-------|-----------|--------|
+| 40 | ~~Extract Shared Git Utilities to src/agents/lib/git.ts~~ | 2026-02-04 | - |
+| 36 | ~~Improve sync-template with Interactive Conflict Resolution~~ | 2026-02-01 | `51c495c` |
+| 35 | ~~Add PR Merge Success Notification with Revert Button~~ | 2026-02-01 | - |
+| 34 | ~~Add list/get/update Commands to Workflow CLI~~ | 2026-02-01 | `ccbc23a` |
 | 31 | ~~Remove Legacy MongoDB Design Fields (productDesign/techDesign)~~ | 2026-01-28 | - |
 | 30 | ~~Telegram Interactive Clarification Flow for Agents~~ | 2026-01-28 | - |
 | 29 | ~~Disable Plan Mode When Addressing PR Feedback~~ | 2026-01-28 | `a0a531e` |
@@ -71,4 +78,4 @@
 
 ---
 
-*Last updated: 2026-01-30*
+*Last updated: 2026-02-04*

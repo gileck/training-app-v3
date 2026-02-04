@@ -1,11 +1,13 @@
 ---
 number: 40
-title: "Extract Shared Git Utilities to src/agents/lib/git.ts"
+title: Extract Shared Git Utilities to src/agents/lib/git.ts
 priority: Medium
 size: S
 complexity: Low
-status: TODO
+status: Done
 dateAdded: 2026-02-04
+dateUpdated: 2026-02-04
+dateCompleted: 2026-02-04
 ---
 
 # Task 40: Extract Shared Git Utilities to src/agents/lib/git.ts
