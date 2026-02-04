@@ -999,29 +999,81 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         const oc = this.getBotOctokit(); // Use bot token for creating PRs
         const { owner, repo } = this.config.github;
 
-        const { data } = await oc.pulls.create({
-            owner,
-            repo,
-            head,
-            base,
-            title,
-            body,
-        });
-
-        // Request reviewers if provided
-        if (reviewers && reviewers.length > 0) {
-            await oc.pulls.requestReviewers({
+        try {
+            const { data } = await oc.pulls.create({
                 owner,
                 repo,
-                pull_number: data.number,
-                reviewers,
+                head,
+                base,
+                title,
+                body,
             });
-        }
 
-        return {
-            number: data.number,
-            url: data.html_url,
-        };
+            // Request reviewers if provided
+            if (reviewers && reviewers.length > 0) {
+                await oc.pulls.requestReviewers({
+                    owner,
+                    repo,
+                    pull_number: data.number,
+                    reviewers,
+                });
+            }
+
+            return {
+                number: data.number,
+                url: data.html_url,
+            };
+        } catch (error: unknown) {
+            // Check if error is "PR already exists"
+            const isAlreadyExistsError = error instanceof Error &&
+                'status' in error &&
+                (error as { status: number }).status === 422 &&
+                error.message.includes('pull request already exists');
+
+            if (isAlreadyExistsError) {
+                // Find and return the existing PR
+                const existingPR = await this.findOpenPRForBranch(head);
+                if (existingPR) {
+                    console.log(`  ℹ️  PR #${existingPR.prNumber} already exists for branch ${head}, using existing PR`);
+                    return {
+                        number: existingPR.prNumber,
+                        url: `https://github.com/${owner}/${repo}/pull/${existingPR.prNumber}`,
+                    };
+                }
+            }
+
+            // Re-throw other errors
+            throw error;
+        }
+    }
+
+    /**
+     * Find an open PR for a specific branch
+     */
+    async findOpenPRForBranch(branchName: string): Promise<{ prNumber: number; branchName: string } | null> {
+        const oc = this.getBotOctokit();
+        const { owner, repo } = this.config.github;
+
+        try {
+            const { data: prs } = await oc.pulls.list({
+                owner,
+                repo,
+                head: `${owner}:${branchName}`,
+                state: 'open',
+                per_page: 1,
+            });
+
+            if (prs.length > 0) {
+                return {
+                    prNumber: prs[0].number,
+                    branchName: prs[0].head.ref,
+                };
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
     }
 
     async getPRReviewComments(prNumber: number): Promise<PRReviewComment[]> {
@@ -1545,5 +1597,60 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
             dataType: field.dataType || 'SINGLE_SELECT',
             options: field.options,
         }));
+    }
+
+    // ============================================================
+    // FILE OPERATIONS
+    // ============================================================
+
+    /**
+     * Create or update a file in the repository via GitHub Contents API
+     * Used for committing log files from Vercel serverless functions
+     */
+    async createOrUpdateFileContents(
+        path: string,
+        content: string,
+        message: string
+    ): Promise<void> {
+        const oc = this.getBotOctokit(); // Use bot token for commits
+        const { owner, repo } = this.config.github;
+
+        // Encode content to base64
+        const base64Content = Buffer.from(content, 'utf-8').toString('base64');
+
+        // Try to get existing file to get its SHA (needed for updates)
+        let sha: string | undefined;
+        try {
+            const { data: existingFile } = await oc.repos.getContent({
+                owner,
+                repo,
+                path,
+            });
+
+            // getContent returns different types for files vs directories
+            if (!Array.isArray(existingFile) && existingFile.type === 'file') {
+                sha = existingFile.sha;
+            }
+        } catch (error: unknown) {
+            // File doesn't exist yet, that's fine - we'll create it
+            const is404 = error instanceof Error &&
+                'status' in error &&
+                (error as { status: number }).status === 404;
+            if (!is404) {
+                throw error;
+            }
+        }
+
+        // Create or update the file
+        await oc.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            path,
+            message,
+            content: base64Content,
+            sha, // Include SHA if updating existing file
+        });
+
+        console.log(`  [LOG:GITHUB] File ${sha ? 'updated' : 'created'}: ${path}`);
     }
 }
