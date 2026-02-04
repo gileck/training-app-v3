@@ -706,6 +706,7 @@ program
     .action(async (options: PRReviewOptions) => {
         try {
             await run(options);
+            process.exit(0);
         } catch (error) {
             console.error('Fatal error:', error);
             process.exit(1);
