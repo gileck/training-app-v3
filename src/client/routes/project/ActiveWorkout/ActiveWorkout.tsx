@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { ExerciseDetails } from '@/client/components/project/ExerciseDetails/ExerciseDetails';
 import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
 import type { ActiveWorkoutTab } from '@/client/features/project/workout';

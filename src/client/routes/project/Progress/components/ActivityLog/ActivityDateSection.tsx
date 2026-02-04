@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/client/components/template/ui/card';
 import { Button } from '@/client/components/template/ui/button';
-import { Checkbox } from '@/client/components/template/ui/checkbox';
+import { Checkbox } from '@/client/components/project/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,

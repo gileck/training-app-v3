@@ -6,7 +6,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/client/components/template/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { AlertTriangle } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
 import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';

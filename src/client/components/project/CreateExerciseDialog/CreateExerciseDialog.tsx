@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/client/components/template/ui/button';
 import { Input } from '@/client/components/template/ui/input';
 import { Label } from '@/client/components/template/ui/label';
-import { Checkbox } from '@/client/components/template/ui/checkbox';
+import { Checkbox } from '@/client/components/project/ui/checkbox';
 import {
     Dialog,
     DialogContent,

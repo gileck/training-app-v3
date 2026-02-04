@@ -1,4 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { Button } from '@/client/components/template/ui/button';
 import {
     Activity,

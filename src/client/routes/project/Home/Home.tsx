@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Button } from '@/client/components/template/ui/button';
 import { Skeleton } from '@/client/components/template/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { toast } from '@/client/components/template/ui/toast';
 import { Calendar, LayoutGrid, List } from 'lucide-react';
 import { useState, useMemo } from 'react';

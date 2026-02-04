@@ -16,7 +16,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/template/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/template/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import {
     Sparkles,
     ArrowLeft,
