@@ -22,7 +22,7 @@ async function main() {
         overrideConfig: [
             {
                 plugins: {
-                    'api-guidelines': require('../eslint-plugin-api-guidelines')
+                    'api-guidelines': require('../../eslint-plugin-api-guidelines')
                 },
                 rules: {
                     'api-guidelines/no-server-import-in-client': ['warn', { debug: true }]

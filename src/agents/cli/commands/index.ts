@@ -7,3 +7,4 @@ export { handleStart } from './start';
 export { handleList } from './list';
 export { handleGet } from './get';
 export { handleUpdate } from './update';
+export { handleLog } from './log';

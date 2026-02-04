@@ -16,6 +16,9 @@ export interface ParsedArgs {
     id?: string;
     status?: string;
     source?: string;
+    // Fields for log command
+    issue?: string;
+    output?: string;
 }
 
 /**
@@ -69,6 +72,12 @@ export function parseArgs(args: string[]): ParsedArgs {
             i += 2;
         } else if (arg === '--source' && args[i + 1]) {
             result.source = args[i + 1];
+            i += 2;
+        } else if (arg === '--issue' && args[i + 1]) {
+            result.issue = args[i + 1];
+            i += 2;
+        } else if (arg === '--output' && args[i + 1]) {
+            result.output = args[i + 1];
             i += 2;
         } else {
             // Unknown argument, skip

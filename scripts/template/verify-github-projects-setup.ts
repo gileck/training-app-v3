@@ -664,6 +664,99 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     };
 }
 
+async function checkS3Logging(): Promise<CategoryResults> {
+    const checks: CheckResult[] = [];
+
+    const s3Bucket = process.env.AWS_S3_LOG_BUCKET;
+    const awsAccessKey = process.env.AWS_ACCESS_KEY_ID;
+    const awsSecretKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+    // Check if S3 logging is configured
+    if (!s3Bucket) {
+        checks.push({
+            passed: true, // Optional feature
+            message: 'AWS_S3_LOG_BUCKET not set (optional)',
+            details: [
+                'S3 logging is disabled - logs only work locally',
+                'To enable unified logging from Vercel/GitHub Actions:',
+                '  yarn setup-s3-logging <bucket-name>'
+            ]
+        });
+
+        return {
+            category: 'S3 Logging (Optional)',
+            checks,
+            passed: checks.filter(c => c.passed).length,
+            failed: checks.filter(c => !c.passed).length
+        };
+    }
+
+    // S3 logging is configured - verify credentials
+    checks.push({
+        passed: true,
+        message: `AWS_S3_LOG_BUCKET = ${s3Bucket} ✓`
+    });
+
+    checks.push({
+        passed: !!awsAccessKey,
+        message: `AWS_ACCESS_KEY_ID ${awsAccessKey ? '✓' : '✗'}`,
+        details: awsAccessKey ? undefined : ['Required for S3 logging']
+    });
+
+    checks.push({
+        passed: !!awsSecretKey,
+        message: `AWS_SECRET_ACCESS_KEY ${awsSecretKey ? '✓' : '✗'}`,
+        details: awsSecretKey ? undefined : ['Required for S3 logging']
+    });
+
+    // Test S3 connectivity if credentials are present
+    if (awsAccessKey && awsSecretKey) {
+        try {
+            const { S3Client, HeadBucketCommand } = await import('@aws-sdk/client-s3');
+
+            const client = new S3Client({
+                region: process.env.AWS_REGION || 'us-east-1',
+                credentials: {
+                    accessKeyId: awsAccessKey,
+                    secretAccessKey: awsSecretKey,
+                },
+            });
+
+            await client.send(new HeadBucketCommand({ Bucket: s3Bucket }));
+
+            checks.push({
+                passed: true,
+                message: 'S3 bucket accessible ✓',
+                details: [`Can connect to s3://${s3Bucket}/`]
+            });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const is403 = errorMessage.includes('403') || errorMessage.includes('Access Denied');
+            const is404 = errorMessage.includes('404') || errorMessage.includes('NotFound');
+
+            checks.push({
+                passed: false,
+                message: 'S3 bucket access ✗',
+                details: [
+                    is403 ? 'Access denied - check IAM permissions' :
+                    is404 ? `Bucket not found: ${s3Bucket}` :
+                    `Error: ${errorMessage}`,
+                    '',
+                    'Run: yarn setup-s3-logging to create/configure bucket'
+                ]
+            });
+        }
+    }
+
+    const passed = checks.filter(c => c.passed).length;
+    return {
+        category: 'S3 Logging (Optional)',
+        checks,
+        passed,
+        failed: checks.length - passed
+    };
+}
+
 async function checkPlaywrightMCP(): Promise<CategoryResults> {
     const checks: CheckResult[] = [];
 
@@ -742,6 +835,7 @@ async function main() {
     }
 
     // Always check optional features
+    results.push(await checkS3Logging());
     results.push(await checkPlaywrightMCP());
 
     // Print results

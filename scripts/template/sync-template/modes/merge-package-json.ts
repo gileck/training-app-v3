@@ -140,15 +140,21 @@ export async function runMergePackageJson(context: SyncContext): Promise<void> {
         log(context.options, `   📌 Kept project values: ${mergeResult.projectKeptFields.join(', ')}`);
       }
 
-      // Remind to run yarn install if dependencies changed
-      const depsChanged = mergeResult.autoMergedFields.some(f => 
+      // Auto-run yarn install if dependencies changed
+      const depsChanged = mergeResult.autoMergedFields.some(f =>
         f.includes('dependencies') || f.includes('devDependencies') || f.includes('peerDependencies')
-      ) || mergeResult.templateOnlyFields.some(f => 
+      ) || mergeResult.templateOnlyFields.some(f =>
         f.includes('dependencies') || f.includes('devDependencies') || f.includes('peerDependencies')
       );
 
       if (depsChanged) {
-        log(context.options, '\n⚠️  Dependencies were updated. Run `yarn install` to update node_modules.');
+        log(context.options, '\n📦 Dependencies were updated. Running yarn install...');
+        try {
+          exec('yarn install', context.projectRoot, { silent: false });
+          log(context.options, '✅ yarn install completed successfully.');
+        } catch (error) {
+          log(context.options, '⚠️  yarn install failed. Please run it manually.');
+        }
       }
     }
 

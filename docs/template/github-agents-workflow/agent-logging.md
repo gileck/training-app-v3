@@ -471,22 +471,113 @@ Grep pattern="\[LOG:WEBHOOK\].*merge\|\[LOG:TELEGRAM\].*merge" path="agent-logs/
 
 ---
 
-## Limitations
+## S3 Logging (Unified Logging)
 
-### Webhook Logging on Vercel
+When `AWS_S3_LOG_BUCKET` is set, agent logs are written to S3 instead of the local filesystem. This enables unified logging from all sources:
 
-**Important:** The external logging functions (`logWebhookAction`, `logWebhookPhaseStart`, etc.) only work when running locally. On Vercel (serverless), these functions silently skip because:
+- **Local agents** (run via `yarn agent:*`)
+- **Telegram webhooks on Vercel**
+- **GitHub Actions**
 
-1. Agent log files (`agent-logs/issue-{N}.md`) are stored in the local git repository
-2. Vercel serverless functions don't have access to the local filesystem
-3. The `logExists()` check returns `false`, so logging is skipped
+### Setup
+
+1. **Set environment variable:**
+   ```bash
+   AWS_S3_LOG_BUCKET=your-s3-bucket-name
+   ```
+
+2. **Ensure AWS credentials are configured:**
+   ```bash
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   ```
+
+3. **Add to Vercel environment variables** for serverless logging support.
+
+### How It Works
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  DURING WORKFLOW (S3 as temporary buffer)                    │
+├──────────────────────────────────────────────────────────────┤
+│  Local Agent ──────┐                                         │
+│  GitHub Actions ───┼──► S3: agent-logs/issue-{N}.md         │
+│  Vercel Webhook ───┘                                         │
+│                                                              │
+│  Fallback: If not set → local file (existing behavior)      │
+└──────────────────────────────────────────────────────────────┘
+                          │
+                          ▼ Status → Done
+┌──────────────────────────────────────────────────────────────┐
+│  ON WORKFLOW COMPLETION                                      │
+├──────────────────────────────────────────────────────────────┤
+│  1. Read log from S3                                         │
+│  2. Commit to repo via GitHub Contents API                   │
+│  3. Delete S3 file                                           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Concurrency Handling
+
+S3 append operations use a read-modify-write pattern with:
+- **Optimistic locking** via ETags
+- **Exponential backoff** retry (100ms, 200ms, 400ms)
+- **Max 3 retries** before failing
+
+This handles concurrent writes from multiple sources (e.g., local agent + webhook).
+
+### Log Lifecycle
+
+1. **Issue created:** When admin approves and GitHub issue is created (in `sync-core.ts`), the log file is initialized with header
+2. **During workflow:** All sources (local agents, webhooks, GitHub Actions) append to the same S3 file
+3. **Status → Done:** Log synced to repo via GitHub API, S3 file deleted
+4. **Result:** Log persisted in `agent-logs/issue-{N}.md` in the repository
+
+**Important:** The log is initialized at issue creation time (when admin approves), BEFORE any agents run. This ensures the file exists for all subsequent writes.
+
+### API Functions
+
+```typescript
+import {
+    isS3LoggingEnabled,
+    s3LogExists,
+    s3ReadLog,
+    s3WriteLog,
+    s3AppendToLog,
+    s3DeleteLog,
+    syncLogToRepo,
+    syncLogToRepoAndCleanup,
+} from '@/agents/lib/logging';
+
+// Check if S3 logging is enabled
+if (isS3LoggingEnabled()) {
+    // Read current log
+    const content = await s3ReadLog(issueNumber);
+
+    // Append to log (with retry)
+    await s3AppendToLog(issueNumber, 'New log entry\n');
+
+    // Sync to repo when done
+    await syncLogToRepoAndCleanup(issueNumber);
+}
+```
+
+### Orphaned Files
+
+If a workflow never completes (e.g., manual intervention), S3 files may remain. Consider adding a cleanup job for logs older than 7 days.
+
+---
+
+## Limitations (Without S3 Logging)
+
+When `AWS_S3_LOG_BUCKET` is **not** set, logging falls back to local filesystem:
 
 **What this means:**
 - **Local agents** (run via `yarn agent:*`) → Full logging works
 - **Telegram webhooks on Vercel** → Logging is silently skipped
 - **GitHub Actions** → Can log if running in a checkout of the repo
 
-**Future improvement:** S3-based logging would enable unified logs from both local agents and Vercel webhooks, but the current setup provides sufficient debugging capability through local agent logs.
+To enable unified logging from all sources, set up S3 logging as described above.
 
 ---
 

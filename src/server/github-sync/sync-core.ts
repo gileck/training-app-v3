@@ -7,6 +7,7 @@
 
 import { getProjectManagementAdapter, STATUSES } from '@/server/project-management';
 import { ensureArtifactComment } from '@/agents/lib';
+import { writeLogHeader } from '@/agents/lib/logging';
 import type {
     SyncToGitHubResult,
     SyncOptions,
@@ -57,6 +58,10 @@ export async function syncItemToGitHub<T extends GitHubSyncedFields>(
 
         const issueResult = await adapter.createIssue(title, body, labels);
         const { number: issueNumber, url: issueUrl, nodeId: issueNodeId } = issueResult;
+
+        // 4b. Initialize the agent log file
+        const issueType = labels[0] || 'unknown'; // 'feature' or 'bug'
+        writeLogHeader(issueNumber, title, issueType);
 
         // 5. Add issue to project
         const projectItemId = await adapter.addIssueToProject(issueNodeId);

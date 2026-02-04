@@ -11,7 +11,7 @@
  */
 
 import '../shared/loadEnv';
-import { handleStart, handleCreate, handleList, handleGet, handleUpdate } from './commands';
+import { handleStart, handleCreate, handleList, handleGet, handleUpdate, handleLog } from './commands';
 
 type CommandHandler = (args: string[]) => Promise<void>;
 
@@ -21,6 +21,7 @@ const COMMANDS: Record<string, CommandHandler> = {
     list: handleList,
     get: handleGet,
     update: handleUpdate,
+    log: handleLog,
 };
 
 function printUsage(): void {
@@ -35,6 +36,7 @@ Commands:
   list      List feature requests and bug reports
   get       Get details of a specific item
   update    Update status or priority of an item
+  log       Download issue log from S3
 
 Create options:
   --type <type>           Required: feature | bug
@@ -62,6 +64,10 @@ Update options:
                           Bugs: new | investigating | resolved | closed
   --priority <level>      Optional: low | medium | high | critical (features only)
   --dry-run               Optional: Preview without updating
+
+Log options:
+  <issue-number>          Required: GitHub issue number
+  --output <path>         Optional: Output file path (default: temp-agent-logs/issue-{N}.md)
 
 Workflow:
   Default (no flags):
@@ -103,6 +109,12 @@ Examples:
 
   # Preview update without applying
   yarn agent-workflow update a1b2c3d4 --status done --dry-run
+
+  # Download issue log from S3
+  yarn agent-workflow log 42
+
+  # Download log to custom path
+  yarn agent-workflow log 42 --output ./my-logs/issue-42.md
 `);
 }
 

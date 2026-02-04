@@ -36,6 +36,10 @@ type RouterContextType = {
   queryParams: QueryParams;
   isPublicRoute: boolean;
   isFullScreen: boolean;
+  /** Exit full-screen mode (show header/navbar) */
+  exitFullScreen: () => void;
+  /** Enter full-screen mode (hide header/navbar) */
+  enterFullScreen: () => void;
   navigate: (path: string, options?: { replace?: boolean }) => void;
 };
 
@@ -45,6 +49,8 @@ const RouterContext = createContext<RouterContextType>({
   queryParams: {},
   isPublicRoute: false,
   isFullScreen: false,
+  exitFullScreen: () => { },
+  enterFullScreen: () => { },
   navigate: () => { },
 });
 
@@ -126,6 +132,10 @@ export const RouterProvider = ({ children, routes }: {
   // Parse query parameters
   // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral query params from URL
   const [queryParams, setQueryParams] = useState<QueryParams>(() => parseQueryParams());
+
+  // Full-screen state (can be toggled by user, resets on route change)
+  // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state tied to current route
+  const [isFullScreenOverride, setIsFullScreenOverride] = useState<boolean | null>(null);
 
   // Restore last route on initial mount (only once)
   // This effect intentionally has no dependencies - it reads initial values on mount only
@@ -247,7 +257,27 @@ export const RouterProvider = ({ children, routes }: {
 
     // Scroll to top on navigation (standard browser behavior)
     scrollToTop();
+
+    // Reset full-screen override when navigating
+    setIsFullScreenOverride(null);
   }, []);
+
+  // Reset full-screen override when route changes (e.g., browser back/forward)
+  useEffect(() => {
+    setIsFullScreenOverride(null);
+  }, [currentPath]);
+
+  // Full-screen toggle functions
+  const exitFullScreen = useCallback(() => {
+    setIsFullScreenOverride(false);
+  }, []);
+
+  const enterFullScreen = useCallback(() => {
+    setIsFullScreenOverride(true);
+  }, []);
+
+  // Compute effective full-screen state (override takes precedence over route config)
+  const isFullScreen = isFullScreenOverride !== null ? isFullScreenOverride : isCurrentRouteFullScreen;
 
   // Listen for popstate events (browser back/forward, iOS swipe gestures)
   useEffect(() => {
@@ -280,7 +310,16 @@ export const RouterProvider = ({ children, routes }: {
 
   // Provide router context and render current route
   return (
-    <RouterContext.Provider value={{ currentPath, routeParams, queryParams, isPublicRoute: isCurrentRoutePublic, isFullScreen: isCurrentRouteFullScreen, navigate }}>
+    <RouterContext.Provider value={{
+      currentPath,
+      routeParams,
+      queryParams,
+      isPublicRoute: isCurrentRoutePublic,
+      isFullScreen,
+      exitFullScreen,
+      enterFullScreen,
+      navigate
+    }}>
       {children ? children(RouteComponent) : <RouteComponent />}
     </RouterContext.Provider>
   );

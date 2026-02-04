@@ -469,4 +469,18 @@ export interface ProjectManagementAdapter {
      * Get all project fields
      */
     getProjectFields(): Promise<ProjectField[]>;
+
+    // --------------------------------------------------------
+    // File Operations
+    // --------------------------------------------------------
+
+    /**
+     * Create or update a file in the repository via GitHub Contents API
+     * Used for committing log files from Vercel serverless functions
+     *
+     * @param path - File path relative to repo root (e.g., "agent-logs/issue-42.md")
+     * @param content - File content (will be base64 encoded)
+     * @param message - Commit message
+     */
+    createOrUpdateFileContents(path: string, content: string, message: string): Promise<void>;
 }

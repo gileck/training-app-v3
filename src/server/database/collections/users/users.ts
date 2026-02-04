@@ -1,5 +1,5 @@
 import { Collection, ObjectId } from 'mongodb';
-import { getDb } from '@/server/database';
+import { getDb } from '../../connection';
 import { User, UserCreate, UserUpdate } from './types';
 
 /**
