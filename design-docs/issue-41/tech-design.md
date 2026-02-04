@@ -2,261 +2,220 @@
 
 ## Root Cause Analysis
 
-**The Bug:** The app experiences extremely slow initial load times, particularly on mobile devices with slower internet connections. The user reported slow loading of the login modal, then the plan, and seeing "no plan found" errors before eventually loading successfully.
+**The Bug:** The app loads extremely slowly on iPhone (Chrome), showing "Plan not found" errors initially, then eventually loading the plan after navigation.
 
-**Root Cause:** Analysis of the session logs reveals multiple performance bottlenecks:
+**Root Causes Identified:**
 
-1. **Massive Exercise Library Payload (Primary Issue)**
-   - The `exercise-definitions/list` API returns 208KB of data in a single response
-   - This API is called on initial load and fetches ALL system exercises plus custom exercises
-   - According to industry standards, fitness exercise databases typically contain 800-11,000+ exercises
-   - The current implementation has no pagination, filtering, or lazy loading
-   - On slow mobile connections (as reported - iPhone on mobile network), downloading 208KB takes 1.4+ seconds
-   - This blocks rendering and creates a poor user experience
+1. **Large Exercise Library Response (208KB)**
+   - The `exercise-definitions/list` API returns 208KB of data
+   - This data is fetched on multiple pages (Home, TrainingPlans, ManagePlan)
+   - The response takes 1486ms to load according to session logs
+   - On slow mobile networks (especially iPhone), this creates significant delay
 
-2. **Race Condition with Plan Loading (Secondary Issue)**
-   - Session logs show 8 consecutive "Plan not found" errors for planId `69595f259c7f329fccd06bc3`
-   - The wrong plan ID was being used initially, then later the correct plan ID `694a4983067f2aea033f4ec0` succeeded
-   - This suggests timing/race condition in how the active plan is selected from React Query cache
-   - The `useSyncActivePlan` hook depends on `usePlans()` query data, but if the component renders before the query completes, it may use a stale/wrong plan ID from the store
+2. **Query Execution Race Condition**
+   - Session logs show repeated "Plan not found" errors for plan ID `69595f259c7f329fccd06bc3`
+   - The errors occur because plan-dependent queries (training-plans/get, plan-workouts/list) execute before the plans list has loaded
+   - Multiple routes load plan data independently without coordination
+   - Each query has `enabled: !!planId` but doesn't check if the planId is actually valid yet
 
-3. **No Progressive Enhancement**
-   - The app doesn't show any meaningful UI until all data is loaded
-   - No skeleton states or progressive loading
-   - Users see a blank screen during the multi-second load time
+3. **React Query Cache May Be Disabled**
+   - User asked "What about caching?" suggesting cache might not be working
+   - Default cache settings: staleTime=30s, gcTime=30min, persist=7days
+   - If user disabled "staleWhileRevalidate" in Settings, all caching is disabled (staleTime=0, gcTime=0)
+   - With caching disabled, every page navigation refetches all data, causing slow load times
 
-4. **Inefficient Data Fetching**
-   - Exercise definitions are fetched on every page load even though they rarely change
-   - No server-side caching (disabled with `disableCache: true` in processApiCall.ts)
-   - React Query stale time defaults mean exercises are re-fetched frequently
+4. **No Query Deduplication Across Routes**
+   - Multiple components fetch the same data independently
+   - Home, TrainingPlans, and ManagePlan all call `useExerciseLibrary()`
+   - Each route loads plans independently without sharing cached data effectively
 
-**Trigger Condition:** 
-- Initial app load on slow network connections (especially mobile)
-- Large exercise library (likely 1000+ exercises with images/metadata)
-- Multiple parallel API calls competing for bandwidth
+**Trigger Conditions:**
+- Slow network connection (mobile data, weak WiFi)
+- First app load or after cache expiry
+- User disabled cache via Settings → "Use Cache" toggle
+- iPhone with Chrome browser on iOS (as reported)
 
 ## Scope Assessment
 
-**Similar patterns found:**
+**Similar Performance Patterns Found:**
 
-**Exercise Library Loading Pattern:**
-- `src/client/routes/project/TrainingPlans/hooks.ts` - calls `listExercises()` with no filters
-- `src/client/routes/project/ManagePlan/hooks.ts` - calls `listExercises()` with no filters
-- Both load the entire 208KB exercise library upfront
+The following areas have similar performance characteristics that could benefit from the same optimizations:
 
-**Plan Loading Race Conditions:**
-- `src/client/features/project/workout/hooks.ts` - `useSyncActivePlan()` depends on query data timing
-- `src/client/routes/project/Home/Home.tsx` - uses `useSyncActivePlan()` which can race with data loading
+1. **Exercise Library Loading** (3 locations):
+   - `src/client/routes/project/Home/Home.tsx` - calls `useExerciseLibrary()` via hooks
+   - `src/client/routes/project/TrainingPlans/hooks.ts` - defines `useExerciseLibrary()`
+   - `src/client/routes/project/ManagePlan/hooks.ts` - defines duplicate `useExerciseLibrary()`
 
-**Missing Progressive Enhancement:**
-- Multiple pages render nothing while waiting for data
-- No skeleton loaders during initial load
+2. **Plans List Loading** (2 locations):
+   - `src/client/features/project/workout/hooks.ts` - defines `usePlans()` 
+   - `src/client/routes/project/TrainingPlans/hooks.ts` - defines duplicate `usePlans()`
+
+3. **Plan-Dependent Queries** (multiple locations):
+   - All queries that depend on `planId` without validating it exists first
+   - Home page loads plan data via `useLoadPlan()` and `useLoadWeekProgress()`
+   - ManagePlan loads plan via `usePlan(planId)`
+
+**Impact:** This is a systemic architecture issue affecting all pages that load exercise or plan data.
 
 ## Fix Approach
 
-### Primary Fixes (Performance)
+### Primary Fixes (Root Cause)
 
-**1. Implement Lazy Loading for Exercise Definitions**
+**Fix 1: Reduce Exercise Library Payload Size**
+- Add pagination or filtering to `exercise-definitions/list` API
+- Allow clients to request only fields they need (e.g., just name/ID for dropdowns)
+- Consider splitting into system exercises (rarely change) vs custom exercises (user-specific)
+- Alternative: Add `includeImages: false` option to exclude image URLs when not needed
 
-Create a new optimized API endpoint that returns minimal exercise data needed for the initial view:
+**Fix 2: Implement Proper Query Dependency Chain**
+- Ensure plan-dependent queries wait for plans list to load successfully
+- Add validation in queries: `enabled: !!planId && plansAreLoaded`
+- Prevent "Plan not found" errors by checking plan exists in cache before querying
 
-- **Add `exercise-definitions/list-minimal` endpoint** that returns only essential fields (id, name, primaryMuscle, type) without images/descriptions
-- **Add pagination support** to `exercise-definitions/list` (limit, offset parameters)
-- **Add filtering support** by muscle group, equipment, type to reduce payload size
-- **Load full exercise details on-demand** when user selects an exercise
+**Fix 3: Add Longer Cache Times for Static Data**
+- Exercise library changes rarely - increase staleTime to 5 minutes (300s) instead of 30s
+- Plan list changes infrequently - increase staleTime to 2 minutes (120s)
+- Make this independent of user's global cache setting
 
-Estimated payload reduction: 208KB → 10-20KB for minimal list, ~2KB per full exercise detail
+**Fix 4: Consolidate Duplicate Query Hooks**
+- Move `useExerciseLibrary()` to a shared location (e.g., `src/client/features/project/exercises/`)
+- Move `usePlans()` to a shared location (already exists in workout/hooks.ts)
+- Remove duplicate definitions to ensure all components share the same cached data
 
-**2. Implement Server-Side Caching for Exercise Definitions**
+### Secondary Improvements (Observability)
 
-- Re-enable server-side caching for `exercise-definitions/list` (currently disabled)
-- Set long cache TTL (1 hour+) since exercise definitions are mostly static
-- Add cache invalidation on exercise create/update/delete
-- This prevents repeated 208KB transfers for the same data
+**Improvement 1: Add Loading Performance Metrics**
+- Track time from app mount to first meaningful paint
+- Log cache hit/miss rates for debugging
+- Add performance markers for slow queries (>1s)
 
-**3. Optimize Query Defaults for Static Data**
+**Improvement 2: Add User Guidance for Cache Settings**
+- If cache is disabled and network is slow, show tip: "Enable cache in Settings for faster loading"
+- Add info tooltip in Settings explaining cache benefits
 
-- Set longer `staleTime` (5-10 minutes) for exercise definitions query
-- This prevents unnecessary refetches of rarely-changing data
-- Current default is 5 minutes which is reasonable, but could be increased to 10 minutes for exercises
-
-**4. Add Database Indexes**
-
-- Ensure MongoDB has indexes on `exerciseDefinitions` collection:
-  - `{ isSystem: 1, name: 1 }` for findSystemExercises()
-  - `{ userId: 1, isSystem: 1, name: 1 }` for findAllExercises()
-- This speeds up exercise queries significantly with large datasets
-
-### Secondary Fixes (Race Conditions)
-
-**5. Fix Plan Selection Race Condition**
-
-In `useSyncActivePlan()`, add proper loading/ready state checks:
-
-- Don't attempt to use plan data until query has completed at least once
-- Add explicit check: `if (isLoading && !plansData) return { activePlan: undefined, plans: [], isLoading: true }`
-- Ensure the store's `activePlanId` is only set after plans data is available
-- This prevents using stale/wrong plan IDs from localStorage before fresh data loads
-
-**6. Add Retry Logic for Plan Not Found**
-
-When plan APIs fail with "Plan not found":
-
-- Check if the plan ID in the request matches what's in React Query cache
-- If mismatch detected, retry with the correct plan ID from cache
-- This prevents the cascade of 8 failed requests seen in the logs
-
-### Secondary Improvements (UX/Observability)
-
-**7. Add Progressive Loading States**
-
-- Show skeleton loaders immediately while data is fetching
-- Load critical data first (user, active plan) before loading exercise library
-- Make exercise library load non-blocking (defer until user needs it)
-
-**8. Add Performance Monitoring**
-
-- Log timing metrics for critical API calls
-- Track "time to interactive" metric
-- Alert when API responses exceed thresholds (e.g., >500ms, >100KB)
+**Improvement 3: Add Query Status Debugging**
+- Log when plan-dependent queries fail due to missing plan
+- Better error messages: "Plan loading..." vs "Plan not found"
 
 ## Files to Modify
 
-**API Layer - New Exercise Loading:**
-- `src/apis/exercise-definitions/handlers/listExercisesMinimal.ts` (NEW)
-  - Create handler that returns minimal exercise data (id, name, muscle, type only)
-  - Add pagination parameters (limit, offset)
-  - Add filtering parameters (muscleGroup, equipment, type)
-
+**API Layer:**
 - `src/apis/exercise-definitions/handlers/listExercises.ts`
-  - Add pagination support (limit, offset)
-  - Add filtering support (muscleGroup, equipment, type)
-  - Return filtered/paginated results
-
-- `src/apis/exercise-definitions/index.ts`
-  - Add `API_LIST_EXERCISES_MINIMAL` constant
-
-- `src/apis/exercise-definitions/client.ts`
-  - Add `listExercisesMinimal()` function
-  - Update `listExercises()` to support new parameters
-
-- `src/apis/exercise-definitions/server.ts`
-  - Register new `listExercisesMinimal` handler
+  - Add optional request parameters: `includeImages?: boolean`, `fields?: string[]`
+  - Conditionally exclude imageUrl when `includeImages: false`
+  - Consider pagination if library grows beyond 500 exercises
 
 - `src/apis/exercise-definitions/types.ts`
-  - Add `ListExercisesMinimalRequest` type
-  - Add `ListExercisesMinimalResponse` type with minimal exercise fields
-  - Update `ListExercisesRequest` to include pagination/filter options
+  - Add new request parameters to `ListExercisesRequest` type
 
-**Database Layer:**
-- `src/server/database/collections/exerciseDefinitions/exerciseDefinitions.ts`
-  - Update `findSystemExercises()` to support pagination and filters
-  - Update `findAllExercises()` to support pagination and filters
-  - Add `findSystemExercisesMinimal()` that projects only minimal fields
-  - Add `findAllExercisesMinimal()` that projects only minimal fields
+**Shared Query Hooks (Consolidation):**
+- `src/client/features/project/exercises/hooks.ts` (create new)
+  - Move `useExerciseLibrary()` here with optimized cache settings
+  - Set `staleTime: 5 * 60 * 1000` (5 minutes) regardless of user settings
+  - Add `enabled` parameter for conditional fetching
 
-- `src/server/database/collections/exerciseDefinitions/types.ts`
-  - Add `ExerciseDefinitionMinimal` type (subset of fields)
+- `src/client/features/project/exercises/index.ts` (create new)
+  - Export consolidated exercise hooks
 
-**Server-Side Caching:**
-- `src/apis/processApiCall.ts`
-  - Change line 63: `disableCache: true` → `disableCache: false` for GET endpoints
-  - Add cache TTL configuration per API endpoint
-  - Set long TTL (1 hour) for exercise-definitions APIs
-
-- `src/server/cache/cacheConfig.ts`
-  - Add cache configuration for exercise endpoints
-  - Define TTL values: 3600s (1 hour) for exercises
-
-**Client Hooks - Exercise Loading:**
-- `src/client/routes/project/ManagePlan/hooks.ts`
-  - Update `useExerciseLibrary()` to use `listExercisesMinimal()` by default
-  - Add `useFullExerciseDetails()` hook for loading full details on-demand
-  - Implement infinite query pattern if showing long exercise lists
-
+**Route Hooks (Remove Duplicates):**
 - `src/client/routes/project/TrainingPlans/hooks.ts`
-  - Update `useExerciseLibrary()` to use `listExercisesMinimal()` by default
-  - Add filtering/pagination support
+  - Remove `useExerciseLibrary()` definition
+  - Import from shared location instead
+  - Keep plan-specific mutations
 
-**Client Hooks - Plan Race Condition:**
-- `src/client/features/project/workout/hooks.ts`
-  - Fix `useSyncActivePlan()` to check `isLoading && !plansData` before using data
-  - Add guard: return early if query hasn't completed at least once
-  - Prevent setting activePlanId from stale localStorage until fresh data loads
+- `src/client/routes/project/ManagePlan/hooks.ts`
+  - Remove `useExerciseLibrary()` definition
+  - Import from shared location instead
 
 **Query Configuration:**
-- `src/client/query/queryClient.ts`
-  - Increase default staleTime for exercise queries to 10 minutes (600000ms)
-  - Keep current defaults for plan/progress queries (5 minutes is reasonable)
+- `src/client/query/defaults.ts`
+  - Add `useQueryDefaultsForStatic()` hook that returns longer cache times
+  - Document usage for static/rarely-changing data
 
-**UI Components - Progressive Loading:**
+**Plan Loading Logic:**
+- `src/client/features/project/plan-data/hooks.ts`
+  - Add validation in `useLoadPlan()`: check plan exists before loading
+  - Add `enabled: plansLoaded && !!planId` to prevent premature queries
+
+- `src/client/features/project/workout/hooks.ts`
+  - Update `useSyncActivePlan()` to return `plansLoaded` flag
+  - Ensure dependent queries wait for this flag
+
+**Home Page:**
 - `src/client/routes/project/Home/Home.tsx`
-  - Show skeleton immediately while `plansLoading` or `storeLoading`
-  - Don't render main content until data is ready
-  - Add loading indicator for exercise library
+  - Update to use consolidated `useExerciseLibrary()` from shared location
+  - Update loading state to check `plansLoaded` before loading plan data
+  - Pass `includeImages: false` to exercise library query (images not shown on Home)
 
+**ManagePlan Page:**
 - `src/client/routes/project/ManagePlan/ManagePlan.tsx`
-  - Defer loading exercise library until user opens exercise picker
-  - Show loading state in exercise picker while fetching
+  - Update to use consolidated hooks
+  - Add proper dependency chain: wait for plans to load before loading plan details
 
 ## Testing Strategy
 
-**Performance Testing:**
-1. Measure initial load time before/after changes (target: <1s on 3G)
-2. Measure exercise list API payload size (target: <20KB for minimal)
-3. Test with slow network throttling (3G, 2G) in Chrome DevTools
-4. Verify React Query cache hit rate increases with new settings
+**Manual Testing:**
+1. Test on slow network connection (Chrome DevTools → Network → Slow 3G)
+2. Test with cache disabled (Settings → Use Cache → OFF)
+3. Test with cache enabled (Settings → Use Cache → ON)
+4. Navigate between Home → TrainingPlans → ManagePlan and verify no "Plan not found" errors
+5. Verify exercise library loads only once when navigating between pages
+6. Test on iPhone with Chrome browser specifically
 
-**Race Condition Testing:**
-1. Test app load with cleared cache (cold start)
-2. Test rapid navigation before queries complete
-3. Verify no "Plan not found" errors during normal load
-4. Test with multiple plans, ensure correct active plan is selected
+**Performance Verification:**
+1. Measure time to first meaningful paint with DevTools Performance tab
+2. Verify exercise library response size reduced (should be <50KB without images)
+3. Verify no duplicate requests for same data in Network tab
+4. Check React Query DevTools to confirm cache sharing across routes
 
-**Data Correctness:**
-1. Verify minimal exercise list has all required fields
-2. Verify pagination returns correct results
-3. Verify filtering works correctly
-4. Verify full exercise details load on-demand
+**Regression Testing:**
+1. Verify all exercise selection flows still work (AI chat, ManagePlan, CreatePlan)
+2. Verify offline mode still works with mutations
+3. Verify cache clear in Settings still works
 
-**Database Performance:**
-1. Add indexes and verify query execution time <50ms
-2. Test with 1000+ exercises in database
-3. Monitor MongoDB slow query log
+## Implementation Priority
 
-## Implementation Plan
+**High Priority (Must Fix):**
+1. Fix query dependency chain to eliminate "Plan not found" errors
+2. Consolidate duplicate query hooks to ensure cache sharing
+3. Add `includeImages: false` option to reduce payload size on pages that don't show images
 
-**Phase 1: Quick Wins (Immediate Impact)**
-1. Enable server-side caching for exercise endpoints
-2. Fix plan race condition in useSyncActivePlan
-3. Add loading skeletons to Home and ManagePlan pages
-4. Add database indexes for exercise queries
+**Medium Priority (Should Fix):**
+1. Increase cache times for static data (exercise library, plans list)
+2. Add loading performance metrics
 
-**Phase 2: Lazy Loading (Major Impact)**
-5. Implement exercise-definitions/list-minimal API
-6. Update client hooks to use minimal list by default
-7. Implement on-demand full details loading
-8. Add pagination and filtering support
+**Low Priority (Nice to Have):**
+1. Add user guidance for cache settings
+2. Add query status debugging
+3. Implement full pagination for exercise library (only if library grows beyond 500 items)
 
-**Phase 3: Monitoring & Optimization**
-9. Add performance monitoring
-10. Tune cache TTLs based on usage patterns
-11. Consider implementing service worker for offline caching
+## Expected Performance Improvement
+
+**Before Fix:**
+- Initial load: 3-5 seconds on slow connection
+- "Plan not found" errors: 6-8 occurrences per load
+- Exercise library payload: 208KB
+- Cache effectiveness: Poor (duplicate queries, race conditions)
+
+**After Fix:**
+- Initial load: 1-2 seconds on slow connection
+- "Plan not found" errors: 0 (eliminated via dependency chain)
+- Exercise library payload: 30-50KB (without images)
+- Cache effectiveness: Good (shared queries, proper dependencies)
+- Subsequent navigation: <500ms (fully cached)
 
 ## Risk Assessment
 
 **Low Risk:**
-- Enabling server-side caching (easily reversible)
-- Adding database indexes (only improves performance)
-- Adding loading states (visual-only change)
+- Cache time adjustments (can be reverted easily)
+- Adding optional API parameters (backward compatible)
+- Consolidating query hooks (pure refactor, same behavior)
 
 **Medium Risk:**
-- Changing exercise loading pattern (requires coordination between API and client)
-- Must ensure backward compatibility if gradual rollout needed
-- Minimal list might be missing fields needed by some components
+- Query dependency changes (must test thoroughly to avoid breaking flows)
+- Adding `plansLoaded` flag (affects multiple components)
 
 **Mitigation:**
-- Add feature flag for lazy loading to enable gradual rollout
-- Keep existing list API working alongside new minimal API
-- Thoroughly test exercise picker and plan creation flows
-- Add error boundaries to catch any missing field errors
+- Test all user flows before deploying
+- Monitor error rates after deployment
+- Keep old query hooks temporarily for easy rollback
