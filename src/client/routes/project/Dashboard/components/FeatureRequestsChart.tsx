@@ -18,7 +18,7 @@ import {
 import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle, gridStyle, axisStyle } from '../utils/chartConfig';
 import { formatChartDate } from '../utils/mockData';
-import type { FeatureRequestTimeSeriesPoint } from '@/apis/project/dashboard/types';
+import type { FeatureRequestTimeSeriesPoint } from '@/apis/template/dashboard/types';
 
 /**
  * Props for the FeatureRequestsChart component

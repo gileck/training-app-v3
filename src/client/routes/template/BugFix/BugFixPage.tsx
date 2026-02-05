@@ -7,8 +7,10 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { FixSelection, ParsedFixOption } from '@/apis/project/bug-fix-select/types';
-import { getInvestigation, submitFixSelection } from '@/apis/project/bug-fix-select/client';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { FixSelection, ParsedFixOption } from '@/apis/template/bug-fix-select/types';
+import { getInvestigation, submitFixSelection } from '@/apis/template/bug-fix-select/client';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
 import { Label } from '@/client/components/template/ui/label';
@@ -39,7 +41,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state for form submission status
     const [submitted, setSubmitted] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state for collapsible
-    const [analysisOpen, setAnalysisOpen] = useState(false);
+    const [analysisOpen, setAnalysisOpen] = useState(true);
 
     // Fetch investigation data
     const {
@@ -111,7 +113,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
     if (fetchError || investigationResponse?.error) {
         const errorMessage = fetchError?.message || investigationResponse?.error || 'Unknown error';
         return (
-            <div className="p-4 max-w-2xl mx-auto">
+            <div className="p-3 sm:p-4 max-w-2xl mx-auto">
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
@@ -124,7 +126,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
     // No investigation found
     if (!investigation) {
         return (
-            <div className="p-4 max-w-2xl mx-auto">
+            <div className="p-3 sm:p-4 max-w-2xl mx-auto">
                 <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Not Found</AlertTitle>
@@ -142,7 +144,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
         const destinationLabel = routedTo === 'implement' ? 'Implementation' : 'Technical Design';
 
         return (
-            <div className="p-4 max-w-2xl mx-auto">
+            <div className="p-3 sm:p-4 max-w-2xl mx-auto">
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center space-y-4">
@@ -169,32 +171,32 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
     const confidenceLabel = investigation.confidence.charAt(0).toUpperCase() + investigation.confidence.slice(1);
 
     return (
-        <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
+        <div className="p-3 sm:p-4 pb-24 max-w-2xl mx-auto space-y-4">
             {/* Header */}
             <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                    <Bug className="h-5 w-5 text-destructive" />
-                    <h1 className="text-xl font-bold text-foreground">
+                    <Bug className="h-5 w-5 text-destructive shrink-0" />
+                    <h1 className="text-lg sm:text-xl font-bold text-foreground">
                         Bug Fix Selection
                     </h1>
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                     Issue #{issueNumber}: {investigation.issueTitle}
                 </p>
             </div>
 
             {/* Investigation Summary */}
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        Investigation Results
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <CardTitle className="text-base">Investigation Results</CardTitle>
                         <span className={`text-sm font-normal ${investigation.rootCauseFound ? 'text-primary' : 'text-destructive'}`}>
                             {investigation.rootCauseFound ? '(Root cause found)' : '(Root cause uncertain)'}
                         </span>
-                    </CardTitle>
+                    </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex items-center gap-4 text-sm">
+                <CardContent className="space-y-3 px-3 sm:px-6">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                         <span>
                             <strong>Confidence:</strong> {confidenceEmoji} {confidenceLabel}
                         </span>
@@ -203,16 +205,18 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
                         </span>
                     </div>
 
-                    {/* Root cause analysis (collapsible) */}
+                    {/* Root cause analysis (collapsible, open by default) */}
                     <Collapsible open={analysisOpen} onOpenChange={setAnalysisOpen}>
                         <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
                             {analysisOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            <span>View Root Cause Analysis</span>
+                            <span>Root Cause Analysis</span>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                            <pre className="whitespace-pre-wrap font-sans">
-                                {investigation.rootCauseAnalysis}
-                            </pre>
+                        <CollapsibleContent className="mt-2">
+                            <div className="markdown-body text-sm">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {investigation.rootCauseAnalysis}
+                                </ReactMarkdown>
+                            </div>
                         </CollapsibleContent>
                     </Collapsible>
                 </CardContent>
@@ -220,10 +224,10 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
 
             {/* Fix Options */}
             <Card>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 px-3 sm:px-6">
                     <CardTitle className="text-base">Choose Fix Approach</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 px-3 sm:px-6">
                     <RadioGroup value={selectedOption || ''} onValueChange={setSelectedOption}>
                         {investigation.fixOptions.map((option) => (
                             <FixOptionCard
@@ -235,7 +239,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
 
                         {/* Custom solution option */}
                         <div
-                            className={`flex items-start space-x-3 p-3 rounded-md border transition-colors ${
+                            className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
                                 selectedOption === 'custom'
                                     ? 'border-primary bg-primary/5'
                                     : 'border-border hover:border-muted-foreground/50'
@@ -244,7 +248,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
                             <RadioGroupItem
                                 value="custom"
                                 id="fix-custom"
-                                className="mt-0.5"
+                                className="mt-0.5 shrink-0"
                             />
                             <Label htmlFor="fix-custom" className="flex-1 cursor-pointer">
                                 <span className="font-medium">Custom Solution</span>
@@ -256,7 +260,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
 
                         {/* Custom solution form */}
                         {isCustomSelected && (
-                            <div className="space-y-4 ml-6 mt-2">
+                            <div className="space-y-4 pl-3 sm:pl-6 mt-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="custom-solution">Describe your solution</Label>
                                     <Textarea
@@ -320,7 +324,7 @@ export function BugFixPage({ issueNumber, token }: BugFixPageProps) {
             </Card>
 
             {/* Submit button (fixed at bottom) */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+            <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 bg-background border-t border-border">
                 <div className="max-w-2xl mx-auto">
                     <Button
                         onClick={handleSubmit}
@@ -371,7 +375,7 @@ function FixOptionCard({ option, isSelected }: FixOptionCardProps) {
 
     return (
         <div
-            className={`flex items-start space-x-3 p-3 rounded-md border transition-colors ${
+            className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
                 isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-muted-foreground/50'
@@ -380,7 +384,7 @@ function FixOptionCard({ option, isSelected }: FixOptionCardProps) {
             <RadioGroupItem
                 value={option.id}
                 id={`fix-${option.id}`}
-                className="mt-0.5"
+                className="mt-0.5 shrink-0"
             />
             <Label htmlFor={`fix-${option.id}`} className="flex-1 cursor-pointer space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -397,18 +401,25 @@ function FixOptionCard({ option, isSelected }: FixOptionCardProps) {
                         </span>
                     )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                    {option.description}
-                </p>
+                <div className="markdown-body text-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {option.description}
+                    </ReactMarkdown>
+                </div>
                 {option.filesAffected.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                        Files: {option.filesAffected.slice(0, 3).join(', ')}
-                        {option.filesAffected.length > 3 && ` +${option.filesAffected.length - 3} more`}
+                        <strong>Files:</strong>{' '}
+                        {option.filesAffected.map((f, i) => (
+                            <span key={f}>
+                                <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{f}</code>
+                                {i < option.filesAffected.length - 1 && ', '}
+                            </span>
+                        ))}
                     </p>
                 )}
                 {option.tradeoffs && (
                     <p className="text-xs text-muted-foreground italic">
-                        Trade-offs: {option.tradeoffs}
+                        <strong>Trade-offs:</strong> {option.tradeoffs}
                     </p>
                 )}
             </Label>

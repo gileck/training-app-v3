@@ -41,10 +41,13 @@ The project uses a 6-column workflow. Create a Status field with these exact val
 |--------|-------------|
 | `Backlog` | New items, not yet started |
 | `Product Design` | AI generates product design, human reviews |
+| `Bug Investigation` | AI investigates bug root cause, proposes fix options |
 | `Technical Design` | AI generates tech design, human reviews |
 | `Ready for development` | AI implements feature (picked up by implement agent) |
 | `PR Review` | PR created, waiting for human review/merge |
 | `Done` | Completed and merged |
+
+**Note:** "Bug Investigation" should be positioned between "Product Design" and "Technical Design". Bugs are automatically routed to this column on approval. The Bug Investigator agent analyzes root causes and proposes fix options for admin review.
 
 **How it works**: Each phase uses the Review Status field to track sub-states within that phase (see below). The implement agent automatically moves items from "Ready for development" to "PR Review" after creating a PR.
 
@@ -411,6 +414,7 @@ After completing setup:
 **Agent commands:**
 ```bash
 yarn agent:product-design
+yarn agent:bug-investigator
 yarn agent:tech-design
 yarn agent:implement
 yarn agent:pr-review

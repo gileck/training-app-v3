@@ -17,7 +17,7 @@ import {
 import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle, gridStyle, axisStyle } from '../utils/chartConfig';
 import { getAgentDisplayName, formatDurationSeconds } from '../utils/mockData';
-import type { AgentPerformancePoint } from '@/apis/project/dashboard/types';
+import type { AgentPerformancePoint } from '@/apis/template/dashboard/types';
 
 /**
  * Props for the AgentPerformanceChart component

@@ -7,7 +7,7 @@
 
 import { Lightbulb, Bug, CheckCircle, DollarSign } from 'lucide-react';
 import { MetricCard } from './MetricCard';
-import type { GetDashboardAnalyticsResponse } from '@/apis/project/dashboard/types';
+import type { GetDashboardAnalyticsResponse } from '@/apis/template/dashboard/types';
 import { formatNumber } from '../utils/mockData';
 
 /**

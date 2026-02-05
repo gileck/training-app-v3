@@ -1,5 +1,5 @@
 import type { Settings } from "@/client/features/template/settings";
-import type { BatchSyncResponse } from "@/apis/project/batch-updates/types";
+import type { BatchSyncResponse } from "@/apis/template/batch-updates/types";
 import { logger } from "@/client/features/template/session-logs";
 
 type PrimitiveParam = string | number | boolean | undefined | null;

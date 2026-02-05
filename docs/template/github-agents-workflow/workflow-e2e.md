@@ -484,12 +484,12 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ## 4. Bug Report - Happy Flow
 
-**Scenario:** User reports a bug with diagnostics, agent creates a fix.
+**Scenario:** User reports a bug with diagnostics. Bug is automatically routed to Bug Investigation, where the agent investigates the root cause and proposes fix options. Admin selects a fix approach, and the bug is routed to Tech Design or Implementation.
 
 ```
 ┌─────────────────────────────────────┐
 │ USER SUBMITS BUG REPORT             │
-│ - Title: "Login fails on Safari"    │
+│ - Description: "Login fails..."     │
 │ - Steps to reproduce                │
 │ - Session logs attached             │
 │ - Screenshot included               │
@@ -521,64 +521,104 @@ This document provides comprehensive visual workflows for all scenarios in the G
 │ - Issue #60                         │
 │ - Label: bug                        │
 │ - Diagnostics in issue body         │
-│ - Column: Backlog                   │
+│ - Column: Bug Investigation         │
+│   (auto-routed, no routing msg)     │
 └─────────────┬───────────────────────┘
               │
               ▼
 ┌─────────────────────────────────────┐
-│ TELEGRAM ROUTING MESSAGE            │
+│ MONGODB STATE UPDATED               │
+│ - status: 'investigating'           │
+│ - githubIssueNumber: 60             │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ BUG INVESTIGATOR AGENT (Cron)       │
+│ - Detects item in Bug Investigation │
+│ - Review Status is empty            │
+│ - Read-only investigation           │
+│ - Uses Glob, Grep, Read tools       │
+│ - Analyzes codebase + diagnostics   │
+│ - Identifies root cause             │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ INVESTIGATION COMMENT POSTED        │
 │ ┌─────────────────────────────────┐ │
-│ │ Where should this bug start?    │ │
+│ │ 🔍 Bug Investigation Report     │ │
 │ │                                 │ │
-│ │ [🔧 Tech Design] (recommended)  │ │
-│ │ [⚡ Ready for development]      │ │
-│ │ [📋 Keep in Backlog]            │ │
+│ │ Root Cause Found: Yes           │ │
+│ │ Confidence: 🟢 High             │ │
+│ │                                 │ │
+│ │ Root Cause Analysis:            │ │
+│ │ Race condition in useAuth...    │ │
+│ │                                 │ │
+│ │ Fix Options:                    │ │
+│ │ opt1: Add null check (S)       │ │
+│ │ opt2: Refactor auth flow (M)⭐ │ │
+│ │ opt3: Redesign arch (L)        │ │
+│ └─────────────────────────────────┘ │
+│ - Review Status: Waiting for Review │
+└─────────────┬───────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ TELEGRAM NOTIFICATION               │
+│ ┌─────────────────────────────────┐ │
+│ │ Bug Investigation Ready         │ │
+│ │ Issue #60                       │ │
+│ │                                 │ │
+│ │ [🔍 View Investigation]         │ │
+│ │ [🔧 Choose Fix Option]          │ │
+│ │ [📝 Request Changes]            │ │
 │ └─────────────────────────────────┘ │
 └─────────────┬───────────────────────┘
-              │ Admin clicks "Tech Design"
+              │ Admin clicks "Choose Fix Option"
               ▼
 ┌─────────────────────────────────────┐
-│ TECH DESIGN AGENT (Cron)            │
-│ - Detects type: 'bug'               │
-│ - Uses bug-specific prompt          │
-│ - Analyzes diagnostics              │
-│ - Identifies root cause             │
-│ - Proposes fix strategy             │
+│ BUG FIX SELECTION UI                │
+│ /bug-fix/:issueNumber               │
+│ ┌─────────────────────────────────┐ │
+│ │ Choose fix approach:            │ │
+│ │ ○ Add null check (S) → Impl    │ │
+│ │ ● Refactor auth (M) → Tech ⭐  │ │
+│ │ ○ Redesign arch (L) → Tech     │ │
+│ │                                 │ │
+│ │ Custom solution: [________]     │ │
+│ │ Route to: ○ Tech ○ Impl        │ │
+│ │                                 │ │
+│ │           [Submit Selection]    │ │
+│ └─────────────────────────────────┘ │
 └─────────────┬───────────────────────┘
-              │
+              │ Admin submits selection
               ▼
 ┌─────────────────────────────────────┐
-│ BUG DESIGN PR CREATED               │
-│ - Branch: tech-design/issue-60      │
-│ - File: designs/tech/issue-60.md    │
-│ - Root cause analysis               │
-│ - Proposed fix with rationale       │
+│ WEBHOOK PROCESSES SELECTION         │
+│ - Posts decision comment on issue   │
+│ - Routes to destination:            │
+│   Tech Design or Implementation     │
+│ - Clears Review Status              │
 └─────────────┬───────────────────────┘
               │
-              ▼
-         [Admin approves design]
-              │
-              ▼
-┌─────────────────────────────────────┐
-│ IMPLEMENTATION AGENT (Cron)         │
-│ - Detects type: 'bug'               │
-│ - Creates fix/... branch            │
-│ - Implements fix from design        │
-└─────────────┬───────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────┐
-│ BUG FIX PR CREATED                  │
-│ - Branch: fix/login-safari-issue    │
-│ - PR #61                            │
-│ - Title: "fix: Safari login..."     │
-│ - Linked to issue #60               │
-└─────────────┬───────────────────────┘
-              │
-              ▼
-         [Same review & merge flow]
-              │
-              ▼
+         ┌────┴────────────────┐
+         │                     │
+    [Tech Design]        [Implementation]
+         │                     │
+         ▼                     ▼
+┌──────────────────┐  ┌──────────────────┐
+│ TECH DESIGN      │  │ IMPLEMENTATION   │
+│ AGENT            │  │ AGENT            │
+│ - Architecture   │  │ - Direct fix     │
+│ - Design PR      │  │ - Fix PR         │
+└────────┬─────────┘  └────────┬─────────┘
+         │                     │
+         ▼                     ▼
+    [Design approval      [Same review &
+     → Implementation]     merge flow]
+         │                     │
+         ▼                     ▼
 ┌─────────────────────────────────────┐
 │ BUG FIX MERGED                      │
 │ - Item moves to Done                │
@@ -592,9 +632,12 @@ This document provides comprehensive visual workflows for all scenarios in the G
 - Label: `bug` instead of `feature`
 - Branch prefix: `fix/` instead of `feature/`
 - PR title prefix: `fix:` instead of `feat:`
-- Skips Product Design (bugs don't need UX design)
-- Tech design agent uses bug-specific analysis prompt
-- Diagnostics included in GitHub issue for agent context
+- **Auto-routed to Bug Investigation** (no routing message shown)
+- Bug Investigator agent uses **read-only** tools (no code changes)
+- Investigation posted as **issue comment** (not a PR)
+- Admin selects fix approach via **web UI** (`/bug-fix/:issueNumber`)
+- Can route to **Tech Design** (complex fixes) or **Implementation** (simple fixes)
+- Diagnostics (session logs, stack traces) included in agent prompt (not in GitHub issue)
 
 ---
 
@@ -1310,7 +1353,9 @@ This document provides comprehensive visual workflows for all scenarios in the G
 
 ## 11. Skip Design Phases
 
-### 11.1 Simple Bug - Skip to Implementation
+### 11.1 Bug with Investigation Phase (Default)
+
+All bugs are automatically routed to **Bug Investigation** on approval. The Bug Investigator agent investigates the root cause and proposes fix options. Admin then chooses to route to Tech Design or directly to Implementation.
 
 ```
 ┌─────────────────────────────────────┐
@@ -1324,22 +1369,26 @@ This document provides comprehensive visual workflows for all scenarios in the G
               │
               ▼
 ┌─────────────────────────────────────┐
-│ TELEGRAM ROUTING MESSAGE            │
-│ ┌─────────────────────────────────┐ │
-│ │ Where should this bug start?    │ │
-│ │                                 │ │
-│ │ [🔧 Tech Design]                │ │
-│ │ [⚡ Ready for development]      │ │ <-- Admin chooses this
-│ │ [📋 Keep in Backlog]            │ │
-│ └─────────────────────────────────┘ │
+│ AUTO-ROUTED TO BUG INVESTIGATION    │
+│ - No routing message shown          │
+│ - Bug Investigator agent runs       │
+│ - Posts investigation + fix options  │
 └─────────────┬───────────────────────┘
-              │ Admin: "Ready for development"
+              │
+              ▼
+┌─────────────────────────────────────┐
+│ ADMIN SELECTS FIX OPTION            │
+│ - Via /bug-fix/:issueNumber UI      │
+│ - Chooses "Direct Implementation"   │
+└─────────────┬───────────────────────┘
+              │
               ▼
 ┌─────────────────────────────────────┐
 │ ITEM IN READY COLUMN                │
 │ - Skipped Product Design            │
 │ - Skipped Tech Design               │
 │ - Goes straight to implementation   │
+│ - Investigation context on issue    │
 └─────────────┬───────────────────────┘
               │
               ▼
@@ -1352,7 +1401,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 │ - Fix PR merged directly            │
 └─────────────────────────────────────┘
 
-✅ FAST-TRACKED BUG FIX
+✅ BUG FIX VIA INVESTIGATION → IMPLEMENTATION
 ```
 
 ### 11.2 Internal Refactor - Skip Product Design
@@ -1393,11 +1442,12 @@ This document provides comprehensive visual workflows for all scenarios in the G
 ```
 
 **Key Points:**
-- Admin controls starting phase via routing buttons
-- Simple items can skip **all design phases**
+- **Bugs** are auto-routed to Bug Investigation (no routing buttons for bugs)
+- **Features** use routing buttons to control starting phase
+- Simple features can skip **all design phases** via routing
 - Backend tasks can skip **Product Design** only
-- Skipping phases speeds up simple bugs and internal tasks
-- Agents adapt: no design files = implement from issue description only
+- Bug Investigation agent determines whether fix needs Tech Design or can go straight to Implementation
+- Agents adapt: no design files = implement from issue description + investigation context
 
 ---
 
@@ -1408,7 +1458,8 @@ Comprehensive table of all state transitions in the workflow.
 | Starting State | Event/Action | Ending State | Triggered By |
 |----------------|--------------|--------------|--------------|
 | **MongoDB: 'new'**<br/>GitHub: N/A<br/>Review: N/A | User submits request | MongoDB: 'new'<br/>GitHub: N/A<br/>Review: N/A | User |
-| MongoDB: 'new'<br/>GitHub: N/A<br/>Review: N/A | Admin clicks "Approve" | MongoDB: 'in_progress'<br/>GitHub: Issue created, Backlog<br/>Review: (empty) | Admin (Telegram) |
+| MongoDB: 'new'<br/>GitHub: N/A<br/>Review: N/A | Admin clicks "Approve" (feature) | MongoDB: 'in_progress'<br/>GitHub: Issue created, Backlog<br/>Review: (empty) | Admin (Telegram) |
+| MongoDB: 'new'<br/>GitHub: N/A<br/>Review: N/A | Admin clicks "Approve" (bug) | MongoDB: 'investigating'<br/>GitHub: Issue created, Bug Investigation<br/>Review: (empty) | Admin (Telegram) |
 | MongoDB: 'in_progress'<br/>GitHub: Backlog<br/>Review: (empty) | Admin routes to Product Design | MongoDB: 'in_progress'<br/>GitHub: Product Design<br/>Review: (empty) | Admin (Telegram) |
 | GitHub: Product Design<br/>Review: (empty) | Product Design agent creates PR | GitHub: Product Design<br/>Review: Waiting for Review | Agent (Cron) |
 | GitHub: Product Design<br/>Review: Waiting for Review | Admin clicks "Approve Design" | GitHub: Technical Design<br/>Review: (empty)<br/>Design PR: Merged | Admin (Telegram) |
@@ -1426,6 +1477,12 @@ Comprehensive table of all state transitions in the workflow.
 | Any column<br/>Review: Waiting for Clarification | Admin clicks "Clarification Received" | Same column<br/>Review: (empty) | Admin (GitHub button) |
 | Any design column<br/>Review: Waiting for Review | Admin clicks "Reject" | Same column<br/>Review: Rejected<br/>Design PR: Closed | Admin (Telegram) |
 | GitHub: PR Review<br/>Review: Approved | Admin clicks "Reject" | Same column<br/>Review: Rejected<br/>MongoDB: 'rejected'<br/>PR: Closed | Admin (Telegram) |
+| **Bug Investigation Specific** |
+| GitHub: Bug Investigation<br/>Review: (empty) | Bug Investigator agent investigates | GitHub: Bug Investigation<br/>Review: Waiting for Review | Agent (Cron) |
+| GitHub: Bug Investigation<br/>Review: Waiting for Review | Admin selects fix → Implementation | GitHub: Ready for development<br/>Review: (empty) | Admin (Bug Fix UI) |
+| GitHub: Bug Investigation<br/>Review: Waiting for Review | Admin selects fix → Tech Design | GitHub: Technical Design<br/>Review: (empty) | Admin (Bug Fix UI) |
+| GitHub: Bug Investigation<br/>Review: Waiting for Review | Admin clicks "Request Changes" | GitHub: Bug Investigation<br/>Review: Request Changes | Admin (Telegram) |
+| GitHub: Bug Investigation<br/>Review: Request Changes | Agent revises investigation | GitHub: Bug Investigation<br/>Review: Waiting for Review | Agent (Cron) |
 | **Multi-Phase Specific** |
 | GitHub: Technical Design<br/>Review: (empty) | Tech Design agent detects L/XL | GitHub: Technical Design<br/>Review: Waiting for Review<br/>**Phases artifact created** | Agent (Cron) |
 | GitHub: Ready (Phase 1)<br/>Review: (empty) | Implementation agent creates Phase 1 PR | GitHub: PR Review<br/>Review: Waiting for Review<br/>**Phase 1 in progress** | Agent (Cron) |
@@ -1446,13 +1503,15 @@ Key decision points where admin makes manual choices.
 
 **When:** After admin clicks "Approve" on new request
 
-**Options:**
+**Bug reports** are automatically routed to **Bug Investigation** (no routing message shown). The Bug Investigator agent handles the initial analysis.
+
+**Feature requests** show a routing message with these options:
 
 | Button | Result | Best For |
 |--------|--------|----------|
 | 🎨 **Product Design** | Item → Product Design column | Features with UX/UI components |
-| 🔧 **Tech Design** | Item → Technical Design column | Bug fixes, backend tasks, refactors |
-| ⚡ **Ready for development** | Item → Ready for development column | Simple bugs, trivial features, clear requirements |
+| 🔧 **Tech Design** | Item → Technical Design column | Backend tasks, refactors |
+| ⚡ **Ready for development** | Item → Ready for development column | Trivial features, clear requirements |
 | 📋 **Keep in Backlog** | Item → Backlog column (stays) | Not ready to start, needs more info |
 
 **Considerations:**
@@ -1546,7 +1605,7 @@ This document covers all major workflow scenarios:
 - Simple feature (skip design)
 - Complex feature (multi-phase)
 - Feature with full design pipeline
-- Bug fix with diagnostics
+- Bug fix with investigation → fix selection → implementation
 
 ✅ **Revision Flows:**
 - Design changes requested

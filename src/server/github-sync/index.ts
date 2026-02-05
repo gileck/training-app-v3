@@ -17,6 +17,7 @@ import {
     sendFeatureRoutingNotification,
     sendBugRoutingNotification,
 } from '@/server/telegram';
+import { STATUSES } from '@/server/project-management/config';
 import { syncItemToGitHub, approveItem } from './sync-core';
 import type { SyncToGitHubResult, SyncOptions, SyncItemConfig, ApproveItemConfig } from './types';
 
@@ -171,6 +172,8 @@ const bugReportSyncConfig: SyncItemConfig<ReportDocument> = {
 
     sendRoutingNotification: (item, issueResult) =>
         sendBugRoutingNotification(item, issueResult).then(() => {}),
+
+    initialStatus: STATUSES.bugInvestigation,
 };
 
 // ============================================================

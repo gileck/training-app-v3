@@ -5,13 +5,14 @@ summary: "6-column workflow (Backlog → Product Design → Tech Design → Read
 priority: 2
 key_points:
   - "Entry points: UI feature request, UI bug report, or CLI"
-  - "Agents: Product Design, Tech Design, Implementor, PR Review"
+  - "Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review"
   - "Status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)"
   - "All actions logged to agent-logs/issue-N.md"
 related_docs:
   - setup-guide.md
   - cli.md
   - workflow-e2e.md
+  - bug-investigation.md
   - mongodb-github-status.md
   - agent-logging.md
   - telegram-integration.md
@@ -42,28 +43,32 @@ Items can enter the workflow through three paths (all converge into the same pip
 
 1. **User submits** feature request or bug report via app UI (or CLI) → stored in MongoDB
 2. **Admin gets Telegram notification** with one-click "Approve" button
-3. **Admin approves** (via Telegram button) → server creates GitHub Issue + adds to "Backlog"
-4. **Admin receives routing message** → chooses where item should start:
+3. **Admin approves** (via Telegram button) → server creates GitHub Issue
+   - **Features**: Added to "Backlog", admin receives routing message
+   - **Bugs**: Auto-routed to "Bug Investigation" (no routing message)
+4. **Features: Admin receives routing message** → chooses where item should start:
    - 🎨 **Product Design** - Needs UX/UI design
    - 🔧 **Tech Design** - Needs architecture planning
    - ⚡ **Ready for development** - Simple item, go straight to coding
    - 📋 **Backlog** - Keep in backlog for now
-5. **Item moves to selected phase** → AI agent processes accordingly
-6. **AI agent generates design/implementation**:
+5. **Bugs: Bug Investigator agent** runs automatically → investigates root cause → posts fix options → admin selects fix approach via web UI → routes to Tech Design or Implementation
+6. **Item moves to selected phase** → AI agent processes accordingly
+7. **AI agent generates design/implementation**:
    - **Design agents**: Create PR with design file → Telegram notification with Approve/Reject buttons
    - **Implementation agent**: Create PR with code changes → Telegram notification with View PR button
    - **Visual verification** (UI changes): Implementation agent verifies at 400px viewport before completing
-7. **Admin approves design PR** (via Telegram button) → PR auto-merged → status advances to next phase
-8. **PR Review agent reviews implementation PR** (cron) → generates commit message → Telegram notification with Merge button
-9. **Admin merges implementation PR** (via Telegram Merge button) → Telegram webhook marks item as Done
-10. **Post-merge recovery** (if needed): Merge success notification includes "Revert" button → creates revert PR → restores status for agent to fix
+8. **Admin approves design PR** (via Telegram button) → PR auto-merged → status advances to next phase
+9. **PR Review agent reviews implementation PR** (cron) → generates commit message → Telegram notification with Merge button
+10. **Admin merges implementation PR** (via Telegram Merge button) → Telegram webhook marks item as Done
+11. **Post-merge recovery** (if needed): Merge success notification includes "Revert" button → creates revert PR → restores status for agent to fix
 
 **Key concepts:**
-- **6 board columns**: Backlog → Product Design → Technical Design → Ready for development → PR Review → Done
+- **Board columns**: Backlog → Product Design → Bug Investigation → Technical Design → Ready for development → PR Review → Done
 - **Unified workflow**: Both bugs and features use the same GitHub Projects board and workflow
-- **Flexible routing**: Admin chooses starting phase for each item (simple fixes can skip design phases)
+- **Flexible routing**: Features get admin routing choice; bugs are auto-routed to Bug Investigation
+- **Bug Investigation**: Read-only agent investigates root cause, proposes fix options, admin selects approach via web UI
 - **Type-aware agents**: Agents detect bugs vs features and use specialized prompts
-- **Bug diagnostics**: Session logs, stack traces, and error messages included in bug fix prompts (NOT in GitHub issues)
+- **Bug diagnostics**: Session logs, stack traces, and error messages included in bug investigation prompts (NOT in GitHub issues)
 - **Review Status field** tracks sub-states within each phase (empty → Waiting for Review → Approved/Request Changes)
 - **Auto-advance on approval**: When approved via Telegram, the item automatically moves to the next phase
 - **Implement agent auto-moves to PR Review**: After creating a PR, the item moves from "Ready for development" to "PR Review"
@@ -155,9 +160,12 @@ When adding new workflow functionality:
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  CLI Agent Scripts (src/agents/)                                        │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐  │
-│  │ product-design   │  │ tech-design      │  │ implement            │  │
+│  │ product-design   │  │ bug-investigator │  │ tech-design          │  │
 │  │ .ts              │  │ .ts              │  │ .ts                  │  │
 │  └──────────────────┘  └──────────────────┘  └──────────────────────┘  │
+│  ┌──────────────────┐                                                  │
+│  │ implement.ts     │                                                  │
+│  └──────────────────┘                                                  │
 │                                                                         │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │ shared/                                                           │  │
@@ -179,6 +187,7 @@ Since all agents use the same bot account, each agent prefixes its comments with
 | Agent | Emoji | Full Name |
 |-------|-------|-----------|
 | Product Design | 🎨 | Product Design Agent |
+| Bug Investigator | 🔍 | Bug Investigator Agent |
 | Tech Design | 🏗️ | Tech Design Agent |
 | Implementor | ⚙️ | Implementor Agent |
 | PR Review | 👀 | PR Review Agent |

@@ -7,8 +7,8 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { QuestionAnswer } from '@/apis/project/clarification/types';
-import { getClarification, submitAnswer } from '@/apis/project/clarification/client';
+import type { QuestionAnswer } from '@/apis/template/clarification/types';
+import { getClarification, submitAnswer } from '@/apis/template/clarification/client';
 import { QuestionCard } from './QuestionCard';
 import { SuccessState } from './SuccessState';
 import { Button } from '@/client/components/template/ui/button';

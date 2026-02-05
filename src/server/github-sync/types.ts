@@ -73,6 +73,9 @@ export interface SyncItemConfig<T extends GitHubSyncedFields> {
 
     /** Send routing notification after sync (optional, can be skipped via SyncOptions) */
     sendRoutingNotification: (item: T, issueResult: IssueResult) => Promise<void>;
+
+    /** Initial status to set after adding to project (defaults to Backlog) */
+    initialStatus?: string;
 }
 
 /**

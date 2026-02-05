@@ -13,11 +13,17 @@ import { authApiHandlers } from "./template/auth/server";
 import { reportsApiHandlers } from "./template/reports/server";
 import { featureRequestsApiHandlers } from "./template/feature-requests/server";
 import { agentLogApiHandlers } from "./template/agent-log/server";
+import { clarificationApiHandlers } from "./template/clarification/server";
+import { dashboardApiHandlers } from "./template/dashboard/server";
+import { bugFixSelectApiHandlers } from "./template/bug-fix-select/server";
 
 export const templateApiHandlers = mergeApiHandlers(
   clearCacheApiHandlers,
   authApiHandlers,
   reportsApiHandlers,
   featureRequestsApiHandlers,
-  agentLogApiHandlers
+  agentLogApiHandlers,
+  clarificationApiHandlers,
+  dashboardApiHandlers,
+  bugFixSelectApiHandlers
 );

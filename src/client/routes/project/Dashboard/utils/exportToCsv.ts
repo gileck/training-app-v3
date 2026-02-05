@@ -5,7 +5,7 @@
  * and triggering browser downloads.
  */
 
-import type { GetDashboardAnalyticsResponse } from '@/apis/project/dashboard/types';
+import type { GetDashboardAnalyticsResponse } from '@/apis/template/dashboard/types';
 import { formatDurationSeconds, formatCurrency, formatPercentage } from './mockData';
 
 /**
