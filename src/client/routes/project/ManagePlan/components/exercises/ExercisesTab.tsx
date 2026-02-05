@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { toast } from '@/client/components/template/ui/toast';
 import { CreateExerciseDialog } from '@/client/components/project/CreateExerciseDialog';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import { useManagePlanStore } from '../../store';
 import { AddExerciseDialog } from './AddExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';

@@ -14,7 +14,7 @@ import {
     XCircle,
     Trash2
 } from 'lucide-react';
-import type { ReportStatus } from '@/apis/reports/types';
+import type { ReportStatus } from '@/apis/template/reports/types';
 
 interface ReportCardActionsProps {
     isExpanded: boolean;

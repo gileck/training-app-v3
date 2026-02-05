@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { Button } from '@/client/components/template/ui/button';
 import { Dumbbell, AlertTriangle, Plus, Minus } from 'lucide-react';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface SetsTabProps {
     planExercises: PlanExerciseWithDefinition[];

@@ -17,7 +17,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/client/components/template/ui/dropdown-menu';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 import type { PlanConflict } from '@/client/features/project/plan-data';
 import { SyncConflictDialog } from './SyncConflictDialog';
 

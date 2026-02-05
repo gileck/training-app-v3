@@ -17,7 +17,7 @@ import {
     Minus,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { listPlanExercises } from '@/apis/plan-exercises/client';
+import { listPlanExercises } from '@/apis/project/plan-exercises/client';
 import { usePlans } from '@/client/features/project/workout/hooks';
 import { useActivePlanId } from '@/client/features/project/workout/store';
 import { useQueryDefaults } from '@/client/query/defaults';

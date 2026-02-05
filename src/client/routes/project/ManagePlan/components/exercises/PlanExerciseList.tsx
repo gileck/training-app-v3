@@ -1,4 +1,4 @@
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 import { PlanExerciseCard } from './PlanExerciseCard';
 
 interface PlanExerciseListProps {

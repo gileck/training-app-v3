@@ -19,7 +19,7 @@ import {
     PlansHeader,
 } from './components';
 import { useExportHandlers } from './useExportHandlers';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 
 export function TrainingPlans() {
     // Queries and mutations

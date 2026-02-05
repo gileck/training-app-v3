@@ -5,9 +5,9 @@
  */
 
 import { toast } from '@/client/components/template/ui/toast';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { ExportPlanResponse } from '@/apis/training-plans/types';
+import type { ExportPlanResponse } from '@/apis/project/training-plans/types';
 
 interface UseExportHandlersProps {
     planToExport: TrainingPlanClient | null;

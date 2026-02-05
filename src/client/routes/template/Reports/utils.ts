@@ -2,7 +2,7 @@
  * Reports Utility Functions
  */
 
-import type { ReportClient, ReportStatus } from '@/apis/reports/types';
+import type { ReportClient, ReportStatus } from '@/apis/template/reports/types';
 import { generatePerformanceSummaryFromStoredData } from '@/client/features';
 import { AlertCircle, CheckCircle, Search, XCircle } from 'lucide-react';
 import React from 'react';

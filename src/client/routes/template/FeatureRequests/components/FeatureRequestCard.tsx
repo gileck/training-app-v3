@@ -18,7 +18,7 @@ import { StatusIndicatorStrip } from './StatusIndicatorStrip';
 import { MetadataIconRow } from './MetadataIconRow';
 import { HealthIndicator } from './HealthIndicator';
 import { PrimaryActionButton } from './PrimaryActionButton';
-import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/template/feature-requests/types';
 import { useUpdatePriority, useDeleteFeatureRequest, useApproveFeatureRequest, useGitHubStatus, useGitHubStatuses, useUpdateGitHubStatus, useUpdateGitHubReviewStatus, useClearGitHubReviewStatus } from '../hooks';
 import { useRouter } from '@/client/features';
 

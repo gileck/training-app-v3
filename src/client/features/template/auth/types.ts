@@ -2,7 +2,7 @@
  * Auth Feature Types
  */
 
-import type { UserResponse } from '@/apis/auth/types';
+import type { UserResponse } from '@/apis/template/auth/types';
 
 /**
  * Public user info stored as a hint for instant boot

@@ -16,7 +16,7 @@ import {
     GripVertical,
     Trash2,
 } from 'lucide-react';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 
 export interface AllExercisesOverlayProps {
     exercises: ExerciseWeekProgress[];

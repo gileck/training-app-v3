@@ -5,8 +5,8 @@
  */
 
 import { featureRequests, reports } from '@/server/database';
-import type { FeatureRequestDocument, FeatureRequestStatus, FeatureRequestPriority } from '@/server/database/collections/feature-requests/types';
-import type { ReportDocument, ReportStatus } from '@/server/database/collections/reports/types';
+import type { FeatureRequestDocument, FeatureRequestStatus, FeatureRequestPriority } from '@/server/database/collections/template/feature-requests/types';
+import type { ReportDocument, ReportStatus } from '@/server/database/collections/template/reports/types';
 import { parseArgs } from '../utils/parse-args';
 
 const FEATURE_STATUSES: FeatureRequestStatus[] = ['new', 'in_progress', 'done', 'rejected'];

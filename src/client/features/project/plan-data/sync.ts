@@ -18,9 +18,9 @@
 
 import { usePlanDataStore } from './store';
 import type { PlanData, PlanExerciseWithDefinition, ExerciseProgress } from './types';
-import type { SyncPlanDataResponse } from '@/apis/plan-data/types';
-import { listPlanExercises } from '@/apis/plan-exercises/client';
-import { getWeekProgress } from '@/apis/weekly-progress/client';
+import type { SyncPlanDataResponse } from '@/apis/project/plan-data/types';
+import { listPlanExercises } from '@/apis/project/plan-exercises/client';
+import { getWeekProgress } from '@/apis/project/weekly-progress/client';
 import apiClient from '@/client/utils/apiClient';
 
 // ============================================================================

@@ -33,7 +33,7 @@ import {
     editActivity,
     duplicateActivity,
     addActivity,
-} from '@/apis/activity-logs/client';
+} from '@/apis/project/activity-logs/client';
 import type {
     GetActivityResponse,
     GetActivitySummaryResponse,
@@ -43,7 +43,7 @@ import type {
     DuplicateActivityRequest,
     AddActivityRequest,
     ActivityLogEntry,
-} from '@/apis/activity-logs/types';
+} from '@/apis/project/activity-logs/types';
 import { generateId } from '@/client/utils/id';
 import { calculateRecoveryScore, type RecoveryScoreResult } from './utils/recoveryScore';
 

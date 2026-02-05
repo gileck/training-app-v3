@@ -7,5 +7,4 @@
  * To add project-specific APIs, add them to index.project.ts instead.
  */
 
-export * as chat from './chat';
-export * as clearCache from './settings/clearCache';
+export * as clearCache from './template/settings/clearCache';

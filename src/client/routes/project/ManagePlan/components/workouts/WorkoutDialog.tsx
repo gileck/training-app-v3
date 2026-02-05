@@ -8,8 +8,8 @@ import {
 } from '@/client/components/template/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { AlertTriangle } from 'lucide-react';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
-import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
+import type { PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
 import { WorkoutNameEditor } from './WorkoutDialog/WorkoutNameEditor';
 import { ExercisesTab } from './WorkoutDialog/ExercisesTab';
 import { SetsTab } from './WorkoutDialog/SetsTab';

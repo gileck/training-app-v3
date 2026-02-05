@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Button } from '@/client/components/template/ui/button';
 import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 
 interface WeekNavigatorProps {
     currentWeek: number;

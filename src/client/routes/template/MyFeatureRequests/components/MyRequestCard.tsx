@@ -4,7 +4,7 @@ import { Button } from '@/client/components/template/ui/button';
 import { Textarea } from '@/client/components/template/ui/textarea';
 import { ChevronDown, ChevronUp, Calendar, FileText, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { UserStatusBadge } from './UserStatusBadge';
-import type { FeatureRequestClient } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
 import { useAddComment } from '../hooks';
 
 interface MyRequestCardProps {

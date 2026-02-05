@@ -5,7 +5,7 @@ import { Input } from '@/client/components/template/ui/input';
 import { Textarea } from '@/client/components/template/ui/textarea';
 import { Label } from '@/client/components/template/ui/label';
 import { Dumbbell } from 'lucide-react';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 interface ExerciseConfigFormProps {
     exercise: ExerciseDefinitionClient;

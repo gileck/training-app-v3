@@ -8,7 +8,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle } from '../utils/chartConfig';
 import { getStatusDisplayName } from '../utils/mockData';
-import type { FeatureRequestMetrics } from '@/apis/dashboard/types';
+import type { FeatureRequestMetrics } from '@/apis/project/dashboard/types';
 
 /**
  * Props for the StatusDistributionChart component

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query';
-import { getMyFeatureRequests, addUserComment } from '@/apis/feature-requests/client';
-import type { FeatureRequestClient, AddUserCommentRequest } from '@/apis/feature-requests/types';
+import { getMyFeatureRequests, addUserComment } from '@/apis/template/feature-requests/client';
+import type { FeatureRequestClient, AddUserCommentRequest } from '@/apis/template/feature-requests/types';
 
 /**
  * Hook to fetch the current user's feature requests

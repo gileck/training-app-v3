@@ -21,8 +21,8 @@ import {
     DialogDescription,
 } from '@/client/components/template/ui/dialog';
 import { Check, Plus, HelpCircle, Circle, CheckCircle2, Search, ArrowLeft, Dumbbell } from 'lucide-react';
-import type { DraftExercise, SuggestedMatch } from '@/apis/training-plans/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { DraftExercise, SuggestedMatch } from '@/apis/project/training-plans/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 interface ExerciseResolverProps {
     exercise: DraftExercise;

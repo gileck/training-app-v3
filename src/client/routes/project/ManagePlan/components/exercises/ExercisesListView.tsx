@@ -2,7 +2,7 @@
  * ExercisesTab List View Component
  */
 
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 import { PlanExerciseList } from './PlanExerciseList';
 
 interface ExercisesListViewProps {

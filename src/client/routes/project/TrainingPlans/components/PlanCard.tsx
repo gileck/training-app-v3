@@ -23,7 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/client/components/template/ui/dropdown-menu';
-import type { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient, PlanCreationSource } from '@/server/database/collections/project/trainingPlans/types';
 
 interface PlanCardProps {
     plan: TrainingPlanClient;

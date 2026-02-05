@@ -12,7 +12,7 @@ import { LinearProgress } from '@/client/components/template/ui/linear-progress'
 import { Input } from '@/client/components/template/ui/input';
 import { Label } from '@/client/components/template/ui/label';
 import { useSettingsStore } from '@/client/features';
-import { clearCache as clearCacheApi } from '@/apis/settings/clearCache/client';
+import { clearCache as clearCacheApi } from '@/apis/template/settings/clearCache/client';
 import { clearAllPersistedStores } from '@/client/stores';
 import {
     REACT_QUERY_CACHE_KEY,

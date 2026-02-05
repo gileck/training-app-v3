@@ -1,5 +1,5 @@
 import { createStore } from '@/client/stores';
-import type { ReportType, ReportStatus } from '@/apis/reports/types';
+import type { ReportType, ReportStatus } from '@/apis/template/reports/types';
 
 /**
  * Reports page types

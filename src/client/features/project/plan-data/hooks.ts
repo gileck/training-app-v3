@@ -12,10 +12,10 @@ import { useCallback, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePlanDataStore } from './store';
 import { loadPlan, syncPlanToServer, syncFromCloud, loadWeekProgress } from './sync';
-import { addActivity, deleteActivity, getActivity } from '@/apis/activity-logs/client';
+import { addActivity, deleteActivity, getActivity } from '@/apis/project/activity-logs/client';
 import { generateId } from '@/client/utils/id';
 import type { ExerciseUpdates, NewExercise, PlanExerciseWithDefinition, ExerciseProgress } from './types';
-import type { AddActivityRequest, GetActivityResponse } from '@/apis/activity-logs/types';
+import type { AddActivityRequest, GetActivityResponse } from '@/apis/project/activity-logs/types';
 
 // ============================================================================
 // Stable Fallback References (CRITICAL for Zustand selectors)

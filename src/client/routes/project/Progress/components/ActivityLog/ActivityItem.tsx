@@ -1,7 +1,7 @@
 import { Button } from '@/client/components/template/ui/button';
 import { Checkbox } from '@/client/components/project/ui/checkbox';
 import { Dumbbell, Trash2 } from 'lucide-react';
-import type { ActivityLogEntry } from '@/apis/activity-logs/types';
+import type { ActivityLogEntry } from '@/apis/project/activity-logs/types';
 import { formatTime } from './utils';
 
 interface ActivityItemProps {

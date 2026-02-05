@@ -5,7 +5,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { createFeatureRequest } from '@/apis/feature-requests/client';
+import { createFeatureRequest } from '@/apis/template/feature-requests/client';
 import { useRouter } from '../router';
 
 interface SubmitFeatureRequestData {

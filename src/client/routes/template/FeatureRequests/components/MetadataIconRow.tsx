@@ -1,5 +1,5 @@
 import { User, ExternalLink, Clock, Calendar } from 'lucide-react';
-import type { FeatureRequestClient } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
 
 interface MetadataIconRowProps {
     request: FeatureRequestClient;

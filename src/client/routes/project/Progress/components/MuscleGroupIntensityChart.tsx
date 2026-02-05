@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
 import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Dumbbell } from 'lucide-react';
-import { getMuscleGroups } from '@/apis/exercise-definitions/client';
-import type { DailySummary } from '@/apis/activity-logs/types';
+import { getMuscleGroups } from '@/apis/project/exercise-definitions/client';
+import type { DailySummary } from '@/apis/project/activity-logs/types';
 import { calculateMuscleGroupData, getIntensityColor } from '../utils/muscleGroupCalculations';
 import { useQueryDefaults } from '@/client/query/defaults';
 

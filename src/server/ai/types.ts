@@ -9,7 +9,7 @@ import type {
   Usage,
   AIModelResponse,
   AIModelAdapterResponse
-} from '../../apis/chat/types';
+} from '../../apis/project/chat/types';
 
 // Re-export the shared types
 export type {

@@ -1,4 +1,4 @@
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 import { ExerciseCard } from './ExerciseCard';
 import { SupersetCard } from './SupersetCard';
 

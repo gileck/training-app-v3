@@ -29,7 +29,7 @@ import {
     AlertCircle,
     FileJson,
 } from 'lucide-react';
-import type { PlanExportData } from '@/apis/training-plans/types';
+import type { PlanExportData } from '@/apis/project/training-plans/types';
 import { toast } from '@/client/components/template/ui/toast';
 import { PlanPreviewCommit } from './PlanPreviewCommit';
 import { exportDataToDraftPlan, validatePlanExportJson } from '../utils';

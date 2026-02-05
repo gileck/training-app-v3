@@ -8,7 +8,5 @@
  *   export * as myApi from './my-api';
  */
 
-// Add project-specific APIs below:
-
-// Empty export to make this a valid module (required by TypeScript)
-export {};
+// Project-specific APIs:
+export * as chat from './project/chat';

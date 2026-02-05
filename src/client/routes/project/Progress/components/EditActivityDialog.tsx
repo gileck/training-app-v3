@@ -7,7 +7,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/client/components/template/ui/dialog';
-import type { ActivityLogEntry } from '@/apis/activity-logs/types';
+import type { ActivityLogEntry } from '@/apis/project/activity-logs/types';
 import { DateTimePicker } from './DateTimePicker';
 
 export interface EditActivityDialogProps {

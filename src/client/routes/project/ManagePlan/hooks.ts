@@ -27,20 +27,20 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
-import { getPlan } from '@/apis/training-plans/client';
+import { getPlan } from '@/apis/project/training-plans/client';
 import {
     listExercises,
     createExercise,
     updateExercise,
     deleteExercise,
-} from '@/apis/exercise-definitions/client';
-import type { GetPlanResponse } from '@/apis/training-plans/types';
+} from '@/apis/project/exercise-definitions/client';
+import type { GetPlanResponse } from '@/apis/project/training-plans/types';
 import type {
     ListExercisesResponse,
     CreateExerciseRequest,
     UpdateExerciseRequest,
     DeleteExerciseRequest,
-} from '@/apis/exercise-definitions/types';
+} from '@/apis/project/exercise-definitions/types';
 
 // ============================================================================
 // Query Keys

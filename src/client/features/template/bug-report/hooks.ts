@@ -5,12 +5,12 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { createReport } from '@/apis/reports/client';
+import { createReport } from '@/apis/template/reports/client';
 import { getSessionLogs } from '../session-logs';
 import { useUser } from '../auth';
 import { useRouter } from '../router';
 import type { BrowserInfo, UserInfo, BugCategory, PerformanceEntryData } from './types';
-import type { CreateReportRequest } from '@/apis/reports/types';
+import type { CreateReportRequest } from '@/apis/template/reports/types';
 
 /**
  * Get current browser information

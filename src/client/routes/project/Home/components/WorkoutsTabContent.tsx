@@ -3,7 +3,7 @@ import { Button } from '@/client/components/template/ui/button';
 import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Settings2, Plus, Bookmark } from 'lucide-react';
 import { PlanWorkoutCard } from './PlanWorkoutCard';
-import type { PlanWorkoutClient } from '@/server/database/collections/planWorkouts/types';
+import type { PlanWorkoutClient } from '@/server/database/collections/project/planWorkouts/types';
 import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 interface WorkoutsTabContentProps {

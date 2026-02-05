@@ -8,8 +8,8 @@
 import type {
     FeatureRequestClient,
     FeatureRequestPriority,
-} from '@/apis/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
+} from '@/apis/template/feature-requests/types';
+import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 /**
  * Filter by GitHub status

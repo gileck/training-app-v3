@@ -1,4 +1,4 @@
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 
 export type ActiveWorkoutTab = 'active' | 'exercises';
 export type ExercisesViewMode = 'grid' | 'list';

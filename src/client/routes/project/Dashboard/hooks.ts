@@ -5,10 +5,10 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getDashboardAnalytics } from '@/apis/dashboard/client';
+import { getDashboardAnalytics } from '@/apis/project/dashboard/client';
 import { useQueryDefaults } from '@/client/query/defaults';
 import { useDashboardStore } from './store';
-import type { GetDashboardAnalyticsResponse } from '@/apis/dashboard/types';
+import type { GetDashboardAnalyticsResponse } from '@/apis/project/dashboard/types';
 
 // ============================================================================
 // Query Keys

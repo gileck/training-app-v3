@@ -4,8 +4,8 @@
  * Types for local-first plan data management.
  */
 
-import type { PlanExerciseClient } from '@/server/database/collections/planExercises/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { PlanExerciseClient } from '@/server/database/collections/project/planExercises/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 /**
  * Exercise with its definition, used for display

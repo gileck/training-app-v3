@@ -98,4 +98,4 @@ export interface PhaseData {
 export type {
     ExternalLogSource,
     ExternalLogEvent,
-} from '@/apis/agent-log/types';
+} from '@/apis/template/agent-log/types';

@@ -12,8 +12,8 @@ import { getProjectManagementAdapter } from '@/server/project-management';
 import { STATUSES } from '@/server/project-management/config';
 import { sendNotificationToOwner } from '@/server/telegram';
 import { appConfig } from '@/app.config';
-import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/feature-requests';
-import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/reports';
+import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/template/feature-requests';
+import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/template/reports';
 
 async function main() {
     const prNumber = process.env.PR_NUMBER;

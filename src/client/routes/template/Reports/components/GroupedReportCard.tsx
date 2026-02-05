@@ -8,7 +8,7 @@ import { Button } from '@/client/components/template/ui/button';
 import { Badge } from '@/client/components/template/ui/badge';
 import { Bug, AlertCircle, ChevronDown, ChevronUp, Clock, MoreVertical, Search, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-react';
 import type { GroupedReport } from '../utils';
-import type { ReportStatus } from '@/apis/reports/types';
+import type { ReportStatus } from '@/apis/template/reports/types';
 import { formatDate } from '../utils';
 import { ReportCard } from './ReportCard';
 import { useBatchUpdateStatus, useBatchDeleteReports } from '../hooks';

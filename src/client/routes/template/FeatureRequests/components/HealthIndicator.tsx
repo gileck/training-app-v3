@@ -1,5 +1,5 @@
-import type { FeatureRequestClient } from '@/apis/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
+import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 type HealthStatus = 'healthy' | 'stale' | 'at_risk';
 

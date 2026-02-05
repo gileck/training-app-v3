@@ -1,7 +1,7 @@
 import { ExternalLink, GitPullRequest, FileText, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from '@/client/components/template/ui/badge';
 import { Button } from '@/client/components/template/ui/button';
-import type { GitHubIssueDetails, DesignDocArtifact, ImplementationPhaseArtifact } from '@/apis/feature-requests/types';
+import type { GitHubIssueDetails, DesignDocArtifact, ImplementationPhaseArtifact } from '@/apis/template/feature-requests/types';
 
 interface GitHubIssueSectionProps {
     issueDetails: GitHubIssueDetails | null | undefined;

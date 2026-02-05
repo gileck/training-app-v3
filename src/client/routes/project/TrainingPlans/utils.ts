@@ -9,7 +9,7 @@ import type {
     DraftPlan,
     DraftExercise,
     DraftWorkout,
-} from '@/apis/training-plans/types';
+} from '@/apis/project/training-plans/types';
 
 // ============================================================================
 // JSON Validation Types & Constants

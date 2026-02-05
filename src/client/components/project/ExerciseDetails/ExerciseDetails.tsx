@@ -7,10 +7,10 @@ import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Button } from '@/client/components/template/ui/button';
 import { Textarea } from '@/client/components/template/ui/textarea';
 import { Dumbbell, Clock, Weight, Target, Info, MessageSquare, History, Calendar, CheckCircle2, X, Repeat, Timer, ChevronDown, ChevronUp, Edit2, Save, Plus } from 'lucide-react';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getExerciseHistory } from '@/apis/activity-logs/client';
-import { getExerciseNotes, updateExerciseNote } from '@/apis/weekly-progress/client';
+import { getExerciseHistory } from '@/apis/project/activity-logs/client';
+import { getExerciseNotes, updateExerciseNote } from '@/apis/project/weekly-progress/client';
 import { useQueryDefaults } from '@/client/query';
 import { toast } from '@/client/components/template/ui/toast';
 

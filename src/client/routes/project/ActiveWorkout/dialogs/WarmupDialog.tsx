@@ -17,7 +17,7 @@ import {
 import { Loader2, RefreshCw, Sparkles, Cpu, DollarSign } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getAllModels, type AIModelDefinition } from '@/common/ai/models';
-import type { WarmupCost } from '@/apis/workout-warmup/types';
+import type { WarmupCost } from '@/apis/project/workout-warmup/types';
 
 const models = getAllModels();
 

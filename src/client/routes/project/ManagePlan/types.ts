@@ -1,6 +1,6 @@
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
-import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
+import type { PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
 
 // Multi-select exercise configuration
 export interface MultiSelectExerciseConfig {

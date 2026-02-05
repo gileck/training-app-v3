@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useUpdateReportStatus, useDeleteReport } from '../hooks';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Loader2 } from 'lucide-react';
-import type { ReportClient, ReportStatus } from '@/apis/reports/types';
+import type { ReportClient, ReportStatus } from '@/apis/template/reports/types';
 import { ConfirmDialog } from '@/client/components/template/ui/confirm-dialog';
 import { toast } from '@/client/components/template/ui/toast';
 import { ReportCardHeader, ReportCardActions, ReportCardDetails, formatReportDetails } from './ReportCard/index';

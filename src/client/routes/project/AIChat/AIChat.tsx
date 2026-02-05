@@ -7,7 +7,7 @@ import { LinearProgress } from '@/client/components/template/ui/linear-progress'
 import { Badge } from '@/client/components/template/ui/badge';
 import { Send, MessageSquare } from 'lucide-react';
 import { type AIModelDefinition, getAllModels } from '@/common/ai/models';
-import { sendChatMessage } from '@/apis/chat/client';
+import { sendChatMessage } from '@/apis/project/chat/client';
 import { useSettingsStore } from '@/client/features/template/settings';
 
 // Message type definition

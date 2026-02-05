@@ -7,8 +7,8 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { FixSelection, ParsedFixOption } from '@/apis/bug-fix-select/types';
-import { getInvestigation, submitFixSelection } from '@/apis/bug-fix-select/client';
+import type { FixSelection, ParsedFixOption } from '@/apis/project/bug-fix-select/types';
+import { getInvestigation, submitFixSelection } from '@/apis/project/bug-fix-select/client';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
 import { Label } from '@/client/components/template/ui/label';

@@ -6,8 +6,8 @@
 import { useEffect, useState, useRef, ChangeEvent } from 'react';
 import { useAuthStore, useUser, useCurrentUser } from '@/client/features';
 import { useRouter } from '@/client/features';
-import { apiUpdateProfile } from '@/apis/auth/client';
-import { UpdateProfileRequest, UserResponse } from '@/apis/auth/types';
+import { apiUpdateProfile } from '@/apis/template/auth/client';
+import { UpdateProfileRequest, UserResponse } from '@/apis/template/auth/types';
 import { toast } from '@/client/components/template/ui/toast';
 import { ProfileHeader } from './components/ProfileHeader';
 import { ProfileSection } from './components/ProfileSection';

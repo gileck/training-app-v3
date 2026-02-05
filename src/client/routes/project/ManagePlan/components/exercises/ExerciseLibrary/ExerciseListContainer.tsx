@@ -3,7 +3,7 @@
  */
 
 import { Skeleton } from '@/client/components/template/ui/skeleton';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import { ExerciseLibraryGrid } from '../ExerciseLibraryGrid';
 import { ExerciseLibraryList } from '../ExerciseLibraryList';
 

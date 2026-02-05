@@ -3,7 +3,7 @@
  */
 
 import type { AIModelDefinition } from '@/common/ai/models';
-import type { PlanExportData } from '@/apis/training-plans/types';
+import type { PlanExportData } from '@/apis/project/training-plans/types';
 
 // Input validation limits (matching server)
 export const MAX_TEXT_LENGTH = 10000;

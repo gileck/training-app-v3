@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/client/lib/utils';
 import { useIOSKeyboardOffset } from '@/client/lib/hooks';
-import type { FeatureRequestPriority } from '@/apis/feature-requests/types';
+import type { FeatureRequestPriority } from '@/apis/template/feature-requests/types';
 
 interface MobileFilterSheetProps {
     open: boolean;

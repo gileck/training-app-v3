@@ -8,7 +8,7 @@
  * Rest days = recovery score improves
  */
 
-import type { DailySummary } from '@/apis/activity-logs/types';
+import type { DailySummary } from '@/apis/project/activity-logs/types';
 
 export interface RecoveryScoreResult {
     score: number;              // 0-100

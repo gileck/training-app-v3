@@ -7,7 +7,7 @@ import {
     DialogFooter,
 } from '@/client/components/template/ui/dialog';
 import { Dumbbell } from 'lucide-react';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 
 interface SupersetSelectionDialogProps {
     open: boolean;

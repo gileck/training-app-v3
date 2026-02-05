@@ -12,4 +12,4 @@ export {
 export type {
     PlanWorkoutClient,
     PlanWorkoutItemClient,
-} from '@/apis/plan-workouts/types';
+} from '@/apis/project/plan-workouts/types';

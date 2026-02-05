@@ -3,8 +3,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getSharedPlan } from '@/apis/training-plans/client';
-import type { GetSharedPlanResponse } from '@/apis/training-plans/types';
+import { getSharedPlan } from '@/apis/project/training-plans/client';
+import type { GetSharedPlanResponse } from '@/apis/project/training-plans/types';
 import { useQueryDefaults } from '@/client/query/defaults';
 
 // Re-export the shared utility for backward compatibility

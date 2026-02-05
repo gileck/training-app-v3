@@ -24,8 +24,8 @@
  */
 
 import { users } from '@/server/database';
-import type { FeatureRequestDocument } from '@/server/database/collections/feature-requests/types';
-import type { ReportDocument } from '@/server/database/collections/reports/types';
+import type { FeatureRequestDocument } from '@/server/database/collections/template/feature-requests/types';
+import type { ReportDocument } from '@/server/database/collections/template/reports/types';
 import { appConfig } from '@/app.config';
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';

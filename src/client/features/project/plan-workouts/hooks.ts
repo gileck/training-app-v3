@@ -33,7 +33,7 @@ import {
     updatePlanWorkout,
     deletePlanWorkout,
     reorderPlanWorkouts,
-} from '@/apis/plan-workouts/client';
+} from '@/apis/project/plan-workouts/client';
 import type {
     ListPlanWorkoutsResponse,
     CreatePlanWorkoutRequest,
@@ -41,7 +41,7 @@ import type {
     DeletePlanWorkoutRequest,
     ReorderPlanWorkoutsRequest,
     PlanWorkoutClient,
-} from '@/apis/plan-workouts/types';
+} from '@/apis/project/plan-workouts/types';
 import { generateId } from '@/client/utils/id';
 
 // ============================================================================

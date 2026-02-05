@@ -23,8 +23,8 @@ import { Badge } from '@/client/components/template/ui/badge';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Dumbbell, Calendar, AlertCircle, CheckCircle2, HelpCircle, Plus } from 'lucide-react';
-import type { DraftPlan, DraftExercise, DraftWorkout } from '@/apis/training-plans/types';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { DraftPlan, DraftExercise, DraftWorkout } from '@/apis/project/training-plans/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import { ExerciseResolver, type ExerciseResolution } from './ExerciseResolver';
 
 interface PlanPreviewProps {

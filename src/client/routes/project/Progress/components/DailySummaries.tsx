@@ -3,7 +3,7 @@ import { Badge } from '@/client/components/template/ui/badge';
 import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { TrendingUp } from 'lucide-react';
 import { useActivitySummary } from '../hooks';
-import type { DailySummary } from '@/apis/activity-logs/types';
+import type { DailySummary } from '@/apis/project/activity-logs/types';
 import type { DateRange } from '../store';
 
 function formatDate(isoString: string): string {

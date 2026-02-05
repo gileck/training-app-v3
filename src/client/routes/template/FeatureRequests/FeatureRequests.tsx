@@ -34,7 +34,7 @@ import { applyAllFilters } from './utils/filterUtils';
 import { applySorting, separateDoneItems } from './utils/sortingUtils';
 import type { SortMode } from './utils/sortingUtils';
 import { toast } from '@/client/components/template/ui/toast';
-import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
+import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 // Sort mode display labels
 const SORT_MODE_LABELS: Record<SortMode, string> = {

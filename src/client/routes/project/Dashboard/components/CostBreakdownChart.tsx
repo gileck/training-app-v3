@@ -17,7 +17,7 @@ import {
 import { Card } from '@/client/components/template/ui/card';
 import { chartColors, tooltipStyle, gridStyle, axisStyle } from '../utils/chartConfig';
 import { formatWeekLabel, formatCurrency } from '../utils/mockData';
-import type { CostTimeSeriesPoint } from '@/apis/dashboard/types';
+import type { CostTimeSeriesPoint } from '@/apis/project/dashboard/types';
 
 /**
  * Props for the CostBreakdownChart component

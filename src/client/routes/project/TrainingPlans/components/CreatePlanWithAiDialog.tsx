@@ -30,7 +30,7 @@ import { getAllModels } from '@/common/ai/models';
 import { useSettingsStore } from '@/client/features/template/settings';
 import { useEffectiveOffline } from '@/client/features/template/settings';
 import { useGeneratePlanFromText, useCreatePlanFromText, useMatchImportedPlan, useExerciseLibrary } from '../hooks';
-import type { DraftPlan, PlanExportData } from '@/apis/training-plans/types';
+import type { DraftPlan, PlanExportData } from '@/apis/project/training-plans/types';
 import { toast } from '@/client/components/template/ui/toast';
 import { PlanPreview } from './PlanPreview';
 import type { ExerciseResolution } from './ExerciseResolver';

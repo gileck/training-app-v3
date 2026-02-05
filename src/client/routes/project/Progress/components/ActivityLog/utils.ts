@@ -1,4 +1,4 @@
-import type { ActivityLogEntry } from '@/apis/activity-logs/types';
+import type { ActivityLogEntry } from '@/apis/project/activity-logs/types';
 
 export function formatDate(isoString: string): string {
     const date = new Date(isoString);

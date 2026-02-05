@@ -7,7 +7,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/template/ui/dialog';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface DeleteExerciseDialogProps {
     open: boolean;

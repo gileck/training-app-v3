@@ -28,11 +28,11 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query/defaults';
-import { getWeekProgress } from '@/apis/weekly-progress/client';
-import { listPlans } from '@/apis/training-plans/client';
+import { getWeekProgress } from '@/apis/project/weekly-progress/client';
+import { listPlans } from '@/apis/project/training-plans/client';
 import { useWorkoutStore, useActivePlanId } from './store';
-import type { GetWeekProgressResponse } from '@/apis/weekly-progress/types';
-import type { ListPlansResponse } from '@/apis/training-plans/types';
+import type { GetWeekProgressResponse } from '@/apis/project/weekly-progress/types';
+import type { ListPlansResponse } from '@/apis/project/training-plans/types';
 
 // ============================================================================
 // Query Keys

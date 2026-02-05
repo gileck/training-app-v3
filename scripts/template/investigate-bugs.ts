@@ -28,7 +28,7 @@ import {
     ConfidenceLevel,
     SessionLogEntry,
     ReportSummary,
-} from '../../src/server/database/collections/reports';
+} from '../../src/server/database/collections/template/reports';
 
 // ============================================================
 // CONFIGURATION

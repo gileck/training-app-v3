@@ -1,4 +1,4 @@
-import type { DailySummary } from '@/apis/activity-logs/types';
+import type { DailySummary } from '@/apis/project/activity-logs/types';
 
 export interface MuscleGroupData {
     muscle: string;

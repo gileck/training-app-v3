@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { parse, serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
-import { AuthTokenPayload, AuthDebugInfo } from "./auth/types";
-import { JWT_SECRET, COOKIE_NAME } from "./auth/server";
+import { AuthTokenPayload, AuthDebugInfo } from "./template/auth/types";
+import { JWT_SECRET, COOKIE_NAME } from "./template/auth/server";
 
 
 export function getUserContext(req: NextApiRequest, res: NextApiResponse) {

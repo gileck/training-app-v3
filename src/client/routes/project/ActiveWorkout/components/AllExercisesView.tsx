@@ -1,5 +1,5 @@
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
-import type { GetWeekProgressResponse } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
+import type { GetWeekProgressResponse } from '@/apis/project/weekly-progress/types';
 import { AllExercisesOverlay } from './AllExercisesOverlay';
 
 interface AllExercisesViewProps {

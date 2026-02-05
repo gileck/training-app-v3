@@ -1,5 +1,5 @@
 import { createStore } from '@/client/stores';
-import type { FeatureRequestStatus, FeatureRequestPriority } from '@/apis/feature-requests/types';
+import type { FeatureRequestStatus, FeatureRequestPriority } from '@/apis/template/feature-requests/types';
 import type { SortMode } from './utils/sortingUtils';
 
 // Stable fallback references (prevent infinite loops in selectors)

@@ -1,6 +1,6 @@
 import { Button } from '@/client/components/template/ui/button';
 import { ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 
 interface ExerciseCardProps {
     currentExercise: ExerciseWeekProgress;

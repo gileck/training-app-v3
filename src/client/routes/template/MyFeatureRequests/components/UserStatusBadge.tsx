@@ -1,4 +1,4 @@
-import type { FeatureRequestStatus } from '@/apis/feature-requests/types';
+import type { FeatureRequestStatus } from '@/apis/template/feature-requests/types';
 
 interface UserStatusBadgeProps {
     status: FeatureRequestStatus;

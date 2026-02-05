@@ -11,7 +11,7 @@
 import { createStore } from '@/client/stores';
 import type { UserPublicHint } from './types';
 import { userToHint } from './types';
-import type { UserResponse } from '@/apis/auth/types';
+import type { UserResponse } from '@/apis/template/auth/types';
 import { STORE_DEFAULTS, createTTLValidator } from '@/client/config';
 
 // Use centralized TTL

@@ -1,4 +1,4 @@
-import type { FeatureRequestClient, FeatureRequestStatus } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient, FeatureRequestStatus } from '@/apis/template/feature-requests/types';
 
 interface StatusIndicatorStripProps {
     request: FeatureRequestClient;

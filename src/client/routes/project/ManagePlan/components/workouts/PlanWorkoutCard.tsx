@@ -2,8 +2,8 @@ import Image from 'next/image';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { ChevronRight, ChevronUp, ChevronDown, Edit2, Copy, Trash2, Dumbbell } from 'lucide-react';
-import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface PlanWorkoutCardProps {
     workout: PlanWorkoutClient;

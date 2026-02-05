@@ -9,7 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/client/components/template/ui/dialog';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 
 interface EditPlanDialogProps {
     open: boolean;

@@ -1,6 +1,6 @@
 import { createStore } from '@/client/stores';
 import type { WorkoutSessionState, WorkoutSession } from './session-types';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 
 const initialSessionState: WorkoutSession = {
     isActive: false,

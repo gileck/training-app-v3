@@ -1,5 +1,5 @@
 import { Badge } from '@/client/components/template/ui/badge';
-import type { FeatureRequestStatus } from '@/apis/feature-requests/types';
+import type { FeatureRequestStatus } from '@/apis/template/feature-requests/types';
 import {
     CircleDot,
     Hammer,

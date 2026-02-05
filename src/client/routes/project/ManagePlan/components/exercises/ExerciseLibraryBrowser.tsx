@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/client/components/template/ui/button';
 import { Filter } from 'lucide-react';
 import { useManagePlanStore } from '../../store';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import type { MultiSelectExerciseConfig } from '../../types';
 import { MultiSelectActionBar } from './MultiSelectActionBar';
 import {

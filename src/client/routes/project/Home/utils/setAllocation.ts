@@ -1,4 +1,4 @@
-import type { PlanWorkoutClient } from '@/server/database/collections/planWorkouts/types';
+import type { PlanWorkoutClient } from '@/server/database/collections/project/planWorkouts/types';
 import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
 
 /**

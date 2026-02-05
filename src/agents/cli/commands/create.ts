@@ -10,7 +10,7 @@ import { featureRequests, reports } from '@/server/database';
 import { syncFeatureRequestToGitHub, syncBugReportToGitHub } from '@/server/github-sync';
 import { sendFeatureRequestNotification, sendBugReportNotification } from '@/server/telegram';
 import { getProjectManagementAdapter, STATUSES } from '@/server/project-management';
-import type { FeatureRequestPriority } from '@/server/database/collections/feature-requests/types';
+import type { FeatureRequestPriority } from '@/server/database/collections/template/feature-requests/types';
 import { parseArgs, validateCreateArgs } from '../utils/parse-args';
 
 // Map route names to status values

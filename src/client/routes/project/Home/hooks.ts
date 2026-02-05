@@ -5,8 +5,8 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { addActivity, deleteActivity, getActivity } from '@/apis/activity-logs/client';
-import type { AddActivityRequest, GetActivityResponse } from '@/apis/activity-logs/types';
+import { addActivity, deleteActivity, getActivity } from '@/apis/project/activity-logs/client';
+import type { AddActivityRequest, GetActivityResponse } from '@/apis/project/activity-logs/types';
 import { generateId } from '@/client/utils/id';
 
 // ============================================================================

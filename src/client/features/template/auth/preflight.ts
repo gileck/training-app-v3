@@ -8,7 +8,7 @@
  */
 
 import { markPhaseStart, markPhaseEnd, markEvent, logStatus, BOOT_PHASES } from '../boot-performance';
-import type { CurrentUserResponse } from '@/apis/auth/types';
+import type { CurrentUserResponse } from '@/apis/template/auth/types';
 
 interface PreflightResult {
     data: CurrentUserResponse | null;

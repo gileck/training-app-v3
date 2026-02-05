@@ -9,7 +9,7 @@ import { FeatureRequestsChart } from './FeatureRequestsChart';
 import { StatusDistributionChart } from './StatusDistributionChart';
 import { AgentPerformanceChart } from './AgentPerformanceChart';
 import { CostBreakdownChart } from './CostBreakdownChart';
-import type { GetDashboardAnalyticsResponse } from '@/apis/dashboard/types';
+import type { GetDashboardAnalyticsResponse } from '@/apis/project/dashboard/types';
 
 /**
  * Props for the ChartsSection component

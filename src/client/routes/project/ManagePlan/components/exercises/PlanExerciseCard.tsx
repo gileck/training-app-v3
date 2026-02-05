@@ -3,7 +3,7 @@ import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Badge } from '@/client/components/template/ui/badge';
 import { ChevronUp, ChevronDown, Trash2, Dumbbell } from 'lucide-react';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface PlanExerciseCardProps {
     exercise: PlanExerciseWithDefinition;

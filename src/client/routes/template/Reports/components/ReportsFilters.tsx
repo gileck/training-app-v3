@@ -5,7 +5,7 @@
 import { Button } from '@/client/components/template/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/template/ui/select';
 import { List, Layers } from 'lucide-react';
-import type { ReportType } from '@/apis/reports/types';
+import type { ReportType } from '@/apis/template/reports/types';
 import type { StatusFilterOption } from '../store';
 
 interface ReportsFiltersProps {

@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { apiHandlers } from "@/apis/apis";
 import { getUserContext } from "@/apis/getUserContext";
-import type { BatchOperation, BatchOperationResult } from "@/apis/batch-updates/types";
+import type { BatchOperation, BatchOperationResult } from "@/apis/project/batch-updates/types";
 
 /**
  * Batch updates API handler

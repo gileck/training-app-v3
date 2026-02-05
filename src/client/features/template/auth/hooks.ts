@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from './store';
 import { userToHint } from './types';
-import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/auth/client';
+import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/template/auth/client';
 import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflight } from './preflight';
 import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
-import type { LoginRequest, RegisterRequest, CurrentUserResponse } from '@/apis/auth/types';
+import type { LoginRequest, RegisterRequest, CurrentUserResponse } from '@/apis/template/auth/types';
 
 // ============================================================================
 // Query Keys

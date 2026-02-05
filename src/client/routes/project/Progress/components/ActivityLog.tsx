@@ -21,7 +21,7 @@ import {
     useDuplicateActivity,
     useAddActivity,
 } from '../hooks';
-import type { ActivityLogEntry } from '@/apis/activity-logs/types';
+import type { ActivityLogEntry } from '@/apis/project/activity-logs/types';
 import type { DateRange } from '../store';
 import { EditActivityDialog } from './EditActivityDialog';
 import { AddActivityDialog } from './AddActivityDialog';

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { ParsedQuestion, QuestionAnswer } from '@/apis/clarification/types';
+import type { ParsedQuestion, QuestionAnswer } from '@/apis/project/clarification/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
 import { Label } from '@/client/components/template/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/client/components/template/ui/radio-group';

@@ -13,7 +13,7 @@
 
 import '../../src/agents/shared/loadEnv';
 import { getDb } from '@/server/database';
-import { FeatureRequestStatus } from '@/server/database/collections/feature-requests/types';
+import { FeatureRequestStatus } from '@/server/database/collections/template/feature-requests/types';
 
 // Valid status values
 const VALID_STATUSES: FeatureRequestStatus[] = ['new', 'in_progress', 'done', 'rejected'];

@@ -3,7 +3,7 @@
  */
 
 import { Search } from 'lucide-react';
-import type { ReportClient, InvestigationStatus } from '@/apis/reports/types';
+import type { ReportClient, InvestigationStatus } from '@/apis/template/reports/types';
 import { formatDate, generatePerformanceSummary } from '../../utils';
 
 const INVESTIGATION_STATUS_LABELS: Record<InvestigationStatus, string> = {

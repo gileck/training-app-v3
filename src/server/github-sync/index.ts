@@ -11,8 +11,8 @@
  */
 
 import { featureRequests, reports } from '@/server/database';
-import type { FeatureRequestDocument } from '@/server/database/collections/feature-requests/types';
-import type { ReportDocument } from '@/server/database/collections/reports/types';
+import type { FeatureRequestDocument } from '@/server/database/collections/template/feature-requests/types';
+import type { ReportDocument } from '@/server/database/collections/template/reports/types';
 import {
     sendFeatureRoutingNotification,
     sendBugRoutingNotification,

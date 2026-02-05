@@ -30,8 +30,8 @@ import type { ProjectManagementAdapter } from '@/server/project-management/types
 import { STATUSES } from '@/server/project-management/config';
 import { sendNotificationToOwner } from '@/server/telegram';
 import { appConfig } from '@/app.config';
-import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/feature-requests';
-import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/reports';
+import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/template/feature-requests';
+import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/template/reports';
 import { parsePhaseString } from '../../src/agents/lib/parsing';
 import {
     updateDesignArtifact,

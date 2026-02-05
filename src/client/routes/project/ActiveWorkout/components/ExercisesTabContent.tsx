@@ -12,7 +12,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 import { useState } from 'react';
-import type { ExerciseWeekProgress } from '@/apis/weekly-progress/types';
+import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
 import { TimerZone } from './TimerZone';
 
 interface ExercisesTabContentProps {

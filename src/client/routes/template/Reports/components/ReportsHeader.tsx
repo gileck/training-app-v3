@@ -4,7 +4,7 @@
 
 import { Button } from '@/client/components/template/ui/button';
 import { Filter, Trash2 } from 'lucide-react';
-import type { ReportClient } from '@/apis/reports/types';
+import type { ReportClient } from '@/apis/template/reports/types';
 import { groupReports } from '../utils';
 
 interface ReportsHeaderProps {

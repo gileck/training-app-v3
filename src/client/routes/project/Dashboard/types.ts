@@ -4,8 +4,8 @@
  * Types for the analytics dashboard with mock data.
  */
 
-import type { FeatureRequestStatus } from '@/server/database/collections/feature-requests/types';
-import type { ReportStatus } from '@/server/database/collections/reports/types';
+import type { FeatureRequestStatus } from '@/server/database/collections/template/feature-requests/types';
+import type { ReportStatus } from '@/server/database/collections/template/reports/types';
 
 /**
  * Date range preset options

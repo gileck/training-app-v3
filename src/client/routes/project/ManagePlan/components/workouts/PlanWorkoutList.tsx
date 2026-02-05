@@ -1,5 +1,5 @@
-import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 import { PlanWorkoutCard } from './PlanWorkoutCard';
 
 interface PlanWorkoutListProps {

@@ -5,8 +5,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getReports, updateReportStatus, deleteReport, deleteAllReports, batchUpdateStatus, batchDeleteReports } from '@/apis/reports/client';
-import type { GetReportsRequest, ReportStatus } from '@/apis/reports/types';
+import { getReports, updateReportStatus, deleteReport, deleteAllReports, batchUpdateStatus, batchDeleteReports } from '@/apis/template/reports/client';
+import type { GetReportsRequest, ReportStatus } from '@/apis/template/reports/types';
 import { useQueryDefaults } from '@/client/query';
 import { toast } from '@/client/components/template/ui/toast';
 

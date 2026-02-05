@@ -20,13 +20,13 @@ import {
     clearGitHubReviewStatus,
     createFeatureRequest,
     getGitHubIssueDetails,
-} from '@/apis/feature-requests/client';
+} from '@/apis/template/feature-requests/client';
 import type {
     GetFeatureRequestsRequest,
     FeatureRequestStatus,
     FeatureRequestPriority,
     CreateFeatureRequestRequest,
-} from '@/apis/feature-requests/types';
+} from '@/apis/template/feature-requests/types';
 import { useQueryDefaults } from '@/client/query';
 import { toast } from '@/client/components/template/ui/toast';
 

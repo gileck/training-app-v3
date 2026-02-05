@@ -8,7 +8,7 @@ import type {
     ReportBrowserInfo,
     PerformanceEntryData,
     BugCategory,
-} from '@/server/database/collections/reports/types';
+} from '@/server/database/collections/template/reports/types';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
 import type { ProjectManagementAdapter } from '@/server/project-management/types';
 import type { CommonCLIOptions } from './types';

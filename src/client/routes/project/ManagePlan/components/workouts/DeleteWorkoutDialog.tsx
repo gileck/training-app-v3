@@ -7,7 +7,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/client/components/template/ui/dialog';
-import type { PlanWorkoutClient } from '@/apis/plan-workouts/types';
+import type { PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
 
 interface DeleteWorkoutDialogProps {
     open: boolean;

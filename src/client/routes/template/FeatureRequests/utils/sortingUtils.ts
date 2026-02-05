@@ -5,8 +5,8 @@
  * items needing attention.
  */
 
-import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/feature-requests/types';
+import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/template/feature-requests/types';
+import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 /**
  * Sort mode options

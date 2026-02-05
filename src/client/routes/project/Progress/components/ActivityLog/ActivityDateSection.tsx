@@ -8,7 +8,7 @@ import {
     DropdownMenuTrigger,
 } from '@/client/components/template/ui/dropdown-menu';
 import { Calendar, MoreVertical, Plus, Check } from 'lucide-react';
-import type { ActivityLogEntry } from '@/apis/activity-logs/types';
+import type { ActivityLogEntry } from '@/apis/project/activity-logs/types';
 import { GroupedActivityItem } from './GroupedActivityItem';
 import { groupConsecutiveActivities } from './utils';
 

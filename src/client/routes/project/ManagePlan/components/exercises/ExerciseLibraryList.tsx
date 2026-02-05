@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Button } from '@/client/components/template/ui/button';
 import { Badge } from '@/client/components/template/ui/badge';
 import { Check, Dumbbell, Edit2, Trash2 } from 'lucide-react';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 interface ExerciseLibraryListProps {
     exercises: ExerciseDefinitionClient[];

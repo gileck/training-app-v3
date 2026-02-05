@@ -9,11 +9,11 @@
  */
 
 // Training App specific collections:
-export * as trainingPlans from './trainingPlans';
-export * as exerciseDefinitions from './exerciseDefinitions';
-export * as planExercises from './planExercises';
-export * as weeklyProgress from './weeklyProgress';
-export * as exerciseProgress from './exerciseProgress';
-export * as setLogs from './setLogs';
-export * as planWorkouts from './planWorkouts';
-export * as weeklyNotes from './weeklyNotes';
+export * as trainingPlans from './project/trainingPlans';
+export * as exerciseDefinitions from './project/exerciseDefinitions';
+export * as planExercises from './project/planExercises';
+export * as weeklyProgress from './project/weeklyProgress';
+export * as exerciseProgress from './project/exerciseProgress';
+export * as setLogs from './project/setLogs';
+export * as planWorkouts from './project/planWorkouts';
+export * as weeklyNotes from './project/weeklyNotes';

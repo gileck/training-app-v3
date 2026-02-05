@@ -8,7 +8,7 @@ import {
     DialogContent,
 } from '@/client/components/template/ui/dialog';
 import { Dumbbell } from 'lucide-react';
-import type { PlanExerciseWithDefinition } from '@/apis/plan-exercises/types';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface EditExerciseDialogProps {
     open: boolean;

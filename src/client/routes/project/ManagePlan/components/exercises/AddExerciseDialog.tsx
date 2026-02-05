@@ -4,7 +4,7 @@ import {
     DialogContent,
     DialogTitle,
 } from '@/client/components/template/ui/dialog';
-import type { ExerciseDefinitionClient } from '@/server/database/collections/exerciseDefinitions/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 import type { MultiSelectExerciseConfig } from '../../types';
 import { ExerciseLibraryBrowser } from './ExerciseLibraryBrowser';
 import { ExerciseConfigForm } from './ExerciseConfigForm';

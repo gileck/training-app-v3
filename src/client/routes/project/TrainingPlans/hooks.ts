@@ -38,10 +38,10 @@ import {
     createPlanFromText,
     exportPlan,
     matchImportedPlan,
-} from '@/apis/training-plans/client';
-import { listPlanExercises } from '@/apis/plan-exercises/client';
-import { listExercises } from '@/apis/exercise-definitions/client';
-import type { ListExercisesResponse } from '@/apis/exercise-definitions/types';
+} from '@/apis/project/training-plans/client';
+import { listPlanExercises } from '@/apis/project/plan-exercises/client';
+import { listExercises } from '@/apis/project/exercise-definitions/client';
+import type { ListExercisesResponse } from '@/apis/project/exercise-definitions/types';
 import { generateId } from '@/client/utils/id';
 import type {
     ListPlansResponse,
@@ -58,9 +58,9 @@ import type {
     ExportPlanResponse,
     MatchImportedPlanRequest,
     MatchImportedPlanResponse,
-} from '@/apis/training-plans/types';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
-import type { ListPlanExercisesResponse } from '@/apis/plan-exercises/types';
+} from '@/apis/project/training-plans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
+import type { ListPlanExercisesResponse } from '@/apis/project/plan-exercises/types';
 
 // ============================================================================
 // Query Keys

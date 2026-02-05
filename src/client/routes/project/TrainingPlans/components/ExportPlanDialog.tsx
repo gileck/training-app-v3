@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/client/components/template/ui/dialog';
 import { Save, Clipboard } from 'lucide-react';
-import type { TrainingPlanClient } from '@/server/database/collections/trainingPlans/types';
+import type { TrainingPlanClient } from '@/server/database/collections/project/trainingPlans/types';
 
 interface ExportPlanDialogProps {
     open: boolean;
