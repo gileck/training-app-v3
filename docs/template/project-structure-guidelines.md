@@ -17,13 +17,10 @@ This project uses a **template sync system** that automatically updates certain 
 | `src/client/features/project/**` | Project | ✅ Yes | Put your custom features here |
 | `src/client/routes/template/**` | Template | ❌ No | Core template routes (Settings, Profile, etc.) |
 | `src/client/routes/project/**` | Project | ✅ Yes | Put your custom routes here |
-| `src/apis/*` (except template APIs) | Project | ✅ Yes | Your API handlers go here |
-| `src/apis/feature-requests/**` | Template | ❌ No | Template API |
-| `src/apis/reports/**` | Template | ❌ No | Template API |
-| `src/apis/clarification/**` | Template | ❌ No | Template API |
-| `src/server/database/collections/*` (except template) | Project | ✅ Yes | Your collections |
-| `src/server/database/collections/feature-requests/**` | Template | ❌ No | Template collection |
-| `src/server/database/collections/reports/**` | Template | ❌ No | Template collection |
+| `src/apis/project/**` | Project | ✅ Yes | Your API handlers go here |
+| `src/apis/template/**` | Template | ❌ No | Template APIs (auth, settings, reports, etc.) |
+| `src/server/database/collections/project/**` | Project | ✅ Yes | Your collections |
+| `src/server/database/collections/template/**` | Template | ❌ No | Template collections (users, reports, etc.) |
 | `src/agents/**` | Template | ❌ No | Template agents |
 | `*.project.ts` files | Project | ✅ Yes | Project-specific exports |
 | `src/client/components/template/**` | Template | ❌ No | UI, layout, and shared components |
@@ -62,14 +59,9 @@ src/server/middleware/**               # Server middleware
 src/agents/**                          # AI agents system
 config/**                              # ESLint, Next.js, TypeScript configs
 
-# Template APIs (specific folders, not all of src/apis/)
-src/apis/feature-requests/**
-src/apis/reports/**
-src/apis/clarification/**
-
-# Template collections (specific folders, not all collections)
-src/server/database/collections/feature-requests/**
-src/server/database/collections/reports/**
+# Template APIs and collections (use template/ subfolder)
+src/apis/template/**
+src/server/database/collections/template/**
 
 *.template.ts                          # Template export files
 ```
@@ -84,8 +76,8 @@ These paths are **yours** and never synced:
 src/client/features/project/**   # Your custom features
 src/client/routes/project/**     # Your custom routes
 src/client/components/project/** # Your custom components
-src/apis/my-api/**               # Your API modules (not template APIs)
-src/server/database/collections/my-collection/** # Your DB collections
+src/apis/project/**              # Your API modules
+src/server/database/collections/project/** # Your DB collections
 docs/project/**                  # Your documentation
 .ai/skills/project/**            # Your AI skills
 scripts/project/**               # Your scripts
@@ -178,7 +170,7 @@ export const projectRoutes: Routes = {
 ### New APIs
 
 ```
-src/apis/my-api/
+src/apis/project/my-api/
 ├── index.ts          # Re-exports
 ├── client.ts         # Client-side API calls
 ├── server.ts         # Server handlers
@@ -189,13 +181,13 @@ src/apis/my-api/
 
 Then add to `src/apis/index.project.ts`:
 ```typescript
-export * as myApi from './my-api';
+export * as myApi from './project/my-api';
 ```
 
 ### New Database Collections
 
 ```
-src/server/database/collections/my-collection/
+src/server/database/collections/project/my-collection/
 ├── index.ts          # Re-exports
 ├── my-collection.ts  # Collection operations
 └── types.ts          # Collection types
@@ -203,7 +195,7 @@ src/server/database/collections/my-collection/
 
 Then add to `src/server/database/collections/index.project.ts`:
 ```typescript
-export * as myCollection from './my-collection';
+export * as myCollection from './project/my-collection';
 ```
 
 ### Custom UI Components
@@ -372,10 +364,8 @@ project-root/
 │   │   ├── index.ts           # ❌ Template-owned (combiner)
 │   │   ├── index.template.ts  # ❌ Template-owned
 │   │   ├── index.project.ts   # ✅ Your API exports
-│   │   ├── feature-requests/  # ❌ Template API
-│   │   ├── reports/           # ❌ Template API
-│   │   ├── clarification/     # ❌ Template API
-│   │   └── my-api/            # ✅ Your API
+│   │   ├── template/          # ❌ Template APIs (auth, settings, reports, etc.)
+│   │   └── project/           # ✅ Your APIs
 │   ├── client/
 │   │   ├── components/
 │   │   │   ├── template/      # ❌ Template-owned (ui/, layout/, etc.)
@@ -399,9 +389,8 @@ project-root/
 │           ├── index.ts           # ❌ Template-owned (combiner)
 │           ├── index.template.ts  # ❌ Template-owned
 │           ├── index.project.ts   # ✅ Your collection exports
-│           ├── feature-requests/  # ❌ Template collection
-│           ├── reports/           # ❌ Template collection
-│           └── my-collection/     # ✅ Your collection
+│           ├── template/          # ❌ Template collections (users, reports, etc.)
+│           └── project/           # ✅ Your collections
 ├── .template-sync.json           # ✅ Your sync config (project overrides)
 └── .template-sync.template.json  # ❌ Template-owned (defines templatePaths)
 ```
