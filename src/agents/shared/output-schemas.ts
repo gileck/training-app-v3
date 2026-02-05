@@ -332,3 +332,141 @@ export const IMPLEMENTATION_OUTPUT_FORMAT = {
         required: ['prSummary', 'comment'],
     },
 };
+
+// ============================================================
+// BUG INVESTIGATION OUTPUT
+// ============================================================
+
+/**
+ * A fix option suggested by the bug investigator agent.
+ * Represents a potential approach to fixing the bug.
+ */
+export interface FixOption {
+    /** Unique identifier for the option (e.g., "opt1", "opt2") */
+    id: string;
+    /** Free-form title for the fix approach */
+    title: string;
+    /** Detailed description of what this fix involves */
+    description: string;
+    /** Where this fix should be routed after selection */
+    destination: 'implement' | 'tech-design';
+    /** Estimated complexity of implementing this fix */
+    complexity: 'S' | 'M' | 'L' | 'XL';
+    /** List of files that would be affected by this fix */
+    filesAffected: string[];
+    /** Trade-offs or considerations for this approach */
+    tradeoffs?: string;
+    /** Whether this is the recommended option */
+    isRecommended: boolean;
+}
+
+/**
+ * Output from the Bug Investigator agent.
+ * Contains root cause analysis and suggested fix options.
+ */
+export interface BugInvestigationOutput extends ClarificationFields {
+    /** Whether a root cause was identified */
+    rootCauseFound: boolean;
+    /** Confidence level in the root cause analysis */
+    confidence: 'low' | 'medium' | 'high';
+    /** Detailed analysis of the root cause */
+    rootCauseAnalysis: string;
+    /** Suggested fix options (1-N options, ideally 3 at different levels) */
+    fixOptions: FixOption[];
+    /** Files that were examined during investigation */
+    filesExamined: string[];
+    /** Additional logs or information that might help if root cause not found */
+    additionalLogsNeeded?: string;
+    /** Summary of the investigation for GitHub comment */
+    summary: string;
+}
+
+export const BUG_INVESTIGATION_OUTPUT_FORMAT = {
+    type: 'json_schema' as const,
+    schema: {
+        type: 'object',
+        properties: {
+            ...CLARIFICATION_SCHEMA_PROPERTIES,
+            rootCauseFound: {
+                type: 'boolean',
+                description: 'Whether a root cause was identified for the bug. Set to false if investigation is inconclusive.',
+            },
+            confidence: {
+                type: 'string',
+                enum: ['low', 'medium', 'high'],
+                description: 'Confidence level in the root cause analysis: low (uncertain), medium (likely), high (confirmed).',
+            },
+            rootCauseAnalysis: {
+                type: 'string',
+                description:
+                    'Detailed analysis of the root cause. Include: what specific code/logic fails, ' +
+                    'what triggers the failure, why the current code behaves incorrectly. ' +
+                    'If root cause not found, explain what was investigated and what remains unclear.',
+            },
+            fixOptions: {
+                type: 'array',
+                description:
+                    'Suggested fix options. Ideally provide 3 options at different levels (quick fix, standard fix, refactor), ' +
+                    'but only include options that genuinely make sense for this bug. Each option describes an approach to fixing the issue.',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'string',
+                            description: 'Unique identifier for this option (e.g., "opt1", "opt2", "opt3")',
+                        },
+                        title: {
+                            type: 'string',
+                            description: 'Short title for the fix approach (free-form text)',
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Detailed description of what this fix involves, how it addresses the root cause',
+                        },
+                        destination: {
+                            type: 'string',
+                            enum: ['implement', 'tech-design'],
+                            description: 'Where this fix should be routed: "implement" for simple fixes, "tech-design" for complex changes needing design',
+                        },
+                        complexity: {
+                            type: 'string',
+                            enum: ['S', 'M', 'L', 'XL'],
+                            description: 'Estimated complexity: S (few lines), M (moderate), L (significant), XL (major refactor)',
+                        },
+                        filesAffected: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'List of files that would be modified by this fix',
+                        },
+                        tradeoffs: {
+                            type: 'string',
+                            description: 'Trade-offs or considerations for this approach (optional)',
+                        },
+                        isRecommended: {
+                            type: 'boolean',
+                            description: 'Whether this is the recommended option. Only one option should be recommended.',
+                        },
+                    },
+                    required: ['id', 'title', 'description', 'destination', 'complexity', 'filesAffected', 'isRecommended'],
+                },
+            },
+            filesExamined: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of files that were examined during the investigation',
+            },
+            additionalLogsNeeded: {
+                type: 'string',
+                description: 'If root cause not found, describe what additional logs or information might help',
+            },
+            summary: {
+                type: 'string',
+                description:
+                    'High-level summary of the investigation for GitHub comment. ' +
+                    'Include: root cause (if found), confidence level, and brief overview of fix options. ' +
+                    'Use markdown numbered list format.',
+            },
+        },
+        required: ['rootCauseFound', 'confidence', 'rootCauseAnalysis', 'fixOptions', 'filesExamined', 'summary'],
+    },
+};

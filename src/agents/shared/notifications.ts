@@ -8,6 +8,7 @@
 import { agentConfig, getIssueUrl, getPrUrl, getProjectUrl } from './config';
 import { appConfig } from '../../app.config';
 import { generateClarificationToken } from '@/apis/clarification/utils';
+import { generateBugFixToken } from '@/apis/bug-fix-select/utils';
 
 // ============================================================
 // TELEGRAM API
@@ -835,4 +836,62 @@ export async function notifyFinalMergeComplete(
 Issue will be marked as Done. Branches cleaned up.`;
 
     return sendToAdmin(message, buildViewIssueButton(issueUrl));
+}
+
+/**
+ * Notify admin that bug investigation is complete and ready for fix selection
+ */
+export async function notifyBugInvestigationReady(
+    title: string,
+    issueNumber: number,
+    rootCauseFound: boolean,
+    confidence: 'low' | 'medium' | 'high',
+    fixOptionsCount: number,
+    summary: string,
+    isRevision: boolean = false
+): Promise<SendResult> {
+    const issueUrl = getIssueUrl(issueNumber);
+
+    const status = isRevision ? '🔄 Revised' : '✅ Investigation Complete';
+    const confidenceEmoji = confidence === 'high' ? '🟢' : confidence === 'medium' ? '🟡' : '🔴';
+    const confidenceLabel = confidence.charAt(0).toUpperCase() + confidence.slice(1);
+
+    // Generate fix selection URL with token
+    const token = generateBugFixToken(issueNumber);
+    const bugFixUrl = `${getAppUrl()}/bug-fix/${issueNumber}?token=${token}`;
+
+    // Truncate summary for Telegram (max 2800 chars to leave room for header)
+    const truncatedSummary = summary.length > 2800
+        ? summary.slice(0, 2800) + '...'
+        : summary;
+
+    const message = `<b>Agent (Bug Investigation):</b> ${status}
+🐛 Bug Report
+
+📋 ${escapeHtml(title)}
+🔗 Issue #${issueNumber}
+📊 Status: Bug Investigation (Waiting for Review)
+
+<b>Root Cause:</b> ${rootCauseFound ? 'Found' : 'Not Found'}
+<b>Confidence:</b> ${confidenceEmoji} ${confidenceLabel}
+<b>Fix Options:</b> ${fixOptionsCount}
+
+<b>Summary:</b>
+${escapeHtml(truncatedSummary)}`;
+
+    const buttons: InlineKeyboardMarkup = {
+        inline_keyboard: [
+            [
+                { text: '🔧 Choose Fix Option', url: bugFixUrl },
+            ],
+            [
+                { text: '📋 View Issue', url: issueUrl },
+            ],
+            [
+                { text: '📝 Request Changes', callback_data: `changes:${issueNumber}` },
+            ],
+        ],
+    };
+
+    return sendToAdmin(message, buttons);
 }

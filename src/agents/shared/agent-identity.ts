@@ -11,7 +11,8 @@ export type AgentName =
     | 'tech-design'
     | 'implementor'
     | 'pr-review'
-    | 'auto-advance';
+    | 'auto-advance'
+    | 'bug-investigator';
 
 /**
  * Agent display names and emojis
@@ -23,6 +24,7 @@ const AGENT_INFO: Record<AgentName, { name: string; emoji: string }> = {
     'implementor': { name: 'Implementor Agent', emoji: '⚙️' },
     'pr-review': { name: 'PR Review Agent', emoji: '👀' },
     'auto-advance': { name: 'Auto-Advance Agent', emoji: '⏭️' },
+    'bug-investigator': { name: 'Bug Investigator Agent', emoji: '🔍' },
 };
 
 /**
@@ -45,7 +47,7 @@ export function getAgentPrefix(agent: AgentName): string {
  * Check if content has an agent prefix
  */
 export function hasAgentPrefix(content: string): boolean {
-    return /^[📋🎨🏗️⚙️👀⏭️]\s*\*\*\[.*Agent\]\*\*/.test(content);
+    return /^[📋🎨🏗️⚙️👀⏭️🔍]\s*\*\*\[.*Agent\]\*\*/.test(content);
 }
 
 /**
@@ -62,6 +64,7 @@ export function extractAgentName(content: string): AgentName | null {
     if (name.includes('implement')) return 'implementor';
     if (name.includes('review')) return 'pr-review';
     if (name.includes('auto')) return 'auto-advance';
+    if (name.includes('bug-investigator') || name.includes('investigator')) return 'bug-investigator';
 
     return null;
 }

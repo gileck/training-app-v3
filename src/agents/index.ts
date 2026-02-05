@@ -39,6 +39,7 @@ import { resolve } from 'path';
 const SCRIPTS = {
     'product-dev': resolve(__dirname, 'core-agents/productDevelopmentAgent/index.ts'),
     'product-design': resolve(__dirname, 'core-agents/productDesignAgent/index.ts'),
+    'bug-investigator': resolve(__dirname, 'core-agents/bugInvestigatorAgent/index.ts'),
     'tech-design': resolve(__dirname, 'core-agents/technicalDesignAgent/index.ts'),
     'implement': resolve(__dirname, 'core-agents/implementAgent/index.ts'),
     'pr-review': resolve(__dirname, 'core-agents/prReviewAgent/index.ts'),
@@ -46,7 +47,7 @@ const SCRIPTS = {
 };
 
 // Order for --all flag
-const ALL_ORDER = ['auto-advance', 'product-dev', 'product-design', 'tech-design', 'implement', 'pr-review'];
+const ALL_ORDER = ['auto-advance', 'product-dev', 'product-design', 'bug-investigator', 'tech-design', 'implement', 'pr-review'];
 
 // ============================================================
 // GIT UTILITIES
@@ -157,6 +158,7 @@ GitHub Workflows Agent - Master script for running all agent workflows
 Usage:
   yarn github-workflows-agent --product-dev [options]       Run product development agent (OPTIONAL)
   yarn github-workflows-agent --product-design [options]    Run product design agent
+  yarn github-workflows-agent --bug-investigator [options]  Run bug investigator agent
   yarn github-workflows-agent --tech-design [options]       Run technical design agent
   yarn github-workflows-agent --implement [options]         Run implementation agent
   yarn github-workflows-agent --pr-review [options]         Run PR review agent
@@ -175,6 +177,7 @@ Options:
 Examples:
   yarn github-workflows-agent --product-dev --dry-run
   yarn github-workflows-agent --product-design --dry-run
+  yarn github-workflows-agent --bug-investigator --dry-run
   yarn github-workflows-agent --tech-design --id PVTI_xxx
   yarn github-workflows-agent --all --dry-run
   yarn github-workflows-agent --all --global-limit          # Stop after first agent runs
@@ -248,6 +251,8 @@ async function main() {
             scriptsToRun.push('product-dev');
         } else if (arg === '--product-design') {
             scriptsToRun.push('product-design');
+        } else if (arg === '--bug-investigator') {
+            scriptsToRun.push('bug-investigator');
         } else if (arg === '--tech-design') {
             scriptsToRun.push('tech-design');
         } else if (arg === '--implement') {
@@ -269,7 +274,7 @@ async function main() {
     }
 
     if (scriptsToRun.length === 0) {
-        console.error('Error: No agent specified. Use --product-dev, --product-design, --tech-design, --implement, --pr-review, --auto-advance, or --all\n');
+        console.error('Error: No agent specified. Use --product-dev, --product-design, --bug-investigator, --tech-design, --implement, --pr-review, --auto-advance, or --all\n');
         printUsage();
         process.exit(1);
     }

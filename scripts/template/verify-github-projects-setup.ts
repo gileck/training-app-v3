@@ -554,6 +554,13 @@ async function checkGitHubProject(): Promise<CategoryResults> {
                             'Note: "Final Review" is a NEW status for multi-phase feature branch workflow.',
                             'It should be positioned between "PR Review" and "Done".',
                             'See docs/template/init-github-projects-workflow.md for details.'
+                        ] : []),
+                        ...(missingStatuses.includes('Bug Investigation') ? [
+                            '',
+                            'Note: "Bug Investigation" is a NEW status for the bug investigator agent workflow.',
+                            'It should be positioned between "Product Design" and "Technical Design".',
+                            'Bugs in this column are investigated by the Bug Investigator agent,',
+                            'which analyzes root causes and proposes fix options for admin review.'
                         ] : [])
                     ]
                 });

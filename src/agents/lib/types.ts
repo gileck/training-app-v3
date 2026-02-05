@@ -14,7 +14,7 @@ import type { UsageStats } from '../shared/types';
 /**
  * Available workflow names for library selection
  */
-export type WorkflowName = 'product-dev' | 'product-design' | 'tech-design' | 'implementation' | 'pr-review';
+export type WorkflowName = 'product-dev' | 'product-design' | 'tech-design' | 'bug-investigation' | 'implementation' | 'pr-review';
 
 // ============================================================
 // AGENT LIBRARY ADAPTER INTERFACE

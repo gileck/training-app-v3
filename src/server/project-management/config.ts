@@ -56,6 +56,7 @@ export const STATUSES = {
     backlog: 'Backlog',
     productDevelopment: 'Product Development',
     productDesign: 'Product Design',
+    bugInvestigation: 'Bug Investigation',
     techDesign: 'Technical Design',
     implementation: 'Ready for development',
     prReview: 'PR Review',

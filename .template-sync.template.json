@@ -61,6 +61,7 @@
     "src/apis/auth/**",
     "src/apis/agent-log/**",
     "src/apis/batch-updates/**",
+    "src/apis/bug-fix-select/**",
     "src/apis/clarification/**",
     "src/apis/dashboard/**",
     "src/apis/feature-requests/**",

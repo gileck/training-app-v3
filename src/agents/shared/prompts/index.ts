@@ -43,12 +43,15 @@ export {
     buildImplementationClarificationPrompt,
 } from './implementation';
 
-// Bug Fix prompts
+// Bug Fix prompts (implementation only - bug investigation prompts are in bug-investigation.ts)
+export { buildBugImplementationPrompt } from './bug-fix';
+
+// Bug Investigation prompts
 export {
-    buildBugTechDesignPrompt,
-    buildBugImplementationPrompt,
-    buildBugTechDesignRevisionPrompt,
-} from './bug-fix';
+    buildBugInvestigationPrompt,
+    buildBugInvestigationRevisionPrompt,
+    buildBugInvestigationClarificationPrompt,
+} from './bug-investigation';
 
 // Plan Subagent prompt
 export { buildPlanSubagentPrompt } from './plan-subagent';

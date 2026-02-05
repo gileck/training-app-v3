@@ -15,6 +15,7 @@ import { MyFeatureRequests } from './template/MyFeatureRequests';
 import { NotFound } from './template/NotFound';
 import { Theme } from './template/Theme';
 import { Clarify } from './template/Clarify';
+import { BugFix } from './template/BugFix';
 import { Routes } from '../features/template/router';
 
 /**
@@ -25,6 +26,9 @@ import { Routes } from '../features/template/router';
 export const templateRoutes: Routes = {
   // Clarification page (public, full-screen - no header/navbar)
   '/clarify/:issueNumber': { component: Clarify, public: true, fullScreen: true },
+
+  // Bug fix selection page (public, full-screen - no header/navbar)
+  '/bug-fix/:issueNumber': { component: BugFix, public: true, fullScreen: true },
 
   // Template protected routes
   '/settings': Settings,

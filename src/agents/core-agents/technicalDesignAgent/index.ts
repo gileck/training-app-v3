@@ -28,6 +28,7 @@
  */
 
 import '../../shared/loadEnv';
+import { execSync } from 'child_process';
 import { Command } from 'commander';
 import {
     // Config
@@ -49,20 +50,16 @@ import {
     notifyAgentError,
     notifyBatchComplete,
     notifyAgentStarted,
-    notifyAdmin,
     // Prompts
     buildTechDesignPrompt,
     buildTechDesignRevisionPrompt,
     buildTechDesignClarificationPrompt,
-    buildBugTechDesignPrompt,
-    buildBugTechDesignRevisionPrompt,
     // Types
     type CommonCLIOptions,
     type UsageStats,
     type TechDesignOutput,
     // Utils
     getIssueType,
-    getBugDiagnostics,
     extractClarificationFromResult,
     handleClarificationRequest,
     // Output schemas
@@ -92,16 +89,6 @@ import {
     parseArtifactComment,
     getProductDesignPath,
 } from '../../lib/artifacts';
-import {
-    git,
-    hasUncommittedChanges,
-    branchExistsLocally,
-    checkoutBranch,
-    getCurrentBranch,
-    commitChanges,
-    pushBranch,
-    getDefaultBranch,
-} from '../../lib/git';
 
 // ============================================================
 // TYPES
@@ -115,6 +102,93 @@ interface ProcessableItem {
         prNumber: number;
         branchName: string;
     };
+}
+
+// ============================================================
+// GIT UTILITIES
+// ============================================================
+
+/**
+ * Execute a git command and return the output
+ */
+function git(command: string, options: { cwd?: string; silent?: boolean } = {}): string {
+    try {
+        const result = execSync(`git ${command}`, {
+            cwd: options.cwd || process.cwd(),
+            encoding: 'utf-8',
+            stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
+        });
+        return result.trim();
+    } catch (error) {
+        if (error instanceof Error && 'stderr' in error) {
+            throw new Error((error as { stderr: string }).stderr || error.message);
+        }
+        throw error;
+    }
+}
+
+/**
+ * Check if there are uncommitted changes
+ */
+function hasUncommittedChanges(): boolean {
+    const status = git('status --porcelain', { silent: true });
+    return status.length > 0;
+}
+
+/**
+ * Check if a branch exists locally
+ */
+function branchExistsLocally(branchName: string): boolean {
+    try {
+        git(`rev-parse --verify ${branchName}`, { silent: true });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Checkout a branch (create if doesn't exist)
+ */
+function checkoutBranch(branchName: string, createFromDefault: boolean = false): void {
+    if (createFromDefault) {
+        const defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
+        git(`checkout -b ${branchName} origin/${defaultBranch}`);
+    } else {
+        git(`checkout ${branchName}`);
+    }
+}
+
+/**
+ * Get current branch name
+ */
+function getCurrentBranch(): string {
+    return git('rev-parse --abbrev-ref HEAD', { silent: true });
+}
+
+/**
+ * Commit all changes with a message
+ */
+function commitChanges(message: string): void {
+    git('add -A');
+    // Use single quotes and escape them properly to avoid shell injection
+    const escapedMessage = message.replace(/'/g, "'\\''");
+    git(`commit -m '${escapedMessage}'`);
+}
+
+/**
+ * Push current branch to origin
+ */
+function pushBranch(branchName: string, force: boolean = false): void {
+    const forceFlag = force ? '--force-with-lease' : '';
+    git(`push -u origin ${branchName} ${forceFlag}`.trim());
+}
+
+/**
+ * Get the default branch name
+ */
+function getDefaultBranch(): string {
+    return git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
 }
 
 // ============================================================
@@ -170,25 +244,6 @@ async function processItem(
         const originalBranch = getCurrentBranch();
 
         try {
-            const diagnostics = issueType === 'bug'
-                ? await getBugDiagnostics(issueNumber)
-                : null;
-
-            if (issueType === 'bug') {
-                console.log(`  🐛 Bug fix design (diagnostics loaded: ${diagnostics ? 'yes' : 'no'})`);
-
-                // Warn if diagnostics are missing for a bug
-                if (!diagnostics && !options.dryRun) {
-                    await notifyAdmin(
-                        `⚠️ <b>Warning:</b> Bug diagnostics missing\n\n` +
-                        `📋 ${content.title}\n` +
-                        `🔗 Issue #${issueNumber}\n\n` +
-                        `The bug report does not have diagnostics (session logs, stack trace). ` +
-                        `The tech design may be incomplete without this context.`
-                    );
-                }
-            }
-
             // Always fetch issue comments - they provide context for any phase
             const comments = await adapter.getIssueComments(issueNumber);
             let allComments = comments.map((c) => ({
@@ -274,13 +329,8 @@ async function processItem(
                     console.log('  If you want to regenerate, use feedback mode or manually remove the existing design');
                     return { success: false, error: 'Technical design file already exists (idempotency check)' };
                 }
-                if (diagnostics) {
-                    // Bug fix tech design
-                    prompt = buildBugTechDesignPrompt(content, diagnostics, productDesign, allComments);
-                } else {
-                    // Feature tech design
-                    prompt = buildTechDesignPrompt(content, productDesign, allComments);
-                }
+                // For bugs that went through Bug Investigation, the investigation comments provide context
+                prompt = buildTechDesignPrompt(content, productDesign, allComments);
             } else if (mode === 'feedback') {
                 // Flow B: Address feedback
                 if (!existingTechDesign) {
@@ -291,13 +341,7 @@ async function processItem(
                     return { success: false, error: 'No feedback comments found' };
                 }
 
-                if (diagnostics) {
-                    // Bug fix revision
-                    prompt = buildBugTechDesignRevisionPrompt(content, diagnostics, existingTechDesign, allComments);
-                } else {
-                    // Feature revision
-                    prompt = buildTechDesignRevisionPrompt(content, productDesign, existingTechDesign, allComments);
-                }
+                prompt = buildTechDesignRevisionPrompt(content, productDesign, existingTechDesign, allComments);
             } else {
                 // Flow C: Continue after clarification
                 const clarification = allComments[allComments.length - 1];

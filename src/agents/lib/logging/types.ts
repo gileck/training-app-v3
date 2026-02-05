@@ -3,7 +3,7 @@
  */
 export interface LogContext {
     issueNumber: number;
-    workflow: 'product-dev' | 'product-design' | 'tech-design' | 'implement' | 'pr-review';
+    workflow: 'product-dev' | 'product-design' | 'tech-design' | 'bug-investigation' | 'implement' | 'pr-review';
     phase: string;
     mode?: string;
     issueTitle: string;

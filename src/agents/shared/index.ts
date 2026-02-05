@@ -66,6 +66,8 @@ export type {
     ClarificationFields,
     ClarificationOption,
     StructuredClarification,
+    BugInvestigationOutput,
+    FixOption,
 } from './output-schemas';
 export {
     PRODUCT_DEVELOPMENT_OUTPUT_FORMAT,
@@ -73,6 +75,7 @@ export {
     TECH_DESIGN_OUTPUT_FORMAT,
     IMPLEMENTATION_OUTPUT_FORMAT,
     CLARIFICATION_SCHEMA_PROPERTIES,
+    BUG_INVESTIGATION_OUTPUT_FORMAT,
 } from './output-schemas';
 
 // Agent library abstraction
@@ -114,6 +117,7 @@ export {
     notifyAdmin,
     notifyAgentStarted,
     notifyPhaseComplete,
+    notifyBugInvestigationReady,
 } from './notifications';
 
 // Prompts
@@ -130,9 +134,10 @@ export {
     buildImplementationPrompt,
     buildPRRevisionPrompt,
     buildImplementationClarificationPrompt,
-    buildBugTechDesignPrompt,
     buildBugImplementationPrompt,
-    buildBugTechDesignRevisionPrompt,
+    buildBugInvestigationPrompt,
+    buildBugInvestigationRevisionPrompt,
+    buildBugInvestigationClarificationPrompt,
 } from './prompts';
 
 // Utilities

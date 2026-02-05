@@ -2,10 +2,12 @@
 
 ## Purpose
 
-The Technical Design Agent translates product requirements into technical implementation specifications. It determines the architecture, file structure, database schema, API design, and implementation approach for features and bug fixes.
+The Technical Design Agent translates product requirements into technical implementation specifications. It determines the architecture, file structure, database schema, API design, and implementation approach for features.
+
+**Note:** Bug fix investigations are now handled by the Bug Investigator Agent. When bugs arrive at Tech Design (from Bug Investigation), they are treated like any other item needing technical design, with context provided in the issue comments.
 
 **Key Responsibilities:**
-- Generate technical designs for features and bugs
+- Generate technical designs for features
 - Break large features (L/XL) into multiple implementation phases
 - Revise designs based on admin feedback
 - Answer admin clarification requests
@@ -32,7 +34,9 @@ Issue Created
      ↓
    Inbox
      ↓
-Product Design (features only)
+Product Design (features)
+     or
+Bug Investigation (bugs)
      ↓
 Technical Design ← YOU ARE HERE
      ↓
@@ -48,7 +52,6 @@ PR Review
 The agent processes items that match:
 1. **Status:** `"Technical Design"`
 2. **Review Status:** Empty (new design) OR `"Request Changes"` (revision) OR `"Clarification Received"`
-3. **Type:** Features OR bugs (both use this phase)
 
 ### Status Transitions
 
@@ -68,7 +71,7 @@ The agent processes items that match:
 
 ## How It Works
 
-### Flow A: New Design (Features)
+### Flow A: New Design
 
 ```
 1. Fetch GitHub Project item
@@ -77,106 +80,60 @@ The agent processes items that match:
 
 2. Load context
    - Issue body (original description + product design)
-   - Issue comments
-   - Bug diagnostics (if bug)
+   - Issue comments (may contain Bug Investigation results)
 
-3. Detect issue type
-   - Check labels for "bug"
-   - Load diagnostics if bug
-
-4. Idempotency check
+3. Idempotency check
    - Extract existing tech design from issue body
    - If found → Skip (avoid duplication)
    - If not found → Continue
 
-5. Extract product design
+4. Extract product design
    - Use extractProductDesign() on issue body
    - May be null for internal/technical work
 
-6. Build prompt
-   - Use buildTechDesignPrompt() for features
-   - Use buildBugTechDesignPrompt() for bugs
+5. Build prompt
+   - Use buildTechDesignPrompt()
    - Include: original description, product design, comments
+   - For bugs from Bug Investigation, comments include investigation results
 
-7. Run LLM
+6. Run LLM
    - Model: Configured in agentConfig
    - Output format: TECH_DESIGN_OUTPUT_FORMAT (structured JSON)
    - Expected output: { design: string, comment?: string, phases?: ImplementationPhase[] }
 
-8. Extract structured output
+7. Extract structured output
    - Primary: Use structuredOutput.design
    - Fallback: Extract markdown from text response
    - Phases: structuredOutput.phases (if L/XL feature)
 
-9. Check for clarification request
+8. Check for clarification request
    - If LLM needs clarification → Post comment, set status, exit
    - If no clarification needed → Continue
 
-10. Update issue body
-    - Preserve original description + product design
-    - Add tech design section with markers
-    - Format: <!-- TECH_DESIGN_START --> ... <!-- TECH_DESIGN_END -->
+9. Update issue body
+   - Preserve original description + product design
+   - Add tech design section with markers
+   - Format: <!-- TECH_DESIGN_START --> ... <!-- TECH_DESIGN_END -->
 
-11. Post summary comment (if available)
+10. Post summary comment (if available)
     - Use structuredOutput.comment
     - Add agent prefix: [Technical Design Agent]
 
-12. Post phases comment (L/XL features only)
+11. Post phases comment (L/XL features only)
     - Check if phases exist (length >= 2)
     - Check idempotency (hasPhaseComment)
     - Format phases using formatPhasesToComment()
     - Post with marker: <!-- AGENT_PHASES_V1 -->
 
-13. Set Review Status
+12. Set Review Status
     - Update to "Waiting for Review"
 
-14. Send notification
+13. Send notification
     - Notify admin via Telegram
     - Include summary if available
 ```
 
-### Flow B: New Design (Bugs)
-
-Same as Flow A, but with a **different prompt structure** focused on root cause analysis:
-
-**Key Differences:**
-- Uses `buildBugTechDesignPrompt()` instead of `buildTechDesignPrompt()`
-- Includes bug diagnostics (session logs, stack trace, browser info) in prompt
-- Warns admin if diagnostics are missing
-- Usually single-phase (no phase breakdown)
-
-**Bug Design 3-Step Process:**
-
-The bug prompt enforces a strict 3-step process:
-
-1. **Step 1: INVESTIGATE** (Required - Cannot Skip)
-   - Trace the exact failure path using stack trace and logs
-   - Identify what input/state triggers the bug
-   - Find the actual root cause (specific code that behaves incorrectly)
-   - **Gate:** Must identify root cause before proceeding
-
-2. **Step 2: SCOPE** (Required)
-   - Search for similar patterns in codebase using Grep
-   - List ALL affected locations (not just the one in bug report)
-   - Note: "This bug affects N locations that need the same fix"
-
-3. **Step 3: DESIGN** (Only after Steps 1-2)
-   - Primary: Plan fix for the root cause
-   - Primary: Plan fix for ALL similar patterns found in Step 2
-   - Secondary: Improve error handling/logging (observability, not the fix)
-
-**Important Distinction:**
-- Adding logging/error messages is valuable for OBSERVABILITY but does not FIX the bug
-- The design must explain WHAT CODE TO CHANGE to make the bug stop happening
-- "Add better error logging" is a secondary improvement, not the primary fix
-
-**Required Output Sections for Bugs:**
-1. Root Cause Analysis (from Step 1)
-2. Scope Assessment (from Step 2)
-3. Fix Approach (from Step 3)
-4. Files to Modify
-
-### Flow C: Address Feedback
+### Flow B: Address Feedback
 
 ```
 1. Fetch GitHub Project item
@@ -192,14 +149,13 @@ The bug prompt enforces a strict 3-step process:
    - If no comments → Error (need feedback)
 
 4. Build revision prompt
-   - Use buildTechDesignRevisionPrompt() for features
-   - Use buildBugTechDesignRevisionPrompt() for bugs
+   - Use buildTechDesignRevisionPrompt()
    - Include: original design, product design, feedback
 
-5. Run LLM and update (same as Flow A, steps 7-14)
+5. Run LLM and update (same as Flow A, steps 6-13)
 ```
 
-### Flow D: Continue After Clarification
+### Flow C: Continue After Clarification
 
 ```
 1. Fetch GitHub Project item
@@ -213,7 +169,7 @@ The bug prompt enforces a strict 3-step process:
    - Use buildTechDesignClarificationPrompt()
    - Include: original request, product design, all comments
 
-4. Run LLM and update (same as Flow A, steps 7-14)
+4. Run LLM and update (same as Flow A, steps 6-13)
 ```
 
 ## Multi-Phase Workflow (L/XL Features)
@@ -324,11 +280,11 @@ if (structuredOutput?.phases && structuredOutput.phases.length >= 2) {
 - `extractOriginalDescription()` - Gets text before design markers
 - `extractProductDesign()` - Extracts product design (for context)
 - `extractTechDesign()` - Extracts existing tech design (for revisions)
-- `adapter.getIssueComments()` - Gets all comments
-- `getBugDiagnostics()` - Loads bug diagnostics from MongoDB (if bug)
+- `adapter.getIssueComments()` - Gets all comments (including Bug Investigation results)
 
 **Comments Read:**
 - All issue comments (for feedback and context)
+- Bug Investigation comments (provide root cause and selected fix approach)
 - Phases comment (checked for idempotency)
 
 ### Writing to Issue
@@ -485,7 +441,12 @@ await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
 - Generates product design
 - Stored in issue body
 - This agent reads it for context
-- For bugs: Product design usually skipped
+
+**Bug Investigator Agent:**
+- For bugs: Investigates root cause
+- Posts investigation results as comment
+- Admin selects fix approach
+- When routed to Tech Design, investigation context is available in comments
 
 ### Downstream (After)
 
@@ -508,29 +469,7 @@ await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
 
 ## Edge Cases
 
-### 1. Bug Without Diagnostics
-
-**Scenario:** Issue is a bug but no diagnostics in database
-
-**Handling:**
-```typescript
-if (issueType === 'bug') {
-    console.log('🐛 Bug fix design (diagnostics loaded: ${diagnostics ? 'yes' : 'no'})');
-
-    if (!diagnostics && !options.dryRun) {
-        await notifyAdmin(
-            `⚠️ Warning: Bug diagnostics missing\n\n` +
-            `📋 ${content.title}\n` +
-            `🔗 Issue #${issueNumber}\n\n` +
-            `The tech design may be incomplete without this context.`
-        );
-    }
-}
-```
-
-**Impact:** Agent continues but warns admin. Design may lack important context.
-
-### 2. Design Already Exists
+### 1. Design Already Exists
 
 **Scenario:** Running agent on issue that already has tech design
 
@@ -545,7 +484,7 @@ if (existingTechDesign) {
 
 **Resolution:** Use feedback mode or manually remove existing design
 
-### 3. Phase Comment Already Exists
+### 2. Phase Comment Already Exists
 
 **Scenario:** Re-running agent after phases already posted
 
@@ -560,7 +499,7 @@ if (!hasPhaseComment(issueComments)) {
 
 **Impact:** Skips posting duplicate phase comment (idempotent)
 
-### 4. Feature Without Product Design
+### 3. Feature Without Product Design
 
 **Scenario:** Internal/technical work that skipped product design
 
@@ -573,7 +512,7 @@ prompt = buildTechDesignPrompt(content, productDesign, issueComments);
 
 **Impact:** Agent works fine, just has less context
 
-### 5. Single-Phase L Feature
+### 4. Single-Phase L Feature
 
 **Scenario:** LLM returns only 1 phase for a Large feature
 
@@ -588,7 +527,7 @@ if (structuredOutput?.phases && structuredOutput.phases.length >= 2) {
 
 **Impact:** Feature implemented in one PR (no multi-phase workflow)
 
-### 6. Invalid Phase Data
+### 5. Invalid Phase Data
 
 **Scenario:** LLM returns malformed phases (missing fields, wrong types)
 
@@ -598,7 +537,7 @@ if (structuredOutput?.phases && structuredOutput.phases.length >= 2) {
 - Phases would be undefined
 - Feature treated as single-phase
 
-### 7. No Feedback Comments
+### 6. No Feedback Comments
 
 **Scenario:** Review Status = "Request Changes" but no comments
 
@@ -624,8 +563,6 @@ import {
     buildTechDesignPrompt,
     buildTechDesignRevisionPrompt,
     buildTechDesignClarificationPrompt,
-    buildBugTechDesignPrompt,
-    buildBugTechDesignRevisionPrompt
 } from '../../shared';
 
 // Parsing
@@ -636,29 +573,24 @@ import {
     buildUpdatedIssueBody
 } from '../../shared';
 
-// Phases (NEW - for multi-PR workflow)
+// Phases (for multi-PR workflow)
 import {
     formatPhasesToComment,
     hasPhaseComment
 } from '../../lib/phases';
 
 // Utils
-import {
-    getIssueType,
-    getBugDiagnostics
-} from '../../shared';
+import { getIssueType } from '../../shared';
 ```
 
 ### Prompts Location
 
-**File:** `src/agents/shared/prompts.ts`
+**File:** `src/agents/shared/prompts/`
 
 **Functions:**
 - `buildTechDesignPrompt()` - Feature tech design (standard flow)
 - `buildTechDesignRevisionPrompt()` - Feature revision based on feedback
 - `buildTechDesignClarificationPrompt()` - Continue after admin clarification
-- `buildBugTechDesignPrompt()` - Bug tech design (3-step process: Investigate → Scope → Design)
-- `buildBugTechDesignRevisionPrompt()` - Bug revision with principles reminder
 
 ### Phase Utilities Location
 
@@ -669,31 +601,6 @@ import {
 - `parsePhasesFromComment(comments)` - Extracts phases from comment (used by Implementation Agent)
 - `hasPhaseComment(comments)` - Checks if phases already posted
 - `getPhaseCommentMarker()` - Returns `<!-- AGENT_PHASES_V1 -->`
-
-### Bug Diagnostics
-
-**Source:** MongoDB collection `bug-reports`
-
-**Structure:**
-```typescript
-interface BugDiagnostics {
-    issueNumber: number;
-    sessionLogs: string;
-    stackTrace?: string;
-    environment: {
-        userAgent: string;
-        url: string;
-        timestamp: string;
-    };
-}
-```
-
-**Loading:**
-```typescript
-const diagnostics = issueType === 'bug'
-    ? await getBugDiagnostics(issueNumber)
-    : null;
-```
 
 ## Configuration
 
@@ -752,11 +659,7 @@ Shows:
    - Cause: Review Status = "Request Changes" but no comments
    - Fix: Admin must post feedback first
 
-3. **"Bug diagnostics missing"**
-   - Cause: Bug report but no diagnostics in database
-   - Fix: Admin should submit bug via bug report form (captures diagnostics)
-
-4. **Phases not posted**
+3. **Phases not posted**
    - Cause: LLM returned < 2 phases, or phases comment already exists
    - Check: Look for `<!-- AGENT_PHASES_V1 -->` in issue comments
 
@@ -779,18 +682,6 @@ yarn agent:tech-design --id <project-item-id>
 #    - Phases comment posted (if L/XL)
 ```
 
-**Manual Test (Bug):**
-```bash
-# 1. Create bug issue with diagnostics
-# 2. Add to GitHub Project, status "Technical Design"
-# 3. Run agent
-yarn agent:tech-design --id <project-item-id> --dry-run
-
-# 4. Verify bug-specific prompt used
-# 5. Run without --dry-run
-yarn agent:tech-design --id <project-item-id>
-```
-
 **Manual Test (Multi-Phase):**
 ```bash
 # 1. Create L/XL feature
@@ -806,6 +697,7 @@ yarn agent:tech-design --id <project-item-id>
 ## Related Documentation
 
 - **Overall workflow:** `docs/github-projects-integration.md`
+- **Bug Investigation workflow:** `docs/template/github-agents-workflow/bug-investigation.md`
 - **Multi-PR workflow:** `docs/github-projects-integration.md#multi-pr-workflow-lxl-features`
 - **Phase architecture:** `docs/github-projects-integration.md#phase-storage--retrieval`
 - **Setup guide:** `docs/init-github-projects-workflow.md`
