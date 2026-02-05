@@ -375,54 +375,65 @@ function FixOptionCard({ option, isSelected }: FixOptionCardProps) {
 
     return (
         <div
-            className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
+            className={`p-3 rounded-md border transition-colors cursor-pointer ${
                 isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-muted-foreground/50'
             }`}
+            onClick={() => {
+                const radio = document.getElementById(`fix-${option.id}`) as HTMLButtonElement | null;
+                radio?.click();
+            }}
         >
-            <RadioGroupItem
-                value={option.id}
-                id={`fix-${option.id}`}
-                className="mt-0.5 shrink-0"
-            />
-            <Label htmlFor={`fix-${option.id}`} className="flex-1 cursor-pointer space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{option.title}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${complexityColors[option.complexity]}`}>
-                        {option.complexity}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        → {destinationLabel}
-                    </span>
-                    {option.isRecommended && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium">
-                            Recommended
+            {/* Title row with radio */}
+            <div className="flex items-start gap-3">
+                <RadioGroupItem
+                    value={option.id}
+                    id={`fix-${option.id}`}
+                    className="mt-0.5 shrink-0"
+                />
+                <Label htmlFor={`fix-${option.id}`} className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{option.title}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${complexityColors[option.complexity]}`}>
+                            {option.complexity}
                         </span>
-                    )}
-                </div>
-                <div className="markdown-body text-sm">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {option.description}
-                    </ReactMarkdown>
-                </div>
-                {option.filesAffected.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                        <strong>Files:</strong>{' '}
-                        {option.filesAffected.map((f, i) => (
-                            <span key={f}>
-                                <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{f}</code>
-                                {i < option.filesAffected.length - 1 && ', '}
+                        <span className="text-xs text-muted-foreground">
+                            → {destinationLabel}
+                        </span>
+                        {option.isRecommended && (
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium">
+                                Recommended
                             </span>
-                        ))}
-                    </p>
-                )}
-                {option.tradeoffs && (
-                    <p className="text-xs text-muted-foreground italic">
-                        <strong>Trade-offs:</strong> {option.tradeoffs}
-                    </p>
-                )}
-            </Label>
+                        )}
+                    </div>
+                </Label>
+            </div>
+
+            {/* Description rendered as markdown (outside label to allow block elements) */}
+            <div className="markdown-body text-sm mt-2 pl-7">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {option.description}
+                </ReactMarkdown>
+            </div>
+
+            {/* Files and tradeoffs */}
+            {option.filesAffected.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-2 pl-7">
+                    <strong>Files:</strong>{' '}
+                    {option.filesAffected.map((f, i) => (
+                        <span key={f}>
+                            <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{f}</code>
+                            {i < option.filesAffected.length - 1 && ', '}
+                        </span>
+                    ))}
+                </div>
+            )}
+            {option.tradeoffs && (
+                <p className="text-xs text-muted-foreground italic mt-1 pl-7">
+                    <strong>Trade-offs:</strong> {option.tradeoffs}
+                </p>
+            )}
         </div>
     );
 }
