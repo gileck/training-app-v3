@@ -5,7 +5,6 @@
 module.exports = {
     rules: {
         // Import pattern rules
-        'no-server-import-in-client': require('./rules/no-server-import-in-client'),
         'api-names-from-index': require('./rules/api-names-from-index'),
         'server-reexport-from-index': require('./rules/server-reexport-from-index'),
 
@@ -25,13 +24,6 @@ module.exports = {
         recommended: {
             plugins: ['api-guidelines'],
             rules: {
-                'api-guidelines/no-server-import-in-client': ['error', {
-                    // Allow imports from server utils and types
-                    allowedPaths: [
-                        '@/server/cache/types',
-                        '@/server/types'
-                    ]
-                }],
                 'api-guidelines/api-names-from-index': 'error',
                 'api-guidelines/server-reexport-from-index': 'error',
                 'api-guidelines/client-returns-cache-result': 'error',

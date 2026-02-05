@@ -2,6 +2,8 @@
   "templatePaths": [
     ".eslintrc.js",
     "eslint.config.mjs",
+    "eslint-plugin-api-guidelines/**",
+    "eslint-plugin-state-management/**",
     "postcss.config.mjs",
     "next.config.ts",
     "knip.json",

@@ -37,7 +37,11 @@ module.exports = {
                 const filename = context.getFilename();
 
                 // Skip checking files that are themselves API type files
+                // or canonical server type definition files
                 if (filename.includes('/apis/') && filename.endsWith('types.ts')) {
+                    return;
+                }
+                if (filename.includes('/server/ai/') && filename.endsWith('types.ts')) {
                     return;
                 }
 
@@ -60,7 +64,11 @@ module.exports = {
                 const filename = context.getFilename();
 
                 // Skip checking files that are themselves API type files
+                // or canonical server type definition files
                 if (filename.includes('/apis/') && filename.endsWith('types.ts')) {
+                    return;
+                }
+                if (filename.includes('/server/ai/') && filename.endsWith('types.ts')) {
                     return;
                 }
 

@@ -57,6 +57,20 @@ Ensures index.ts files in API modules export the API name constants used for rou
 #### `api-guidelines/no-export-process-from-index`
 Prevents exporting process functions from index.ts, which would cause them to be bundled with client-side code.
 
+### ID Handling
+
+#### `api-guidelines/prefer-id-utilities` (warning)
+Warns when using direct ObjectId methods in API handlers that may fail with UUID strings. This app supports both MongoDB ObjectIds (legacy) and client-generated UUIDs for `_id` fields.
+
+**Warns on:**
+- `.toHexString()` calls → suggests `toStringId()` from `@/server/utils`
+- `new ObjectId(variable)` → suggests `toQueryId()` or `toDocumentId()` from `@/server/utils`
+
+**Allows:**
+- `new ObjectId()` with no arguments (generates new ID)
+- `new ObjectId("literal")` with string literals (known ObjectId format)
+- All ObjectId usage in database layer (`src/server/database/`)
+
 ## How Rules Enforce Guidelines
 
 This plugin enforces critical aspects of our API architecture:
