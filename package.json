@@ -56,7 +56,7 @@
     "telegram-bot": "tsx scripts/poc/telegram-claude-bot.ts",
     "check:circular": "madge --circular --extensions ts,tsx --ts-config tsconfig.json src/",
     "check:unused": "knip",
-    "check:unused:ci": "knip --include dependencies,unlisted,unresolved",
+    "check:unused:ci": "knip --include unresolved",
     "setup-s3-logging": "tsx scripts/template/setup-s3-logging.ts",
     "test-s3-logging": "tsx scripts/template/test-s3-logging.ts"
   },
