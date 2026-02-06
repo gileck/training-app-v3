@@ -52,6 +52,20 @@ jobs:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
+          # Validate required environment variables
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set. Please configure it in GitHub repository secrets."
+            exit 1
+          fi
+          if [ -z "$CHAT_ID_RAW" ]; then
+            echo "::error::Neither VERCEL_TELEGRAM_CHAT_ID nor LOCAL_TELEGRAM_CHAT_ID secret is set. Please configure at least one in GitHub repository secrets."
+            exit 1
+          fi
+          if [ -z "$COMMIT_SHA" ]; then
+            echo "::error::Could not determine commit SHA from deploy-type step."
+            exit 1
+          fi
+
           # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
           if [[ "$CHAT_ID_RAW" == *":"* ]]; then
             CHAT_ID="${CHAT_ID_RAW%:*}"
@@ -62,27 +76,43 @@ jobs:
             THREAD_PARAM=""
           fi
 
+          # Validate parsed chat ID
+          if [ -z "$CHAT_ID" ]; then
+            echo "::error::Failed to parse CHAT_ID from CHAT_ID_RAW: '$CHAT_ID_RAW'"
+            exit 1
+          fi
+
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
+            if [ -z "$COMMIT_COUNT" ] || ! [[ "$COMMIT_COUNT" =~ ^[0-9]+$ ]]; then
+              echo "::warning::Could not parse commit count from COMMITS_JSON, defaulting to 1"
+              COMMIT_COUNT=1
+            fi
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then
               # Single commit - show commit name and Open Commit button
               COMMIT_MSG=$(echo "$HEAD_COMMIT_MESSAGE" | head -1)
 
-              MESSAGE="🚀 *Production Deployment Started*
+              read -r -d '' MESSAGE << 'MSGEOF' || true
+          🚀 *Production Deployment Started*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commit: ${COMMIT_MSG}
-          👤 Author: ${{ github.actor }}"
+          📝 Commit: COMMIT_MSG_PLACEHOLDER
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+              MESSAGE="${MESSAGE//COMMIT_MSG_PLACEHOLDER/$COMMIT_MSG}"
 
               KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/'"${COMMIT_SHA}"'"}]]}'
             else
               # Multiple commits - show count with 2 buttons
-              MESSAGE="🚀 *Production Deployment Started*
+              read -r -d '' MESSAGE << 'MSGEOF' || true
+          🚀 *Production Deployment Started*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commits: ${COMMIT_COUNT} commits
-          👤 Author: ${{ github.actor }}"
+          📝 Commits: COMMIT_COUNT_PLACEHOLDER commits
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+              MESSAGE="${MESSAGE//COMMIT_COUNT_PLACEHOLDER/$COMMIT_COUNT}"
 
               KEYBOARD='{"inline_keyboard":[[{"text":"📊 Open Diff","url":"${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}"},{"text":"📋 Show Commits","url":"${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}/commits"}]]}'
             fi
@@ -94,11 +124,15 @@ jobs:
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
           else
-            MESSAGE="👀 *Preview Deployment Started (PR #${{ github.event.pull_request.number }})*
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            read -r -d '' MESSAGE << 'MSGEOF' || true
+          👀 *Preview Deployment Started (PR #${{ github.event.pull_request.number }})*
 
           📦 Repository: ${{ github.repository }}
-          📝 PR: ${{ github.event.pull_request.title }}
-          👤 Author: ${{ github.actor }}"
+          📝 PR: PR_TITLE_PLACEHOLDER
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+            MESSAGE="${MESSAGE//PR_TITLE_PLACEHOLDER/$PR_TITLE}"
 
             KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -156,6 +190,16 @@ jobs:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
+          # Validate required environment variables
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set"
+            exit 1
+          fi
+          if [ -z "$CHAT_ID_RAW" ]; then
+            echo "::error::Chat ID secret is not set"
+            exit 1
+          fi
+
           # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
           if [[ "$CHAT_ID_RAW" == *":"* ]]; then
             CHAT_ID="${CHAT_ID_RAW%:*}"
@@ -166,27 +210,41 @@ jobs:
             THREAD_PARAM=""
           fi
 
+          if [ -z "$CHAT_ID" ]; then
+            echo "::error::Failed to parse CHAT_ID"
+            exit 1
+          fi
+
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
             COMMIT_COUNT=$(echo "$COMMITS_JSON" | jq 'length')
+            if [ -z "$COMMIT_COUNT" ] || ! [[ "$COMMIT_COUNT" =~ ^[0-9]+$ ]]; then
+              COMMIT_COUNT=1
+            fi
 
             if [ "$COMMIT_COUNT" -eq 1 ]; then
               # Single commit - show commit name and Open Commit button
               COMMIT_MSG=$(echo "$HEAD_COMMIT_MESSAGE" | head -1)
 
-              MESSAGE="✅ *Production Deployment Complete - Live*
+              read -r -d '' MESSAGE << 'MSGEOF' || true
+          ✅ *Production Deployment Complete - Live*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commit: ${COMMIT_MSG}
-          👤 Author: ${{ github.actor }}"
+          📝 Commit: COMMIT_MSG_PLACEHOLDER
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+              MESSAGE="${MESSAGE//COMMIT_MSG_PLACEHOLDER/$COMMIT_MSG}"
 
               KEYBOARD='{"inline_keyboard":[[{"text":"📋 Open Commit","url":"${{ github.server_url }}/${{ github.repository }}/commit/'"${COMMIT_SHA}"'"}]]}'
             else
               # Multiple commits - show count with 2 buttons
-              MESSAGE="✅ *Production Deployment Complete - Live*
+              read -r -d '' MESSAGE << 'MSGEOF' || true
+          ✅ *Production Deployment Complete - Live*
 
           📦 Repository: ${{ github.repository }}
-          📝 Commits: ${COMMIT_COUNT} commits
-          👤 Author: ${{ github.actor }}"
+          📝 Commits: COMMIT_COUNT_PLACEHOLDER commits
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+              MESSAGE="${MESSAGE//COMMIT_COUNT_PLACEHOLDER/$COMMIT_COUNT}"
 
               KEYBOARD='{"inline_keyboard":[[{"text":"📊 Open Diff","url":"${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}"},{"text":"📋 Show Commits","url":"${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}/commits"}]]}'
             fi
@@ -198,11 +256,15 @@ jobs:
               -d "text=${MESSAGE}" \
               -d "reply_markup=${KEYBOARD}"
           else
-            MESSAGE="✅ *Preview Deployment Ready (PR #${{ github.event.pull_request.number }})*
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            read -r -d '' MESSAGE << 'MSGEOF' || true
+          ✅ *Preview Deployment Ready (PR #${{ github.event.pull_request.number }})*
 
           📦 Repository: ${{ github.repository }}
-          📝 PR: ${{ github.event.pull_request.title }}
-          👤 Author: ${{ github.actor }}"
+          📝 PR: PR_TITLE_PLACEHOLDER
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+            MESSAGE="${MESSAGE//PR_TITLE_PLACEHOLDER/$PR_TITLE}"
 
             KEYBOARD='{"inline_keyboard":[[{"text":"🔗 Open URL","url":"${{ steps.deployment.outputs.url }}"},{"text":"📋 Open PR","url":"${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}]]}'
 
@@ -223,6 +285,16 @@ jobs:
           ERROR_MSG: ${{ steps.deployment.outputs.error }}
           LOG_URL: ${{ steps.deployment.outputs.log_url }}
         run: |
+          # Validate required environment variables
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set"
+            exit 1
+          fi
+          if [ -z "$CHAT_ID_RAW" ]; then
+            echo "::error::Chat ID secret is not set"
+            exit 1
+          fi
+
           # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
           if [[ "$CHAT_ID_RAW" == *":"* ]]; then
             CHAT_ID="${CHAT_ID_RAW%:*}"
@@ -233,6 +305,11 @@ jobs:
             THREAD_PARAM=""
           fi
 
+          if [ -z "$CHAT_ID" ]; then
+            echo "::error::Failed to parse CHAT_ID"
+            exit 1
+          fi
+
           # Truncate error message if too long
           ERROR_PREVIEW="${ERROR_MSG:0:200}"
           if [ ${#ERROR_MSG} -gt 200 ]; then
@@ -240,10 +317,12 @@ jobs:
           fi
 
           if [ "${{ env.IS_PRODUCTION }}" == "true" ]; then
-            MESSAGE="❌ *Production Deployment Failed*
+            read -r -d '' MESSAGE << 'MSGEOF' || true
+          ❌ *Production Deployment Failed*
 
           📦 Repository: ${{ github.repository }}
-          👤 Author: ${{ github.actor }}"
+          👤 Author: ${{ github.actor }}
+          MSGEOF
 
             if [ -n "$ERROR_PREVIEW" ]; then
               MESSAGE="${MESSAGE}
@@ -257,11 +336,15 @@ jobs:
               KEYBOARD='{"inline_keyboard":[[{"text":"🔍 View Logs","url":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}]]}'
             fi
           else
-            MESSAGE="❌ *Preview Deployment Failed (PR #${{ github.event.pull_request.number }})*
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            read -r -d '' MESSAGE << 'MSGEOF' || true
+          ❌ *Preview Deployment Failed (PR #${{ github.event.pull_request.number }})*
 
           📦 Repository: ${{ github.repository }}
-          📝 PR: ${{ github.event.pull_request.title }}
-          👤 Author: ${{ github.actor }}"
+          📝 PR: PR_TITLE_PLACEHOLDER
+          👤 Author: ${{ github.actor }}
+          MSGEOF
+            MESSAGE="${MESSAGE//PR_TITLE_PLACEHOLDER/$PR_TITLE}"
 
             if [ -n "$ERROR_PREVIEW" ]; then
               MESSAGE="${MESSAGE}

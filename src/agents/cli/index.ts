@@ -43,8 +43,9 @@ Create options:
   --title <title>         Required: Title of the request
   --description <desc>    Required: Description
   --auto-approve          Optional: Skip approval notification, sync to GitHub immediately
-  --route <phase>         Optional: product-dev | product-design | tech-design | implementation | backlog
+  --workflow-route <phase>  Optional: product-dev | product-design | tech-design | implementation | backlog
                           (implies --auto-approve)
+  --client-page-route <route>  Optional: Affected client route for bugs (e.g., "/settings")
   --priority <level>      Optional: low | medium | high | critical (features only)
   --dry-run               Optional: Preview without creating
 
@@ -80,7 +81,7 @@ Workflow:
     2. Syncs to GitHub immediately
     3. Sends routing notification to Telegram (asks where to route)
 
-  With --auto-approve --route <phase>:
+  With --auto-approve --workflow-route <phase>:
     1. Creates item with status 'in_progress'
     2. Syncs to GitHub immediately
     3. Auto-routes to specified phase (no Telegram notifications)

@@ -31,16 +31,6 @@ Auto-generate CLAUDE.md from docs and skills. Run this after creating or updatin
 
 ---
 
-## Exit Codes
-
-How to properly check command success/failure. Use this when running shell commands.
-
-**Summary:** **CRITICAL: Never parse command output to determine success/failure. Always use exit codes.** Exit code 0 = Success, non-zero = Failure. Use try/catch with execSync.
-
-**Docs:** [exit-codes-guide.md](docs/template/exit-codes-guide.md)
-
----
-
 ## Project Structure Guidelines
 
 Where to put your project code and what not to modify. Use this when adding new features or modifying the codebase.
@@ -51,13 +41,13 @@ Where to put your project code and what not to modify. Use this when adding new 
 
 ---
 
-## Validation & Quality Checks
+## Project Validation
 
-Code validation and linting requirements. Use this before completing any work.
+Complete guide to code validation - what checks exist, how they run locally and in CI, and how to use them programmatically.
 
-**Summary:** **CRITICAL: Always run `yarn checks` before completing work.** Runs both TypeScript and ESLint checks, shows ALL errors at once. Must pass with 0 errors before committing, creating PRs, or deploying.
+**Summary:** **CRITICAL: Always run `yarn checks` before completing work.** Runs 4 checks in parallel: TypeScript, ESLint, circular dependencies, unused dependencies. Must pass with 0 errors before committing, creating PRs, or deploying.
 
-**Docs:** [validation-planning-mode.md](docs/template/validation-planning-mode.md)
+**Docs:** [project-validation.md](docs/template/project-validation.md)
 
 ---
 
@@ -484,6 +474,24 @@ Complete documentation for the Bug Investigator agent and bug fix selection flow
 - Routes to Tech Design (complex fixes) or Implementation (simple fixes)
 
 **Docs:** [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md)
+
+---
+
+# standalone-agents
+
+## Repo Commits Code Reviewer
+
+Standalone agent that reviews git commits for bugs and improvements. Use this to understand the automated code review system.
+
+**Summary:** Reviews commits using diff-budget batching, creates issues via agent-workflow for admin approval. Runs every 4 hours, NOT part of the GitHub Projects workflow pipeline.
+
+**Key Points:**
+- Diff-budget approach: ~1500 lines per run, walks commits chronologically
+- Creates issues via `yarn agent-workflow create` for Telegram approval
+- Output includes priority, size (XS/S/M/L), complexity, and risk assessment
+- State tracked in agent-tasks/repo-commits-code-reviewer/state.json
+
+**Docs:** [repo-commits-code-reviewer.md](docs/template/standalone-agents/repo-commits-code-reviewer.md)
 
 ---
 

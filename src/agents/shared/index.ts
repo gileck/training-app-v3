@@ -68,6 +68,8 @@ export type {
     StructuredClarification,
     BugInvestigationOutput,
     FixOption,
+    CodeReviewFinding,
+    CodeReviewOutput,
 } from './output-schemas';
 export {
     PRODUCT_DEVELOPMENT_OUTPUT_FORMAT,
@@ -76,6 +78,7 @@ export {
     IMPLEMENTATION_OUTPUT_FORMAT,
     CLARIFICATION_SCHEMA_PROPERTIES,
     BUG_INVESTIGATION_OUTPUT_FORMAT,
+    CODE_REVIEW_OUTPUT_FORMAT,
 } from './output-schemas';
 
 // Agent library abstraction

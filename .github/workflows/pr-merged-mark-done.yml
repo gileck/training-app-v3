@@ -43,4 +43,4 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
         run: |
-          yarn tsx scripts/on-pr-merged.ts
+          yarn tsx scripts/template/on-pr-merged.ts

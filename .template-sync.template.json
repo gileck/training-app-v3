@@ -1,5 +1,6 @@
 {
   "templatePaths": [
+    ".github/workflows/**",
     ".eslintrc.js",
     "eslint.config.mjs",
     "eslint-plugin-api-guidelines/**",

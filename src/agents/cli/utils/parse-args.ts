@@ -8,7 +8,8 @@ export interface ParsedArgs {
     type?: string;
     title?: string;
     description?: string;
-    route?: string;
+    workflowRoute?: string;    // Workflow routing (product-dev, tech-design, etc.)
+    clientPageRoute?: string;  // Affected client page route (e.g., "/settings") for bugs
     priority?: string;
     dryRun?: boolean;
     autoApprove?: boolean;
@@ -52,11 +53,14 @@ export function parseArgs(args: string[]): ParsedArgs {
         } else if (arg === '--description' && args[i + 1]) {
             result.description = args[i + 1];
             i += 2;
-        } else if (arg === '--route' && args[i + 1]) {
-            result.route = args[i + 1];
+        } else if (arg === '--workflow-route' && args[i + 1]) {
+            result.workflowRoute = args[i + 1];
             i += 2;
         } else if (arg === '--priority' && args[i + 1]) {
             result.priority = args[i + 1];
+            i += 2;
+        } else if (arg === '--client-page-route' && args[i + 1]) {
+            result.clientPageRoute = args[i + 1];
             i += 2;
         } else if (arg === '--dry-run') {
             result.dryRun = true;
@@ -104,8 +108,8 @@ export function validateCreateArgs(args: ParsedArgs): { valid: boolean; error?: 
     if (!args.description) {
         return { valid: false, error: 'Missing required argument: --description' };
     }
-    if (args.route && !['product-dev', 'product-design', 'tech-design', 'implementation', 'backlog'].includes(args.route)) {
-        return { valid: false, error: 'Invalid route. Use: product-dev | product-design | tech-design | implementation | backlog' };
+    if (args.workflowRoute && !['product-dev', 'product-design', 'tech-design', 'implementation', 'backlog'].includes(args.workflowRoute)) {
+        return { valid: false, error: 'Invalid --workflow-route. Use: product-dev | product-design | tech-design | implementation | backlog' };
     }
     if (args.priority && !['low', 'medium', 'high', 'critical'].includes(args.priority)) {
         return { valid: false, error: 'Invalid priority. Use: low | medium | high | critical' };

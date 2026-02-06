@@ -20,6 +20,18 @@ jobs:
           CHAT_ID_RAW: ${{ secrets.GH_TELEGRAM_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_ACTION: ${{ github.event.action }}
+          # Pass these as env vars to avoid shell escaping issues with quotes in titles
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_USER: ${{ github.event.pull_request.user.login }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+          SENDER_LOGIN: ${{ github.event.sender.login }}
+          REQUESTED_REVIEWER: ${{ github.event.requested_reviewer.login }}
+          REVIEW_USER: ${{ github.event.review.user.login }}
+          REVIEW_STATE: ${{ github.event.review.state }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
         run: |
           # Parse chat ID and optional thread ID (format: chatId or chatId:threadId)
           if [[ "$CHAT_ID_RAW" == *":"* ]]; then
@@ -33,58 +45,46 @@ jobs:
 
           MESSAGE=""
 
+          # Escape special characters for Telegram Markdown and URL encoding
+          # Replace newlines and special chars that break the message
+          SAFE_TITLE=$(echo "$PR_TITLE" | sed 's/[_*`\[]/\\&/g' | tr '\n' ' ')
+
           # Pull request events
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            PR_TITLE="${{ github.event.pull_request.title }}"
-            PR_URL="${{ github.event.pull_request.html_url }}"
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            PR_USER="${{ github.event.pull_request.user.login }}"
-
             case "$EVENT_ACTION" in
               opened)
-                MESSAGE="🔀 *New PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
+                MESSAGE="🔀 *New PR #${PR_NUMBER}*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
                 ;;
               closed)
-                if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-                  MERGED_BY="${{ github.event.pull_request.merged_by.login }}"
-                  MESSAGE="🎉 *PR #${PR_NUMBER} Merged*%0A%0A${PR_TITLE}%0A%0A👤 by ${MERGED_BY}%0A🔗 ${PR_URL}"
+                if [ "$PR_MERGED" = "true" ]; then
+                  MESSAGE="🎉 *PR #${PR_NUMBER} Merged*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${MERGED_BY}%0A🔗 ${PR_URL}"
                 else
-                  CLOSED_BY="${{ github.event.sender.login }}"
-                  MESSAGE="❌ *PR #${PR_NUMBER} Closed*%0A%0A${PR_TITLE}%0A%0A👤 by ${CLOSED_BY}%0A🔗 ${PR_URL}"
+                  MESSAGE="❌ *PR #${PR_NUMBER} Closed*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${SENDER_LOGIN}%0A🔗 ${PR_URL}"
                 fi
                 ;;
               reopened)
-                REOPENED_BY="${{ github.event.sender.login }}"
-                MESSAGE="🔄 *PR #${PR_NUMBER} Reopened*%0A%0A${PR_TITLE}%0A%0A👤 by ${REOPENED_BY}%0A🔗 ${PR_URL}"
+                MESSAGE="🔄 *PR #${PR_NUMBER} Reopened*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${SENDER_LOGIN}%0A🔗 ${PR_URL}"
                 ;;
               review_requested)
-                REVIEWER="${{ github.event.requested_reviewer.login }}"
-                MESSAGE="👀 *Review Requested on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0AReviewer: ${REVIEWER}%0A🔗 ${PR_URL}"
+                MESSAGE="👀 *Review Requested on PR #${PR_NUMBER}*%0A%0A${SAFE_TITLE}%0A%0AReviewer: ${REQUESTED_REVIEWER}%0A🔗 ${PR_URL}"
                 ;;
               ready_for_review)
-                MESSAGE="✅ *PR #${PR_NUMBER} Ready for Review*%0A%0A${PR_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
+                MESSAGE="✅ *PR #${PR_NUMBER} Ready for Review*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${PR_USER}%0A🔗 ${PR_URL}"
                 ;;
             esac
           fi
 
           # PR review events
           if [ "$EVENT_NAME" = "pull_request_review" ]; then
-            PR_TITLE="${{ github.event.pull_request.title }}"
-            PR_URL="${{ github.event.pull_request.html_url }}"
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            REVIEWER="${{ github.event.review.user.login }}"
-            REVIEW_STATE="${{ github.event.review.state }}"
-            REVIEW_URL="${{ github.event.review.html_url }}"
-
             case "$REVIEW_STATE" in
               approved)
-                MESSAGE="✅ *PR #${PR_NUMBER} Approved*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                MESSAGE="✅ *PR #${PR_NUMBER} Approved*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${REVIEW_USER}%0A🔗 ${REVIEW_URL}"
                 ;;
               changes_requested)
-                MESSAGE="🔄 *Changes Requested on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                MESSAGE="🔄 *Changes Requested on PR #${PR_NUMBER}*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${REVIEW_USER}%0A🔗 ${REVIEW_URL}"
                 ;;
               commented)
-                MESSAGE="💬 *Review Comment on PR #${PR_NUMBER}*%0A%0A${PR_TITLE}%0A%0A👤 by ${REVIEWER}%0A🔗 ${REVIEW_URL}"
+                MESSAGE="💬 *Review Comment on PR #${PR_NUMBER}*%0A%0A${SAFE_TITLE}%0A%0A👤 by ${REVIEW_USER}%0A🔗 ${REVIEW_URL}"
                 ;;
             esac
           fi

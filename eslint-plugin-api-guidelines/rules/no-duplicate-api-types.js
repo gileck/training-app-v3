@@ -41,7 +41,8 @@ module.exports = {
                 if (filename.includes('/apis/') && filename.endsWith('types.ts')) {
                     return;
                 }
-                if (filename.includes('/server/ai/') && filename.endsWith('types.ts')) {
+                // Use regex to handle both forward and back slashes, and match any server type files
+                if (/[/\\]server[/\\].*types\.ts$/.test(filename)) {
                     return;
                 }
 
@@ -68,7 +69,8 @@ module.exports = {
                 if (filename.includes('/apis/') && filename.endsWith('types.ts')) {
                     return;
                 }
-                if (filename.includes('/server/ai/') && filename.endsWith('types.ts')) {
+                // Use regex to handle both forward and back slashes, and match any server type files
+                if (/[/\\]server[/\\].*types\.ts$/.test(filename)) {
                     return;
                 }
 

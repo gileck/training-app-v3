@@ -51,7 +51,7 @@ export async function handleStart(): Promise<void> {
     ]);
 
     // 6. If auto-approve, ask about routing
-    let route: string | undefined;
+    let workflowRoute: string | undefined;
     if (autoApprove) {
         const routeOptions = type === 'feature'
             ? [
@@ -70,7 +70,7 @@ export async function handleStart(): Promise<void> {
                 { label: 'Backlog', value: 'backlog' },
             ];
 
-        route = await promptSelect<string | undefined>('Route to phase:', routeOptions);
+        workflowRoute = await promptSelect<string | undefined>('Route to phase:', routeOptions);
     }
 
     // Build options
@@ -78,7 +78,7 @@ export async function handleStart(): Promise<void> {
         title,
         description,
         priority,
-        route,
+        workflowRoute,
         autoApprove,
     };
 

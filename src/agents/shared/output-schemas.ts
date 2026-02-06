@@ -381,6 +381,154 @@ export interface BugInvestigationOutput extends ClarificationFields {
     summary: string;
 }
 
+// ============================================================
+// CODE REVIEW OUTPUT
+// ============================================================
+
+/**
+ * A single finding from the code review agent.
+ */
+export interface CodeReviewFinding {
+    /** Type of finding */
+    type: 'bug' | 'improvement';
+    /** Severity of the finding */
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    /** Priority for issue creation (maps to agent-workflow --priority) */
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    /** Estimated fix size */
+    size: 'XS' | 'S' | 'M' | 'L';
+    /** Estimated fix complexity */
+    complexity: 'Low' | 'Medium' | 'High';
+    /** Short actionable title (max 80 chars) */
+    title: string;
+    /** Detailed description: what, why, suggested fix */
+    description: string;
+    /** Affected files with line numbers (e.g., "path/to/file.ts:123") */
+    affectedFiles: string[];
+    /** Related commit hash */
+    relatedCommit: string;
+    /** Whether this finding warrants creating an issue */
+    shouldCreateIssue: boolean;
+    /** How likely this issue is to cause real problems */
+    riskLevel: 'High' | 'Medium' | 'Low';
+    /** Short explanation of when/how the risk manifests (e.g., "Crashes on every bot restart") */
+    riskDescription: string;
+    /** Client route affected by this bug (e.g., "/settings", "/home"). Only set if bug is in route-specific code. */
+    route?: string;
+}
+
+/**
+ * Output from the Repo Commits Code Reviewer agent.
+ */
+export interface CodeReviewOutput {
+    /** List of findings from the code review */
+    findings: CodeReviewFinding[];
+    /** Summary statistics */
+    summary: {
+        commitsReviewed: number;
+        bugsFound: number;
+        improvementsFound: number;
+    };
+}
+
+export const CODE_REVIEW_OUTPUT_FORMAT = {
+    type: 'json_schema' as const,
+    schema: {
+        type: 'object',
+        properties: {
+            findings: {
+                type: 'array',
+                description: 'List of findings from the code review. Be conservative — better to miss a minor issue than create noise.',
+                items: {
+                    type: 'object',
+                    properties: {
+                        type: {
+                            type: 'string',
+                            enum: ['bug', 'improvement'],
+                            description: 'Type of finding: "bug" for defects, "improvement" for enhancements',
+                        },
+                        severity: {
+                            type: 'string',
+                            enum: ['critical', 'high', 'medium', 'low'],
+                            description: 'Severity: critical (breaks functionality), high (likely causes issues), medium (potential problem), low (minor concern)',
+                        },
+                        priority: {
+                            type: 'string',
+                            enum: ['critical', 'high', 'medium', 'low'],
+                            description: 'Priority for issue creation, maps to agent-workflow --priority',
+                        },
+                        size: {
+                            type: 'string',
+                            enum: ['XS', 'S', 'M', 'L'],
+                            description: 'Estimated fix size: XS (trivial, <10 lines), S (small, 10-50 lines), M (moderate changes), L (significant work)',
+                        },
+                        complexity: {
+                            type: 'string',
+                            enum: ['Low', 'Medium', 'High'],
+                            description: 'Estimated fix complexity',
+                        },
+                        title: {
+                            type: 'string',
+                            description: 'Short actionable title (max 80 chars). Example: "Missing null check in user auth middleware"',
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Detailed description: what the issue is, why it matters, and suggested fix approach',
+                        },
+                        affectedFiles: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Affected files with line numbers (e.g., "src/server/auth.ts:45")',
+                        },
+                        relatedCommit: {
+                            type: 'string',
+                            description: 'The commit hash that introduced or is related to this finding',
+                        },
+                        shouldCreateIssue: {
+                            type: 'boolean',
+                            description: 'Whether this finding warrants creating an issue. Set to false for low-severity informational findings.',
+                        },
+                        riskLevel: {
+                            type: 'string',
+                            enum: ['High', 'Medium', 'Low'],
+                            description: 'How likely this is to cause real problems. High: affects every user or crashes in production. Medium: affects some users or specific conditions. Low: theoretical edge case, unlikely in practice.',
+                        },
+                        riskDescription: {
+                            type: 'string',
+                            description: 'One sentence explaining when/how the risk manifests. E.g., "Crashes on every bot restart", "Only triggers if JSON file is manually corrupted", "Theoretical overflow after years of continuous use".',
+                        },
+                        route: {
+                            type: 'string',
+                            description: 'Client route affected by this bug (e.g., "/settings", "/home"). Only set if the bug is in route-specific code under src/client/routes/. Leave empty/omit for server-only, shared, or non-route code.',
+                        },
+                    },
+                    required: ['type', 'severity', 'priority', 'size', 'complexity', 'title', 'description', 'affectedFiles', 'relatedCommit', 'shouldCreateIssue', 'riskLevel', 'riskDescription'],
+                },
+            },
+            summary: {
+                type: 'object',
+                description: 'Summary statistics of the code review',
+                properties: {
+                    commitsReviewed: {
+                        type: 'number',
+                        description: 'Number of commits reviewed',
+                    },
+                    bugsFound: {
+                        type: 'number',
+                        description: 'Number of bugs found',
+                    },
+                    improvementsFound: {
+                        type: 'number',
+                        description: 'Number of improvements found',
+                    },
+                },
+                required: ['commitsReviewed', 'bugsFound', 'improvementsFound'],
+            },
+        },
+        required: ['findings', 'summary'],
+    },
+};
+
 export const BUG_INVESTIGATION_OUTPUT_FORMAT = {
     type: 'json_schema' as const,
     schema: {

@@ -12,7 +12,6 @@ import type { Status, ReviewStatus } from './config';
 // These are adapter-internal types, not exposed via API
 // ============================================================
 
-// eslint-disable-next-line api-guidelines/no-duplicate-api-types
 export interface LinkedPullRequest {
     number: number;
     url: string;

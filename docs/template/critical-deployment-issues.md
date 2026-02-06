@@ -439,5 +439,5 @@ Before deploying:
 
 **See also:**
 - CLAUDE.md - Concise deployment issues summary
-- [docs/validation-planning-mode.md](validation-planning-mode.md) - Validation guidelines
+- [docs/project-validation.md](project-validation.md) - Project validation guide
 - [docs/github-projects-integration-extended.md](github-projects-integration-extended.md) - Production setup for agents
