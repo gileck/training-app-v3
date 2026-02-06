@@ -52,3 +52,6 @@ template-diff-summary.md
 
 # agent logs
 agent-logs/
+
+# agent tasks (task-cli configs are machine-specific)
+agent-tasks/
