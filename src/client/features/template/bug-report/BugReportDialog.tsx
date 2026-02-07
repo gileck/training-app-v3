@@ -13,6 +13,7 @@ import { Bug, Upload, X, Send, Loader2, Gauge, Clipboard } from 'lucide-react';
 import { useBugReportStore } from './store';
 import { useSubmitBugReport } from './hooks';
 import { toast } from '@/client/components/template/ui/toast';
+import { errorToastAuto } from '../error-tracking/errorToast';
 import { compressImage, formatBytes } from '@/client/utils/imageCompression';
 import type { BugCategory } from './types';
 
@@ -154,18 +155,7 @@ export function BugReportDialog() {
                 : 'Bug report submitted successfully. Thank you!';
             toast.success(message);
         } catch (error) {
-            // Provide user-friendly error messages
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            
-            if (errorMessage.includes('413') || errorMessage.includes('Body exceeded') || errorMessage.includes('1mb limit')) {
-                toast.error('Report is too large. Try removing the screenshot or reducing its size.');
-            } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
-                toast.error('Network error. Please check your connection and try again.');
-            } else if (errorMessage.includes('timeout')) {
-                toast.error('Request timed out. Please try again.');
-            } else {
-                toast.error('Failed to submit report. Please try again.');
-            }
+            errorToastAuto(error, 'Failed to submit report. Please try again.');
         }
     };
 

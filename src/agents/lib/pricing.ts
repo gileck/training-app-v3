@@ -4,7 +4,7 @@
  * Rough estimates for cost calculation when CLI tools don't provide cost.
  * These are approximate rates - actual costs may vary.
  *
- * Last updated: January 2026
+ * Last updated: February 2026
  */
 
 export interface ModelPricing {
@@ -54,6 +54,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
         outputPer1kTokens: 0.015,    // $15.00 per 1M
     },
     'claude-opus-4-20250514': {
+        inputPer1kTokens: 0.015,     // $15.00 per 1M
+        outputPer1kTokens: 0.075,    // $75.00 per 1M
+    },
+    // Shorthand aliases used in agents.config.ts
+    'sonnet': {
+        inputPer1kTokens: 0.003,     // $3.00 per 1M
+        outputPer1kTokens: 0.015,    // $15.00 per 1M
+    },
+    'opus-4.5': {
         inputPer1kTokens: 0.015,     // $15.00 per 1M
         outputPer1kTokens: 0.075,    // $75.00 per 1M
     },

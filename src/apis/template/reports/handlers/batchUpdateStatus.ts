@@ -1,8 +1,6 @@
 import { BatchUpdateStatusRequest, BatchUpdateStatusResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
-import { getDb } from '@/server/database';
-import { toQueryId } from '@/server/utils';
-import type { ObjectId } from 'mongodb';
+import { reports } from '@/server/database';
 
 export const batchUpdateStatus = async (
     request: BatchUpdateStatusRequest,
@@ -15,26 +13,11 @@ export const batchUpdateStatus = async (
             return { error: 'No report IDs provided' };
         }
 
-        const db = await getDb();
-        const collection = db.collection('reports');
+        const modifiedCount = await reports.batchUpdateStatuses(reportIds, status);
 
-        // Convert string IDs to query format (reports always use ObjectId format)
-        const objectIds = reportIds.map(id => toQueryId(id) as ObjectId);
+        console.log(`Batch updated ${modifiedCount} reports to status "${status}" by user ${context.userId || 'anonymous'}`);
 
-        // Update all reports in a single operation
-        const result = await collection.updateMany(
-            { _id: { $in: objectIds } },
-            {
-                $set: {
-                    status,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        console.log(`Batch updated ${result.modifiedCount} reports to status "${status}" by user ${context.userId || 'anonymous'}`);
-
-        return { updatedCount: result.modifiedCount };
+        return { updatedCount: modifiedCount };
     } catch (error) {
         console.error('Error batch updating report status:', error);
         return {

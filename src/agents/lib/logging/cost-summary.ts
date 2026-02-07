@@ -45,9 +45,10 @@ function formatTime(date: Date): string {
 export function parseCostSummary(logContent: string): PhaseData[] {
     try {
         // Match the cost summary section specifically
-        // Must be preceded by `---\n\n` and have "(Updated after" in title
+        // Must be preceded by `---` and have "(Updated after" in title
         // This avoids matching `## Summary` sections in design documents
-        const summaryMatch = logContent.match(/---\n\n## Summary \(Updated after [^)]+\)\n\n([\s\S]*?)(?=\n##[^#]|$)/);
+        // Flexible: allow variable whitespace/newlines between --- and heading
+        const summaryMatch = logContent.match(/---\s*\n\s*\n##\s+Summary\s+\(Updated after [^)]+\)\s*\n\s*\n([\s\S]*?)(?=\n##[^#]|$)/);
         if (!summaryMatch) {
             console.log('  💰 No existing cost summary found - creating new one');
             return [];
@@ -56,8 +57,9 @@ export function parseCostSummary(logContent: string): PhaseData[] {
         const summarySection = summaryMatch[1];
 
         // Extract table rows (skip header, divider, and total row)
-        // Match: header row -> divider row (with proper column separators) -> data rows
-        const tableMatch = summarySection.match(/\|.*\|.*\|.*\|.*\|.*\|\n\|[-:| ]+\|[-:| ]+\|[-:| ]+\|[-:| ]+\|[-:| ]+\|\n([\s\S]*?)(?=\n\|.*Total.*\||$)/);
+        // Match: header row -> divider row (with column separators) -> data rows
+        // Flexible: allow variable spacing in header/divider rows
+        const tableMatch = summarySection.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|[^|\n]*\|[^|\n]*\|\s*\n\|[-:\s|]+\|\s*\n([\s\S]*?)(?=\n\|[^|]*\*\*Total\*\*|$)/);
         if (!tableMatch) {
             console.warn('  ⚠️ Found summary section but could not parse table - creating new summary');
             return [];
@@ -138,7 +140,8 @@ function removeSummarySection(logContent: string): string {
     try {
         // Remove cost summary section specifically
         // Must have "(Updated after" to distinguish from `## Summary` in agent responses
-        const updated = logContent.replace(/---\n\n## Summary \(Updated after [^)]+\)[\s\S]*?(?=\n##[^#]|$)/, '');
+        // Flexible: allow variable whitespace/newlines between --- and heading
+        const updated = logContent.replace(/---\s*\n\s*\n##\s+Summary\s+\(Updated after [^)]+\)[\s\S]*?(?=\n##[^#]|$)/, '');
 
         // If replacement happened (content changed), log it
         if (updated !== logContent) {

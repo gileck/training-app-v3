@@ -10,6 +10,7 @@ import {
     isDecisionComment,
     parseDecision,
     findDecisionItem,
+    getDecisionFromDB,
 } from '../utils';
 import { getProjectManagementAdapter } from '@/server/project-management';
 
@@ -47,10 +48,15 @@ export async function getDecision(
             return { error: `Could not fetch issue #${issueNumber}` };
         }
 
-        // Get issue comments
+        // Try DB first
+        const dbDecision = await getDecisionFromDB(issueNumber, issueDetails.title);
+        if (dbDecision) {
+            return { decision: dbDecision };
+        }
+
+        // Fallback to comment parsing
         const comments = await adapter.getIssueComments(issueNumber);
 
-        // Find the latest decision comment
         let decisionComment = null;
         for (let i = comments.length - 1; i >= 0; i--) {
             if (isDecisionComment(comments[i].body)) {
@@ -63,7 +69,6 @@ export async function getDecision(
             return { error: 'No agent decision found on this issue' };
         }
 
-        // Parse the decision
         const decision = parseDecision(
             decisionComment.body,
             issueNumber,

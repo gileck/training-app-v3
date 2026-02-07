@@ -270,6 +270,7 @@ export const findReportsInTimeRange = async (
     };
 
     // Exclude specified IDs
+    // Note: Uses `new ObjectId()` instead of `toQueryId()` — $nin requires ObjectId[], see findReportsByIds
     if (excludeIds && excludeIds.length > 0) {
         const objectIds = excludeIds.map(id =>
             typeof id === 'string' ? new ObjectId(id) : id
@@ -350,6 +351,28 @@ export const getReportCounts = async (): Promise<Record<ReportStatus, number>> =
     }
 
     return counts;
+};
+
+/**
+ * Atomically claim (consume) the approval token.
+ * Uses findOneAndUpdate with a condition so only the first caller succeeds.
+ * Returns the document (with token) if claimed, null if already claimed or missing.
+ */
+export const claimApprovalToken = async (
+    reportId: ObjectId | string
+): Promise<ReportDocument | null> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    // $ne: null is valid MongoDB but conflicts with TypeScript's strict typing for optional string fields
+    const filter = { _id: reportIdObj, approvalToken: { $exists: true, $ne: null } } as unknown as Filter<ReportDocument>;
+    const result = await collection.findOneAndUpdate(
+        filter,
+        { $unset: { approvalToken: '' }, $set: { updatedAt: new Date() } },
+        { returnDocument: 'before' }
+    );
+
+    return result || null;
 };
 
 /**
@@ -488,3 +511,45 @@ export const updateWorkflowFields = async (
     await collection.updateOne({ _id: reportIdObj }, update);
 };
 
+/**
+ * Find multiple reports by their IDs
+ *
+ * Note: Uses `new ObjectId()` instead of `toQueryId()` because MongoDB's `$in`
+ * operator requires `ObjectId[]`, but `toQueryId()` returns `ObjectId | string`
+ * which is incompatible with that type constraint.
+ */
+export const findReportsByIds = async (reportIds: string[]): Promise<ReportDocument[]> => {
+    const collection = await getReportsCollection();
+    const objectIds = reportIds.map(id => new ObjectId(id));
+    return collection.find({ _id: { $in: objectIds } }).toArray();
+};
+
+/**
+ * Batch update status for multiple reports
+ *
+ * Note: Uses `new ObjectId()` instead of `toQueryId()` — see findReportsByIds.
+ */
+export const batchUpdateStatuses = async (
+    reportIds: string[],
+    status: ReportStatus
+): Promise<number> => {
+    const collection = await getReportsCollection();
+    const objectIds = reportIds.map(id => new ObjectId(id));
+    const result = await collection.updateMany(
+        { _id: { $in: objectIds } },
+        { $set: { status, updatedAt: new Date() } }
+    );
+    return result.modifiedCount;
+};
+
+/**
+ * Batch delete reports by their IDs
+ *
+ * Note: Uses `new ObjectId()` instead of `toQueryId()` — see findReportsByIds.
+ */
+export const batchDeleteByIds = async (reportIds: string[]): Promise<number> => {
+    const collection = await getReportsCollection();
+    const objectIds = reportIds.map(id => new ObjectId(id));
+    const result = await collection.deleteMany({ _id: { $in: objectIds } });
+    return result.deletedCount;
+};

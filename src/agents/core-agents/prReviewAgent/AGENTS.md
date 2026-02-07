@@ -71,7 +71,7 @@ The agent processes items that match:
 **If approved:**
 - Status: `"PR Review"` (unchanged)
 - Review Status: `"Approved"`
-- Commit message saved to PR comment (marker: `<!-- COMMIT_MESSAGE_V1 -->`)
+- Commit message saved to MongoDB artifacts and PR comment (marker: `<!-- COMMIT_MESSAGE_V1 -->`)
 - Admin notified via Telegram with Merge/Request Changes buttons
 
 **If requesting changes:**
@@ -247,7 +247,8 @@ const { prNumber, branchName } = openPR;
 15. If approved: Generate and save commit message
     - Fetch PR info (title, body, stats)
     - Generate commit message (title + body)
-    - Save/update PR comment with marker: <!-- COMMIT_MESSAGE_V1 -->
+    - Save to MongoDB via `saveCommitMessage()` (primary storage)
+    - Save/update PR comment with marker: <!-- COMMIT_MESSAGE_V1 --> (for display)
     - Overwrites previous comment on re-approval
 
 16. Checkout back to original branch
@@ -478,7 +479,7 @@ Commit Message:
 ```
 
 **Button Actions:**
-- **Merge**: Fetches commit message from PR comment, squash merges PR
+- **Merge**: Fetches commit message from MongoDB (with PR comment fallback), squash merges PR
 - **Request Changes**: Status → "Ready for development", Review Status → "Request Changes"
 
 ### Re-Approval Behavior
@@ -796,10 +797,9 @@ import {
     extractPhasesFromTechDesign
 } from '../../lib/parsing';
 
-// Phases (NEW - reliable phase retrieval)
-import {
-    parsePhasesFromComment
-} from '../../lib/phases';
+// Phases (DB-first with comment fallback)
+import { getPhasesFromDB } from '../../lib/workflow-db';
+import { parsePhasesFromComment } from '../../lib/phases';
 
 // Extraction
 import {

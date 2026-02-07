@@ -1,7 +1,7 @@
 ---
 title: GitHub Agents Workflow Overview
 description: Architecture and flow of the AI-powered feature/bug pipeline. Use this to understand the agent workflow system.
-summary: "6-column workflow (Backlog → Product Design → Tech Design → Ready → PR Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically."
+summary: "9-status workflow (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically."
 priority: 2
 key_points:
   - "Entry points: UI feature request, UI bug report, or CLI"
@@ -25,7 +25,7 @@ This document describes the automated AI agent workflow that manages feature req
 
 ## Overview
 
-The integration creates a complete pipeline using a 6-column workflow for **both feature requests and bug reports**.
+The integration creates a complete pipeline using a 9-status workflow for **both feature requests and bug reports**. Not all statuses are used for every item -- some are optional (Product Development) or type-specific (Bug Investigation for bugs only, Final Review for multi-phase features only).
 
 ### Entry Points
 

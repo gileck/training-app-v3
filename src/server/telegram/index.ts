@@ -335,14 +335,23 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
  */
 export async function sendBugReportNotification(report: ReportDocument): Promise<SendMessageResult> {
     const category = report.category === 'performance' ? '⚡ Performance' : '🐛 Bug';
-    const rawDescription = report.description?.slice(0, 200) || 'No description';
-    const truncated = (report.description?.length || 0) > 200 ? '...' : '';
-    const description = markdownToTelegramHtml(rawDescription);
+    const rawDescription = report.description || 'No description';
+
+    // Extract Priority/Size/Complexity/Risk metadata from description (if present from code reviewer)
+    const metadataRegex = /\*\*Priority:\*\*\s*([^|]+)\|\s*\*\*Size:\*\*\s*([^|]+)\|\s*\*\*Complexity:\*\*\s*([^|]+)\|\s*\*\*Risk:\*\*\s*(.+)/;
+    const metadataMatch = rawDescription.match(metadataRegex);
+
+    // Remove the metadata line from description to display it separately at the end
+    const cleanDescription = metadataMatch
+        ? rawDescription.replace(metadataRegex, '').trim()
+        : rawDescription;
+
+    const description = markdownToTelegramHtml(cleanDescription);
 
     const messageParts = [
         `${category} <b>New Bug Report!</b>`,
         '',
-        `📋 ${description}${truncated}`,
+        `📋 ${description}`,
     ];
 
     if (report.route) {
@@ -351,6 +360,17 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
 
     if (report.userInfo?.username) {
         messageParts.push(`👤 Reported by: ${report.userInfo.username}`);
+    }
+
+    // Append metadata on separate lines at the end
+    if (metadataMatch) {
+        messageParts.push(
+            '',
+            `Priority: ${metadataMatch[1].trim()}`,
+            `Size: ${metadataMatch[2].trim()}`,
+            `Complexity: ${metadataMatch[3].trim()}`,
+            `Risk: ${metadataMatch[4].trim()}`,
+        );
     }
 
     const message = messageParts.join('\n');

@@ -259,13 +259,16 @@ ${body}
 
 /**
  * Parse commit message from PR comment
+ * Handles edge cases where title or body may contain triple backticks
+ * by matching closing fences that appear on their own line
  */
 export function parseCommitMessageComment(commentBody: string): CommitMessageResult | null {
     if (!commentBody.includes(COMMIT_MESSAGE_MARKER)) return null;
 
-    // Extract title between first ``` pair after "Title:"
-    const titleMatch = commentBody.match(/\*\*Title:\*\*\s*```\s*([\s\S]*?)```/);
-    const bodyMatch = commentBody.match(/\*\*Body:\*\*\s*```\s*([\s\S]*?)```/);
+    // Extract title between ``` pair after "Title:"
+    // Match closing ``` that appears at the start of a line (handles content with backticks)
+    const titleMatch = commentBody.match(/\*\*Title:\*\*\s*```\s*\n([\s\S]*?)\n\s*```/);
+    const bodyMatch = commentBody.match(/\*\*Body:\*\*\s*```\s*\n([\s\S]*?)\n\s*```/);
 
     if (!titleMatch || !bodyMatch) return null;
 
@@ -274,3 +277,4 @@ export function parseCommitMessageComment(commentBody: string): CommitMessageRes
         body: bodyMatch[1].trim(),
     };
 }
+

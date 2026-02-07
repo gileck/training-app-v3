@@ -172,3 +172,36 @@ export {
     extractAgentName,
     type AgentName,
 } from './agent-identity';
+
+// CLI Factory
+export {
+    createCLI,
+} from './cli-factory';
+
+// Batch Processor
+export {
+    runBatch,
+    type ProcessableItem,
+    type ProcessMode,
+    type BatchConfig,
+    type ProcessItemFn,
+} from './batch-processor';
+
+// Design Agent Processor Factory
+export {
+    createDesignProcessor,
+    type DesignAgentConfig,
+    type PromptContext,
+} from './design-agent-processor';
+
+// Git Utilities
+export {
+    git,
+    hasUncommittedChanges,
+    branchExistsLocally,
+    checkoutBranch,
+    getCurrentBranch,
+    commitChanges,
+    pushBranch,
+    getDefaultBranch,
+} from './git-utils';

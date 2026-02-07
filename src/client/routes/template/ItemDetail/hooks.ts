@@ -75,9 +75,24 @@ export function useApproveItem() {
             }
             return response.data;
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['item-detail-feature'] });
+        onMutate: async (requestId) => {
+            await queryClient.cancelQueries({ queryKey: ['item-detail-feature', requestId] });
+            const previous = queryClient.getQueryData<FeatureRequestClient | null>(['item-detail-feature', requestId]);
+            if (previous) {
+                queryClient.setQueryData<FeatureRequestClient | null>(
+                    ['item-detail-feature', requestId],
+                    { ...previous, status: 'in_progress' }
+                );
+            }
+            return { previous, requestId };
         },
+        onError: (_err, _vars, context) => {
+            if (context?.previous !== undefined) {
+                queryClient.setQueryData(['item-detail-feature', context.requestId], context.previous);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 
     const approveBugMutation = useMutation({
@@ -91,9 +106,24 @@ export function useApproveItem() {
             }
             return response.data;
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['item-detail-report'] });
+        onMutate: async (reportId) => {
+            await queryClient.cancelQueries({ queryKey: ['item-detail-report', reportId] });
+            const previous = queryClient.getQueryData<ReportClient | null>(['item-detail-report', reportId]);
+            if (previous) {
+                queryClient.setQueryData<ReportClient | null>(
+                    ['item-detail-report', reportId],
+                    { ...previous, status: 'investigating' }
+                );
+            }
+            return { previous, reportId };
         },
+        onError: (_err, _vars, context) => {
+            if (context?.previous !== undefined) {
+                queryClient.setQueryData(['item-detail-report', context.reportId], context.previous);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 
     return {
@@ -114,9 +144,19 @@ export function useDeleteItem() {
             }
             return response.data;
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['item-detail-feature'] });
+        onMutate: async (requestId) => {
+            await queryClient.cancelQueries({ queryKey: ['item-detail-feature', requestId] });
+            const previous = queryClient.getQueryData<FeatureRequestClient | null>(['item-detail-feature', requestId]);
+            queryClient.setQueryData<FeatureRequestClient | null>(['item-detail-feature', requestId], null);
+            return { previous, requestId };
         },
+        onError: (_err, _vars, context) => {
+            if (context?.previous !== undefined) {
+                queryClient.setQueryData(['item-detail-feature', context.requestId], context.previous);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 
     const deleteReportMutation = useMutation({
@@ -127,9 +167,19 @@ export function useDeleteItem() {
             }
             return response.data;
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['item-detail-report'] });
+        onMutate: async (reportId) => {
+            await queryClient.cancelQueries({ queryKey: ['item-detail-report', reportId] });
+            const previous = queryClient.getQueryData<ReportClient | null>(['item-detail-report', reportId]);
+            queryClient.setQueryData<ReportClient | null>(['item-detail-report', reportId], null);
+            return { previous, reportId };
         },
+        onError: (_err, _vars, context) => {
+            if (context?.previous !== undefined) {
+                queryClient.setQueryData(['item-detail-report', context.reportId], context.previous);
+            }
+        },
+        onSuccess: () => {},
+        onSettled: () => {},
     });
 
     return {

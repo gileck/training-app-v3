@@ -3,7 +3,7 @@
  * Modern iOS-inspired profile page with inline editing
  */
 
-import { useEffect, useState, useRef, ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore, useUser, useCurrentUser } from '@/client/features';
 import { useRouter } from '@/client/features';
 import { apiUpdateProfile } from '@/apis/template/auth/client';
@@ -13,7 +13,8 @@ import { ProfileHeader } from './components/ProfileHeader';
 import { ProfileSection } from './components/ProfileSection';
 import { EditableField } from './components/EditableField';
 import { ImageUploadDialog } from './components/ImageUploadDialog';
-import { Skeleton } from '@/client/components/template/ui/skeleton';
+import { ProfileLoadingSkeleton } from './components/ProfileLoadingSkeleton';
+import { useProfileImage } from './useProfileImage';
 import { Bell, Calendar, Mail, MessageSquare, User } from 'lucide-react';
 import { Switch } from '@/client/components/template/ui/switch';
 
@@ -28,16 +29,26 @@ export const Profile = () => {
 
     const { navigate } = useRouter();
 
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral image preview before save
-    const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
-    const [openImageDialog, setOpenImageDialog] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- local optimistic user data copy
     const [localUser, setLocalUser] = useState<UserResponse | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- track which field is being saved
     const [savingField, setSavingField] = useState<string | null>(null);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const handleUserUpdate = (updatedUser: UserResponse) => {
+        setLocalUser(updatedUser);
+        setValidatedUser(updatedUser);
+    };
+
+    const {
+        previewImage,
+        setPreviewImage,
+        openImageDialog,
+        setOpenImageDialog,
+        fileInputRef,
+        handleFileChange,
+        handlePaste,
+        handleUploadClick,
+    } = useProfileImage({ onUserUpdate: handleUserUpdate, setSavingField });
 
     // Refetch user data using React Query and sync to auth store
     const fetchUserData = async () => {
@@ -60,7 +71,7 @@ export const Profile = () => {
             setLocalUser(user);
             setPreviewImage(user.profilePicture);
         }
-    }, [user]);
+    }, [user, setPreviewImage]);
 
     const handleSaveField = async (field: keyof UpdateProfileRequest, value: string | boolean) => {
         if (field === 'username' && typeof value === 'string' && !value.trim()) {
@@ -95,73 +106,6 @@ export const Profile = () => {
         } finally {
             setSavingField(null);
         }
-    };
-
-    const handleSaveProfilePicture = async (imageData: string) => {
-        setSavingField('profilePicture');
-        try {
-            const response = await apiUpdateProfile({ profilePicture: imageData });
-            if (response.data?.success && response.data.user) {
-                setLocalUser(response.data.user);
-                setPreviewImage(response.data.user.profilePicture);
-                setValidatedUser(response.data.user);
-                toast.success('Profile picture updated');
-                return true;
-            } else {
-                toast.error(response.data?.error || 'Failed to update profile picture');
-                return false;
-            }
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Profile update error';
-            toast.error(errorMessage);
-            return false;
-        } finally {
-            setSavingField(null);
-        }
-    };
-
-    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-                const result = reader.result as string;
-                setPreviewImage(result);
-                setOpenImageDialog(false);
-                await handleSaveProfilePicture(result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handlePaste = async () => {
-        try {
-            const clipboardItems = await navigator.clipboard.read();
-            for (const clipboardItem of clipboardItems) {
-                for (const type of clipboardItem.types) {
-                    if (type.startsWith('image/')) {
-                        const blob = await clipboardItem.getType(type);
-                        const reader = new FileReader();
-                        reader.onloadend = async () => {
-                            const result = reader.result as string;
-                            setPreviewImage(result);
-                            setOpenImageDialog(false);
-                            await handleSaveProfilePicture(result);
-                        };
-                        reader.readAsDataURL(blob);
-                        return;
-                    }
-                }
-            }
-            toast.error('No image found in clipboard');
-        } catch (error) {
-            console.error('Error accessing clipboard:', error);
-            toast.error('Failed to paste image from clipboard');
-        }
-    };
-
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
     };
 
     const displayUser = localUser || user;
@@ -277,26 +221,5 @@ export const Profile = () => {
         </div>
     );
 };
-
-function ProfileLoadingSkeleton() {
-    return (
-        <div className="space-y-6">
-            {/* Header skeleton */}
-            <div className="flex flex-col items-center rounded-2xl bg-card p-6">
-                <Skeleton className="h-28 w-28 rounded-full" />
-                <Skeleton className="mt-4 h-7 w-40" />
-                <Skeleton className="mt-2 h-5 w-48" />
-            </div>
-
-            {/* Section skeletons */}
-            {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-2xl bg-card p-4">
-                    <Skeleton className="h-5 w-32 mb-4" />
-                    <Skeleton className="h-14 w-full" />
-                </div>
-            ))}
-        </div>
-    );
-}
 
 export default Profile;

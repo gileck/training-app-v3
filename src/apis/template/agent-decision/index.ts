@@ -26,15 +26,4 @@ export type {
     SubmitDecisionResponse,
 } from './types';
 
-// Export utilities (server-side only)
-export {
-    generateDecisionToken,
-    validateDecisionToken,
-    isDecisionComment,
-    parseDecision,
-    formatDecisionComment,
-    formatDecisionSelectionComment,
-    findDecisionItem,
-    isSelectionComment,
-    parseSelectionComment,
-} from './utils';
+// Server-side utilities are in ./utils - import directly from there

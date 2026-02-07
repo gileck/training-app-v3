@@ -4,6 +4,9 @@
  * Contains reusable instruction blocks used across multiple prompt templates.
  */
 
+import type { ProjectItemContent } from '@/server/project-management';
+import type { GitHubComment } from '../types';
+
 // ============================================================
 // AMBIGUITY HANDLING INSTRUCTIONS
 // ============================================================
@@ -110,3 +113,175 @@ GOOD (nested list):
 
 This applies to ALL markdown output: designs, technical documents, PR summaries.
 `;
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+/**
+ * Build the "## Comments on Issue" section from issue comments.
+ * Used in new design/implementation prompts for additional context.
+ *
+ * @param comments - Issue comments to format
+ * @param contextSuffix - Additional text after "have been added to the issue" (default: ". Consider them as additional context")
+ */
+export function buildCommentsSection(comments: GitHubComment[] | undefined, contextSuffix = '. Consider them as additional context'): string {
+    return comments && comments.length > 0
+        ? `\n## Comments on Issue\n\nThe following comments have been added to the issue${contextSuffix}:\n\n${formatCommentsList(comments)}\n`
+        : '';
+}
+
+/**
+ * Build the formatted feedback section from feedback comments.
+ * Used in revision prompts to display reviewer feedback.
+ */
+export function buildFeedbackSection(feedbackComments: GitHubComment[]): string {
+    return feedbackComments
+        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
+        .join('\n\n---\n\n');
+}
+
+/**
+ * Build the "## Issue Details" header with standard fields.
+ * Used across most prompt builders.
+ *
+ * @param issue - The issue content
+ * @param options - Optional fields to include
+ */
+export function buildIssueDetailsHeader(
+    issue: ProjectItemContent,
+    options?: { includeLabels?: boolean; includeDescription?: boolean; descriptionLabel?: string }
+): string {
+    const { includeLabels = false, includeDescription = true, descriptionLabel = 'Description' } = options ?? {};
+    const labelsLine = includeLabels ? `\n**Labels:** ${issue.labels?.join(', ') || 'None'}` : '';
+    const descriptionBlock = includeDescription
+        ? `\n\n**${descriptionLabel}:**\n${issue.body || 'No description provided'}`
+        : '';
+    return `## Issue Details
+
+**Title:** ${issue.title}
+**Number:** #${issue.number || 'Draft'}${labelsLine}${descriptionBlock}`;
+}
+
+/**
+ * Format a list of comments into markdown with author/date headers and separators.
+ * Shared by buildCommentsSection and buildFeedbackSection.
+ */
+export function formatCommentsList(comments: Array<{ body: string; author: string; createdAt: string }>): string {
+    return comments
+        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
+        .join('\n\n---\n\n');
+}
+
+// ============================================================
+// INSTRUCTION CONSTANTS
+// ============================================================
+
+/**
+ * Instructions for handling feedback history with chronological sorting
+ * and addressed feedback markers. Used in revision prompts.
+ */
+export const FEEDBACK_HISTORY_INSTRUCTIONS = `The comments below are sorted chronologically (oldest first, newest last).
+- **"\u2705 Addressed Feedback" markers** - these indicate what was addressed in previous iterations
+- **Focus on ALL comments since the last marker** - if a marker exists, address all feedback that came after it
+- **If no marker exists** - address all feedback comments (this is the first revision)
+- **Older comments before the marker** - use for context only, they have already been addressed`;
+
+/**
+ * Read-only mode instruction. Used in design and investigation prompts.
+ */
+export const READ_ONLY_MODE_INSTRUCTIONS = 'IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.';
+
+/**
+ * Write mode instruction for feature implementation.
+ */
+export const WRITE_MODE_INSTRUCTIONS = 'IMPORTANT: You are in WRITE mode. You CAN and SHOULD create and modify files to implement this feature.';
+
+/**
+ * Write mode instruction for bug fix implementation.
+ */
+export const WRITE_MODE_BUG_FIX_INSTRUCTIONS = 'IMPORTANT: You are in WRITE mode. You CAN and SHOULD create and modify files to fix this bug.';
+
+/**
+ * Write mode instruction for PR revision.
+ */
+export const WRITE_MODE_PR_REVISION_INSTRUCTIONS = 'IMPORTANT: You are in WRITE mode. You CAN and SHOULD modify files to address the feedback.';
+
+/**
+ * Mobile-first design instructions. Used in product design prompts.
+ */
+export const MOBILE_FIRST_INSTRUCTIONS = `**CRITICAL - MOBILE-FIRST DESIGN:**
+This is a mobile-first application. ALL UI designs must prioritize small screens (~400px CSS width) first.
+- Design for 400px viewport width first, then describe enhancements for larger screens
+- Ensure all touch targets are at least 44px
+- Place primary actions in thumb-friendly zones (bottom of screen)
+- Avoid designs that require horizontal scrolling on mobile
+- See \`.ai/skills/ui-mobile-first-shadcn/SKILL.md\` for detailed mobile-first guidelines`;
+
+/**
+ * Product-design-only warning block. Used in product design prompts.
+ */
+export const PRODUCT_DESIGN_ONLY_WARNING = `**CRITICAL - PRODUCT DESIGN ONLY:**
+This is a PRODUCT design, NOT a technical design. Do NOT include:
+- Technical implementation details or code snippets
+- File paths or component names
+- API endpoints or database schemas
+- Technical architecture decisions
+- Implementation notes or instructions
+
+Focus ONLY on:
+- What the user sees and experiences
+- How the feature behaves from a user perspective
+- UI/UX design decisions`;
+
+/**
+ * Product development focus warning block. Used in product development prompts.
+ */
+export const PRODUCT_DEVELOPMENT_FOCUS_WARNING = `**CRITICAL - PRODUCT DEVELOPMENT vs PRODUCT DESIGN:**
+
+This is a PRODUCT DEVELOPMENT document, NOT a product design document:
+- Product Development: WHAT to build & WHY (requirements, business value, acceptance criteria)
+- Product Design: HOW it looks & feels (UI/UX, user flows, interface elements)
+
+Do NOT include:
+- UI mockups or interface descriptions
+- Visual design decisions
+- Specific component layouts
+- Color schemes or styling
+
+Focus ONLY on:
+- Business requirements and objectives
+- User needs and target audience
+- Acceptance criteria (what "done" looks like)
+- Scope boundaries (what's in and what's out)
+- Success metrics`;
+
+/**
+ * Implementation guidelines block listing skill files to read.
+ */
+export const IMPLEMENTATION_GUIDELINES = `## Implementation Guidelines
+
+**CRITICAL**: Before implementing, read the project guidelines in \`.ai/skills/\`:
+- \`.ai/skills/ui-mobile-first-shadcn/SKILL.md\` - **CRITICAL** Mobile-first UI implementation
+- \`.ai/skills/typescript-guidelines/SKILL.md\` - TypeScript coding standards
+- \`.ai/skills/react-component-organization/SKILL.md\` - Component structure and patterns
+- \`.ai/skills/react-hook-organization/SKILL.md\` - Custom hook patterns
+- \`.ai/skills/state-management-guidelines/SKILL.md\` - Zustand and React Query usage
+- \`.ai/skills/feature-based-structure/SKILL.md\` - File organization by feature
+- \`.ai/skills/ui-design-guidelines/SKILL.md\` - UI/UX patterns
+- \`.ai/skills/shadcn-usage/SKILL.md\` - shadcn/ui component usage
+- \`.ai/skills/theming-guidelines/SKILL.md\` - **CRITICAL** Theming and color usage
+- \`.ai/skills/client-server-communications/SKILL.md\` - API patterns
+- \`.ai/skills/mongodb-usage/SKILL.md\` - Database operations (if applicable)
+- \`.ai/skills/app-guidelines-checklist/SKILL.md\` - Comprehensive checklist`;
+
+/**
+ * Theming instructions block. Used in implementation and PR revision prompts.
+ */
+export const THEMING_INSTRUCTIONS = `**THEMING (Read \`docs/theming.md\` and \`.ai/skills/theming-guidelines/SKILL.md\` before styling)**:
+- **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
+- **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
+- For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`
+- **Exceptions**:
+  - Dialog overlays may use \`bg-black/60\` for backdrop opacity
+  - Hardcoded colors ONLY if specifically requested in the task requirements (e.g., brand colors from product team). In this case, add a code comment: \`// Hardcoded per task requirement: "[quote the specific requirement]"\``;

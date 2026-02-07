@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryDefaults } from '@/client/query';
 import { getMyFeatureRequests, addUserComment } from '@/apis/template/feature-requests/client';
 import type { FeatureRequestClient, AddUserCommentRequest } from '@/apis/template/feature-requests/types';
+import { generateId } from '@/client/utils/id';
 
 /**
  * Hook to fetch the current user's feature requests
@@ -42,9 +43,8 @@ export function useAddComment() {
             const previous = queryClient.getQueryData<FeatureRequestClient[]>(['my-feature-requests']);
 
             if (previous) {
-                // Optimistically add the comment
                 const newComment = {
-                    id: `temp-${Date.now()}`,
+                    id: variables.commentId || generateId(),
                     authorId: 'current-user',
                     authorName: 'You',
                     isAdmin: false,
@@ -64,7 +64,7 @@ export function useAddComment() {
 
             return { previous };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previous) {
                 queryClient.setQueryData(['my-feature-requests'], context.previous);
             }

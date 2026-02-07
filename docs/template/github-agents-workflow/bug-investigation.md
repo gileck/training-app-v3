@@ -24,7 +24,7 @@ This document describes the complete bug investigation flow, from bug report sub
 When a bug report is approved, it is **automatically routed** to the "Bug Investigation" column (no routing message is shown to the admin). The Bug Investigator agent then:
 
 1. Investigates the bug using **read-only** tools (no code changes)
-2. Posts an investigation comment on the GitHub issue with root cause analysis and fix options
+2. Saves investigation results to MongoDB `artifacts.decision` and posts a comment on the GitHub issue with root cause analysis and fix options
 3. Sends a Telegram notification with links to view the investigation and select a fix approach
 4. Admin selects a fix option via the `/decision/:issueNumber` web UI
 5. The bug is routed to **Technical Design** or **Implementation** based on the selected option
@@ -141,7 +141,7 @@ The token is generated using `generateDecisionToken(issueNumber)` and included i
 
 ### UI Flow
 
-1. Page loads decision data from the GitHub issue comment
+1. Page loads decision data from MongoDB (with GitHub issue comment fallback)
 2. Displays root cause analysis context and fix options with metadata (complexity badges, file lists, etc.)
 3. Admin selects a predefined option OR provides a custom solution
 4. For custom solutions, admin also selects the routing destination
@@ -177,8 +177,8 @@ The token is generated using `generateDecisionToken(issueNumber)` and included i
 ### What Happens on Submit
 
 1. Validates the token
-2. Posts a **selection comment** on the GitHub issue (records what was selected, with machine-readable marker)
-3. Reads the `routing` config from the decision comment's `DECISION_META`
+2. Saves selection to MongoDB `artifacts.decision.selection` and posts a **selection comment** on the GitHub issue (for display)
+3. Reads the `routing` config from MongoDB decision (with comment fallback)
 4. Resolves the target status from the selected option's metadata
 5. Updates the item status to the destination:
    - `"Direct Implementation"` → "Ready for development"

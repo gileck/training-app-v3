@@ -84,7 +84,7 @@ export function useDeleteReport() {
 
             return { previous };
         },
-        onError: (_err, _variables, context) => {
+        onError: (err, _variables, context) => {
             if (!context?.previous) return;
             for (const [key, data] of context.previous) {
                 queryClient.setQueryData(key, data);
@@ -153,7 +153,7 @@ export function useBatchUpdateStatus() {
 
             return { previous };
         },
-        onError: (_err, _variables, context) => {
+        onError: (err, _variables, context) => {
             if (!context?.previous) return;
             for (const [key, data] of context.previous) {
                 queryClient.setQueryData(key, data);
@@ -189,7 +189,7 @@ export function useBatchDeleteReports() {
 
             return { previous };
         },
-        onError: (_err, _variables, context) => {
+        onError: (err, _variables, context) => {
             if (!context?.previous) return;
             for (const [key, data] of context.previous) {
                 queryClient.setQueryData(key, data);

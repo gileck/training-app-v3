@@ -28,30 +28,24 @@
  */
 
 import '../../shared/loadEnv';
-import { Command } from 'commander';
 import {
     // Config
     STATUSES,
     REVIEW_STATUSES,
-    agentConfig,
     // Project management
     getProjectManagementAdapter,
-    type ProjectItem,
     // Claude
     runAgent,
     getLibraryForWorkflow,
     getModelForWorkflow,
     // Notifications
     notifyAgentError,
-    notifyBatchComplete,
     notifyAgentStarted,
     // Prompts
     buildBugInvestigationPrompt,
     buildBugInvestigationRevisionPrompt,
     buildBugInvestigationClarificationPrompt,
     // Types
-    type CommonCLIOptions,
-    type UsageStats,
     type BugInvestigationOutput,
     // Utils
     getBugDiagnostics,
@@ -61,6 +55,11 @@ import {
     BUG_INVESTIGATION_OUTPUT_FORMAT,
     // Agent Identity
     addAgentPrefix,
+    // CLI & Batch
+    createCLI,
+    runBatch,
+    type ProcessableItem,
+    type CommonCLIOptions,
 } from '../../shared';
 import {
     createLogContext,
@@ -71,17 +70,8 @@ import {
     logError,
 } from '../../lib/logging';
 import { notifyDecisionNeeded } from '../../shared/notifications';
-import { formatDecisionComment, isDecisionComment as isGenericDecisionComment } from '@/apis/template/agent-decision/utils';
+import { formatDecisionComment, isDecisionComment as isGenericDecisionComment, saveDecisionToDB } from '@/apis/template/agent-decision/utils';
 import type { DecisionOption, MetadataFieldConfig, DestinationOption, RoutingConfig } from '@/apis/template/agent-decision/types';
-
-// ============================================================
-// TYPES
-// ============================================================
-
-interface ProcessableItem {
-    item: ProjectItem;
-    mode: 'new' | 'feedback' | 'clarification';
-}
 
 // ============================================================
 // INVESTIGATION COMMENT FORMATTING
@@ -399,6 +389,20 @@ async function processItem(
             console.log('  Investigation comment posted on issue');
             logGitHubAction(logCtx, 'comment', 'Posted bug investigation comment');
 
+            // Save decision to DB
+            const decisionOptions = toDecisionOptions(output);
+            const decisionContext = buildDecisionContext(output);
+            await saveDecisionToDB(
+                issueNumber,
+                'bug-investigator',
+                'bug-fix',
+                decisionContext,
+                decisionOptions,
+                BUG_FIX_METADATA_SCHEMA,
+                BUG_FIX_DESTINATION_OPTIONS,
+                BUG_FIX_ROUTING
+            );
+
             // Update review status
             if (adapter.hasReviewStatusField()) {
                 await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
@@ -450,167 +454,21 @@ async function processItem(
 }
 
 async function main(): Promise<void> {
-    const program = new Command();
+    const { options } = createCLI({
+        name: 'bug-investigator',
+        displayName: 'Bug Investigator Agent',
+        description: 'Investigate bugs to identify root causes and suggest fix options',
+    });
 
-    program
-        .name('bug-investigator')
-        .description('Investigate bugs to identify root causes and suggest fix options')
-        .option('--id <itemId>', 'Process a specific project item by ID')
-        .option('--limit <number>', 'Limit number of items to process', parseInt)
-        .option('--timeout <seconds>', 'Timeout per item in seconds', parseInt)
-        .option('--dry-run', 'Preview without saving changes', false)
-        .option('--stream', "Stream Claude's output in real-time", false)
-        .option('--verbose', 'Show additional debug output', false)
-        .parse(process.argv);
-
-    const opts = program.opts();
-    const options: CommonCLIOptions = {
-        id: opts.id as string | undefined,
-        limit: opts.limit as number | undefined,
-        timeout: (opts.timeout as number | undefined) ?? agentConfig.claude.timeoutSeconds,
-        dryRun: Boolean(opts.dryRun),
-        verbose: Boolean(opts.verbose),
-        stream: Boolean(opts.stream),
-    };
-
-    console.log('\n========================================');
-    console.log('  Bug Investigator Agent');
-    console.log('========================================');
-    console.log(`  Timeout: ${options.timeout}s per item`);
-    if (options.dryRun) {
-        console.log('  Mode: DRY RUN (no changes will be saved)');
-    }
-    console.log('');
-
-    // Initialize project management adapter
-    const adapter = getProjectManagementAdapter();
-    await adapter.init();
-
-    // Collect items to process
-    const itemsToProcess: ProcessableItem[] = [];
-
-    if (options.id) {
-        // Process specific item
-        const item = await adapter.getItem(options.id);
-        if (!item) {
-            console.error(`Item not found: ${options.id}`);
-            process.exit(1);
-        }
-
-        // Determine mode based on current status and review status
-        let mode: 'new' | 'feedback' | 'clarification';
-
-        if (item.status === STATUSES.bugInvestigation && !item.reviewStatus) {
-            mode = 'new';
-        } else if (item.status === STATUSES.bugInvestigation && item.reviewStatus === REVIEW_STATUSES.requestChanges) {
-            mode = 'feedback';
-        } else if (item.status === STATUSES.bugInvestigation && item.reviewStatus === REVIEW_STATUSES.clarificationReceived) {
-            mode = 'clarification';
-        } else if (item.status === STATUSES.bugInvestigation && item.reviewStatus === REVIEW_STATUSES.waitingForClarification) {
-            console.log('  ⏳ Waiting for clarification from admin');
-            console.log('  Skipping this item (admin needs to respond and click "Clarification Received")');
-            process.exit(0);
-        } else {
-            console.error(`Item is not in a processable state.`);
-            console.error(`  Status: ${item.status}`);
-            console.error(`  Review Status: ${item.reviewStatus}`);
-            console.error(`  Expected: "${STATUSES.bugInvestigation}" with empty Review Status, "${REVIEW_STATUSES.requestChanges}", or "${REVIEW_STATUSES.clarificationReceived}"`);
-            process.exit(1);
-        }
-
-        itemsToProcess.push({ item, mode });
-    } else {
-        // Fetch items in Bug Investigation status
-        const allBugInvestigationItems = await adapter.listItems({ status: STATUSES.bugInvestigation, limit: options.limit || 50 });
-
-        // Flow A: New investigation (empty Review Status)
-        const newItems = allBugInvestigationItems.filter((item) => !item.reviewStatus);
-        for (const item of newItems) {
-            itemsToProcess.push({ item, mode: 'new' });
-        }
-
-        // Flow B: Address feedback (Request Changes)
-        if (adapter.hasReviewStatusField()) {
-            const feedbackItems = allBugInvestigationItems.filter(
-                (item) => item.reviewStatus === REVIEW_STATUSES.requestChanges
-            );
-            for (const item of feedbackItems) {
-                itemsToProcess.push({ item, mode: 'feedback' });
-            }
-
-            // Flow C: Clarification received
-            const clarificationItems = allBugInvestigationItems.filter(
-                (item) => item.reviewStatus === REVIEW_STATUSES.clarificationReceived
-            );
-            for (const item of clarificationItems) {
-                itemsToProcess.push({ item, mode: 'clarification' });
-            }
-        }
-
-        // Apply limit
-        if (options.limit && itemsToProcess.length > options.limit) {
-            itemsToProcess.length = options.limit;
-        }
-    }
-
-    if (itemsToProcess.length === 0) {
-        console.log('No items to process.');
-        return;
-    }
-
-    console.log(`\nProcessing ${itemsToProcess.length} item(s)...`);
-
-    // Track results
-    const results = {
-        processed: 0,
-        succeeded: 0,
-        failed: 0,
-        totalUsage: {
-            inputTokens: 0,
-            outputTokens: 0,
-            cacheReadInputTokens: 0,
-            cacheCreationInputTokens: 0,
-            totalCostUSD: 0,
-        } as UsageStats,
-    };
-
-    // Process each item
-    for (const processable of itemsToProcess) {
-        results.processed++;
-        const { item } = processable;
-        const title = item.content?.title || 'Unknown';
-
-        console.log(`\n----------------------------------------`);
-        console.log(`[${results.processed}/${itemsToProcess.length}] ${title}`);
-        console.log(`  Item ID: ${item.id}`);
-        console.log(`  Status: ${item.status}`);
-        if (item.reviewStatus) {
-            console.log(`  Review Status: ${item.reviewStatus}`);
-        }
-
-        const result = await processItem(processable, options, adapter);
-
-        if (result.success) {
-            results.succeeded++;
-        } else {
-            results.failed++;
-            console.error(`  Failed: ${result.error}`);
-        }
-    }
-
-    // Print summary
-    console.log('\n========================================');
-    console.log('  Summary');
-    console.log('========================================');
-    console.log(`  Processed: ${results.processed}`);
-    console.log(`  Succeeded: ${results.succeeded}`);
-    console.log(`  Failed: ${results.failed}`);
-    console.log('========================================\n');
-
-    // Send batch completion notification
-    if (!options.dryRun && results.processed > 1) {
-        await notifyBatchComplete('Bug Investigation', results.processed, results.succeeded, results.failed);
-    }
+    await runBatch(
+        {
+            agentStatus: STATUSES.bugInvestigation,
+            agentDisplayName: 'Bug Investigation',
+            needsExistingPR: false,
+        },
+        options,
+        processItem,
+    );
 }
 
 // Run

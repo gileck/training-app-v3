@@ -13,7 +13,9 @@ export default async function handler(
     // NOTE: Never return non-200 from API routes in this app; encode errors in the body.
     return res.status(200).json({
       data: {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'SERVER_ERROR',
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error && { errorDetails: error.stack }),
       },
       isFromCache: false
     });

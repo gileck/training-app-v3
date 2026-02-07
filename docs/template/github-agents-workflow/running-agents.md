@@ -4,13 +4,14 @@ This document explains how to run the AI agents, when to run them, the agents co
 
 ## Overview
 
-The workflow includes five AI agents that automate different phases of the development pipeline:
+The workflow includes six AI agents that automate different phases of the development pipeline:
 
 1. **Product Development Agent** (Optional) - Transforms vague ideas into concrete product specs
 2. **Product Design Agent** - Generates UX/UI designs and mockups
-3. **Tech Design Agent** - Creates technical architecture documents
-4. **Implementation Agent** - Writes code and creates PRs
-5. **PR Review Agent** - Reviews implementation PRs and generates commit messages
+3. **Bug Investigator Agent** - Investigates bug reports, identifies root causes, and proposes fix options
+4. **Tech Design Agent** - Creates technical architecture documents
+5. **Implementation Agent** - Writes code and creates PRs
+6. **PR Review Agent** - Reviews implementation PRs and generates commit messages
 
 ## Running Agents with Agents Copy (Recommended)
 
@@ -145,6 +146,33 @@ yarn agent:product-design --issue 123
 - Manually: Run command when ready
 - Automated: Via cron job (if configured)
 
+### 3. Bug Investigator Agent
+
+**When to run:** Item is in "Bug Investigation" column (bugs are auto-routed here on approval)
+
+**What it does:**
+- Reads bug report, session logs, stack traces, and error diagnostics
+- Performs read-only codebase investigation (no git operations)
+- Uses TRACE/IDENTIFY/SCOPE/PROPOSE methodology
+- Posts root cause analysis with fix options to GitHub issue
+- Sends Telegram notification with link to fix selection web UI
+- Admin selects fix approach, which routes to Tech Design or Implementation
+
+**Command:**
+```bash
+yarn agent:bug-investigator
+
+# Or with specific issue:
+yarn agent:bug-investigator --id <item-id>
+```
+
+**Important:** This agent operates in **read-only mode** -- it does not create branches, modify files, or create PRs. Investigation results are posted as GitHub issue comments.
+
+**Output:**
+- Root cause analysis with confidence level (low/medium/high)
+- Fix options with complexity estimates and affected files
+- Recommended fix approach
+
 ### 4. Tech Design Agent
 
 **When to run:** Item is in "Technical Design" column
@@ -166,10 +194,10 @@ yarn agent:tech-design --issue 123
 ```
 
 **Phase Generation (L/XL issues):**
-- Agent posts phases as GitHub issue comment
-- Uses deterministic format with marker `<!-- AGENT_PHASES_V1 -->`
+- Phases saved to MongoDB `artifacts.phases` and posted as GitHub issue comment
+- Comment uses deterministic format with marker `<!-- AGENT_PHASES_V1 -->` (for human readability)
 - Each phase is independently implementable and mergeable
-- Implementation agent reads phases from comment
+- Implementation agent reads phases from DB (with comment fallback for backward compat)
 
 ### 5. Implementation Agent
 
@@ -244,7 +272,7 @@ If Playwright MCP is unavailable:
 
 **Phase-Aware Implementation:**
 - Automatically detects current phase from GitHub status
-- Reads phase details from issue comment (reliable) or markdown (fallback)
+- Reads phase details from MongoDB artifacts (primary) or issue comment/markdown (fallback)
 - Creates PR title: `feat: [phase X/Y] - description`
 - Next phase starts automatically after previous PR merges
 
@@ -275,7 +303,7 @@ yarn agent:pr-review --pr 123
 **Workflow:**
 1. Agent reviews PR code
 2. Agent generates commit message
-3. Agent saves message to PR comment (marker: `<!-- AGENT_COMMIT_MESSAGE -->`)
+3. Agent saves message to MongoDB artifacts and PR comment (marker: `<!-- AGENT_COMMIT_MESSAGE -->`)
 4. Agent approves PR
 5. Admin receives Telegram notification with Merge/Request Changes buttons
 6. Merge: Uses saved commit message, squash merges
@@ -494,6 +522,7 @@ jobs:
 **Running Agents:**
 - `yarn agent:product-development` - Transform vague ideas into product specs (optional)
 - `yarn agent:product-design` - Generate UX/UI designs
+- `yarn agent:bug-investigator` - Investigate bugs and propose fix options
 - `yarn agent:tech-design` - Create architecture docs
 - `yarn agent:implement` - Write code and create PRs
 - `yarn agent:pr-review` - Review PRs (automated via cron)

@@ -136,7 +136,7 @@ async function checkLocalEnv(): Promise<CategoryResults> {
             checks.push({
                 passed: true,  // Always pass (optional)
                 message: `${varName} ${isSet ? '✓ (recommended)' : 'ℹ (optional)'}`,
-                details: isSet ? undefined : ['Recommended for bot account setup - see docs/init-github-projects-workflow.md']
+                details: isSet ? undefined : ['Recommended for bot account setup - see docs/template/github-agents-workflow/setup-guide.md']
             });
         });
     });
@@ -553,7 +553,7 @@ async function checkGitHubProject(): Promise<CategoryResults> {
                             '',
                             'Note: "Final Review" is a NEW status for multi-phase feature branch workflow.',
                             'It should be positioned between "PR Review" and "Done".',
-                            'See docs/template/init-github-projects-workflow.md for details.'
+                            'See docs/template/github-agents-workflow/setup-guide.md for details.'
                         ] : []),
                         ...(missingStatuses.includes('Bug Investigation') ? [
                             '',
@@ -611,7 +611,7 @@ async function checkGitHubProject(): Promise<CategoryResults> {
                 checks.push({
                     passed: false,
                     message: 'Review Status field not found',
-                    details: ['Create "Review Status" custom field in your GitHub Project (see docs/init-github-projects-workflow.md Step 1)']
+                    details: ['Create "Review Status" custom field in your GitHub Project (see docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md)']
                 });
             }
         } catch (error) {
@@ -649,7 +649,7 @@ async function checkGitHubProject(): Promise<CategoryResults> {
                         '  4. Name it exactly: "Implementation Phase"',
                         '  5. Click "Save"',
                         '',
-                        'See docs/init-github-projects-workflow.md for details'
+                        'See docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md for details'
                     ]
                 });
             }

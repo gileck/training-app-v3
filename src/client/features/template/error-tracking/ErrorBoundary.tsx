@@ -8,8 +8,8 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { submitErrorReport } from '../bug-report';
 import { logger } from '../session-logs';
 import { Button } from '@/client/components/template/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/client/components/template/ui/card';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { ErrorDisplay } from './ErrorDisplay';
 
 interface Props {
     children: ReactNode;
@@ -66,40 +66,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
             return (
                 <div className="flex min-h-[400px] items-center justify-center p-4">
-                    <Card className="w-full max-w-md">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-destructive">
-                                <AlertCircle className="h-5 w-5" />
-                                Something went wrong
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">
-                                An unexpected error occurred. This has been automatically reported.
-                            </p>
-                            {process.env.NODE_ENV === 'development' && this.state.error && (
-                                <pre className="mt-4 overflow-auto rounded bg-muted p-2 text-xs">
-                                    {this.state.error.message}
-                                </pre>
-                            )}
-                        </CardContent>
-                        <CardFooter className="flex gap-2">
-                            <Button 
-                                variant="outline" 
-                                className="flex-1"
-                                onClick={this.handleRetry}
-                            >
+                    <div className="w-full max-w-md space-y-3">
+                        <ErrorDisplay
+                            error={this.state.error}
+                            title="Something went wrong"
+                            onRetry={this.handleRetry}
+                        />
+                        <div className="flex justify-center">
+                            <Button onClick={this.handleReload}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
-                                Try Again
-                            </Button>
-                            <Button 
-                                className="flex-1"
-                                onClick={this.handleReload}
-                            >
                                 Reload Page
                             </Button>
-                        </CardFooter>
-                    </Card>
+                        </div>
+                    </div>
                 </div>
             );
         }

@@ -25,14 +25,14 @@ export const processApiCall = async (
 
   // NOTE: Client code expects HTTP 200 always; errors must be encoded in the JSON body.
   if (!apiHandler) {
-    return { data: { error: `Unknown API: ${String(name)}` }, isFromCache: false };
+    return { data: { error: `Unknown API: ${String(name)}`, errorCode: 'UNKNOWN_API' }, isFromCache: false };
   }
 
   const userContext = getUserContext(req, res);
 
   // Centralized admin gating: any API under `admin/*` is admin-only.
   if (String(name).startsWith("admin/") && !userContext.isAdmin) {
-    return { data: { error: "Forbidden" }, isFromCache: false };
+    return { data: { error: "Forbidden", errorCode: 'FORBIDDEN' }, isFromCache: false };
   }
 
   // Create a wrapped function that handles context internally
@@ -69,7 +69,11 @@ export const processApiCall = async (
     // Expected/handled behavior: never throw to the route layer; always return HTTP 200 with an error payload.
     console.error(`processApiCall failed for ${String(name)}:`, error);
     return {
-      data: { error: error instanceof Error ? error.message : "Unknown error" },
+      data: {
+        error: error instanceof Error ? error.message : "Unknown error",
+        errorCode: 'SERVER_ERROR',
+        ...((process.env.NODE_ENV === 'development' || userContext.isAdmin) && error instanceof Error && { errorDetails: error.stack }),
+      },
       isFromCache: false,
     };
   }

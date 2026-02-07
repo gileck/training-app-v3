@@ -13,6 +13,11 @@ import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflig
 import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
 import type { LoginRequest, RegisterRequest, CurrentUserResponse } from '@/apis/template/auth/types';
 
+// Auth queries intentionally use longer cache times than useQueryDefaults()
+// because user identity rarely changes and auth must work regardless of the SWR toggle
+const AUTH_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const AUTH_GC_TIME = 60 * 60 * 1000; // 1 hour
+
 // ============================================================================
 // Query Keys
 // ============================================================================
@@ -44,8 +49,8 @@ export function useCurrentUser(options?: { enabled?: boolean }) {
             return response.data;
         },
         enabled: options?.enabled ?? true,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
+        staleTime: AUTH_STALE_TIME,
+        gcTime: AUTH_GC_TIME,
         retry: (failureCount, error) => {
             if (error instanceof Error &&
                 (error.message.includes('401') ||
@@ -210,8 +215,8 @@ export function useAuthValidation() {
             }
             return failureCount < 2;
         },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
+        staleTime: AUTH_STALE_TIME,
+        gcTime: AUTH_GC_TIME,
     });
 
     // Handle fallback query results

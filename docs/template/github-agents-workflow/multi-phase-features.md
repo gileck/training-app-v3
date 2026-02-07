@@ -42,17 +42,18 @@ For L/XL features, Tech Design Agent:
    - Sequential dependencies
    - Clear acceptance criteria
 
-3. **Posts phases as GitHub issue comment:**
-   - Deterministic format (not LLM-generated)
-   - Includes marker: `<!-- AGENT_PHASES_V1 -->`
+3. **Saves phases to MongoDB and posts as GitHub issue comment:**
+   - Phases stored in `artifacts.phases` field of the workflow-item document (primary source)
+   - Comment posted with marker `<!-- AGENT_PHASES_V1 -->` for human readability
    - Each phase has title, size, and description
 
 ### Phase 3: Implementation (One Phase at a Time)
 
 Implementation Agent processes one phase at a time:
 
-1. **Reads phase comment from GitHub issue**
-   - Parses deterministic format
+1. **Reads phases from MongoDB (with comment fallback)**
+   - Primary: reads from `artifacts.phases` in workflow-item document
+   - Fallback: parses `<!-- AGENT_PHASES_V1 -->` comment (backward compat)
    - Identifies current phase number
 
 2. **Implements specified phase only:**
@@ -176,7 +177,7 @@ Build React components and integrate with API.
 
 ### Key Elements:
 
-1. **Marker:** `<!-- AGENT_PHASES_V1 -->` enables reliable parsing
+1. **Marker:** `<!-- AGENT_PHASES_V1 -->` enables comment parsing (fallback for items without DB artifacts)
 2. **Phase Header:** `### Phase N: Title (Size: S/M)`
 3. **Description:** What this phase accomplishes
 4. **Deliverables:** Specific files/changes
@@ -292,7 +293,11 @@ Widget management feature fully implemented and deployed.
 
 ### Viewing Phase Status
 
-1. **GitHub Issue:**
+1. **MongoDB (Primary):**
+   - Phase definitions and statuses in `artifacts.phases`
+   - See [workflow-items-architecture.md](./workflow-items-architecture.md)
+
+2. **GitHub Issue (Display):**
    - Look for `<!-- AGENT_PHASES_V1 -->` comment
    - Check phase status updates
 
@@ -329,14 +334,14 @@ To skip a phase:
 
 ## Agent Phase Awareness
 
+> **Note:** Agents read phases from MongoDB `artifacts.phases` first, falling back to comment parsing for backward compatibility. The pseudocode below shows the logical flow; see `src/agents/lib/workflow-db.ts` for the actual DB-first implementation.
+
 ### Implementation Agent
 
 ```typescript
-// Read phase comment from GitHub issue
-const phaseComment = await getPhaseComment(issueNumber);
-
-// Parse phases
-const phases = parsePhases(phaseComment);
+// Read phases (DB-first, with comment fallback)
+const phases = await getPhasesFromDB(issueNumber) ||
+               parsePhasesFromComment(issueComments);
 
 // Find next phase to implement
 const nextPhase = findNextIncompletePhase(phases);
@@ -461,12 +466,13 @@ Each phase takes 1-3 days instead of one massive 2-week PR.
 
 ### Phase Comment Not Found
 
-**Problem:** Agent can't find `<!-- AGENT_PHASES_V1 -->` comment
+**Problem:** Agent can't find phases
 
 **Solutions:**
-- Verify tech design PR was merged
-- Check GitHub issue for phase comment
-- Manually post phase comment in correct format
+- Check `artifacts.phases` in the workflow-item MongoDB document
+- Verify tech design PR was merged (which saves phases to DB)
+- Fallback: check GitHub issue for `<!-- AGENT_PHASES_V1 -->` comment
+- Manually post phase comment in correct format (backward compat)
 
 ### Wrong Phase Implemented
 

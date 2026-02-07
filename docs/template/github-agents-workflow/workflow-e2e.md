@@ -359,8 +359,8 @@ This document provides comprehensive visual workflows for all scenarios in the a
 
 **Key Points:**
 - Tech design agent detects L/XL size and generates phases
-- Phases posted as **issue comment** (deterministic format)
-- Implementation agent reads phases from comment (reliable)
+- Phases saved to MongoDB `artifacts.phases` and posted as **issue comment** for display
+- Implementation agent reads phases from DB first (with comment fallback for backward compat)
 - PR review agent is **phase-aware** - only validates specified phase
 - Each phase creates independent PR with sequential numbering
 - Item cycles: Ready → PR Review → (merge) → Ready → ... until all phases done

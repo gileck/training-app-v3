@@ -7,7 +7,16 @@
 
 import type { ProjectItemContent } from '@/server/project-management';
 import type { GitHubComment } from '../types';
-import { AMBIGUITY_INSTRUCTIONS, MARKDOWN_FORMATTING_INSTRUCTIONS } from './shared-instructions';
+import {
+    AMBIGUITY_INSTRUCTIONS,
+    MARKDOWN_FORMATTING_INSTRUCTIONS,
+    READ_ONLY_MODE_INSTRUCTIONS,
+    FEEDBACK_HISTORY_INSTRUCTIONS,
+    buildCommentsSection,
+    buildFeedbackSection,
+    buildIssueDetailsHeader,
+    formatCommentsList,
+} from './shared-instructions';
 
 /**
  * Build prompt for generating a new technical design
@@ -20,21 +29,13 @@ ${productDesign}`
         : `## Note
 No product design phase for this item (internal/technical work). Base your technical design on the issue description.`;
 
-    const commentsSection = comments && comments.length > 0
-        ? `\n## Comments on Issue\n\nThe following comments have been added to the issue. Consider them as additional context:\n\n${comments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
-        : '';
+    const commentsSection = buildCommentsSection(comments);
 
     return `You are creating a Technical Design document for a GitHub issue.${productDesign ? ' The Product Design has been approved, and now you need to define the technical implementation.' : ' This is internal/technical work that skipped the product design phase.'}
 
-IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
+${READ_ONLY_MODE_INSTRUCTIONS}
 
-## Issue Details
-
-**Title:** ${issue.title}
-**Number:** #${issue.number || 'Draft'}
-
-**Original Description:**
-${issue.body || 'No description provided'}
+${buildIssueDetailsHeader(issue, { descriptionLabel: 'Original Description' })}
 ${commentsSection}
 ${productDesignSection}
 
@@ -112,22 +113,36 @@ Only split into phases when the feature is genuinely L/XL. When you do split, sp
 
 **Example: Notifications System (L/XL)**
 
-| Phase | Schema | API | UI | What Works |
-|-------|--------|-----|-----|------------|
-| 1: Foundation | Basic fields (message, read, createdAt) | list, markRead | Simple list | User can see and mark notifications |
-| 2: Add Complexity | Add types, priority, actions | filtering, markAllRead, delete | Filters, actions, badges | Richer notification experience |
-| 3: Advanced | Add channels, preferences | real-time, preferences API | Real-time updates, settings | Full-featured system |
+- **Phase 1: Foundation**
+  - Schema: Basic fields (message, read, createdAt)
+  - API: list, markRead
+  - UI: Simple list
+  - What Works: User can see and mark notifications
+
+- **Phase 2: Add Complexity**
+  - Schema: Add types, priority, actions
+  - API: filtering, markAllRead, delete
+  - UI: Filters, actions, badges
+  - What Works: Richer notification experience
+
+- **Phase 3: Advanced**
+  - Schema: Add channels, preferences
+  - API: real-time, preferences API
+  - UI: Real-time updates, settings
+  - What Works: Full-featured system
 
 Each phase is independently mergeable, deployable, and delivers increasing value.
 
 **Example: When to use phases vs single PR**
 
-| Feature | Size | Phases? | Reasoning |
-|---------|------|---------|-----------
-| Notes feature (collection + CRUD + UI) | M | No | Standard pattern, 1-2 days work |
-| User preferences page | M | No | Straightforward settings UI |
-| Complex notifications with types, real-time, preferences | L | Yes | High complexity, split by sophistication |
-| Multi-step workflow builder | XL | Yes | Very complex, needs incremental delivery |
+- **Notes feature (collection + CRUD + UI)** - Size: M, Phases: No
+  - Reasoning: Standard pattern, 1-2 days work
+- **User preferences page** - Size: M, Phases: No
+  - Reasoning: Straightforward settings UI
+- **Complex notifications with types, real-time, preferences** - Size: L, Phases: Yes
+  - Reasoning: High complexity, split by sophistication
+- **Multi-step workflow builder** - Size: XL, Phases: Yes
+  - Reasoning: Very complex, needs incremental delivery
 
 **IMPORTANT**: Only include phases for L/XL features. For S/M features, do NOT include phases - they will be implemented in a single PR.
 
@@ -241,10 +256,10 @@ Example for a SMALL feature (S):
 Add logout menu item that calls existing auth API and redirects.
 
 ## Files to Modify
-| File | Changes |
-|------|---------|
-| \`src/client/components/UserMenu.tsx\` | Add logout menu item with onClick handler |
-| \`src/client/features/auth/hooks.ts\` | Add useLogout hook (calls auth/logout API) |
+- \`src/client/components/UserMenu.tsx\`
+  - Add logout menu item with onClick handler
+- \`src/client/features/auth/hooks.ts\`
+  - Add useLogout hook (calls auth/logout API)
 
 ## Implementation Plan
 
@@ -265,16 +280,16 @@ Example for a MEDIUM/LARGE feature:
 [Brief technical approach]
 
 ## Files to Create
-| File | Purpose |
-|------|---------|
-| \`src/apis/feature-name/types.ts\` | Types |
-| \`src/apis/feature-name/handlers/create.ts\` | Create handler |
-| \`src/client/routes/FeatureName/index.tsx\` | Main component |
+- \`src/apis/feature-name/types.ts\`
+  - Purpose: Types
+- \`src/apis/feature-name/handlers/create.ts\`
+  - Purpose: Create handler
+- \`src/client/routes/FeatureName/index.tsx\`
+  - Purpose: Main component
 
 ## Files to Modify
-| File | Changes |
-|------|---------|
-| \`src/client/routes/index.ts\` | Add route |
+- \`src/client/routes/index.ts\`
+  - Add route
 
 ## Data Model (if needed)
 \`\`\`typescript
@@ -362,6 +377,26 @@ This feature will be split into 3 PRs:
 6. Wire up forms to auth APIs
 \`\`\`
 
+## Output Format Example
+
+**GOOD comment example:**
+\`\`\`
+Here's the technical design:
+1. Size M - single PR with new collection, 2 API endpoints, and list/form UI
+2. New \`notes\` MongoDB collection with userId index for per-user queries
+3. Two endpoints: \`notes/list\` (GET with pagination) and \`notes/create\` (POST with optimistic update)
+4. New NotesRoute page using React Query for data fetching and Zustand for draft state
+5. Follows existing patterns from the items feature for consistency
+\`\`\`
+
+**BAD comment example (too generic, avoid this):**
+\`\`\`
+Here's the technical design:
+1. Created the design document
+2. Listed the files
+3. Added implementation plan
+\`\`\`
+
 **phases JSON output for L/XL example:**
 \`\`\`json
 [
@@ -420,9 +455,7 @@ export function buildTechDesignRevisionPrompt(
     existingTechDesign: string,
     feedbackComments: GitHubComment[]
 ): string {
-    const feedbackSection = feedbackComments
-        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
-        .join('\n\n---\n\n');
+    const feedbackSection = buildFeedbackSection(feedbackComments);
 
     const productDesignSection = productDesign
         ? `## Approved Product Design
@@ -434,12 +467,9 @@ ${productDesign}
 
     return `You are revising a Technical Design document based on admin feedback.
 
-IMPORTANT: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
+${READ_ONLY_MODE_INSTRUCTIONS}
 
-## Issue Details
-
-**Title:** ${issue.title}
-**Number:** #${issue.number || 'Draft'}
+${buildIssueDetailsHeader(issue, { includeDescription: false })}
 
 ${productDesignSection}## Existing Technical Design
 
@@ -447,11 +477,7 @@ ${existingTechDesign}
 
 ## Feedback History
 
-The comments below are sorted chronologically (oldest first, newest last).
-- **"✅ Addressed Feedback" markers** - these indicate what was addressed in previous iterations
-- **Focus on ALL comments since the last marker** - if a marker exists, address all feedback that came after it
-- **If no marker exists** - address all feedback comments (this is the first revision)
-- **Older comments before the marker** - use for context only, they have already been addressed
+${FEEDBACK_HISTORY_INSTRUCTIONS}
 
 ${feedbackSection}
 
@@ -472,6 +498,16 @@ Provide your response as structured JSON with these fields:
 - **comment**: High-level summary of what you changed to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
 
 Do NOT output just the changes in design - output the entire revised document. Keep it concise.
+
+## Output Format Example
+
+**GOOD comment example:**
+\`\`\`
+Here's what I revised in the technical design:
+1. [Feedback: missing pagination] → Added cursor-based pagination to the list endpoint with 20-item default
+2. [Feedback: no error handling for duplicate entries] → Added unique index on (userId, name) and 409 conflict response
+3. Updated implementation plan to reflect the new pagination and uniqueness requirements
+\`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
@@ -494,7 +530,7 @@ export function buildTechDesignClarificationPrompt(
         : '';
 
     const commentsSection = issueComments.length > 0
-        ? `\n## All Issue Comments\n\n${issueComments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
+        ? `\n## All Issue Comments\n\n${formatCommentsList(issueComments)}\n`
         : '';
 
     return `You previously asked for clarification while working on the technical design for this feature.
@@ -533,6 +569,17 @@ If the admin's response is still unclear or raises new ambiguities, you may ask 
 Provide your response as structured JSON with these fields:
 - **design**: Complete Technical Design document in markdown format
 - **comment**: High-level implementation plan to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+
+## Output Format Example
+
+**GOOD comment example:**
+\`\`\`
+Here's the technical design (after clarification):
+1. Admin confirmed we should use the existing auth middleware - no new auth system needed
+2. Size S - just adding a new endpoint and connecting it to the existing UI component
+3. New handler at \`src/apis/items/handlers/archive.ts\` with soft-delete pattern
+4. Updated implementation plan to 4 steps including the UI toggle
+\`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 

@@ -186,9 +186,9 @@ yarn vercel-cli logs | grep "github-webhook"
 
 **Solutions:**
 
-#### a) Verify Phase Comment Exists
-- Open the GitHub issue
-- Look for comment with `<!-- AGENT_PHASES_V1 -->`
+#### a) Verify Phase Data Exists
+- Check `artifacts.phases` in the workflow-item MongoDB document (primary source)
+- Fallback: open the GitHub issue and look for comment with `<!-- AGENT_PHASES_V1 -->`
 - Comment should have deterministic format:
 ```markdown
 ## Implementation Phases
@@ -468,9 +468,8 @@ If issues persist after trying these solutions:
    ```
 
 3. **Review Documentation:**
-   - Main guide: `docs/github-projects-integration.md`
-   - Setup guide: `docs/init-github-projects-workflow.md`
-   - Technical reference: `docs/github-agents-workflow/reference.md`
+   - Setup guide: `docs/template/github-agents-workflow/setup-guide.md`
+   - Technical reference: `docs/template/github-agents-workflow/reference.md`
 
 4. **Test Components Individually:**
    ```bash

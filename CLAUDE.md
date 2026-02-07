@@ -82,6 +82,16 @@ Single API endpoint pattern with React Query. Use this when creating/calling API
 
 ---
 
+## Error Handling
+
+Guidelines for handling and displaying errors across the application. Use this when implementing error states, catch blocks, or user-facing error messages.
+
+**Summary:** Use `ErrorDisplay` for route/page errors, `errorToast`/`errorToastAuto` for mutation failures, and shared `errorUtils` for classification. Stack traces are admin-only. Never show raw error messages to users.
+
+**Docs:** [error-handling.md](docs/template/error-handling.md), [logging-and-error-tracking.md](docs/template/logging-and-error-tracking.md), [react-query-mutations.md](docs/template/react-query-mutations.md)
+
+---
+
 ## Mobile-First Philosophy
 
 All UI must be designed for mobile screens first (~400px width). Use this when implementing any UI.
@@ -343,16 +353,6 @@ Isolated development with clean commit history. Use this for feature/fix develop
 
 ---
 
-## GitHub Agents Workflow
-
-AI-powered feature request and bug fix pipeline. Use this for automated feature/bug workflows.
-
-**Summary:** 6-column workflow (Backlog → Product Design → Tech Design → Ready → PR Review → Done) with AI agents at each stage. Multi-phase features split into sequential PRs.
-
-**Docs:** [init-github-projects-workflow.md](docs/template/init-github-projects-workflow.md)
-
----
-
 ## GitHub PR CLI Tool
 
 CLI for managing GitHub pull requests. Use this when creating/managing PRs programmatically.
@@ -400,7 +400,7 @@ Handling npm package issues in Wix corporate network. Use this if experiencing l
 
 Architecture and flow of the AI-powered feature/bug pipeline. Use this to understand the agent workflow system.
 
-**Summary:** 6-column workflow (Backlog → Product Design → Tech Design → Ready → PR Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically.
+**Summary:** 9-status workflow (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically.
 
 **Key Points:**
 - Entry points: UI feature request, UI bug report, or CLI

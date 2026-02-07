@@ -39,7 +39,7 @@ export const addUserComment = async (
         const authorName = user?.username || user?.email || 'User';
 
         const comment: FeatureRequestComment = {
-            id: new ObjectId().toString(),
+            id: request.commentId || new ObjectId().toString(),
             authorId: toDocumentId(context.userId) as ObjectId,
             authorName,
             isAdmin: false,

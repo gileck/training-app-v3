@@ -43,7 +43,7 @@ export function ClarifyPage({ issueNumber, token }: ClarifyPageProps) {
             }
             return response.data;
         },
-        staleTime: Infinity, // Don't refetch - clarification won't change
+        staleTime: Infinity, // Intentional: clarification data is immutable once created
         retry: false,
     });
 

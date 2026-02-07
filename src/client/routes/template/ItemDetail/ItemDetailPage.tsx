@@ -1,14 +1,13 @@
-import { useState } from 'react';
-import { ArrowLeft, CheckCircle, Trash2, Bug, Lightbulb, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
-import { Badge } from '@/client/components/template/ui/badge';
-import { ConfirmDialog } from '@/client/components/template/ui/confirm-dialog';
 import { toast } from '@/client/components/template/ui/toast';
 import { useRouter } from '@/client/features/template/router';
 import { useItemDetail, useApproveItem, useDeleteItem, parseItemId } from './hooks';
+import { ItemDetailHeader } from './components/ItemDetailHeader';
+import { ItemDetailActions } from './components/ItemDetailActions';
 
 interface ItemDetailPageProps {
     id: string;
@@ -20,11 +19,6 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
     const { item, isLoading, error } = useItemDetail(id);
     const { approveFeature, approveBug, isPending: isApproving } = useApproveItem();
     const { deleteFeature, deleteBug, isPending: isDeleting } = useDeleteItem();
-
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral modal open state
-    const [showApproveDialog, setShowApproveDialog] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral modal open state
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const navigateBack = () => {
         navigate('/admin/workflow');
@@ -101,7 +95,6 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to approve');
         }
-        setShowApproveDialog(false);
     };
 
     const handleDelete = async () => {
@@ -116,7 +109,6 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to delete');
         }
-        setShowDeleteDialog(false);
     };
 
     return (
@@ -133,39 +125,16 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
                 </Button>
             </div>
 
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <Badge variant={isFeature ? 'default' : 'destructive'}>
-                        {isFeature ? (
-                            <><Lightbulb className="mr-1 h-3 w-3" /> Feature</>
-                        ) : (
-                            <><Bug className="mr-1 h-3 w-3" /> Bug</>
-                        )}
-                    </Badge>
-                    <Badge variant="outline">{status}</Badge>
-                    {isFeature && item.feature!.priority && (
-                        <Badge variant="secondary">{item.feature!.priority}</Badge>
-                    )}
-                    {isFeature && item.feature!.source && (
-                        <Badge variant="secondary">via {item.feature!.source}</Badge>
-                    )}
-                    {!isFeature && item.report!.source && (
-                        <Badge variant="secondary">via {item.report!.source}</Badge>
-                    )}
-                </div>
-                <h1 className="text-xl font-bold sm:text-2xl">{title}</h1>
-                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{new Date(createdAt).toLocaleDateString()}</span>
-                    {isFeature && item.feature!.requestedByName && (
-                        <span>by {item.feature!.requestedByName}</span>
-                    )}
-                    {!isFeature && item.report!.route && (
-                        <span>on {item.report!.route}</span>
-                    )}
-                </div>
-            </div>
+            <ItemDetailHeader
+                isFeature={isFeature}
+                title={title}
+                status={status}
+                createdAt={createdAt}
+                priority={isFeature ? item.feature!.priority : undefined}
+                source={isFeature ? item.feature!.source : item.report!.source}
+                requestedByName={isFeature ? item.feature!.requestedByName : undefined}
+                route={!isFeature ? item.report!.route : undefined}
+            />
 
             {/* Description */}
             <Card className="mb-6">
@@ -220,61 +189,13 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
                 </Card>
             )}
 
-            {/* Action buttons - fixed bottom bar on mobile */}
-            <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-3 sm:relative sm:border-0 sm:p-0 sm:mt-6">
-                <div className="flex gap-3 sm:justify-start">
-                    {isNew && !isAlreadySynced && (
-                        <Button
-                            className="flex-1 sm:flex-initial"
-                            onClick={() => setShowApproveDialog(true)}
-                            disabled={isApproving || isDeleting}
-                        >
-                            {isApproving ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                            )}
-                            Approve
-                        </Button>
-                    )}
-                    {!isAlreadySynced && (
-                        <Button
-                            variant="destructive"
-                            className="flex-1 sm:flex-initial"
-                            onClick={() => setShowDeleteDialog(true)}
-                            disabled={isApproving || isDeleting}
-                        >
-                            {isDeleting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="mr-2 h-4 w-4" />
-                            )}
-                            Delete
-                        </Button>
-                    )}
-                </div>
-            </div>
-
-            {/* Bottom spacer to prevent content from being hidden behind fixed bar on mobile */}
-            <div className="h-16 sm:hidden" />
-
-            {/* Confirmation dialogs */}
-            <ConfirmDialog
-                open={showApproveDialog}
-                onOpenChange={setShowApproveDialog}
-                title="Approve Item"
-                description="This will create a GitHub issue and sync the item. Continue?"
-                confirmText={isApproving ? 'Approving...' : 'Approve'}
-                onConfirm={handleApprove}
-            />
-            <ConfirmDialog
-                open={showDeleteDialog}
-                onOpenChange={setShowDeleteDialog}
-                title="Delete Item"
-                description="This will permanently delete this item from the database. This action cannot be undone."
-                confirmText={isDeleting ? 'Deleting...' : 'Delete'}
-                onConfirm={handleDelete}
-                variant="destructive"
+            <ItemDetailActions
+                isNew={isNew}
+                isAlreadySynced={isAlreadySynced}
+                isApproving={isApproving}
+                isDeleting={isDeleting}
+                onApprove={handleApprove}
+                onDelete={handleDelete}
             />
         </div>
     );

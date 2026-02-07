@@ -9,31 +9,21 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Button } from '@/client/components/template/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/client/components/template/ui/dialog';
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/client/components/template/ui/dropdown-menu';
-import { Label } from '@/client/components/template/ui/label';
-import { Input } from '@/client/components/template/ui/input';
-import { Textarea } from '@/client/components/template/ui/textarea';
-import { Loader2, AlertCircle, Inbox, Lightbulb, Plus, Send, ArrowDownAZ } from 'lucide-react';
-import { useFeatureRequests, useCreateFeatureRequest, useBatchGitHubStatuses } from './hooks';
+import { Loader2, AlertCircle, Inbox, Lightbulb, Plus, ArrowDownAZ } from 'lucide-react';
+import { useFeatureRequests, useBatchGitHubStatuses } from './hooks';
 import { useFeatureRequestsStore } from './store';
 import { FeatureRequestCard } from './components/FeatureRequestCard';
 import { CompletedSection } from './components/CompletedSection';
 import { FilterChipBar } from './components/FilterChipBar';
+import { CreateFeatureRequestDialog } from './components/CreateFeatureRequestDialog';
 import { applyAllFilters } from './utils/filterUtils';
 import { applySorting, separateDoneItems } from './utils/sortingUtils';
 import type { SortMode } from './utils/sortingUtils';
-import { toast } from '@/client/components/template/ui/toast';
 import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 // Sort mode display labels
@@ -45,7 +35,6 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
     updated: 'Recently Updated',
 };
 
-// Short labels for mobile
 const SORT_MODE_SHORT_LABELS: Record<SortMode, string> = {
     smart: 'Smart',
     newest: 'Newest',
@@ -55,7 +44,6 @@ const SORT_MODE_SHORT_LABELS: Record<SortMode, string> = {
 };
 
 export function FeatureRequests() {
-    // Persistent multi-filter state from store
     const statusFilters = useFeatureRequestsStore((state) => state.statusFilters);
     const priorityFilters = useFeatureRequestsStore((state) => state.priorityFilters);
     const githubFilters = useFeatureRequestsStore((state) => state.githubFilters);
@@ -69,22 +57,11 @@ export function FeatureRequests() {
     const clearAllFilters = useFeatureRequestsStore((state) => state.clearAllFilters);
     const setSortMode = useFeatureRequestsStore((state) => state.setSortMode);
 
-    // Dialog state
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
-    const [title, setTitle] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
-    const [description, setDescription] = useState('');
-    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
-    const [page, setPage] = useState('');
 
-    const createMutation = useCreateFeatureRequest();
-
-    // Fetch all requests without API-level filtering (client-side filtering now)
     const { data: rawRequests, isLoading, error } = useFeatureRequests({});
 
-    // Get IDs of requests with GitHub project items (for batch status fetch)
     const githubLinkedIds = useMemo(() => {
         if (!rawRequests) return [];
         return rawRequests
@@ -92,10 +69,8 @@ export function FeatureRequests() {
             .map((r) => r._id);
     }, [rawRequests]);
 
-    // Fetch live GitHub statuses for all linked items
     const { data: batchStatusData, isLoading: isLoadingStatuses, error: statusError } = useBatchGitHubStatuses(githubLinkedIds);
 
-    // Build GitHub status map from live data
     const githubStatusMap = useMemo(() => {
         const map: Record<string, GetGitHubStatusResponse | undefined> = {};
         if (batchStatusData) {
@@ -108,80 +83,27 @@ export function FeatureRequests() {
         return map;
     }, [batchStatusData]);
 
-    // Apply client-side filtering and sorting
     const { activeRequests, doneRequests } = useMemo(() => {
         if (!rawRequests) return { activeRequests: [], doneRequests: [] };
-
-        // First, apply filters
         const filtered = applyAllFilters(
             rawRequests,
-            {
-                statusFilters,
-                priorityFilters,
-                githubFilters,
-                activityFilters,
-            },
+            { statusFilters, priorityFilters, githubFilters, activityFilters },
             githubStatusMap
         );
-
-        // Then, separate done items from active items
         const { activeItems, doneItems } = separateDoneItems(filtered, githubStatusMap);
-
-        // Finally, apply sorting (only to active items, done items already sorted by completion date)
         const sortedActive = applySorting(activeItems, sortMode, githubStatusMap);
-
         return { activeRequests: sortedActive, doneRequests: doneItems };
     }, [rawRequests, statusFilters, priorityFilters, githubFilters, activityFilters, githubStatusMap, sortMode]);
 
     const totalFilteredCount = activeRequests.length + doneRequests.length;
-
-    // Show loading while fetching requests or statuses (but not blocking on statuses)
     const showLoading = isLoading || rawRequests === undefined;
     const isLoadingGitHubData = isLoadingStatuses && githubLinkedIds.length > 0;
-
-    // Handle rate limit errors gracefully
     const rateLimitError = statusError instanceof Error && statusError.message.includes('rate limit')
         ? 'GitHub API rate limit reached. Status data may be incomplete.'
         : null;
 
-    const handleDialogClose = () => {
-        setTitle('');
-        setDescription('');
-        setPage('');
-        setIsDialogOpen(false);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!title.trim()) {
-            toast.error('Please enter a title');
-            return;
-        }
-
-        if (!description.trim()) {
-            toast.error('Please enter a description');
-            return;
-        }
-
-        try {
-            await createMutation.mutateAsync({
-                title: title.trim(),
-                description: description.trim(),
-                page: page.trim() || undefined,
-            });
-
-            handleDialogClose();
-        } catch (error) {
-            // Error toast already shown by mutation onError
-            // Just log for debugging if needed
-            console.error('Create feature request failed:', error);
-        }
-    };
-
     return (
         <div className="space-y-4 pb-6">
-            {/* Header - Mobile optimized with stacked layout on small screens */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-yellow-500 sm:h-6 sm:w-6" />
@@ -198,7 +120,6 @@ export function FeatureRequests() {
                 </Button>
             </div>
 
-            {/* Filter and Sort Controls - Mobile optimized */}
             <div className="flex items-center gap-2">
                 <FilterChipBar
                     statusFilters={statusFilters}
@@ -213,52 +134,26 @@ export function FeatureRequests() {
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 gap-2"
-                        >
+                        <Button variant="outline" size="sm" className="shrink-0 gap-2">
                             <ArrowDownAZ className="h-4 w-4" />
                             <span className="hidden sm:inline">{SORT_MODE_LABELS[sortMode]}</span>
                             <span className="sm:hidden">{SORT_MODE_SHORT_LABELS[sortMode]}</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                            onClick={() => setSortMode('smart')}
-                            className={sortMode === 'smart' ? 'bg-accent' : ''}
-                        >
-                            {SORT_MODE_LABELS.smart}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => setSortMode('newest')}
-                            className={sortMode === 'newest' ? 'bg-accent' : ''}
-                        >
-                            Newest First
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => setSortMode('oldest')}
-                            className={sortMode === 'oldest' ? 'bg-accent' : ''}
-                        >
-                            Oldest First
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => setSortMode('priority')}
-                            className={sortMode === 'priority' ? 'bg-accent' : ''}
-                        >
-                            Priority
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => setSortMode('updated')}
-                            className={sortMode === 'updated' ? 'bg-accent' : ''}
-                        >
-                            Recently Updated
-                        </DropdownMenuItem>
+                        {(Object.keys(SORT_MODE_LABELS) as SortMode[]).map((mode) => (
+                            <DropdownMenuItem
+                                key={mode}
+                                onClick={() => setSortMode(mode)}
+                                className={sortMode === mode ? 'bg-accent' : ''}
+                            >
+                                {SORT_MODE_LABELS[mode]}
+                            </DropdownMenuItem>
+                        ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
 
-            {/* Rate limit warning */}
             {rateLimitError && (
                 <Card className="border-warning bg-warning/10">
                     <CardContent className="py-3 px-4 flex items-center gap-2">
@@ -268,7 +163,6 @@ export function FeatureRequests() {
                 </Card>
             )}
 
-            {/* GitHub status loading indicator (non-blocking) */}
             {isLoadingGitHubData && !showLoading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -276,7 +170,6 @@ export function FeatureRequests() {
                 </div>
             )}
 
-            {/* Content */}
             {showLoading ? (
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -300,12 +193,7 @@ export function FeatureRequests() {
                                 : 'No feature requests found.'}
                         </p>
                         {rawRequests && rawRequests.length > 0 && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={clearAllFilters}
-                                className="mt-4"
-                            >
+                            <Button variant="outline" size="sm" onClick={clearAllFilters} className="mt-4">
                                 Clear Filters
                             </Button>
                         )}
@@ -313,105 +201,14 @@ export function FeatureRequests() {
                 </Card>
             ) : (
                 <div className="space-y-3 sm:space-y-4">
-                    {/* Active items */}
                     {activeRequests.map((request) => (
                         <FeatureRequestCard key={request._id} request={request} />
                     ))}
-
-                    {/* Completed section (auto-collapsed) */}
                     <CompletedSection doneItems={doneRequests} />
                 </div>
             )}
 
-            {/* Create Feature Request Dialog */}
-            <Dialog
-                open={isDialogOpen}
-                onOpenChange={(open) => {
-                    if (!open && !createMutation.isPending) {
-                        handleDialogClose();
-                    }
-                }}
-            >
-                <DialogContent className="mx-4 max-w-[calc(100vw-2rem)] sm:mx-auto sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Lightbulb className="h-5 w-5 text-yellow-500" />
-                            New Feature Request
-                        </DialogTitle>
-                        <DialogDescription>
-                            Create a new feature request for the admin dashboard.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="title">Title</Label>
-                            <Input
-                                id="title"
-                                placeholder="Brief summary of the feature"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                disabled={createMutation.isPending}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                className="min-h-[120px] resize-none"
-                                placeholder="Describe the feature request in detail"
-                                value={description}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-                                disabled={createMutation.isPending}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="page">Related Page (optional)</Label>
-                            <Input
-                                id="page"
-                                placeholder="/admin/feature-requests"
-                                value={page}
-                                onChange={(e) => setPage(e.target.value)}
-                                disabled={createMutation.isPending}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Which page or area does this feature relate to?
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full sm:flex-1"
-                                onClick={handleDialogClose}
-                                disabled={createMutation.isPending}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="w-full sm:flex-1"
-                                disabled={createMutation.isPending || !title.trim() || !description.trim()}
-                            >
-                                {createMutation.isPending ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Create Request
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <CreateFeatureRequestDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
         </div>
     );
 }

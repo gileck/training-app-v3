@@ -83,6 +83,8 @@ const eslintTemplateConfig = [
           '**/actions/index.ts'
         ]
       }],
+      // Prevent value re-exports from API index files that leak server code into client bundle
+      "api-guidelines/no-value-reexport-from-api-index": "error",
       // Warn about direct ObjectId methods that fail on UUID strings
       "api-guidelines/prefer-id-utilities": "warn",
       // Block direct zustand imports - use createStore from @/client/stores

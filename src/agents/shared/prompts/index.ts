@@ -12,8 +12,25 @@
  * - **Plan Subagent**: Implementation planning before main implementation
  */
 
-// Shared instructions
-export { AMBIGUITY_INSTRUCTIONS, MARKDOWN_FORMATTING_INSTRUCTIONS } from './shared-instructions';
+// Shared instructions and helpers
+export {
+    AMBIGUITY_INSTRUCTIONS,
+    MARKDOWN_FORMATTING_INSTRUCTIONS,
+    buildCommentsSection,
+    buildFeedbackSection,
+    buildIssueDetailsHeader,
+    formatCommentsList,
+    FEEDBACK_HISTORY_INSTRUCTIONS,
+    READ_ONLY_MODE_INSTRUCTIONS,
+    WRITE_MODE_INSTRUCTIONS,
+    WRITE_MODE_BUG_FIX_INSTRUCTIONS,
+    WRITE_MODE_PR_REVISION_INSTRUCTIONS,
+    MOBILE_FIRST_INSTRUCTIONS,
+    PRODUCT_DESIGN_ONLY_WARNING,
+    PRODUCT_DEVELOPMENT_FOCUS_WARNING,
+    IMPLEMENTATION_GUIDELINES,
+    THEMING_INSTRUCTIONS,
+} from './shared-instructions';
 
 // Product Development prompts
 export {
@@ -44,7 +61,11 @@ export {
 } from './implementation';
 
 // Bug Fix prompts (implementation only - bug investigation prompts are in bug-investigation.ts)
-export { buildBugImplementationPrompt } from './bug-fix';
+export {
+    buildBugImplementationPrompt,
+    buildBugFixRevisionPrompt,
+    buildBugFixClarificationPrompt,
+} from './bug-fix';
 
 // Bug Investigation prompts
 export {

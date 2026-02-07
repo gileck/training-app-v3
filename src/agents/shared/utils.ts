@@ -15,7 +15,8 @@ import type { CommonCLIOptions } from './types';
 import { notifyAgentNeedsClarification } from './notifications';
 import { addAgentPrefix, type AgentName } from './agent-identity';
 import { existsSync, writeFileSync, unlinkSync, readFileSync } from 'fs';
-import { hostname } from 'os';
+import { hostname, tmpdir } from 'os';
+import path from 'path';
 
 // ============================================================
 // TYPE DETECTION
@@ -401,7 +402,7 @@ const currentLocks = new Map<string, LockFileContent>();
  * @returns true if lock acquired, false if another instance is running
  */
 export function acquireAgentLock(agentName: string): boolean {
-    const lockFile = `/tmp/agent-${agentName}.lock`;
+    const lockFile = path.join(tmpdir(), `agent-${agentName}.lock`);
 
     if (existsSync(lockFile)) {
         try {
@@ -545,7 +546,7 @@ function registerCleanupHandlers(_agentName: string): void {
  * Only releases if this process owns the lock.
  */
 export function releaseAgentLock(agentName: string): void {
-    const lockFile = `/tmp/agent-${agentName}.lock`;
+    const lockFile = path.join(tmpdir(), `agent-${agentName}.lock`);
 
     // Check if we own this lock
     const ourLock = currentLocks.get(agentName);

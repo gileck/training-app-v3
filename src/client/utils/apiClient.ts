@@ -101,7 +101,9 @@ export const apiClient = {
         const errorMessage = String(result.data.error);
         // Auto-report API error in production
         void submitApiErrorReport(name, errorMessage, params);
-        throw new Error(`Failed to call ${name}: ${errorMessage}`);
+        const err = new Error(`Failed to call ${name}: ${errorMessage}`);
+        attachServerErrorFields(err, result.data);
+        throw err;
       }
 
       return result.data;
@@ -238,14 +240,16 @@ export const apiClient = {
 
       if (result?.data && typeof result.data === 'object' && 'error' in result.data && result.data.error != null) {
         const errorMessage = String(result.data.error);
-        const error = `Failed to call ${name}: ${errorMessage}`;
+        const errorStr = `Failed to call ${name}: ${errorMessage}`;
         logger.apiResponse(name, result.data, {
           duration: Date.now() - startTime,
-          error
+          error: errorStr
         });
         // Auto-report API error in production
         void submitApiErrorReport(name, errorMessage, params);
-        throw new Error(error);
+        const err = new Error(errorStr);
+        attachServerErrorFields(err, result.data);
+        throw err;
       }
 
       logger.apiResponse(name, result.data, { 
@@ -266,5 +270,15 @@ export const apiClient = {
     }
   }
 };
+
+/** Attach errorCode and errorDetails from server response to an Error object */
+function attachServerErrorFields(err: Error, data: Record<string, unknown>): void {
+  if (data.errorCode) {
+    (err as Error & { errorCode?: string }).errorCode = String(data.errorCode);
+  }
+  if (data.errorDetails) {
+    (err as Error & { errorDetails?: string }).errorDetails = String(data.errorDetails);
+  }
+}
 
 export default apiClient;

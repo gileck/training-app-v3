@@ -146,51 +146,53 @@ export function parseArtifactComment(comments: GitHubComment[]): ArtifactComment
 
     // Parse table rows for design artifacts
     // Format: | [Product Development](path) | ✅ Approved | 2026-01-25 | #456 |
+    // Flexible: \s* between elements, optional whitespace around status emoji/text
     const productDevMatch = comment.body.match(
-        /\|\s*\[Product Development\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*(\w+)\s*\|\s*([^|]+)\|\s*#?(\d+)?\s*\|/
+        /\|\s*\[Product Development\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*\w+\s*\|\s*([^|]+?)\s*\|\s*#?(\d+)?\s*\|/
     );
     if (productDevMatch) {
         artifact.productDevelopment = {
             type: 'product-dev',
             path: productDevMatch[1],
             status: productDevMatch[2] === '✅' ? 'approved' : 'pending',
-            lastUpdated: productDevMatch[4].trim(),
-            prNumber: productDevMatch[5] ? parseInt(productDevMatch[5], 10) : undefined,
+            lastUpdated: productDevMatch[3].trim(),
+            prNumber: productDevMatch[4] ? parseInt(productDevMatch[4], 10) : undefined,
         };
     }
 
     // Format: | [Product Design](path) | ✅ Approved | 2026-01-25 | #456 |
     const productMatch = comment.body.match(
-        /\|\s*\[Product Design\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*(\w+)\s*\|\s*([^|]+)\|\s*#?(\d+)?\s*\|/
+        /\|\s*\[Product Design\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*\w+\s*\|\s*([^|]+?)\s*\|\s*#?(\d+)?\s*\|/
     );
     if (productMatch) {
         artifact.productDesign = {
             type: 'product-design',
             path: productMatch[1],
             status: productMatch[2] === '✅' ? 'approved' : 'pending',
-            lastUpdated: productMatch[4].trim(),
-            prNumber: productMatch[5] ? parseInt(productMatch[5], 10) : undefined,
+            lastUpdated: productMatch[3].trim(),
+            prNumber: productMatch[4] ? parseInt(productMatch[4], 10) : undefined,
         };
     }
 
     const techMatch = comment.body.match(
-        /\|\s*\[Technical Design\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*(\w+)\s*\|\s*([^|]+)\|\s*#?(\d+)?\s*\|/
+        /\|\s*\[Technical Design\]\(([^)]+)\)\s*\|\s*([✅⏳])\s*\w+\s*\|\s*([^|]+?)\s*\|\s*#?(\d+)?\s*\|/
     );
     if (techMatch) {
         artifact.techDesign = {
             type: 'tech-design',
             path: techMatch[1],
             status: techMatch[2] === '✅' ? 'approved' : 'pending',
-            lastUpdated: techMatch[4].trim(),
-            prNumber: techMatch[5] ? parseInt(techMatch[5], 10) : undefined,
+            lastUpdated: techMatch[3].trim(),
+            prNumber: techMatch[4] ? parseInt(techMatch[4], 10) : undefined,
         };
     }
 
     // Parse Pull Requests section (was "Implementation")
     // Format: | Phase 1/3: Name | 🎉 Merged | #458 |
     // Also supports old "Implementation" section for backward compatibility
+    // Flexible: \s+ between Phase and numbers, optional colon/name, flexible whitespace
     const phaseMatches = comment.body.matchAll(
-        /\|\s*Phase\s+(\d+)\/(\d+)(?::\s*([^|]+))?\s*\|\s*([✅🔄⏳📝🎉])\s*([^|]+)\|\s*#?(\d+)?\s*\|/g
+        /\|\s*Phase\s+(\d+)\s*\/\s*(\d+)(?:\s*:\s*([^|]+?))?\s*\|\s*([✅🔄⏳📝🎉])\s*([^|]+?)\s*\|\s*#?(\d+)?\s*\|/g
     );
     const phases: ImplementationPhaseArtifact[] = [];
     for (const match of phaseMatches) {
@@ -708,3 +710,4 @@ export async function getTaskBranchFromIssue(
     const artifact = parseArtifactComment(comments);
     return getTaskBranch(artifact);
 }
+

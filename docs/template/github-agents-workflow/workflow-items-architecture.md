@@ -57,6 +57,13 @@ This is the **pipeline** collection. Items are created here when approved and sy
     githubIssueUrl?: string,
     githubIssueTitle?: string,
     labels?: string[],                    // GitHub issue labels
+    artifacts?: {                         // Structured workflow metadata (see Artifacts section)
+        designs?: DesignArtifactRecord[],
+        phases?: PhaseArtifactRecord[],
+        taskBranch?: string,
+        commitMessages?: CommitMessageRecord[],
+        decision?: DecisionArtifactRecord,
+    },
     createdAt: Date,
     updatedAt: Date,
 }
@@ -81,6 +88,48 @@ This is the **pipeline** collection. Items are created here when approved and sy
 | `Approved` | Admin approved (auto-advances to next phase) |
 | `Request Changes` | Admin requested changes (agent revises) |
 | `Rejected` | Admin rejected |
+
+## Artifacts (Structured Workflow Metadata)
+
+The `artifacts` field on workflow items stores structured metadata that was previously embedded in GitHub issue/PR comments using HTML markers and parsed back with regex. With artifacts in MongoDB, reads are fast and reliable while GitHub comments remain write-only for human readability.
+
+### Architecture
+
+**Dual-write pattern:** Every write operation saves to MongoDB first, then posts/updates the GitHub comment for display. Read operations use DB-first with comment-parsing fallback (for items created before the migration).
+
+**Import constraint:** DB-dependent artifact helpers live in `src/agents/lib/workflow-db.ts` which must NOT be re-exported through the `agents/lib/index.ts` barrel file. This prevents pulling MongoDB into client bundles. Import directly:
+
+```typescript
+import { getArtifactsFromIssue, savePhaseStatusToDB } from '@/agents/lib/workflow-db';
+```
+
+### Artifact Types
+
+| Field | Type | Written by | Purpose |
+|-------|------|-----------|---------|
+| `designs` | `DesignArtifactRecord[]` | Tech Design agent, design-pr handler, on-pr-merged script | Design doc references (path, status, PR number) |
+| `phases` | `PhaseArtifactRecord[]` | Tech Design agent, design-pr handler | Implementation phase definitions and statuses |
+| `taskBranch` | `string` | Implement agent | Feature branch name for multi-phase workflows |
+| `commitMessages` | `CommitMessageRecord[]` | PR Review agent | Commit title/body for merge |
+| `decision` | `DecisionArtifactRecord` | Bug Investigator agent | Bug fix options with routing config and admin selection |
+
+### DB Helper Functions
+
+All in `src/agents/lib/workflow-db.ts`:
+
+| Function | Type | Description |
+|----------|------|-------------|
+| `getArtifactsFromIssue(adapter, issueNumber)` | Read | DB-first with comment-parsing fallback |
+| `getPhasesFromDB(issueNumber)` | Read | Returns phases or null (caller uses fallback) |
+| `getCommitMessage(issueNumber, prNumber)` | Read | Returns commit message or null |
+| `saveDesignArtifactToDB(issueNumber, design)` | Write | Upsert design by type |
+| `savePhasesToDB(issueNumber, phases)` | Write | Replace all phases |
+| `savePhaseStatusToDB(issueNumber, phase, status, prNumber?)` | Write | Update single phase status |
+| `saveTaskBranchToDB(issueNumber, branch)` | Write | Set task branch |
+| `clearTaskBranchFromDB(issueNumber)` | Write | Clear task branch |
+| `saveCommitMessage(issueNumber, prNumber, title, body)` | Write | Upsert commit message by PR number |
+
+Decision helpers are in `src/apis/template/agent-decision/utils.ts`: `getDecisionFromDB`, `getSelectionFromDB`, `saveDecisionToDB`, `saveSelectionToDB`.
 
 ## How Items Enter the Pipeline
 
@@ -167,6 +216,8 @@ The `app` adapter stores pipeline status in the `workflow-items` collection and 
 |------|-------|
 | Workflow-items types | `src/server/database/collections/template/workflow-items/types.ts` |
 | Workflow-items CRUD | `src/server/database/collections/template/workflow-items/workflow-items.ts` |
+| Artifact DB helpers (server-only) | `src/agents/lib/workflow-db.ts` |
+| Decision DB helpers | `src/apis/template/agent-decision/utils.ts` |
 | AppProjectAdapter | `src/server/project-management/adapters/app-project.ts` |
 | Adapter factory | `src/server/project-management/index.ts` |
 | Sync core (creates workflow-items) | `src/server/github-sync/sync-core.ts` |

@@ -1,6 +1,7 @@
 import { ExternalLink, GitPullRequest, FileText, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from '@/client/components/template/ui/badge';
 import { Button } from '@/client/components/template/ui/button';
+import { ErrorDisplay } from '@/client/features/template/error-tracking';
 import type { GitHubIssueDetails, DesignDocArtifact, ImplementationPhaseArtifact } from '@/apis/template/feature-requests/types';
 
 interface GitHubIssueSectionProps {
@@ -140,13 +141,7 @@ export function GitHubIssueSection({ issueDetails, isLoading, error }: GitHubIss
 
     // Error state
     if (error) {
-        return (
-            <div className="rounded-md bg-destructive/10 px-4 py-3">
-                <p className="text-sm text-destructive">
-                    Failed to load issue details: {error.message}
-                </p>
-            </div>
-        );
+        return <ErrorDisplay error={error} title="Failed to load issue details" variant="inline" />;
     }
 
     // No data state

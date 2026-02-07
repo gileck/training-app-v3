@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Calendar, FileText, MessageSquare, Send, Loader
 import { UserStatusBadge } from './UserStatusBadge';
 import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
 import { useAddComment } from '../hooks';
+import { generateId } from '@/client/utils/id';
 
 interface MyRequestCardProps {
     request: FeatureRequestClient;
@@ -23,7 +24,7 @@ export function MyRequestCard({ request }: MyRequestCardProps) {
         if (!newComment.trim()) return;
 
         addCommentMutation.mutate(
-            { requestId: request._id, content: newComment.trim() },
+            { requestId: request._id, content: newComment.trim(), commentId: generateId() },
             {
                 onSuccess: () => setNewComment(''),
             }

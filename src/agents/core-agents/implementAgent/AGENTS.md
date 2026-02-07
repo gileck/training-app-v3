@@ -105,7 +105,13 @@ if (parsed) {
 
 ### Phase Information Sources
 
-**Primary Source (Reliable):**
+**Primary Source (MongoDB):**
+```typescript
+// Read phases from MongoDB artifacts
+const phases = await getPhasesFromDB(issueNumber);
+```
+
+**Fallback Source 1 (GitHub Comment):**
 ```typescript
 // Read phases from GitHub issue comment
 const phases = parsePhasesFromComment(issueComments);
@@ -113,7 +119,7 @@ const phases = parsePhasesFromComment(issueComments);
 
 Comment format: `<!-- AGENT_PHASES_V1 -->`
 
-**Fallback Source (Backward Compatibility):**
+**Fallback Source 2 (Markdown):**
 ```typescript
 // Parse phases from tech design markdown
 const phases = extractPhasesFromTechDesign(techDesign);
@@ -750,10 +756,9 @@ import {
     extractPhasesFromTechDesign
 } from '../../lib/parsing';
 
-// Phases (NEW - reliable phase retrieval)
-import {
-    parsePhasesFromComment
-} from '../../lib/phases';
+// Phases (DB-first with comment fallback)
+import { getPhasesFromDB } from '../../lib/workflow-db';
+import { parsePhasesFromComment } from '../../lib/phases';
 
 // Utils
 import {

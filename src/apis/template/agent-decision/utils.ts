@@ -17,6 +17,12 @@ import type {
 } from './types';
 import type { ProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
+import {
+    getArtifacts as getArtifactsFromDB,
+    setDecision as setDecisionInDB,
+    setDecisionSelection as setDecisionSelectionInDB,
+} from '@/server/database/collections/template/workflow-items';
+import type { DecisionArtifactRecord } from '@/server/database/collections/template/workflow-items/types';
 
 // ============================================================
 // TOKEN UTILITIES
@@ -365,6 +371,82 @@ export function parseSelectionComment(body: string): DecisionSelection | null {
     } catch {
         return null;
     }
+}
+
+// ============================================================
+// DB-FIRST READ/WRITE
+// ============================================================
+
+/**
+ * Get a parsed decision from DB (if available).
+ * Returns null if not in DB, allowing caller to use existing comment fallback.
+ */
+export async function getDecisionFromDB(
+    issueNumber: number,
+    issueTitle: string
+): Promise<ParsedDecision | null> {
+    const dbArtifacts = await getArtifactsFromDB(issueNumber);
+    if (!dbArtifacts?.decision) return null;
+
+    const d = dbArtifacts.decision;
+    if (!d.options || d.options.length === 0) return null;
+
+    return {
+        issueNumber,
+        issueTitle,
+        decisionType: d.type,
+        agentId: d.agentId,
+        context: d.context,
+        options: d.options,
+        metadataSchema: d.metadataSchema,
+        customDestinationOptions: d.customDestinationOptions,
+        routing: d.routing,
+    };
+}
+
+/**
+ * Get a decision selection from DB (if available).
+ */
+export async function getSelectionFromDB(
+    issueNumber: number
+): Promise<DecisionSelection | null> {
+    const dbArtifacts = await getArtifactsFromDB(issueNumber);
+    return dbArtifacts?.decision?.selection ?? null;
+}
+
+/**
+ * Save a decision to DB.
+ */
+export async function saveDecisionToDB(
+    issueNumber: number,
+    agentId: string,
+    decisionType: string,
+    context: string,
+    options: DecisionOption[],
+    metadataSchema: MetadataFieldConfig[],
+    customDestinationOptions?: DestinationOption[],
+    routing?: RoutingConfig
+): Promise<void> {
+    const record: DecisionArtifactRecord = {
+        agentId,
+        type: decisionType,
+        context,
+        options,
+        metadataSchema,
+        customDestinationOptions,
+        routing,
+    };
+    await setDecisionInDB(issueNumber, record);
+}
+
+/**
+ * Save a decision selection to DB.
+ */
+export async function saveSelectionToDB(
+    issueNumber: number,
+    selection: DecisionSelection
+): Promise<void> {
+    await setDecisionSelectionInDB(issueNumber, selection);
 }
 
 // ============================================================

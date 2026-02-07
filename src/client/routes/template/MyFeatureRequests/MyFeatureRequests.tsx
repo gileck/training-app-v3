@@ -1,5 +1,6 @@
 import { Button } from '@/client/components/template/ui/button';
 import { Loader2, Lightbulb, Inbox } from 'lucide-react';
+import { ErrorDisplay } from '@/client/features/template/error-tracking';
 import { MyRequestCard } from './components/MyRequestCard';
 import { useMyFeatureRequests } from './hooks';
 import { useFeatureRequestStore } from '@/client/features';
@@ -20,9 +21,8 @@ export function MyFeatureRequests() {
     // Error state
     if (error) {
         return (
-            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2">
-                <p className="text-destructive">Failed to load your feature requests</p>
-                <p className="text-sm text-muted-foreground">{error.message}</p>
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <ErrorDisplay error={error} title="Failed to load your feature requests" />
             </div>
         );
     }

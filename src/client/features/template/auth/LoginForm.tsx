@@ -3,6 +3,7 @@ import { Eye, EyeOff, User, Mail, Lock, ArrowRight, UserPlus, AlertCircle } from
 import { useAuthStore } from './store';
 import { useLogin, useRegister } from './hooks';
 import { useLoginFormValidator } from './useLoginFormValidator';
+import { isNetworkError, cleanErrorMessage as cleanApiErrorMessage } from '../error-tracking/errorUtils';
 import type { LoginFormState } from './types';
 import { cn } from '@/client/lib/utils';
 
@@ -227,23 +228,26 @@ const InputField: React.FC<InputFieldProps> = ({ icon, name, type = 'text', plac
     </div>
 );
 
-// Clean up error messages - simple and direct
+// Clean up error messages - auth-specific messages take priority, then shared utils
 function cleanErrorMessage(error: string): string {
-    const msg = error.replace(/^Failed to call [^:]+:\s*/i, '').toLowerCase();
-    
-    if (msg.includes('offline') || msg.includes('available offline')) {
-        return 'You\'re offline. Please connect to sign in.';
-    }
-    if (msg.includes('invalid username or password') || msg.includes('invalid credentials')) {
+    const cleaned = cleanApiErrorMessage(error).toLowerCase();
+
+    // Auth-specific messages
+    if (cleaned.includes('invalid username or password') || cleaned.includes('invalid credentials')) {
         return 'Invalid username or password.';
     }
-    if (msg.includes('username already exists')) {
+    if (cleaned.includes('username already exists')) {
         return 'Username already taken.';
     }
-    if (msg.includes('network') || msg.includes('fetch')) {
+
+    // Generic network/offline via shared util
+    if (isNetworkError(error)) {
+        if (cleaned.includes('offline') || cleaned.includes('available offline')) {
+            return 'You\'re offline. Please connect to sign in.';
+        }
         return 'Connection error. Please try again.';
     }
-    
+
     // Return cleaned message or generic fallback
-    return error.replace(/^Failed to call [^:]+:\s*/i, '') || 'Something went wrong.';
+    return cleanApiErrorMessage(error) || 'Something went wrong.';
 }

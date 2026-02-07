@@ -20,6 +20,7 @@ import { Lightbulb, Send, Loader2 } from 'lucide-react';
 import { useFeatureRequestStore } from './store';
 import { useSubmitFeatureRequest } from './hooks';
 import { toast } from '@/client/components/template/ui/toast';
+import { errorToast } from '../error-tracking';
 import { useRouter } from '../router';
 
 export function FeatureRequestDialog() {
@@ -66,8 +67,7 @@ export function FeatureRequestDialog() {
             handleClose();
             toast.success('Feature request submitted successfully!');
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            toast.error(`Failed to submit: ${errorMessage}`);
+            errorToast('Failed to submit feature request', error);
         }
     };
 

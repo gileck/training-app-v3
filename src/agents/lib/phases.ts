@@ -88,8 +88,8 @@ export function parsePhasesFromComment(comments: GitHubComment[]): Implementatio
 
     // Parse each phase section
     // Pattern: ### Phase N: Name (Size)\n\nDescription\n\n**Files to modify:**\n- `file1`\n- `file2`
-    // Use a more flexible regex that handles various whitespace patterns
-    const phasePattern = /### Phase (\d+): ([^(\n]+)\s*\(([SM])\)\s*\n\n([^\n]+)\s*\n\n\*\*Files to modify:\*\*\s*\n((?:- `[^`]+`\s*\n?)+)/g;
+    // Flexible: \s+ between structural elements, \n+ for line breaks, optional extra whitespace
+    const phasePattern = /###\s+Phase\s+(\d+):\s+([^(\n]+?)\s*\(([SM])\)\s*\n\s*\n([^\n]+)\s*\n\s*\n\*\*Files to modify:\*\*\s*\n((?:\s*-\s*`[^`]+`\s*\n?)+)/g;
 
     let match;
     while ((match = phasePattern.exec(phaseComment.body)) !== null) {
@@ -187,3 +187,4 @@ export function hasPhaseComment(comments: GitHubComment[]): boolean {
 export function getPhaseCommentMarker(): string {
     return PHASE_COMMENT_MARKER;
 }
+

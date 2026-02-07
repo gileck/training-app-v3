@@ -8,6 +8,12 @@ import { isS3LoggingEnabled, s3LogExists, s3WriteLog, s3AppendToLog } from './s3
 const LOGS_DIR = path.join(process.cwd(), 'agent-logs');
 
 /**
+ * Track pending S3 log write promises so they can be flushed before process exit.
+ * This prevents log loss in short-lived environments like Vercel serverless functions.
+ */
+const pendingLogWrites: Promise<void>[] = [];
+
+/**
  * Ensure the logs directory exists
  */
 export function ensureLogDir(): void {
@@ -41,11 +47,12 @@ export function writeLogHeader(
 
 `;
 
-    // If S3 logging is enabled, write to S3 asynchronously
+    // If S3 logging is enabled, write to S3 and track the promise
     if (isS3LoggingEnabled()) {
-        s3WriteLog(issueNumber, header).catch((err) => {
+        const promise = s3WriteLog(issueNumber, header).catch((err) => {
             console.error(`Failed to write log header to S3 for issue #${issueNumber}:`, err);
         });
+        pendingLogWrites.push(promise);
         return;
     }
 
@@ -60,11 +67,12 @@ export function writeLogHeader(
  * When S3 logging is enabled, appends to S3 with fire-and-forget async
  */
 export function appendToLog(issueNumber: number, content: string): void {
-    // If S3 logging is enabled, append to S3 asynchronously
+    // If S3 logging is enabled, append to S3 and track the promise
     if (isS3LoggingEnabled()) {
-        s3AppendToLog(issueNumber, content).catch((err) => {
+        const promise = s3AppendToLog(issueNumber, content).catch((err) => {
             console.error(`Failed to append to S3 log for issue #${issueNumber}:`, err);
         });
+        pendingLogWrites.push(promise);
         return;
     }
 
@@ -118,4 +126,17 @@ export function writeLog(issueNumber: number, content: string): void {
     ensureLogDir();
     const logPath = getLogPath(issueNumber);
     fs.writeFileSync(logPath, content, 'utf-8');
+}
+
+/**
+ * Flush all pending S3 log writes.
+ * Call this before the process exits to ensure no logs are lost.
+ * In non-S3 mode (local filesystem), this is a no-op.
+ */
+export async function flushPendingLogs(): Promise<void> {
+    if (pendingLogWrites.length === 0) {
+        return;
+    }
+    const writes = pendingLogWrites.splice(0, pendingLogWrites.length);
+    await Promise.allSettled(writes);
 }

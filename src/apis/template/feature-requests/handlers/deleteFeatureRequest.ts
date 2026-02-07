@@ -1,6 +1,7 @@
 import { API_DELETE_FEATURE_REQUEST } from '../index';
 import { DeleteFeatureRequestRequest, DeleteFeatureRequestResponse } from '../types';
 import { featureRequests } from '@/server/database';
+import { deleteWorkflowItemBySourceRef } from '@/server/database/collections/template/workflow-items';
 import { ApiHandlerContext } from '@/apis/types';
 
 export const deleteFeatureRequest = async (
@@ -18,7 +19,10 @@ export const deleteFeatureRequest = async (
 
         const deleted = await featureRequests.deleteFeatureRequest(request.requestId);
 
-        if (!deleted) {
+        // Always clean up the associated workflow item (handles orphaned items)
+        const workflowDeleted = await deleteWorkflowItemBySourceRef('feature-requests', request.requestId);
+
+        if (!deleted && !workflowDeleted) {
             return { error: 'Feature request not found' };
         }
 

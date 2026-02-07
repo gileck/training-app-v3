@@ -28,7 +28,6 @@
 
 import '../../shared/loadEnv';
 import { execSync } from 'child_process';
-import { Command } from 'commander';
 import {
     // Config
     STATUSES,
@@ -69,6 +68,14 @@ import {
     IMPLEMENTATION_OUTPUT_FORMAT,
     // Agent Identity
     addAgentPrefix,
+    // Git utilities (shared)
+    git,
+    hasUncommittedChanges,
+    checkoutBranch,
+    commitChanges,
+    pushBranch,
+    // CLI
+    createCLI,
 } from '../../shared';
 import {
     extractPhasesFromTechDesign,
@@ -78,7 +85,6 @@ import {
     parsePhasesFromComment,
 } from '../../lib/phases';
 import {
-    parseArtifactComment,
     getProductDesignPath,
     getTechDesignPath,
     getTaskBranch,
@@ -87,6 +93,7 @@ import {
     updateImplementationPhaseArtifact,
     setTaskBranch,
 } from '../../lib/artifacts';
+import { getArtifactsFromIssue, getPhasesFromDB, savePhaseStatusToDB, saveTaskBranchToDB } from '../../lib/workflow-db';
 import {
     readDesignDoc,
 } from '../../lib/design-files';
@@ -140,47 +147,8 @@ interface ImplementOptions extends CommonCLIOptions {
 }
 
 // ============================================================
-// GIT UTILITIES
+// GIT UTILITIES (agent-specific, not shared)
 // ============================================================
-
-/**
- * Execute a git command and return the output
- */
-function git(command: string, options: { cwd?: string; silent?: boolean } = {}): string {
-    try {
-        const result = execSync(`git ${command}`, {
-            cwd: options.cwd || process.cwd(),
-            encoding: 'utf-8',
-            stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
-        });
-        return result.trim();
-    } catch (error) {
-        if (error instanceof Error && 'stderr' in error) {
-            throw new Error((error as { stderr: string }).stderr || error.message);
-        }
-        throw error;
-    }
-}
-
-/**
- * Check if there are uncommitted changes
- */
-function hasUncommittedChanges(): boolean {
-    const status = git('status --porcelain', { silent: true });
-    return status.length > 0;
-}
-
-/**
- * Checkout a branch (create if doesn't exist)
- */
-function checkoutBranch(branchName: string, createFromDefault: boolean = false): void {
-    if (createFromDefault) {
-        const defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
-        git(`checkout -b ${branchName} origin/${defaultBranch}`);
-    } else {
-        git(`checkout ${branchName}`);
-    }
-}
 
 /**
  * Create a branch from a specific base branch
@@ -251,24 +219,6 @@ function generateBranchName(issueNumber: number, title: string, isBug: boolean =
         return `${prefix}/issue-${issueNumber}-phase-${phaseNumber}-${slug}`;
     }
     return `${prefix}/issue-${issueNumber}-${slug}`;
-}
-
-/**
- * Commit all changes with a message
- */
-function commitChanges(message: string): void {
-    git('add -A');
-    // Use single quotes and escape them properly to avoid shell injection
-    const escapedMessage = message.replace(/'/g, "'\\''");
-    git(`commit -m '${escapedMessage}'`);
-}
-
-/**
- * Push current branch to origin
- */
-function pushBranch(branchName: string, force: boolean = false): void {
-    const forceFlag = force ? '--force-with-lease' : '';
-    git(`push -u origin ${branchName} ${forceFlag}`.trim());
 }
 
 /**
@@ -432,8 +382,8 @@ async function processItem(
         let productDesign: string | null = null;
         let techDesign: string | null = null;
 
-        // Try artifact comment first (new file-based system)
-        const artifact = parseArtifactComment(issueComments);
+        // Try DB-first artifact read, fallback to comment parsing
+        const artifact = await getArtifactsFromIssue(adapter, issueNumber);
         if (artifact) {
             // Try to read from files
             const productPath = getProductDesignPath(artifact);
@@ -490,8 +440,9 @@ async function processItem(
             console.log(`  🌿 ${multiPhaseMsg}`);
             logFeatureBranch(issueNumber, multiPhaseMsg);
 
-            // Try to get phase details from comments first (reliable), then fallback to markdown
-            const parsedPhases = parsePhasesFromComment(issueComments) ||
+            // Try to get phase details from DB first, then comments, then markdown
+            const parsedPhases = await getPhasesFromDB(issueNumber) ||
+                                 parsePhasesFromComment(issueComments) ||
                                  (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
             if (parsedPhases) {
                 currentPhaseDetails = parsedPhases.find(p => p.order === currentPhase);
@@ -500,13 +451,7 @@ async function processItem(
                     total: totalPhases,
                     phases: parsedPhases,
                 };
-
-                // Log which method was used
-                if (parsePhasesFromComment(issueComments)) {
-                    console.log('  Phases loaded from comment (reliable)');
-                } else {
-                    console.log('  Phases loaded from markdown (fallback)');
-                }
+                console.log('  Phases loaded');
             }
 
             // Get task branch from artifact for continuing phases (Phase 2+)
@@ -529,8 +474,9 @@ async function processItem(
             }
         } else if (mode === 'new' && !phaseInfo) {
             // No existing phase - check if we should start multi-phase (only for new implementations)
-            // Try comment first, fallback to markdown
-            const parsedPhases = parsePhasesFromComment(issueComments) ||
+            // Try DB first, then comment, then markdown
+            const parsedPhases = await getPhasesFromDB(issueNumber) ||
+                                 parsePhasesFromComment(issueComments) ||
                                  (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
 
             if (parsedPhases && parsedPhases.length >= 2) {
@@ -540,13 +486,7 @@ async function processItem(
                 const detectedMsg = `Detected multi-phase feature: ${totalPhases} phases`;
                 console.log(`  🌿 ${detectedMsg}`);
                 logFeatureBranch(issueNumber, detectedMsg);
-
-                // Log which method was used
-                if (parsePhasesFromComment(issueComments)) {
-                    console.log('  Phases loaded from comment (reliable)');
-                } else {
-                    console.log('  Phases loaded from markdown (fallback)');
-                }
+                console.log('  Phases loaded');
 
                 // Set phase tracking in GitHub project
                 if (!options.dryRun && adapter.hasImplementationPhaseField()) {
@@ -557,7 +497,8 @@ async function processItem(
                 // Create feature branch for multi-phase workflow (NEW)
                 if (!options.dryRun) {
                     const taskBranchName = await ensureFeatureBranch(adapter, issueNumber, defaultBranch);
-                    // Store task branch in artifact comment for future phases to reference
+                    // Store task branch in DB + artifact comment for future phases to reference
+                    await saveTaskBranchToDB(issueNumber, taskBranchName);
                     await setTaskBranch(adapter, issueNumber, taskBranchName);
                     const storedMsg = `Feature branch stored in artifact: ${taskBranchName}`;
                     console.log(`  🌿 ${storedMsg}`);
@@ -1145,6 +1086,7 @@ See issue #${issueNumber} for full context, product design, and technical design
                 try {
                     if (currentPhase && totalPhases && currentPhaseDetails) {
                         // Multi-phase feature
+                        await savePhaseStatusToDB(issueNumber, currentPhase, 'in-review', prNumber);
                         await updateImplementationPhaseArtifact(
                             adapter,
                             issueNumber,
@@ -1156,6 +1098,7 @@ See issue #${issueNumber} for full context, product design, and technical design
                         );
                     } else {
                         // Single-phase feature - use Phase 1/1 format for consistency
+                        await savePhaseStatusToDB(issueNumber, 1, 'in-review', prNumber);
                         await updateImplementationPhaseArtifact(
                             adapter,
                             issueNumber,
@@ -1311,43 +1254,22 @@ See issue #${issueNumber} for full context, product design, and technical design
 }
 
 async function main(): Promise<void> {
-    const program = new Command();
-
-    program
-        .name('implement')
-        .description('Implement features and create PRs for GitHub Project items')
-        .option('--id <itemId>', 'Process a specific project item by ID')
-        .option('--limit <number>', 'Limit number of items to process', parseInt)
-        .option('--timeout <seconds>', 'Timeout per item in seconds', parseInt)
-        .option('--dry-run', 'Preview without making changes', false)
-        .option('--stream', "Stream Claude's output in real-time", false)
-        .option('--verbose', 'Show additional debug output', false)
-        .option('--skip-push', 'Skip pushing to remote (for testing)', false)
-        .option('--skip-pull', 'Skip pulling latest changes from master', false)
-        .option('--skip-local-test', 'Skip local testing with Playwright MCP', false)
-        .parse(process.argv);
-
-    const opts = program.opts();
+    const { options: baseOptions, extra } = createCLI({
+        name: 'implement',
+        displayName: 'Implementation Agent',
+        description: 'Implement features and create PRs for GitHub Project items',
+        additionalOptions: [
+            { flag: '--skip-push', description: 'Skip pushing to remote (for testing)', defaultValue: false },
+            { flag: '--skip-pull', description: 'Skip pulling latest changes from master', defaultValue: false },
+            { flag: '--skip-local-test', description: 'Skip local testing with Playwright MCP', defaultValue: false },
+        ],
+    });
     const options: ImplementOptions = {
-        id: opts.id as string | undefined,
-        limit: opts.limit as number | undefined,
-        timeout: (opts.timeout as number | undefined) ?? agentConfig.claude.timeoutSeconds,
-        dryRun: Boolean(opts.dryRun),
-        verbose: Boolean(opts.verbose),
-        stream: Boolean(opts.stream),
-        skipPush: Boolean(opts.skipPush),
-        skipPull: Boolean(opts.skipPull),
-        skipLocalTest: Boolean(opts.skipLocalTest),
+        ...baseOptions,
+        skipPush: Boolean(extra.skipPush),
+        skipPull: Boolean(extra.skipPull),
+        skipLocalTest: Boolean(extra.skipLocalTest),
     };
-
-    console.log('\n========================================');
-    console.log('  Implementation Agent');
-    console.log('========================================');
-    console.log(`  Timeout: ${options.timeout}s per item`);
-    if (options.dryRun) {
-        console.log('  Mode: DRY RUN (no changes will be saved)');
-    }
-    console.log('');
 
     // Check for uncommitted changes before starting
     if (hasUncommittedChanges()) {

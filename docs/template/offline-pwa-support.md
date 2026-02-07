@@ -212,15 +212,16 @@ useMutation({
 
 > **Note**: While `onSuccess` should not update state from server responses, ephemeral feedback like **toasts** (`toast.success('Saved')`), **logging**, **analytics**, or **navigation** is acceptable. These don't cause race conditions because they're fire-and-forget operations that don't modify application state. See [React Query Mutations](./react-query-mutations.md#whats-allowed-in-onsuccess) for details.
 
-### Temporary IDs for Create Operations
+### Client-Generated IDs for Create Operations
 
-When creating items, use temporary IDs that stay in the UI:
+When creating items, use `generateId()` from `@/client/utils/id` to create stable UUIDs:
 
 ```typescript
+import { generateId } from '@/client/utils/id';
+
 onMutate: async (variables) => {
-    // Create with temp ID - will be replaced on next page load
     const optimisticItem = {
-        _id: `temp-${Date.now()}`,
+        _id: generateId(), // Stable UUID - same ID used client and server
         ...variables,
     };
     queryClient.setQueryData(['items'], (old) => [...old, optimisticItem]);
@@ -228,8 +229,8 @@ onMutate: async (variables) => {
 },
 ```
 
-The temp ID stays until the next page load fetches fresh data with real IDs.
-This is intentional and correct - the user can still interact with the item.
+The client-generated ID persists in the cache until the next query refetch.
+See [React Query Mutations](./react-query-mutations.md) for the full pattern.
 
 ### What About Data Freshness?
 

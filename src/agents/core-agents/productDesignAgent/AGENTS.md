@@ -580,7 +580,7 @@ yarn agent:product-design --id <project-item-id>
 
 ## Related Documentation
 
-- **Overall workflow:** `docs/github-projects-integration.md`
-- **Setup guide:** `docs/init-github-projects-workflow.md`
+- **Overall workflow:** `docs/template/github-agents-workflow/overview.md`
+- **Setup guide:** `docs/template/github-agents-workflow/setup-guide.md`
 - **Prompts:** `src/agents/shared/prompts/`
 - **Output schemas:** `src/agents/shared/output-schemas.ts`

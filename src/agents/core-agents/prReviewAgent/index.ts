@@ -22,8 +22,6 @@
  */
 
 import '../../shared/loadEnv';
-import { execSync } from 'child_process';
-import { Command } from 'commander';
 import {
     // Config
     STATUSES,
@@ -47,6 +45,13 @@ import {
     getIssueType,
     // Agent Identity
     addAgentPrefix,
+    // Git utilities
+    git,
+    hasUncommittedChanges,
+    checkoutBranch,
+    getCurrentBranch,
+    // CLI
+    createCLI,
 } from '../../shared';
 import {
     createLogContext,
@@ -67,10 +72,10 @@ import {
     extractTechDesign,
     generateCommitMessage,
     formatCommitMessageComment,
-    parseArtifactComment,
     getTechDesignPath,
     updateImplementationPhaseArtifact,
 } from '../../lib';
+import { getArtifactsFromIssue, getPhasesFromDB, saveCommitMessage, savePhaseStatusToDB } from '../../lib/workflow-db';
 import {
     readDesignDoc,
 } from '../../lib/design-files';
@@ -137,51 +142,6 @@ const PR_REVIEW_OUTPUT_FORMAT = {
         required: ['decision', 'summary', 'reviewText'],
     },
 };
-
-// ============================================================
-// GIT UTILITIES
-// ============================================================
-
-/**
- * Execute a git command and return the output
- */
-function git(command: string, options: { cwd?: string; silent?: boolean } = {}): string {
-    try {
-        const result = execSync(`git ${command}`, {
-            cwd: options.cwd || process.cwd(),
-            encoding: 'utf-8',
-            stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
-        });
-        return result.trim();
-    } catch (error) {
-        if (error instanceof Error && 'stderr' in error) {
-            throw new Error((error as { stderr: string }).stderr || error.message);
-        }
-        throw error;
-    }
-}
-
-/**
- * Get current branch name
- */
-function getCurrentBranch(): string {
-    return git('branch --show-current', { silent: true });
-}
-
-/**
- * Checkout a branch
- */
-function checkoutBranch(branchName: string): void {
-    git(`checkout ${branchName}`);
-}
-
-/**
- * Check if there are uncommitted changes
- */
-function hasUncommittedChanges(): boolean {
-    const status = git('status --porcelain', { silent: true });
-    return status.length > 0;
-}
 
 // ============================================================
 // PR FINDING
@@ -390,10 +350,10 @@ async function processItem(
 
                 // Handle approval flow: generate commit message, save to PR comment, notify admin
                 if (decision === 'approved') {
-                    // 1. Update artifact comment to show PR is approved
+                    // 1. Update DB + artifact comment to show PR is approved
                     try {
                         if (processable.phaseInfo) {
-                            // Multi-phase feature
+                            await savePhaseStatusToDB(issueNumber, processable.phaseInfo.current, 'approved', prNumber);
                             await updateImplementationPhaseArtifact(
                                 adapter,
                                 issueNumber,
@@ -404,7 +364,7 @@ async function processItem(
                                 prNumber
                             );
                         } else {
-                            // Single-phase feature - use Phase 1/1 format for consistency
+                            await savePhaseStatusToDB(issueNumber, 1, 'approved', prNumber);
                             await updateImplementationPhaseArtifact(
                                 adapter,
                                 issueNumber,
@@ -429,6 +389,9 @@ async function processItem(
                             : undefined;
                         const commitMsg = generateCommitMessage(prInfo, item.content, phaseInfoForCommit);
                         console.log(`  Generated commit message: ${commitMsg.title}`);
+
+                        // 3b. Save commit message to DB
+                        await saveCommitMessage(issueNumber, prNumber, commitMsg.title, commitMsg.body);
 
                         // 4. Save/update commit message as PR comment
                         const existingComment = await adapter.findPRCommentByMarker(prNumber, COMMIT_MESSAGE_MARKER);
@@ -457,9 +420,10 @@ async function processItem(
                         await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
                     }
                 } else {
-                    // Request changes - update artifact and notify
+                    // Request changes - update DB + artifact and notify
                     try {
                         if (processable.phaseInfo) {
+                            await savePhaseStatusToDB(issueNumber, processable.phaseInfo.current, 'changes-requested', prNumber);
                             await updateImplementationPhaseArtifact(
                                 adapter,
                                 issueNumber,
@@ -470,7 +434,7 @@ async function processItem(
                                 prNumber
                             );
                         } else {
-                            // Single-phase feature - use Phase 1/1 format for consistency
+                            await savePhaseStatusToDB(issueNumber, 1, 'changes-requested', prNumber);
                             await updateImplementationPhaseArtifact(
                                 adapter,
                                 issueNumber,
@@ -507,11 +471,11 @@ async function processItem(
             }
         }
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`  Error: ${errorMessage}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`  Error: ${errorMsg}`);
 
         // Log error
-        logError(logCtx, error instanceof Error ? error : errorMessage, true);
+        logError(logCtx, error instanceof Error ? error : errorMsg, true);
         logExecutionEnd(logCtx, {
             success: false,
             toolCallsCount: 0,
@@ -520,10 +484,10 @@ async function processItem(
         });
 
         if (!options.dryRun) {
-            await notifyAgentError('PR Review', content.title, issueNumber, errorMessage);
+            await notifyAgentError('PR Review', content.title, issueNumber, errorMsg);
         }
 
-        return { success: false, error: errorMessage };
+        return { success: false, error: errorMsg };
     }
     });
 }
@@ -533,13 +497,6 @@ async function processItem(
 // ============================================================
 
 async function run(options: PRReviewOptions): Promise<void> {
-    console.log('PR Review Agent');
-    console.log('================\n');
-
-    if (options.dryRun) {
-        console.log('🔍 DRY RUN MODE - No changes will be made\n');
-    }
-
     const adapter = getProjectManagementAdapter();
     await adapter.init();
 
@@ -598,14 +555,11 @@ async function run(options: PRReviewOptions): Promise<void> {
                 updatedAt: c.updatedAt,
             }));
 
-            // Try to get phases from:
-            // 1. Issue comments (most reliable - deterministic format)
-            // 2. Tech design file (new system)
-            // 3. Issue body (old system - fallback)
+            // Try to get phases from DB first, then comments, then markdown
             let techDesign: string | null = null;
 
-            // Try file-based tech design first
-            const artifact = parseArtifactComment(commentsList);
+            // Try DB-first artifact read for tech design path
+            const artifact = await getArtifactsFromIssue(adapter, issueNumber);
             const techPath = getTechDesignPath(artifact);
             if (techPath && artifact?.techDesign?.status === 'approved') {
                 techDesign = readDesignDoc(issueNumber, 'tech');
@@ -616,7 +570,8 @@ async function run(options: PRReviewOptions): Promise<void> {
                 techDesign = extractTechDesign(item.content.body);
             }
 
-            const phases = parsePhasesFromComment(commentsList) ||
+            const phases = await getPhasesFromDB(issueNumber) ||
+                          parsePhasesFromComment(commentsList) ||
                           (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
 
             const currentPhaseDetails = phases?.find(p => p.order === parsed.current);
@@ -693,24 +648,29 @@ async function run(options: PRReviewOptions): Promise<void> {
 // CLI
 // ============================================================
 
-const program = new Command();
-
-program
-    .name('pr-review')
-    .description('Review Pull Requests for GitHub Project items')
-    .option('--id <item-id>', 'Process specific item by ID')
-    .option('--dry-run', 'Preview without making changes')
-    .option('--stream', 'Stream Claude output')
-    .option('--verbose', 'Show verbose output')
-    .option('--skip-checkout', 'Skip git checkout operations (for testing)')
-    .action(async (options: PRReviewOptions) => {
-        try {
-            await run(options);
-            process.exit(0);
-        } catch (error) {
-            console.error('Fatal error:', error);
-            process.exit(1);
-        }
+async function main(): Promise<void> {
+    const { options: baseOptions, extra } = createCLI({
+        name: 'pr-review',
+        displayName: 'PR Review Agent',
+        description: 'Review Pull Requests for GitHub Project items',
+        additionalOptions: [
+            { flag: '--skip-checkout', description: 'Skip git checkout operations (for testing)', defaultValue: false },
+        ],
     });
+    const options: PRReviewOptions = {
+        ...baseOptions,
+        skipCheckout: Boolean(extra.skipCheckout),
+    };
 
-program.parse();
+    await run(options);
+}
+
+// Run
+main()
+    .then(() => {
+        process.exit(0);
+    })
+    .catch((error) => {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    });

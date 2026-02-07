@@ -125,7 +125,7 @@ function throwMissingEnvError(envVar: string): never {
         `  - GITHUB_OWNER: Your GitHub username or organization\n` +
         `  - GITHUB_REPO: Your repository name\n` +
         `  - GITHUB_PROJECT_NUMBER: Your GitHub Project number\n\n` +
-        `See docs/init-github-projects-workflow.md for setup instructions.`
+        `See docs/template/github-agents-workflow/setup-guide.md for setup instructions.`
     );
 }
 

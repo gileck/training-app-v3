@@ -9,7 +9,13 @@ import type { ProjectItemContent } from '@/server/project-management';
 import type { GitHubComment } from '../types';
 import type { BugDiagnostics } from '../utils';
 import { formatSessionLogs } from '../utils';
-import { AMBIGUITY_INSTRUCTIONS, MARKDOWN_FORMATTING_INSTRUCTIONS } from './shared-instructions';
+import {
+    AMBIGUITY_INSTRUCTIONS,
+    MARKDOWN_FORMATTING_INSTRUCTIONS,
+    buildCommentsSection,
+    buildFeedbackSection,
+    buildIssueDetailsHeader,
+} from './shared-instructions';
 
 /**
  * Build prompt for bug investigation (new investigation)
@@ -19,9 +25,7 @@ export function buildBugInvestigationPrompt(
     diagnostics: BugDiagnostics | null,
     comments?: GitHubComment[]
 ): string {
-    const commentsSection = comments && comments.length > 0
-        ? `\n## Comments on Issue\n\nThe following comments have been added to the issue:\n\n${comments.map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`).join('\n\n---\n\n')}\n`
-        : '';
+    const commentsSection = buildCommentsSection(comments, '');
 
     // Format diagnostics if available
     let diagnosticsSection = '';
@@ -54,13 +58,7 @@ Your goal is to:
 
 CRITICAL: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
 
-## Issue Details
-
-**Title:** ${issue.title}
-**Number:** #${issue.number || 'Draft'}
-
-**Description:**
-${issue.body || 'No description provided'}
+${buildIssueDetailsHeader(issue)}
 ${commentsSection}
 ${diagnosticsSection}
 
@@ -166,9 +164,7 @@ export function buildBugInvestigationRevisionPrompt(
     existingInvestigation: string,
     feedbackComments: GitHubComment[]
 ): string {
-    const feedbackSection = feedbackComments
-        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
-        .join('\n\n---\n\n');
+    const feedbackSection = buildFeedbackSection(feedbackComments);
 
     // Format diagnostics if available
     let diagnosticsSection = '';
@@ -186,10 +182,7 @@ ${diagnostics.errorMessage ? `**Error Message:** ${diagnostics.errorMessage}\n` 
 
 CRITICAL: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
 
-## Issue Details
-
-**Title:** ${issue.title}
-**Number:** #${issue.number || 'Draft'}
+${buildIssueDetailsHeader(issue, { includeDescription: false })}
 
 ${diagnosticsSection}
 
@@ -225,6 +218,15 @@ Provide your response as structured JSON with ALL fields (complete investigation
 - **additionalLogsNeeded**: If applicable
 - **summary**: Updated summary of investigation
 
+## Output Format Example
+
+**GOOD summary example:**
+\`\`\`
+1. Root cause: the parseInt call in parseItemId() returns NaN when input contains whitespace (confirmed by tracing handler.ts:45)
+2. Confidence: high - reproduced the exact failure path
+3. Recommended fix: Option 2 (Standard Fix) - add input validation at the API boundary in handler.ts
+\`\`\`
+
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
@@ -249,19 +251,13 @@ export function buildBugInvestigationClarificationPrompt(
 ${diagnostics.errorMessage ? `**Error Message:** ${diagnostics.errorMessage}\n` : ''}${diagnostics.route ? `**Route:** ${diagnostics.route}\n` : ''}`;
     }
 
-    const previousContext = comments
-        .slice(0, -1) // All comments except the clarification answer
-        .map((c) => `**${c.author}** (${c.createdAt}):\n${c.body}`)
-        .join('\n\n---\n\n');
+    const previousContext = buildFeedbackSection(comments.slice(0, -1));
 
     return `You are continuing a Bug Investigation after receiving clarification from the admin.
 
 CRITICAL: You are in READ-ONLY mode. Do NOT make any changes to files. Only use Read, Glob, Grep, and WebFetch tools.
 
-## Issue Details
-
-**Title:** ${issue.title}
-**Number:** #${issue.number || 'Draft'}
+${buildIssueDetailsHeader(issue, { includeDescription: false })}
 
 ${diagnosticsSection}
 
@@ -293,6 +289,15 @@ Provide your response as structured JSON with ALL fields:
 - **filesExamined**: List of files examined
 - **additionalLogsNeeded**: If applicable
 - **summary**: Summary of investigation
+
+## Output Format Example
+
+**GOOD summary example:**
+\`\`\`
+1. Root cause: the useEffect dependency array was missing \`userId\`, causing stale data after login switch
+2. Confidence: high - admin's clarification confirmed this only happens when switching accounts
+3. Recommended fix: Option 1 (Quick Fix, S) - add userId to the dependency array in useItems.ts
+\`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 

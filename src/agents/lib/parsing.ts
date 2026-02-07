@@ -41,12 +41,14 @@ export function extractMarkdown(text: string): string | null {
                 if (beforeFence === '') {
                     // It's a valid fence at line start
                     // Check if it's an opening or closing fence
+                    // Opening fences have a language identifier immediately after ``` (letters only, no spaces before)
+                    // Closing fences are bare ``` or ``` followed by whitespace/newline/end-of-string
                     const afterFence = text.slice(nextFence + 3, nextFence + 20);
-                    if (/^[a-z]+/.test(afterFence)) {
-                        // Opening fence (has language identifier)
+                    if (/^[a-z]+(\s|$)/i.test(afterFence) && !/^\s/.test(afterFence)) {
+                        // Opening fence (has language identifier directly after backticks)
                         depth++;
                     } else {
-                        // Closing fence
+                        // Closing fence (bare ```, or ``` followed by whitespace/trailing text)
                         depth--;
                         if (depth === 0) {
                             // Found the matching closing fence

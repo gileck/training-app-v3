@@ -13,9 +13,11 @@ Workflow pipeline phases - the primary workflow columns/statuses.
 | `backlog` | "Backlog" | New items, not yet started |
 | `productDevelopment` | "Product Development" | (Optional) AI transforms vague ideas into product specs |
 | `productDesign` | "Product Design" | AI generates UX/UI design, human reviews |
+| `bugInvestigation` | "Bug Investigation" | AI investigates bug root cause, human selects fix approach |
 | `techDesign` | "Technical Design" | AI generates tech design, human reviews |
 | `implementation` | "Ready for development" | AI implements and creates PR |
 | `prReview` | "PR Review" | PR created, awaiting review/merge |
+| `finalReview` | "Final Review" | (Multi-phase only) Final PR from feature branch to main |
 | `done` | "Done" | Completed and merged |
 
 ### Review Statuses (REVIEW_STATUSES)

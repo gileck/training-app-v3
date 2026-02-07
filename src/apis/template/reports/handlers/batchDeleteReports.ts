@@ -1,9 +1,7 @@
 import { BatchDeleteReportsRequest, BatchDeleteReportsResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
-import { getDb } from '@/server/database';
+import { reports } from '@/server/database';
 import { fileStorageAPI } from '@/server/blob';
-import { toQueryId } from '@/server/utils';
-import type { ObjectId } from 'mongodb';
 
 export const batchDeleteReports = async (
     request: BatchDeleteReportsRequest,
@@ -16,17 +14,11 @@ export const batchDeleteReports = async (
             return { error: 'No report IDs provided' };
         }
 
-        const db = await getDb();
-        const collection = db.collection('reports');
-
-        // Convert string IDs to query format (reports always use ObjectId format)
-        const objectIds = reportIds.map(id => toQueryId(id) as ObjectId);
-
         // First, get all reports to find screenshots
-        const reports = await collection.find({ _id: { $in: objectIds } }).toArray();
+        const reportDocs = await reports.findReportsByIds(reportIds);
 
         // Collect all screenshot URLs to delete
-        const screenshotUrls = reports
+        const screenshotUrls = reportDocs
             .filter(report => report.screenshot)
             .map(report => report.screenshot as string)
             .filter(url => url.startsWith('http://') || url.startsWith('https://'));
@@ -45,11 +37,11 @@ export const batchDeleteReports = async (
         }
 
         // Delete all reports from database
-        const result = await collection.deleteMany({ _id: { $in: objectIds } });
+        const deletedCount = await reports.batchDeleteByIds(reportIds);
 
-        console.log(`Batch deleted ${result.deletedCount} reports by user ${context.userId || 'anonymous'}`);
+        console.log(`Batch deleted ${deletedCount} reports by user ${context.userId || 'anonymous'}`);
 
-        return { deletedCount: result.deletedCount };
+        return { deletedCount };
     } catch (error) {
         console.error('Error batch deleting reports:', error);
         return {

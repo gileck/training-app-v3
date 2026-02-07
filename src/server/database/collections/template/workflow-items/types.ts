@@ -1,4 +1,11 @@
-import { ObjectId } from 'mongodb';
+import type { ObjectId } from 'mongodb';
+import type {
+    DecisionOption,
+    MetadataFieldConfig,
+    DestinationOption,
+    RoutingConfig,
+    DecisionSelection,
+} from '@/apis/template/agent-decision/types';
 
 /**
  * Type of workflow item
@@ -12,6 +19,59 @@ export interface SourceRef {
     collection: 'feature-requests' | 'reports';
     id: ObjectId;
 }
+
+// ============================================================
+// ARTIFACT TYPES
+// ============================================================
+
+export type ImplementationStatus = 'pending' | 'in-review' | 'approved' | 'changes-requested' | 'merged';
+
+export interface DesignArtifactRecord {
+    type: 'product-dev' | 'product-design' | 'tech-design';
+    path: string;
+    status: 'pending' | 'approved';
+    lastUpdated: string;
+    prNumber?: number;
+}
+
+export interface PhaseArtifactRecord {
+    order: number;
+    name: string;
+    description: string;
+    files: string[];
+    estimatedSize: 'S' | 'M';
+    status: ImplementationStatus;
+    prNumber?: number;
+}
+
+export interface CommitMessageRecord {
+    prNumber: number;
+    title: string;
+    body: string;
+}
+
+export interface DecisionArtifactRecord {
+    agentId: string;
+    type: string;
+    context: string;
+    options: DecisionOption[];
+    metadataSchema: MetadataFieldConfig[];
+    customDestinationOptions?: DestinationOption[];
+    routing?: RoutingConfig;
+    selection?: DecisionSelection;
+}
+
+export interface WorkflowItemArtifacts {
+    designs?: DesignArtifactRecord[];
+    phases?: PhaseArtifactRecord[];
+    taskBranch?: string;
+    commitMessages?: CommitMessageRecord[];
+    decision?: DecisionArtifactRecord;
+}
+
+// ============================================================
+// DOCUMENT TYPES
+// ============================================================
 
 /**
  * Workflow item document in the database
@@ -32,6 +92,7 @@ export interface WorkflowItemDocument {
     githubIssueUrl?: string;
     githubIssueTitle?: string;
     labels?: string[];
+    artifacts?: WorkflowItemArtifacts;
     createdAt: Date;
     updatedAt: Date;
 }

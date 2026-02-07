@@ -278,6 +278,28 @@ export const updateGitHubFields = async (
 };
 
 /**
+ * Atomically claim (consume) the approval token.
+ * Uses findOneAndUpdate with a condition so only the first caller succeeds.
+ * Returns the document (with token) if claimed, null if already claimed or missing.
+ */
+export const claimApprovalToken = async (
+    requestId: ObjectId | string
+): Promise<FeatureRequestDocument | null> => {
+    const collection = await getFeatureRequestsCollection();
+    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
+
+    // $ne: null is valid MongoDB but conflicts with TypeScript's strict typing for optional string fields
+    const filter = { _id: requestIdObj, approvalToken: { $exists: true, $ne: null } } as unknown as Filter<FeatureRequestDocument>;
+    const result = await collection.findOneAndUpdate(
+        filter,
+        { $unset: { approvalToken: '' }, $set: { updatedAt: new Date() } },
+        { returnDocument: 'before' }
+    );
+
+    return result || null;
+};
+
+/**
  * Update or clear the approval token
  */
 export const updateApprovalToken = async (

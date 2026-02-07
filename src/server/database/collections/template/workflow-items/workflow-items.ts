@@ -1,6 +1,16 @@
 import { Collection, ObjectId, Filter } from 'mongodb';
 import { getDb } from '../../../connection';
-import type { WorkflowItemDocument, WorkflowItemCreate } from './types';
+import type {
+    WorkflowItemDocument,
+    WorkflowItemCreate,
+    WorkflowItemArtifacts,
+    DesignArtifactRecord,
+    PhaseArtifactRecord,
+    CommitMessageRecord,
+    DecisionArtifactRecord,
+    ImplementationStatus,
+} from './types';
+import type { DecisionSelection } from '@/apis/template/agent-decision/types';
 
 /**
  * Get a reference to the workflow-items collection
@@ -130,5 +140,252 @@ export const updateGitHubFields = async (
     await collection.updateOne(
         { _id: idObj },
         { $set: { ...fields, updatedAt: new Date() } }
+    );
+};
+
+// ============================================================
+// ARTIFACT OPERATIONS
+// ============================================================
+
+/**
+ * Find a workflow item by GitHub issue number
+ */
+export const findWorkflowItemByIssueNumber = async (
+    issueNumber: number
+): Promise<WorkflowItemDocument | null> => {
+    const collection = await getWorkflowItemsCollection();
+    return collection.findOne({ githubIssueNumber: issueNumber });
+};
+
+/**
+ * Get artifacts for a workflow item by issue number
+ */
+export const getArtifacts = async (
+    issueNumber: number
+): Promise<WorkflowItemArtifacts | null> => {
+    const item = await findWorkflowItemByIssueNumber(issueNumber);
+    return item?.artifacts ?? null;
+};
+
+/**
+ * Upsert a design artifact in artifacts.designs by type
+ */
+export const updateDesignArtifactInDB = async (
+    issueNumber: number,
+    design: DesignArtifactRecord
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+
+    // First try to update an existing design of the same type
+    const result = await collection.updateOne(
+        { githubIssueNumber: issueNumber, 'artifacts.designs.type': design.type },
+        {
+            $set: {
+                'artifacts.designs.$': design,
+                updatedAt: new Date(),
+            },
+        }
+    );
+
+    if (result.matchedCount === 0) {
+        // No existing design of this type - push a new one
+        await collection.updateOne(
+            { githubIssueNumber: issueNumber },
+            {
+                $push: { 'artifacts.designs': design },
+                $set: { updatedAt: new Date() },
+            }
+        );
+    }
+};
+
+/**
+ * Replace all phases in artifacts.phases
+ */
+export const setPhases = async (
+    issueNumber: number,
+    phases: PhaseArtifactRecord[]
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.phases': phases,
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Update a specific phase's status and optional prNumber
+ */
+export const updatePhaseStatus = async (
+    issueNumber: number,
+    order: number,
+    fields: { status: ImplementationStatus; prNumber?: number }
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+
+    const $set: Record<string, unknown> = {
+        'artifacts.phases.$[phase].status': fields.status,
+        updatedAt: new Date(),
+    };
+    if (fields.prNumber !== undefined) {
+        $set['artifacts.phases.$[phase].prNumber'] = fields.prNumber;
+    }
+
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        { $set },
+        { arrayFilters: [{ 'phase.order': order }] }
+    );
+};
+
+/**
+ * Set the task branch in artifacts
+ */
+export const setTaskBranchInDB = async (
+    issueNumber: number,
+    branch: string
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.taskBranch': branch,
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Clear the task branch from artifacts
+ */
+export const clearTaskBranchInDB = async (
+    issueNumber: number
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $unset: { 'artifacts.taskBranch': '' },
+            $set: { updatedAt: new Date() },
+        }
+    );
+};
+
+/**
+ * Upsert a commit message in artifacts.commitMessages by prNumber
+ */
+export const setCommitMessage = async (
+    issueNumber: number,
+    prNumber: number,
+    title: string,
+    body: string
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    const record: CommitMessageRecord = { prNumber, title, body };
+
+    // Try to update existing entry for this PR
+    const result = await collection.updateOne(
+        { githubIssueNumber: issueNumber, 'artifacts.commitMessages.prNumber': prNumber },
+        {
+            $set: {
+                'artifacts.commitMessages.$': record,
+                updatedAt: new Date(),
+            },
+        }
+    );
+
+    if (result.matchedCount === 0) {
+        // No existing entry - push a new one
+        await collection.updateOne(
+            { githubIssueNumber: issueNumber },
+            {
+                $push: { 'artifacts.commitMessages': record },
+                $set: { updatedAt: new Date() },
+            }
+        );
+    }
+};
+
+/**
+ * Get a commit message by issue number and PR number
+ */
+export const getCommitMessageFromDB = async (
+    issueNumber: number,
+    prNumber: number
+): Promise<CommitMessageRecord | null> => {
+    const artifacts = await getArtifacts(issueNumber);
+    return artifacts?.commitMessages?.find(cm => cm.prNumber === prNumber) ?? null;
+};
+
+/**
+ * Set the decision artifact
+ */
+export const setDecision = async (
+    issueNumber: number,
+    decision: DecisionArtifactRecord
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.decision': decision,
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Delete a workflow item by its _id
+ */
+export const deleteWorkflowItem = async (
+    id: ObjectId | string
+): Promise<boolean> => {
+    const collection = await getWorkflowItemsCollection();
+    const idObj = typeof id === 'string' ? new ObjectId(id) : id;
+    const result = await collection.deleteOne({ _id: idObj });
+    return result.deletedCount > 0;
+};
+
+/**
+ * Delete a workflow item by its source reference
+ */
+export const deleteWorkflowItemBySourceRef = async (
+    sourceCollection: 'feature-requests' | 'reports',
+    sourceId: ObjectId | string
+): Promise<boolean> => {
+    const collection = await getWorkflowItemsCollection();
+    const sourceIdObj = typeof sourceId === 'string' ? new ObjectId(sourceId) : sourceId;
+    const result = await collection.deleteOne({
+        'sourceRef.collection': sourceCollection,
+        'sourceRef.id': sourceIdObj,
+    });
+    return result.deletedCount > 0;
+};
+
+/**
+ * Set the decision selection within the decision artifact
+ */
+export const setDecisionSelection = async (
+    issueNumber: number,
+    selection: DecisionSelection
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.decision.selection': selection,
+                updatedAt: new Date(),
+            },
+        }
     );
 };

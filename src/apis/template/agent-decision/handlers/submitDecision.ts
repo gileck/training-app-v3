@@ -14,6 +14,8 @@ import {
     parseDecision,
     formatDecisionSelectionComment,
     findDecisionItem,
+    getDecisionFromDB,
+    saveSelectionToDB,
 } from '../utils';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
@@ -60,27 +62,29 @@ export async function submitDecision(
             return { error: verification.error };
         }
 
-        // Get the decision comment to extract options for the selection comment
-        const comments = await adapter.getIssueComments(issueNumber);
-
-        let decisionCommentBody = null;
-        for (let i = comments.length - 1; i >= 0; i--) {
-            if (isDecisionComment(comments[i].body)) {
-                decisionCommentBody = comments[i].body;
-                break;
-            }
-        }
-
-        if (!decisionCommentBody) {
-            return { error: 'Could not find decision comment' };
-        }
-
+        // Try DB first for decision data
         const issueDetails = await adapter.getIssueDetails(issueNumber);
-        const decision = parseDecision(
-            decisionCommentBody,
-            issueNumber,
-            issueDetails?.title || `Issue #${issueNumber}`
-        );
+        const issueTitle = issueDetails?.title || `Issue #${issueNumber}`;
+        let decision = await getDecisionFromDB(issueNumber, issueTitle);
+
+        // Fallback to comment parsing
+        if (!decision) {
+            const comments = await adapter.getIssueComments(issueNumber);
+
+            let decisionCommentBody = null;
+            for (let i = comments.length - 1; i >= 0; i--) {
+                if (isDecisionComment(comments[i].body)) {
+                    decisionCommentBody = comments[i].body;
+                    break;
+                }
+            }
+
+            if (!decisionCommentBody) {
+                return { error: 'Could not find decision comment' };
+            }
+
+            decision = parseDecision(decisionCommentBody, issueNumber, issueTitle);
+        }
 
         if (!decision) {
             return { error: 'Could not parse decision' };
@@ -105,6 +109,9 @@ export async function submitDecision(
 
         await adapter.addIssueComment(issueNumber, selectionComment);
         console.log(`  Posted decision selection comment on issue #${issueNumber}`);
+
+        // Save selection to DB
+        await saveSelectionToDB(issueNumber, selection);
 
         // Resolve routing if config is present
         const routing = decision.routing;

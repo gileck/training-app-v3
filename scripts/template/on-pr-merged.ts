@@ -37,11 +37,10 @@ import {
     updateDesignArtifact,
     getDesignDocLink,
     hasPhaseComment,
-    updateImplementationArtifact,
     updateImplementationPhaseArtifact,
-    parseArtifactComment,
     initializeImplementationPhases,
 } from '../../src/agents/lib';
+import { getArtifactsFromIssue, saveDesignArtifactToDB, savePhaseStatusToDB, savePhasesToDB } from '../../src/agents/lib/workflow-db';
 import { readDesignDoc } from '../../src/agents/lib/design-files';
 import { formatPhasesToComment, parsePhasesFromMarkdown } from '../../src/agents/lib/phases';
 
@@ -72,18 +71,20 @@ async function handleDesignPRMerged(
 
     // 1. Update artifact comment on issue
     console.log(`  Updating artifact comment on issue #${issueNumber}...`);
-    const artifactType = designType === 'product-dev'
+    const artifactType: 'product-dev' | 'product-design' | 'tech-design' = designType === 'product-dev'
         ? 'product-dev'
         : designType === 'product'
             ? 'product-design'
             : 'tech-design';
-    await updateDesignArtifact(adapter, issueNumber, {
+    const designArtifact = {
         type: artifactType,
         path: getDesignDocLink(issueNumber, designType),
-        status: 'approved',
+        status: 'approved' as const,
         lastUpdated: new Date().toISOString().split('T')[0],
         prNumber,
-    });
+    };
+    await saveDesignArtifactToDB(issueNumber, designArtifact);
+    await updateDesignArtifact(adapter, issueNumber, designArtifact);
     console.log('  Artifact comment updated');
 
     // 2. Find project item and advance status
@@ -128,6 +129,7 @@ async function handleDesignPRMerged(
                 }
 
                 // Pre-populate all phases in artifact comment with "pending" status
+                await savePhasesToDB(issueNumber, phases);
                 await initializeImplementationPhases(
                     adapter,
                     issueNumber,
@@ -236,9 +238,8 @@ async function main() {
         if (parsedPhase) {
             console.log(`📋 Multi-phase feature: Phase ${parsedPhase.current}/${parsedPhase.total}`);
 
-            // Get phase name from artifact comment if available
-            const issueComments = await adapter.getIssueComments(issueNumber);
-            const artifact = parseArtifactComment(issueComments);
+            // Get phase name from DB-first artifact read
+            const artifact = await getArtifactsFromIssue(adapter, issueNumber);
             const currentPhaseArtifact = artifact?.implementation?.phases?.find(
                 p => p.phase === parsedPhase.current
             );
@@ -246,6 +247,7 @@ async function main() {
 
             // Update artifact comment to mark phase as merged
             try {
+                await savePhaseStatusToDB(issueNumber, parsedPhase.current, 'merged', parseInt(prNumber, 10));
                 await updateImplementationPhaseArtifact(
                     adapter,
                     issueNumber,
@@ -339,6 +341,7 @@ Run <code>yarn agent:implement</code> to continue.`;
             // Single-phase feature - update artifact comment and add completion comment
             try {
                 // Use Phase 1/1 format for consistency
+                await savePhaseStatusToDB(issueNumber, 1, 'merged', parseInt(prNumber, 10));
                 await updateImplementationPhaseArtifact(
                     adapter,
                     issueNumber,
