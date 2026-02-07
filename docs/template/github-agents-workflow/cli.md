@@ -1,11 +1,11 @@
 ---
 title: Agent Workflow CLI
 description: CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
-summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live GitHub status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows."
+summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows."
 priority: 3
 key_points:
   - "list command: filter by --type, --status, --source"
-  - "get command: shows live GitHub Project status"
+  - "get command: shows live pipeline status"
   - "update command: change status/priority with --dry-run"
   - "ID prefix matching supported (first 8 chars of ObjectId)"
 related_docs:
@@ -125,7 +125,7 @@ yarn agent-workflow get <id> [options]
 
 **Features:**
 - Supports ID prefix matching (e.g., `697f15ce` matches full ObjectId)
-- Displays GitHub Project status and review status (fetched live from GitHub API)
+- Displays pipeline status and review status from workflow-items collection
 - Shows all item details including comments, admin notes, investigation info
 
 **Examples:**
@@ -143,7 +143,7 @@ yarn agent-workflow get 697f15ce --type feature
 **Output includes:**
 - Basic info: ID, title, status, priority, source, dates
 - GitHub Issue link and number (if synced)
-- GitHub Project status (fetched live from GitHub Projects API)
+- Pipeline status (from workflow-items collection)
 - Description and admin notes
 - Comments with timestamps and authors
 - For bugs: error message, browser info, investigation details

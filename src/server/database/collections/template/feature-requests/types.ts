@@ -81,6 +81,12 @@ export interface FeatureRequestDocument {
     githubIssueUrl?: string;          // URL to the GitHub issue
     githubIssueNumber?: number;       // GitHub issue number
     githubProjectItemId?: string;     // GitHub Project item ID (for status updates)
+    githubIssueTitle?: string;        // Cached issue title for listItems() efficiency
+
+    // Workflow tracking (replaces GitHub Projects V2)
+    workflowStatus?: string;          // 'Backlog', 'Product Design', 'Technical Design', etc.
+    workflowReviewStatus?: string;    // 'Waiting for Review', 'Approved', 'Request Changes', etc.
+    implementationPhase?: string;     // '1/3', '2/3', etc.
 
     // Approval token for Telegram quick-approve link
     approvalToken?: string;           // Secure token for one-click approval
@@ -115,6 +121,11 @@ export interface FeatureRequestClient {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
+    githubIssueTitle?: string;
+    // Workflow tracking
+    workflowStatus?: string;
+    workflowReviewStatus?: string;
+    implementationPhase?: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -68,7 +68,7 @@ export interface SyncItemConfig<T extends GitHubSyncedFields> {
     /** Update the database with GitHub fields after sync */
     updateDBWithGitHubFields: (
         id: string,
-        fields: { githubIssueUrl: string; githubIssueNumber: number; githubProjectItemId: string }
+        fields: { githubIssueUrl: string; githubIssueNumber: number; githubProjectItemId: string; githubIssueTitle: string }
     ) => Promise<void>;
 
     /** Send routing notification after sync (optional, can be skipped via SyncOptions) */

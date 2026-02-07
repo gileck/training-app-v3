@@ -432,3 +432,59 @@ export const incrementReportOccurrence = async (
     return result.modifiedCount === 1;
 };
 
+/**
+ * Find reports by workflow status (for AppProjectAdapter)
+ */
+export const findByWorkflowStatus = async (
+    workflowStatus?: string,
+    workflowReviewStatus?: string
+): Promise<ReportDocument[]> => {
+    const collection = await getReportsCollection();
+    const query: Filter<ReportDocument> = {};
+
+    if (workflowStatus) {
+        query.workflowStatus = workflowStatus;
+    }
+    if (workflowReviewStatus) {
+        query.workflowReviewStatus = workflowReviewStatus;
+    }
+
+    // Only return items that have been synced to GitHub (have a projectItemId)
+    query.githubProjectItemId = { $exists: true, $ne: undefined };
+
+    return collection.find(query).sort({ updatedAt: -1 }).toArray();
+};
+
+/**
+ * Update workflow fields on a report
+ */
+export const updateWorkflowFields = async (
+    reportId: ObjectId | string,
+    fields: {
+        workflowStatus?: string | null;
+        workflowReviewStatus?: string | null;
+        implementationPhase?: string | null;
+    }
+): Promise<void> => {
+    const collection = await getReportsCollection();
+    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
+
+    const $set: Record<string, unknown> = { updatedAt: new Date() };
+    const $unset: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+        if (value === null) {
+            $unset[key] = '';
+        } else if (value !== undefined) {
+            $set[key] = value;
+        }
+    }
+
+    const update: Record<string, unknown> = { $set };
+    if (Object.keys($unset).length > 0) {
+        update.$unset = $unset;
+    }
+
+    await collection.updateOne({ _id: reportIdObj }, update);
+};
+

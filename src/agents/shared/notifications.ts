@@ -8,7 +8,7 @@
 import { agentConfig, getIssueUrl, getPrUrl, getProjectUrl } from './config';
 import { appConfig } from '../../app.config';
 import { generateClarificationToken } from '@/apis/template/clarification/utils';
-import { generateBugFixToken } from '@/apis/template/bug-fix-select/utils';
+import { generateDecisionToken } from '@/apis/template/agent-decision/utils';
 
 // ============================================================
 // TELEGRAM API
@@ -839,42 +839,39 @@ Issue will be marked as Done. Branches cleaned up.`;
 }
 
 /**
- * Notify admin that bug investigation is complete and ready for fix selection
+ * Notify admin that an agent decision is ready and needs selection.
+ * Generic version that works for any agent decision type.
  */
-export async function notifyBugInvestigationReady(
+export async function notifyDecisionNeeded(
+    phase: string,
     title: string,
     issueNumber: number,
-    rootCauseFound: boolean,
-    confidence: 'low' | 'medium' | 'high',
-    fixOptionsCount: number,
     summary: string,
+    optionsCount: number,
+    itemType: 'bug' | 'feature' = 'feature',
     isRevision: boolean = false
 ): Promise<SendResult> {
     const issueUrl = getIssueUrl(issueNumber);
 
-    const status = isRevision ? '🔄 Revised' : '✅ Investigation Complete';
-    const confidenceEmoji = confidence === 'high' ? '🟢' : confidence === 'medium' ? '🟡' : '🔴';
-    const confidenceLabel = confidence.charAt(0).toUpperCase() + confidence.slice(1);
+    const status = isRevision ? '🔄 Revised' : '✅ Decision Ready';
+    const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
+    const typeLabel = itemType === 'bug' ? 'Bug' : 'Feature';
 
-    // Generate fix selection URL with token
-    const token = generateBugFixToken(issueNumber);
-    const bugFixUrl = `${getAppUrl()}/bug-fix/${issueNumber}?token=${token}`;
+    // Generate decision URL with token
+    const token = generateDecisionToken(issueNumber);
+    const decisionUrl = `${getAppUrl()}/decision/${issueNumber}?token=${token}`;
 
     // Truncate summary for Telegram (max 2800 chars to leave room for header)
     const truncatedSummary = summary.length > 2800
         ? summary.slice(0, 2800) + '...'
         : summary;
 
-    const message = `<b>Agent (Bug Investigation):</b> ${status}
-🐛 Bug Report
+    const message = `<b>Agent (${escapeHtml(phase)}):</b> ${status}
+${typeEmoji} ${typeLabel}
 
 📋 ${escapeHtml(title)}
 🔗 Issue #${issueNumber}
-📊 Status: Bug Investigation (Waiting for Review)
-
-<b>Root Cause:</b> ${rootCauseFound ? 'Found' : 'Not Found'}
-<b>Confidence:</b> ${confidenceEmoji} ${confidenceLabel}
-<b>Fix Options:</b> ${fixOptionsCount}
+📊 Options: ${optionsCount}
 
 <b>Summary:</b>
 ${escapeHtml(truncatedSummary)}`;
@@ -882,7 +879,7 @@ ${escapeHtml(truncatedSummary)}`;
     const buttons: InlineKeyboardMarkup = {
         inline_keyboard: [
             [
-                { text: '🔧 Choose Fix Option', url: bugFixUrl },
+                { text: '🔧 Choose Option', url: decisionUrl },
             ],
             [
                 { text: '📋 View Issue', url: issueUrl },

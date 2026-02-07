@@ -300,10 +300,16 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
     const baseUrl = getBaseUrl();
 
     if (baseUrl.startsWith('https') && request.approvalToken) {
-        inlineKeyboard.push([{
-            text: '✅ Approve & Create GitHub Issue',
-            callback_data: `approve_request:${request._id}`,
-        }]);
+        inlineKeyboard.push([
+            {
+                text: '✅ Approve',
+                callback_data: `approve_request:${request._id}`,
+            },
+            {
+                text: '🗑 Delete',
+                callback_data: `delete_request:${request._id}`,
+            },
+        ]);
     } else if (request.approvalToken) {
         inlineKeyboard.push([{
             text: '✅ Approve & Create GitHub Issue',
@@ -314,7 +320,7 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
     // View details link
     inlineKeyboard.push([{
         text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/feature-requests/${request._id}`,
+        url: `${baseUrl}/admin/item/${request._id}`,
     }]);
 
     return sendNotificationToOwner(message, {
@@ -354,10 +360,16 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
     const baseUrl = getBaseUrl();
 
     if (baseUrl.startsWith('https') && report.approvalToken) {
-        inlineKeyboard.push([{
-            text: '✅ Approve & Create GitHub Issue',
-            callback_data: `approve_bug:${report._id}`,
-        }]);
+        inlineKeyboard.push([
+            {
+                text: '✅ Approve',
+                callback_data: `approve_bug:${report._id}`,
+            },
+            {
+                text: '🗑 Delete',
+                callback_data: `delete_bug:${report._id}`,
+            },
+        ]);
     } else if (report.approvalToken) {
         inlineKeyboard.push([{
             text: '✅ Approve & Create GitHub Issue',
@@ -365,10 +377,10 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
         }]);
     }
 
-    // View details link (goes to reports list since no detail page exists yet)
+    // View details link
     inlineKeyboard.push([{
         text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/reports`,
+        url: `${baseUrl}/admin/item/${report._id}`,
     }]);
 
     return sendNotificationToOwner(message, {

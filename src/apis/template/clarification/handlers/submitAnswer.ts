@@ -13,7 +13,7 @@ import {
     extractClarificationFromComment,
     formatAnswerForGitHub,
 } from '../utils';
-import { GitHubProjectsAdapter } from '@/server/project-management/adapters/github';
+import { getProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
 import { verifyWaitingForClarification } from './getClarification';
 
@@ -41,8 +41,8 @@ export async function submitAnswer(
     }
 
     try {
-        // Initialize GitHub adapter
-        const adapter = new GitHubProjectsAdapter();
+        // Initialize adapter
+        const adapter = getProjectManagementAdapter();
         await adapter.init();
 
         // Verify the issue is waiting for clarification

@@ -180,7 +180,13 @@ export interface ReportDocument {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
+    githubIssueTitle?: string;        // Cached issue title for listItems() efficiency
     approvalToken?: string;
+
+    // Workflow tracking (replaces GitHub Projects V2)
+    workflowStatus?: string;          // 'Backlog', 'Product Design', 'Technical Design', etc.
+    workflowReviewStatus?: string;    // 'Waiting for Review', 'Approved', 'Request Changes', etc.
+    implementationPhase?: string;     // '1/3', '2/3', etc.
 
     // Source tracking
     source?: ReportSource;            // Where this was created from (ui, cli, auto)
@@ -205,6 +211,10 @@ export type ReportUpdate = Partial<Pick<ReportDocument,
     'githubIssueUrl' |
     'githubIssueNumber' |
     'githubProjectItemId' |
+    'githubIssueTitle' |
+    'workflowStatus' |
+    'workflowReviewStatus' |
+    'implementationPhase' |
     'updatedAt'
 >>;
 
@@ -239,6 +249,12 @@ export interface ReportClient {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
+    githubIssueTitle?: string;
+
+    // Workflow tracking
+    workflowStatus?: string;
+    workflowReviewStatus?: string;
+    implementationPhase?: string;
 
     // Source tracking
     source?: ReportSource;

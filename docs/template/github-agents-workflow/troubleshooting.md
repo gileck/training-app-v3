@@ -1,6 +1,6 @@
 # GitHub Agents Workflow - Troubleshooting
 
-This guide covers common issues and solutions for the GitHub Projects automation workflow.
+This guide covers common issues and solutions for the GitHub agents workflow.
 
 ## Setup Verification
 
@@ -213,19 +213,14 @@ PR must include:
 - Compares implementation against ONLY that phase
 - Use `--phase 1` flag when running manually
 
-### 7. Status Not Updating in GitHub Projects
+### 7. Status Not Updating in Workflow Pipeline
 
-**Problem:** Item created but doesn't move to correct column
+**Problem:** Item created but doesn't move to correct status
 
 **Solutions:**
 
-#### a) Verify Status IDs
-```bash
-# Get your status field IDs
-yarn github-project-status-ids
-
-# Should output all status column IDs
-```
+#### a) Check Workflow Item Document
+Verify the workflow-item document was created in MongoDB and has the correct status. The `workflow-items` collection tracks pipeline status.
 
 #### b) Check Status Update Logs
 ```bash
@@ -233,7 +228,7 @@ yarn vercel-cli logs | grep "updateStatus"
 ```
 
 #### c) Verify Status Names Match
-Status names in GitHub Projects must EXACTLY match:
+Status values must EXACTLY match these constants (defined in `src/server/project-management/config.ts`):
 - "Backlog"
 - "Product Design"
 - "Technical Design"
@@ -418,7 +413,7 @@ If automated verification fails:
 
 **Solutions:**
 - Verify cron schedule: `0 */6 * * *` (every 6 hours)
-- Check Review Status = "Waiting for Review" in Projects
+- Check Review Status = "Waiting for Review" in workflow-items
 - For multi-phase features: verify phase number in PR description
 - Review agent logs for API errors
 - Ensure agent has access to PR files
@@ -427,7 +422,7 @@ If automated verification fails:
 
 **Problem:** Feature Requests page shows "GitHub API rate limit reached" warning, or statuses appear incomplete
 
-**Background:** The Feature Requests page fetches live GitHub Project statuses for all items to ensure accurate filtering. This can hit GitHub API rate limits (5000 requests/hour for authenticated requests).
+**Background:** The Feature Requests page may fetch live status data for all items. This can hit GitHub API rate limits (5000 requests/hour for authenticated requests) if using the GitHub Projects adapter.
 
 **Solutions:**
 

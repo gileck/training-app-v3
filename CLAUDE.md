@@ -405,10 +405,10 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 **Key Points:**
 - Entry points: UI feature request, UI bug report, or CLI
 - Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review
-- Status tracking: MongoDB (high-level) + GitHub Projects (detailed workflow)
+- Status tracking: Source collections (high-level) + workflow-items collection (pipeline)
 - All actions logged to agent-logs/issue-N.md
 
-**Docs:** [overview.md](docs/template/github-agents-workflow/overview.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [cli.md](docs/template/github-agents-workflow/cli.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [mongodb-github-status.md](docs/template/github-agents-workflow/mongodb-github-status.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md), [telegram-integration.md](docs/template/github-agents-workflow/telegram-integration.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md)
+**Docs:** [overview.md](docs/template/github-agents-workflow/overview.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [cli.md](docs/template/github-agents-workflow/cli.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md), [telegram-integration.md](docs/template/github-agents-workflow/telegram-integration.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md)
 
 ---
 
@@ -416,11 +416,11 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 
 CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
 
-**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live GitHub status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows.
+**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows.
 
 **Key Points:**
 - list command: filter by --type, --status, --source
-- get command: shows live GitHub Project status
+- get command: shows live pipeline status
 - update command: change status/priority with --dry-run
 - ID prefix matching supported (first 8 chars of ObjectId)
 
@@ -440,7 +440,23 @@ Complete setup instructions for GitHub Projects and AI agents. Use this when set
 - Two tokens: GITHUB_TOKEN (admin/projects) + GITHUB_BOT_TOKEN (PRs/issues)
 - Optional: Telegram topics for organized notifications
 
-**Docs:** [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
+**Docs:** [setup-guide-legacy-github-projects.md](docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
+
+---
+
+## GitHub Agents Workflow Setup
+
+Complete setup instructions for the GitHub agents workflow. Use this when setting up the workflow for the first time.
+
+**Summary:** Setup requires: GitHub tokens (admin + bot), MongoDB connection, optional Telegram integration. Pipeline status tracked in workflow-items MongoDB collection. Run `yarn verify-setup` to check configuration.
+
+**Key Points:**
+- Two tokens: GITHUB_TOKEN (admin/PR reviews) + GITHUB_BOT_TOKEN (PRs/issues)
+- Pipeline status tracked in workflow-items MongoDB collection (no GitHub Projects setup needed)
+- Optional: Telegram topics for organized notifications
+- Optional: Claude GitHub App for automated PR reviews
+
+**Docs:** [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
 
 ---
 
@@ -456,7 +472,7 @@ Visual workflows for all workflow scenarios. Use this to understand specific flo
 - Request Changes triggers revision cycle on same PR
 - 5-minute undo window for accidental Request Changes clicks
 
-**Docs:** [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [overview.md](docs/template/github-agents-workflow/overview.md), [mongodb-github-status.md](docs/template/github-agents-workflow/mongodb-github-status.md)
+**Docs:** [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md)
 
 ---
 
@@ -470,7 +486,7 @@ Complete documentation for the Bug Investigator agent and bug fix selection flow
 - Bugs auto-route to Bug Investigation on approval (no routing message)
 - Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)
 - Investigation posted as GitHub issue comment with fix options
-- Admin selects fix approach via /bug-fix/:issueNumber web UI
+- Admin selects fix approach via /decision/:issueNumber web UI
 - Routes to Tech Design (complex fixes) or Implementation (simple fixes)
 
 **Docs:** [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md)

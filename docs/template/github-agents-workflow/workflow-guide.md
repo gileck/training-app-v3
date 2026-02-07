@@ -65,7 +65,7 @@ Steps to reproduce: ...
 **If Approved:**
 1. MongoDB status → `approved`
 2. Server creates GitHub Issue
-3. Server adds issue to GitHub Projects (Backlog column)
+3. Server creates GitHub Issue and workflow-item document (Backlog status)
 4. Admin receives routing notification
 
 ### Step 4: Routing Decision
@@ -101,7 +101,7 @@ Choose starting phase:
 
 ### Step 5: Item Moves to Selected Phase
 
-Server updates GitHub Projects status to match selection:
+Server updates workflow-item status to match selection:
 
 ```typescript
 // Admin chose "Product Design"
@@ -132,14 +132,14 @@ Based on the selected phase, the appropriate agent processes the item:
   - Success metrics
   - Scope (in/out)
 - Creates PR with PDD file at `design-docs/issue-{N}/product-development.md`
-- Sets GitHub Projects status to "Product Development"
+- Sets workflow status to "Product Development"
 - On approval: auto-advances to Product Design
 
 **Product Design Phase:**
 - Agent reads feature/bug details (and PDD if exists from Product Development phase)
 - Generates design document (markdown/screenshots)
 - Creates PR with design file
-- Sets GitHub Projects status to "Product Design"
+- Sets workflow status to "Product Design"
 
 **Tech Design Phase:**
 - Agent reads requirements (and product design if exists)
@@ -184,7 +184,7 @@ When implementation is complete:
 
 1. **Agent Creates PR:**
    - Code changes
-   - Status → "Waiting for Review" (in Projects)
+   - Status → "Waiting for Review"
    - Sets Review Status field
 
 2. **PR Review Agent (Cron):**
@@ -213,7 +213,7 @@ When implementation is complete:
 **If Admin Merges:**
 1. Server merges PR (squash merge)
 2. GitHub webhook triggers
-3. Server marks item as Done in Projects
+3. Server marks item as Done in workflow pipeline
 4. MongoDB status → `done`
 5. Admin notified of completion
 
@@ -250,7 +250,7 @@ When implementation is complete:
                   │                                 │
               Workflow Ends              Create GitHub Issue
                                                    │
-                                          Add to Projects (Backlog)
+                                     Create workflow item (Backlog)
                                                    │
                                                    ↓
                                     ┌──────────────────────────┐
@@ -326,7 +326,7 @@ When implementation is complete:
    GitHub Webhook                                                │
             │                                                    │
             ↓                                                    │
-   Mark as Done (Projects)                                       │
+   Mark as Done (Pipeline)                                       │
             │                                                    │
    MongoDB: "done"                                               │
             │                                                    │
@@ -341,7 +341,7 @@ When implementation is complete:
 
 | Scenario | Action | Result |
 |----------|--------|--------|
-| New submission received | Click **Approve** | Creates GitHub Issue + routing notification |
+| New submission received | Click **Approve** | Creates GitHub Issue + workflow item + routing notification |
 | New submission received | Click **Reject** | MongoDB status → `rejected`, workflow ends |
 | Routing notification | Click **📋 Product Dev** | Status → Product Development, agent runs (features only) |
 | Routing notification | Click **🎨 Product Design** | Status → Product Design, agent runs |
@@ -353,7 +353,7 @@ When implementation is complete:
 | Implementation PR created | Click **View PR** (notification) | PR Review Agent will review automatically (cron) |
 | PR review approved | Click **Merge** | Squash merge → marks Done |
 | PR review approved | Click **Request Changes** | Admin comments explaining changes needed |
-| Item in Backlog | Manually move in Projects | Status updates, agent may trigger |
+| Item in Backlog | Manually update via admin UI | Status updates, agent may trigger |
 
 ## Alternative Workflows
 
@@ -408,7 +408,7 @@ Admin Routes → [📋 Stay in Backlog]
     ↓
 (Item sits in Backlog)
     ↓
-Admin manually moves in Projects
+Admin manually updates status via admin UI
     ↓
 Agent processes based on new status
 ```
@@ -509,7 +509,7 @@ This enables:
 
 ### 2. Review Status Tracking
 
-GitHub Projects has separate field for PR review tracking:
+The workflow-items collection has a separate field for PR review tracking:
 
 | Field | Purpose | Values |
 |-------|---------|--------|

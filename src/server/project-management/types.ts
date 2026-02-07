@@ -292,8 +292,17 @@ export interface ProjectManagementAdapter {
 
     /**
      * Add an issue to the project board
+     * @param context - Context for creating a workflow item (type, source mongoId, and issue details)
      */
-    addIssueToProject(issueNodeId: string): Promise<string>;
+    addIssueToProject(issueNodeId: string, context?: {
+        type: 'feature' | 'bug' | 'task';
+        mongoId: string;
+        title: string;
+        description?: string;
+        labels?: string[];
+        githubIssueNumber: number;
+        githubIssueUrl: string;
+    }): Promise<string>;
 
     /**
      * Find an issue comment by marker

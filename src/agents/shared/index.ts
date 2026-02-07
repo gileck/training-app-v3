@@ -120,7 +120,7 @@ export {
     notifyAdmin,
     notifyAgentStarted,
     notifyPhaseComplete,
-    notifyBugInvestigationReady,
+    notifyDecisionNeeded,
 } from './notifications';
 
 // Prompts

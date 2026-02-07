@@ -70,7 +70,9 @@ import {
     logGitHubAction,
     logError,
 } from '../../lib/logging';
-import { notifyBugInvestigationReady } from '../../shared/notifications';
+import { notifyDecisionNeeded } from '../../shared/notifications';
+import { formatDecisionComment, isDecisionComment as isGenericDecisionComment } from '@/apis/template/agent-decision/utils';
+import type { DecisionOption, MetadataFieldConfig, DestinationOption, RoutingConfig } from '@/apis/template/agent-decision/types';
 
 // ============================================================
 // TYPES
@@ -82,75 +84,104 @@ interface ProcessableItem {
 }
 
 // ============================================================
-// INVESTIGATION COMMENT MARKERS
+// INVESTIGATION COMMENT FORMATTING
 // ============================================================
 
-const INVESTIGATION_MARKER = '<!-- BUG_INVESTIGATION_V1 -->';
+const LEGACY_INVESTIGATION_MARKER = '<!-- BUG_INVESTIGATION_V1 -->';
+
+/** Metadata schema for bug investigation decision options */
+const BUG_FIX_METADATA_SCHEMA: MetadataFieldConfig[] = [
+    { key: 'complexity', label: 'Complexity', type: 'badge', colorMap: { S: 'green', M: 'yellow', L: 'orange', XL: 'red' } },
+    { key: 'destination', label: 'Destination', type: 'tag' },
+    { key: 'filesAffected', label: 'Files Affected', type: 'file-list' },
+    { key: 'tradeoffs', label: 'Trade-offs', type: 'text' },
+];
+
+/** Custom destination options for bug fix decisions */
+const BUG_FIX_DESTINATION_OPTIONS: DestinationOption[] = [
+    { value: 'tech-design', label: 'Technical Design' },
+    { value: 'implement', label: 'Implementation' },
+];
+
+/** Routing config: maps option metadata to project statuses */
+const BUG_FIX_ROUTING: RoutingConfig = {
+    metadataKey: 'destination',
+    statusMap: {
+        'Direct Implementation': 'Ready for development',
+        'Technical Design': 'Technical Design',
+    },
+    customDestinationStatusMap: {
+        'implement': 'Ready for development',
+        'tech-design': 'Technical Design',
+    },
+};
 
 /**
- * Format investigation output as a GitHub comment
+ * Convert bug investigation output to generic decision options
  */
-function formatInvestigationComment(output: BugInvestigationOutput): string {
-    const confidenceEmoji = output.confidence === 'high' ? '🟢' : output.confidence === 'medium' ? '🟡' : '🔴';
-
-    let comment = `${INVESTIGATION_MARKER}
-## 🔍 Bug Investigation Report
-
-**Root Cause Found:** ${output.rootCauseFound ? 'Yes' : 'No'}
-**Confidence:** ${confidenceEmoji} ${output.confidence.charAt(0).toUpperCase() + output.confidence.slice(1)}
-
-### Root Cause Analysis
-
-${output.rootCauseAnalysis}
-
-### Suggested Fix Options
-
-`;
-
-    // Add fix options
-    for (const option of output.fixOptions) {
-        const recommendedBadge = option.isRecommended ? ' ⭐ **Recommended**' : '';
-        comment += `#### ${option.id}: ${option.title}${recommendedBadge}
-
-- **Complexity:** ${option.complexity}
-- **Destination:** ${option.destination === 'implement' ? 'Direct Implementation' : 'Technical Design'}
-- **Files Affected:** ${option.filesAffected.length > 0 ? option.filesAffected.join(', ') : 'TBD'}
-
-${option.description}
-
-${option.tradeoffs ? `**Trade-offs:** ${option.tradeoffs}\n` : ''}
-`;
-    }
-
-    // Add files examined
-    if (output.filesExamined.length > 0) {
-        comment += `### Files Examined
-
-${output.filesExamined.map(f => `- \`${f}\``).join('\n')}
-
-`;
-    }
-
-    // Add additional logs needed if root cause not found
-    if (!output.rootCauseFound && output.additionalLogsNeeded) {
-        comment += `### Additional Information Needed
-
-${output.additionalLogsNeeded}
-
-`;
-    }
-
-    comment += `---
-_Please choose a fix option in the Telegram notification, or add a comment with feedback._`;
-
-    return comment;
+function toDecisionOptions(output: BugInvestigationOutput): DecisionOption[] {
+    return output.fixOptions.map(opt => ({
+        id: opt.id,
+        title: opt.title,
+        description: opt.description,
+        isRecommended: opt.isRecommended,
+        metadata: {
+            complexity: opt.complexity,
+            destination: opt.destination === 'implement' ? 'Direct Implementation' : 'Technical Design',
+            filesAffected: opt.filesAffected.length > 0 ? opt.filesAffected : [],
+            ...(opt.tradeoffs ? { tradeoffs: opt.tradeoffs } : {}),
+        },
+    }));
 }
 
 /**
- * Check if a comment is an investigation comment
+ * Build context markdown for bug investigation decision
+ */
+function buildDecisionContext(output: BugInvestigationOutput): string {
+    const confidenceEmoji = output.confidence === 'high' ? '🟢' : output.confidence === 'medium' ? '🟡' : '🔴';
+    const confidenceLabel = output.confidence.charAt(0).toUpperCase() + output.confidence.slice(1);
+
+    let context = `**Root Cause Found:** ${output.rootCauseFound ? 'Yes' : 'No'}
+**Confidence:** ${confidenceEmoji} ${confidenceLabel}
+
+### Root Cause Analysis
+
+${output.rootCauseAnalysis}`;
+
+    if (output.filesExamined.length > 0) {
+        context += `\n\n### Files Examined\n\n${output.filesExamined.map(f => `- \`${f}\``).join('\n')}`;
+    }
+
+    if (!output.rootCauseFound && output.additionalLogsNeeded) {
+        context += `\n\n### Additional Information Needed\n\n${output.additionalLogsNeeded}`;
+    }
+
+    return context;
+}
+
+/**
+ * Format investigation output as a generic agent decision comment
+ */
+function formatInvestigationComment(output: BugInvestigationOutput): string {
+    const options = toDecisionOptions(output);
+    const context = buildDecisionContext(output);
+
+    return formatDecisionComment(
+        'bug-investigator',
+        'bug-fix',
+        context,
+        options,
+        BUG_FIX_METADATA_SCHEMA,
+        BUG_FIX_DESTINATION_OPTIONS,
+        BUG_FIX_ROUTING
+    );
+}
+
+/**
+ * Check if a comment is an investigation comment (supports both old and new format)
  */
 function isInvestigationComment(body: string): boolean {
-    return body.includes(INVESTIGATION_MARKER);
+    return body.includes(LEGACY_INVESTIGATION_MARKER) || isGenericDecisionComment(body);
 }
 
 // ============================================================
@@ -376,14 +407,14 @@ async function processItem(
 
             logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
 
-            // Send Telegram notification with fix selection link
-            await notifyBugInvestigationReady(
+            // Send Telegram notification with decision selection link
+            await notifyDecisionNeeded(
+                'Bug Investigation',
                 content.title,
                 issueNumber,
-                output.rootCauseFound,
-                output.confidence,
-                output.fixOptions.length,
                 output.summary,
+                output.fixOptions.length,
+                'bug',
                 mode === 'feedback'
             );
             console.log('  Telegram notification sent');

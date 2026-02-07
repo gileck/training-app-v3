@@ -959,7 +959,7 @@ export class GitHubProjectsAdapter implements ProjectManagementAdapter {
         }
     }
 
-    async addIssueToProject(issueNodeId: string): Promise<string> {
+    async addIssueToProject(issueNodeId: string, _context?: { type: 'feature' | 'bug' | 'task'; mongoId: string; title: string; description?: string; labels?: string[]; githubIssueNumber: number; githubIssueUrl: string }): Promise<string> {
         const oc = this.getOctokit();
 
         const mutation = `mutation($projectId: ID!, $contentId: ID!) {

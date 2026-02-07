@@ -1,12 +1,12 @@
 # GitHub Agents Workflow - Technical Reference
 
-This document provides technical details about the architecture, file structure, and implementation details of the GitHub Projects automation workflow.
+This document provides technical details about the architecture, file structure, and implementation details of the GitHub agents workflow.
 
 ## Status Constants
 
 ### Main Statuses (STATUSES)
 
-GitHub Project board columns - the primary workflow phases.
+Workflow pipeline phases - the primary workflow columns/statuses.
 
 | Constant | Display Value | Description |
 |----------|---------------|-------------|
@@ -479,22 +479,27 @@ jobs:
 
 ## Status Update Architecture
 
-### Two-Tier Status System
+### Three-Tier Status System
 
-**Tier 1: MongoDB (High-Level)**
-- Stored in: `features` and `bugs` collections
+**Tier 1: Source Collections (High-Level)**
+- Stored in: `feature-requests` and `reports` collections
 - Used for: Admin dashboard, user-facing status
-- Values: `pending`, `approved`, `in-progress`, `done`
+- Values: `new`, `in_progress`, `done`, `rejected`
 
-**Tier 2: GitHub Projects (Detailed Workflow)**
-- Stored in: GitHub Projects V2 single-select field
+**Tier 2: Workflow Items (Pipeline Tracking)**
+- Stored in: `workflow-items` collection (recommended, `AppProjectAdapter`)
 - Used for: Agent workflow routing, granular tracking
 - Values: `backlog`, `productDesign`, `techDesign`, `readyForDev`, `prReview`, `done`
+
+**Tier 3 (Legacy): GitHub Projects V2**
+- Stored in: GitHub Projects V2 single-select field (`GitHubProjectsAdapter`)
+- Alternative backend for pipeline tracking
+- Same values as Tier 2, stored externally
 
 ### Status Synchronization
 
 ```typescript
-// MongoDB status determines which GitHub Projects phase to use
+// Source collection status determines which workflow pipeline phase to use
 const statusMap = {
   pending: null,              // Not yet in GitHub
   approved: 'backlog',        // Initial phase after approval
@@ -511,15 +516,15 @@ const statusMap = {
 ### Status Update Flow
 
 ```typescript
-async function updateItemStatus(itemId: string, githubStatus: ProjectStatus) {
-  // 1. Update GitHub Projects
-  await adapter.updateStatus(item.projectItemId, githubStatus);
+async function updateItemStatus(itemId: string, workflowStatus: ProjectStatus) {
+  // 1. Update workflow item (via adapter)
+  await adapter.updateStatus(item.projectItemId, workflowStatus);
 
-  // 2. Derive MongoDB status
-  const mongoStatus = deriveMongoStatus(githubStatus);
+  // 2. Derive source collection status
+  const sourceStatus = deriveSourceStatus(workflowStatus);
 
-  // 3. Update MongoDB
-  await db.features.updateStatus(itemId, mongoStatus);
+  // 3. Update source collection
+  await db.features.updateStatus(itemId, sourceStatus);
 
   // 4. Notify admin if status changed
   if (statusChanged) {

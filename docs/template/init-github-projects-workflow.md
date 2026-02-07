@@ -1046,7 +1046,7 @@ Before the full workflow test, verify Telegram buttons work correctly:
    ```
 
 2. **Manually send a test notification** (simulates what the workflow does):
-   - Go to your app's `/admin/reports` page (or similar admin interface)
+   - Go to your app's admin interface (e.g. `/admin/feature-requests` or `/admin/reports`)
    - Or use the Telegram bot directly to send a message with buttons
 
 3. **Expected result**:

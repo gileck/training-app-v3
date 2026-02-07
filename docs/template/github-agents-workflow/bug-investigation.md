@@ -7,7 +7,7 @@ key_points:
   - "Bugs auto-route to Bug Investigation on approval (no routing message)"
   - "Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)"
   - "Investigation posted as GitHub issue comment with fix options"
-  - "Admin selects fix approach via /bug-fix/:issueNumber web UI"
+  - "Admin selects fix approach via /decision/:issueNumber web UI"
   - "Routes to Tech Design (complex fixes) or Implementation (simple fixes)"
 related_docs:
   - overview.md
@@ -26,7 +26,7 @@ When a bug report is approved, it is **automatically routed** to the "Bug Invest
 1. Investigates the bug using **read-only** tools (no code changes)
 2. Posts an investigation comment on the GitHub issue with root cause analysis and fix options
 3. Sends a Telegram notification with links to view the investigation and select a fix approach
-4. Admin selects a fix option via the `/bug-fix/:issueNumber` web UI
+4. Admin selects a fix option via the `/decision/:issueNumber` web UI
 5. The bug is routed to **Technical Design** or **Implementation** based on the selected option
 
 ## Auto-Routing on Approval
@@ -46,7 +46,7 @@ This is configured via `initialStatus: STATUSES.bugInvestigation` in the bug rep
 |----------|-------|
 | **Command** | `yarn agent:bug-investigator` |
 | **Status Column** | Bug Investigation |
-| **Identity** | 🔍 Bug Investigator Agent |
+| **Identity** | Bug Investigator Agent |
 | **Tools** | Read-only: `Read`, `Glob`, `Grep`, `WebFetch` |
 | **Output** | Structured JSON (`BugInvestigationOutput`) |
 
@@ -96,11 +96,13 @@ interface BugInvestigationOutput {
 
 ### Investigation Comment
 
-The agent posts a formatted comment on the GitHub issue:
+The agent posts a formatted comment on the GitHub issue using the generic Agent Decision format:
 
 ```markdown
-<!-- BUG_INVESTIGATION_V1 -->
-## Bug Investigation Report
+<!-- AGENT_DECISION_V1:bug-investigator -->
+<!-- DECISION_META:{"type":"bug-fix","metadataSchema":[...],"routing":{...}} -->
+
+## Decision Context
 
 **Root Cause Found:** Yes
 **Confidence:** High
@@ -108,48 +110,46 @@ The agent posts a formatted comment on the GitHub issue:
 ### Root Cause Analysis
 [Detailed analysis...]
 
-### Suggested Fix Options
+### Options
 
-#### opt1: Add null check ⭐ Recommended
+#### opt1: Add null check **Recommended**
 - **Complexity:** S
 - **Destination:** Direct Implementation
-- **Files Affected:** src/hooks/useAuth.ts
+- **Files Affected:** `src/hooks/useAuth.ts`
 [Description...]
 
 #### opt2: Refactor auth flow
 - **Complexity:** M
 - **Destination:** Technical Design
-- **Files Affected:** src/hooks/useAuth.ts, src/server/auth.ts
+- **Files Affected:** `src/hooks/useAuth.ts`, `src/server/auth.ts`
 [Description...]
-
-### Files Examined
-- `src/hooks/useAuth.ts`
-- `src/server/auth.ts`
 ```
+
+The `DECISION_META` includes a `routing` config that tells the submit handler how to auto-route the item based on the selected option's metadata.
 
 ## Fix Selection UI
 
-After the investigation is posted, the admin selects a fix approach via the web UI.
+After the investigation is posted, the admin selects a fix approach via the generic decision web UI.
 
 ### URL Format
 
 ```
-/bug-fix/:issueNumber?token=<generated-token>
+/decision/:issueNumber?token=<generated-token>
 ```
 
-The token is generated using `generateBugFixToken(issueNumber)` and included in the Telegram notification URL.
+The token is generated using `generateDecisionToken(issueNumber)` and included in the Telegram notification URL. Legacy `/bug-fix/:issueNumber` URLs redirect to `/decision/:issueNumber`.
 
 ### UI Flow
 
-1. Page loads investigation data from the GitHub issue comment
-2. Displays root cause analysis and fix options
+1. Page loads decision data from the GitHub issue comment
+2. Displays root cause analysis context and fix options with metadata (complexity badges, file lists, etc.)
 3. Admin selects a predefined option OR provides a custom solution
 4. For custom solutions, admin also selects the routing destination
 5. On submit, the selection is posted to the API
 
 ### API Endpoint
 
-`POST /api/process/bug-fix-select/submitFixSelection`
+`POST /api/process/agent-decision/submitDecision`
 
 **Request:**
 ```typescript
@@ -160,6 +160,7 @@ The token is generated using `generateBugFixToken(issueNumber)` and included in 
     selectedOptionId: string;      // "opt1", "opt2", or "custom"
     customSolution?: string;       // If custom
     customDestination?: string;    // If custom: "implement" | "tech-design"
+    notes?: string;                // Optional additional notes
   }
 }
 ```
@@ -168,7 +169,7 @@ The token is generated using `generateBugFixToken(issueNumber)` and included in 
 ```typescript
 {
   success?: boolean;
-  routedTo?: 'implement' | 'tech-design';
+  routedTo?: string;    // Status the item was routed to
   error?: string;
 }
 ```
@@ -176,11 +177,15 @@ The token is generated using `generateBugFixToken(issueNumber)` and included in 
 ### What Happens on Submit
 
 1. Validates the token
-2. Posts a **decision comment** on the GitHub issue (records what was selected)
-3. Updates the item status to the destination:
-   - `implement` → "Ready for development"
-   - `tech-design` → "Technical Design"
-4. Clears the Review Status (so the next agent picks it up)
+2. Posts a **selection comment** on the GitHub issue (records what was selected, with machine-readable marker)
+3. Reads the `routing` config from the decision comment's `DECISION_META`
+4. Resolves the target status from the selected option's metadata
+5. Updates the item status to the destination:
+   - `"Direct Implementation"` → "Ready for development"
+   - `"Technical Design"` → "Technical Design"
+6. Clears the Review Status (so the next agent picks it up)
+
+If routing config is missing, the submit handler sets Review Status to "Approved" instead (for agents that handle their own post-decision logic).
 
 ## Telegram Notifications
 
@@ -189,38 +194,42 @@ The token is generated using `generateBugFixToken(issueNumber)` and included in 
 Sent when the Bug Investigator agent completes its investigation:
 
 ```
-Bug Investigation Ready
+Agent (Bug Investigation): Decision Ready
+Bug
+
 Issue #60: "Login fails on Safari"
+Options: 3
 
-Root cause: Yes | Confidence: High
-3 fix option(s) available
+Summary:
+[investigation summary]
 
-[View Investigation] [Choose Fix Option] [Request Changes]
+[Choose Option] [View Issue] [Request Changes]
 ```
 
-- **View Investigation**: Opens the GitHub issue
-- **Choose Fix Option**: Opens `/bug-fix/:issueNumber` web UI
+- **Choose Option**: Opens `/decision/:issueNumber` web UI
+- **View Issue**: Opens the GitHub issue
 - **Request Changes**: Sets Review Status to "Request Changes" (triggers feedback mode)
 
 ## E2E Flow Diagram
 
 ```
 1. Bug enters "Bug Investigation" status (auto-routed on approval)
-   │
+   |
 2. Bug Investigator agent runs
-   ├─ Investigates codebase (read-only)
-   ├─ Posts investigation comment on GitHub issue
-   └─ Sends Telegram: [View] [Choose Fix] [Request Changes]
-   │
-3. Admin clicks "Choose Fix Option" → Opens /bug-fix/:issueNumber UI
-   │
-4. Admin selects option (or provides custom) → Submits
-   │
+   |- Investigates codebase (read-only)
+   |- Posts investigation comment on GitHub issue (Agent Decision format)
+   '- Sends Telegram: [Choose Option] [View Issue] [Request Changes]
+   |
+3. Admin clicks "Choose Option" -> Opens /decision/:issueNumber UI
+   |
+4. Admin selects option (or provides custom) -> Submits
+   |
 5. API processes submission
-   ├─ Posts decision comment on issue
-   ├─ Routes to destination (Tech Design or Implementation)
-   └─ Clears Review Status
-   │
+   |- Posts selection comment on issue
+   |- Reads routing config from DECISION_META
+   |- Routes to destination (Tech Design or Implementation)
+   '- Clears Review Status
+   |
 6. Next agent picks up with full context from issue comments
 ```
 
@@ -229,8 +238,8 @@ Root cause: Yes | Confidence: High
 | Starting State | Event | Ending State | Actor |
 |----------------|-------|--------------|-------|
 | Bug Investigation, Review: empty | Agent investigates | Bug Investigation, Review: Waiting for Review | Agent |
-| Bug Investigation, Review: Waiting for Review | Admin selects fix → Implementation | Ready for development, Review: empty | Admin (UI) |
-| Bug Investigation, Review: Waiting for Review | Admin selects fix → Tech Design | Technical Design, Review: empty | Admin (UI) |
+| Bug Investigation, Review: Waiting for Review | Admin selects fix -> Implementation | Ready for development, Review: empty | Admin (UI) |
+| Bug Investigation, Review: Waiting for Review | Admin selects fix -> Tech Design | Technical Design, Review: empty | Admin (UI) |
 | Bug Investigation, Review: Waiting for Review | Admin requests changes | Bug Investigation, Review: Request Changes | Admin (Telegram) |
 | Bug Investigation, Review: Request Changes | Agent revises investigation | Bug Investigation, Review: Waiting for Review | Agent |
 | Bug Investigation, Review: Waiting for Clarification | Admin answers + clicks received | Bug Investigation, Review: Clarification Received | Admin |
@@ -243,9 +252,10 @@ Root cause: Yes | Confidence: High
 | `src/agents/core-agents/bugInvestigatorAgent/index.ts` | Main agent |
 | `src/agents/shared/prompts/bug-investigation.ts` | Prompt builders |
 | `src/agents/shared/output-schemas.ts` | `BUG_INVESTIGATION_OUTPUT_FORMAT` |
-| `src/agents/shared/notifications.ts` | `notifyBugInvestigationReady()` |
-| `src/client/routes/template/BugFix/` | Fix selection UI |
-| `src/apis/bug-fix-select/` | Fix selection API handlers |
+| `src/agents/shared/notifications.ts` | `notifyDecisionNeeded()` |
+| `src/client/routes/template/Decision/` | Decision selection UI (generic) |
+| `src/client/routes/template/BugFix/` | Legacy redirect to `/decision/` |
+| `src/apis/template/agent-decision/` | Agent decision API handlers |
 | `src/server/github-sync/index.ts` | `bugReportSyncConfig` with `initialStatus` |
 | `src/server/project-management/config.ts` | `STATUSES.bugInvestigation` |
 

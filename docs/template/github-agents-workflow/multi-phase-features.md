@@ -66,8 +66,8 @@ Implementation Agent processes one phase at a time:
    - Description of what THIS phase implements
 
 4. **Sets review status:**
-   - GitHub Projects: Review Status = "Waiting for Review"
-   - Item stays in "PR Review" column
+   - Workflow item: Review Status = "Waiting for Review"
+   - Item stays in "PR Review" status
 
 ### Phase 4: Phase-Aware PR Review
 
@@ -296,7 +296,7 @@ Widget management feature fully implemented and deployed.
    - Look for `<!-- AGENT_PHASES_V1 -->` comment
    - Check phase status updates
 
-2. **GitHub Projects:**
+2. **Workflow Pipeline:**
    - Item stays in "PR Review" until final phase
    - Review Status updates for each phase PR
 

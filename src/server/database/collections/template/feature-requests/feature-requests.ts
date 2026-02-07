@@ -257,6 +257,7 @@ export const updateGitHubFields = async (
         githubIssueUrl?: string;
         githubIssueNumber?: number;
         githubProjectItemId?: string;
+        githubIssueTitle?: string;
     }
 ): Promise<FeatureRequestDocument | null> => {
     const collection = await getFeatureRequestsCollection();
@@ -342,4 +343,60 @@ export const getFeatureRequestCounts = async (): Promise<Record<FeatureRequestSt
     }
 
     return counts;
+};
+
+/**
+ * Find feature requests by workflow status (for AppProjectAdapter)
+ */
+export const findByWorkflowStatus = async (
+    workflowStatus?: string,
+    workflowReviewStatus?: string
+): Promise<FeatureRequestDocument[]> => {
+    const collection = await getFeatureRequestsCollection();
+    const query: Filter<FeatureRequestDocument> = {};
+
+    if (workflowStatus) {
+        query.workflowStatus = workflowStatus;
+    }
+    if (workflowReviewStatus) {
+        query.workflowReviewStatus = workflowReviewStatus;
+    }
+
+    // Only return items that have been synced to GitHub (have a projectItemId)
+    query.githubProjectItemId = { $exists: true, $ne: undefined };
+
+    return collection.find(query).sort({ updatedAt: -1 }).toArray();
+};
+
+/**
+ * Update workflow fields on a feature request
+ */
+export const updateWorkflowFields = async (
+    requestId: ObjectId | string,
+    fields: {
+        workflowStatus?: string | null;
+        workflowReviewStatus?: string | null;
+        implementationPhase?: string | null;
+    }
+): Promise<void> => {
+    const collection = await getFeatureRequestsCollection();
+    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
+
+    const $set: Record<string, unknown> = { updatedAt: new Date() };
+    const $unset: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+        if (value === null) {
+            $unset[key] = '';
+        } else if (value !== undefined) {
+            $set[key] = value;
+        }
+    }
+
+    const update: Record<string, unknown> = { $set };
+    if (Object.keys($unset).length > 0) {
+        update.$unset = $unset;
+    }
+
+    await collection.updateOne({ _id: requestIdObj }, update);
 };

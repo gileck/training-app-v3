@@ -29,6 +29,11 @@ export function loadAgentLibraryConfig(): AgentLibraryConfig {
  * @returns Library name to use
  */
 export function getLibraryForWorkflow(workflow?: WorkflowName): string {
+    // useOpus overrides everything to claude-code-sdk
+    if (agentsConfig.useOpus) {
+        return 'claude-code-sdk';
+    }
+
     const config = loadAgentLibraryConfig();
 
     // Check for workflow-specific override
@@ -47,6 +52,11 @@ export function getLibraryForWorkflow(workflow?: WorkflowName): string {
  * @returns Model name configured for this library, or 'unknown' if not configured
  */
 export function getModelForLibrary(libraryName: string): string {
+    // useOpus overrides everything to opus (Claude Opus 4.6)
+    if (agentsConfig.useOpus) {
+        return 'opus';
+    }
+
     const libraryConfig = agentsConfig.libraryModels[libraryName];
     return libraryConfig?.model ?? 'unknown';
 }

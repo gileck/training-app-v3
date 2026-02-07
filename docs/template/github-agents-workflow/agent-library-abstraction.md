@@ -868,7 +868,7 @@ await disposeAllAdapters();
 
 ### Documentation
 - `CLAUDE.md` - Project guidelines (includes agent library section)
-- `docs/github-projects-integration.md` - GitHub Projects workflow
+- `docs/template/github-agents-workflow/overview.md` - Workflow overview
 - `docs/github-agents-workflow/agent-library-abstraction.md` - This document
 - `docs/agent-library-gemini.md` - Gemini CLI adapter documentation
 - `docs/agent-library-openai-codex.md` - OpenAI Codex CLI adapter documentation

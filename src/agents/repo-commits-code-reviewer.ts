@@ -45,6 +45,12 @@ const SKIP_PATTERNS = [
     /^task-manager\//,
 ];
 
+/** Commit messages matching these patterns are skipped entirely */
+const SKIP_COMMIT_MESSAGES = [
+    /sync.?template/i,
+    /template.?sync/i,
+];
+
 interface State {
     lastCommitSha: string;
     lastRunAt: string;
@@ -145,7 +151,12 @@ function getCommitFiles(hash: string): string[] {
     return files.split('\n').filter(Boolean);
 }
 
-function isRelevantCommit(hash: string): boolean {
+function isRelevantCommit(hash: string, subject: string): boolean {
+    // Skip commits with messages matching skip patterns (e.g., template sync)
+    if (SKIP_COMMIT_MESSAGES.some(pattern => pattern.test(subject))) {
+        return false;
+    }
+
     const files = getCommitFiles(hash);
     // A commit is relevant if at least one file does NOT match skip patterns
     return files.some(file => !SKIP_PATTERNS.some(pattern => pattern.test(file)));
@@ -397,8 +408,8 @@ async function main() {
         allCommits = getCommitsSinceDays(options.days);
     }
 
-    // Filter irrelevant commits
-    const relevantCommits = allCommits.filter(c => isRelevantCommit(c.hash));
+    // Filter irrelevant commits (by files and commit message)
+    const relevantCommits = allCommits.filter(c => isRelevantCommit(c.hash, c.subject));
 
     console.log(`  Total new commits: ${allCommits.length}`);
     console.log(`  Relevant commits: ${relevantCommits.length}`);

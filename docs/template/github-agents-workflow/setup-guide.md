@@ -1,87 +1,47 @@
 ---
 title: GitHub Agents Workflow Setup
-description: Complete setup instructions for GitHub Projects and AI agents. Use this when setting up the workflow for the first time.
-summary: "Setup requires: GitHub Project with 6-column Status field and Review Status field, two GitHub tokens (admin + bot), optional Telegram integration. Run `yarn verify-setup` to check configuration."
+description: Complete setup instructions for the GitHub agents workflow. Use this when setting up the workflow for the first time.
+summary: "Setup requires: GitHub tokens (admin + bot), MongoDB connection, optional Telegram integration. Pipeline status tracked in workflow-items MongoDB collection. Run `yarn verify-setup` to check configuration."
 priority: 3
 key_points:
-  - "Create GitHub Project with 6-column Status field"
-  - "Create Review Status field (Waiting for Review, Approved, Request Changes, Rejected)"
-  - "Two tokens: GITHUB_TOKEN (admin/projects) + GITHUB_BOT_TOKEN (PRs/issues)"
+  - "Two tokens: GITHUB_TOKEN (admin/PR reviews) + GITHUB_BOT_TOKEN (PRs/issues)"
+  - "Pipeline status tracked in workflow-items MongoDB collection (no GitHub Projects setup needed)"
   - "Optional: Telegram topics for organized notifications"
+  - "Optional: Claude GitHub App for automated PR reviews"
 related_docs:
   - overview.md
+  - workflow-items-architecture.md
   - ../telegram-notifications.md
 ---
 
 # GitHub Agents Workflow - Setup Guide
 
-Complete step-by-step setup instructions for the GitHub Projects integration and AI agents workflow.
+Complete step-by-step setup instructions for the GitHub agents workflow.
 
 ## Prerequisites
 
 - GitHub account (personal or organization)
-- Access to create GitHub Projects
+- GitHub repository for issues and PRs
+- MongoDB database (for workflow-items pipeline tracking)
 - Node.js and yarn installed
 - Repository cloned locally
 
-## Step 1: GitHub Project Setup
+## Architecture Note
 
-### Create the GitHub Project
+Pipeline status is tracked in the **`workflow-items` MongoDB collection** using the `AppProjectAdapter` (default). No GitHub Projects board setup is required.
 
-1. Go to `https://github.com/users/{your-username}/projects` (or `https://github.com/orgs/{org-name}/projects` for organizations)
-2. Click "New project"
-3. Select "Board" view
-4. Name it appropriately (e.g., "Feature Pipeline")
+The workflow pipeline phases (Backlog, Product Design, Tech Design, etc.) and review statuses (Waiting for Review, Approved, Request Changes) are all stored in MongoDB and managed through the admin UI.
 
-### Configure Status Column
+> **Legacy option:** If you prefer to use GitHub Projects V2 for pipeline tracking, see [setup-guide-legacy-github-projects.md](./setup-guide-legacy-github-projects.md) and set `PROJECT_MANAGEMENT_TYPE=github` in your environment.
 
-The project uses a 6-column workflow. Create a Status field with these exact values:
-
-| Status | Description |
-|--------|-------------|
-| `Backlog` | New items, not yet started |
-| `Product Design` | AI generates product design, human reviews |
-| `Bug Investigation` | AI investigates bug root cause, proposes fix options |
-| `Technical Design` | AI generates tech design, human reviews |
-| `Ready for development` | AI implements feature (picked up by implement agent) |
-| `PR Review` | PR created, waiting for human review/merge |
-| `Done` | Completed and merged |
-
-**Note:** "Bug Investigation" should be positioned between "Product Design" and "Technical Design". Bugs are automatically routed to this column on approval. The Bug Investigator agent analyzes root causes and proposes fix options for admin review.
-
-**How it works**: Each phase uses the Review Status field to track sub-states within that phase (see below). The implement agent automatically moves items from "Ready for development" to "PR Review" after creating a PR.
-
-### Create Review Status Custom Field
-
-1. In your project, click the "+" button to add a field
-2. Select "Single select"
-3. Name it exactly: `Review Status`
-4. Add these options:
-   - `Waiting for Review`
-   - `Approved`
-   - `Request Changes`
-   - `Rejected`
-
-**Review Status meanings within each phase:**
-
-| Review Status | Meaning |
-|---------------|---------|
-| *(empty)* | Ready for AI agent to process |
-| `Waiting for Review` | AI finished, human needs to review |
-| `Approved` | Human approved, ready to advance to next phase (auto-advances) |
-| `Request Changes` | Human wants revisions, AI will address feedback |
-| `Rejected` | Won't proceed with this item |
-
-This allows each phase to have its own lifecycle (AI work → Human review → Approved/Rejected) without needing separate board columns.
-
-## Step 2: GitHub Tokens Setup
+## Step 1: GitHub Tokens Setup
 
 The system uses **two separate GitHub tokens** for clear separation of concerns.
 
 ### Token Overview
 
 ```bash
-# Admin token (your personal token) - for GitHub Projects operations
+# Admin token (your personal token) - for PR reviews
 GITHUB_TOKEN=ghp_your_admin_token_here
 
 # Bot token (bot account token) - for PRs, issues, and comments
@@ -95,14 +55,13 @@ TELEGRAM_BOT_TOKEN=xxxxxxxxxxxxx
 
 | Token | Used For | Who It Appears As |
 |-------|----------|-------------------|
-| `GITHUB_TOKEN` (admin) | GitHub Projects queries, project status updates, **PR reviews** | Your personal account (reviews), not visible (projects) |
+| `GITHUB_TOKEN` (admin) | **PR reviews** (approve/request changes) | Your personal account |
 | `GITHUB_BOT_TOKEN` (bot) | Creating PRs, issues, comments | `dev-agent-bot` (or your bot account name) |
 
 ### Token Usage Details
 
 | Operation | Token Used | Reason |
 |-----------|------------|--------|
-| Read/write GitHub Projects | `GITHUB_TOKEN` (admin) | Admin has project access |
 | Create issues | `GITHUB_BOT_TOKEN` (bot) | Issues appear from bot |
 | Update issue body | `GITHUB_BOT_TOKEN` (bot) | Updates appear from bot |
 | Post issue comments | `GITHUB_BOT_TOKEN` (bot) | Comments appear from bot |
@@ -111,23 +70,21 @@ TELEGRAM_BOT_TOKEN=xxxxxxxxxxxxx
 | Post PR comments | `GITHUB_BOT_TOKEN` (bot) | Comments appear from bot |
 
 **Benefits:**
-- ✅ No need to add bot account to GitHub Project (admin already has access)
-- ✅ Clear separation: visible actions = bot, data access = admin
 - ✅ **You can approve PRs created by bot** (GitHub doesn't allow self-approval)
+- ✅ Clear separation: visible actions = bot, reviews = admin
 - ✅ Easy to identify bot vs human actions
 
 **Important:** If `GITHUB_BOT_TOKEN` is not set, the system falls back to using `GITHUB_TOKEN` with a warning. In this mode, **you cannot approve your own PRs** because they'll be created by your account.
 
-## Step 3: Get Admin Token (GITHUB_TOKEN)
+## Step 2: Get Admin Token (GITHUB_TOKEN)
 
 1. Use your personal GitHub account
 2. Go to Settings → Developer settings → Personal access tokens
-3. Generate new token with scopes:
+3. Generate new token with scope:
    - `repo` - Full control of private repositories
-   - `project` - Full control of projects
 4. Copy to `.env` as `GITHUB_TOKEN`
 
-## Step 4: Bot Account Setup (Recommended)
+## Step 3: Bot Account Setup (Recommended)
 
 ### Why You Need a Bot Account
 
@@ -158,14 +115,14 @@ Use Gmail's +alias feature to avoid needing a new email:
 
 1. Log in to the bot account
 2. Go to Settings → Developer settings → Personal access tokens
-3. Generate new token with scopes: `repo`, `project`
+3. Generate new token with scope: `repo`
 4. Copy the token
 
 ### Update Local Environment
 
 Add the bot token to your `.env.local` (keep your admin token too):
 ```bash
-# Admin token (your personal account) - for GitHub Projects
+# Admin token (your personal account) - for PR reviews
 GITHUB_TOKEN="ghp_your_admin_token_here"
 
 # Bot token (bot account) - for PRs, issues, comments
@@ -227,7 +184,7 @@ Check that the comment appears from the bot account, not your personal account.
 - ✅ Clear separation between user and agent actions
 - ✅ Agent identity prefixes show which specific agent took each action
 
-## Step 5: Install Claude GitHub App (Recommended)
+## Step 4: Install Claude GitHub App (Recommended)
 
 The implementation agent automatically triggers Claude Code to review PRs after creation. This requires installing the Claude GitHub App on your repository.
 
@@ -264,7 +221,7 @@ After the implementation agent creates a PR:
 
 **Note:** If the Claude GitHub App is not installed, the `@claude` mention will have no effect, but the workflow will continue normally. Human reviewers can still review the PR manually.
 
-## Step 6: Telegram Setup (Optional but Recommended)
+## Step 5: Telegram Setup (Optional but Recommended)
 
 Telegram enables one-click approvals and instant notifications for the entire workflow.
 
@@ -356,19 +313,22 @@ The combined format `chatId:threadId` is backward compatible:
 
 If you prefer a single chat for all notifications, just use the same chat ID everywhere without the thread ID suffix.
 
-## Step 7: Environment Configuration
+## Step 6: Environment Configuration
 
 Project configuration is controlled via environment variables:
 
 ```bash
-# Required
+# Required - GitHub tokens
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
+GITHUB_BOT_TOKEN=ghp_xxxxxxxxxxxxx
 
-# Optional (defaults shown)
+# Required - GitHub repo info
 GITHUB_OWNER=gileck
 GITHUB_REPO=app-template-ai
-GITHUB_PROJECT_NUMBER=3
-GITHUB_OWNER_TYPE=user  # 'user' or 'org'
+
+# Pipeline tracking (default: 'app' uses workflow-items MongoDB collection)
+# Set to 'github' to use GitHub Projects V2 instead (requires additional setup)
+PROJECT_MANAGEMENT_TYPE=app
 ```
 
 Agent-specific configuration (Claude model, timeout) is in `src/agents/shared/config.ts`:
@@ -388,7 +348,7 @@ export const agentConfig: AgentConfig = {
 
 **Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/project-management/config.ts` and should NOT be modified.
 
-## Step 8: Verify Setup
+## Step 7: Verify Setup
 
 Run the setup verification script:
 ```bash
@@ -396,9 +356,8 @@ yarn verify-setup
 ```
 
 This checks:
-- GitHub tokens are set
-- GitHub Project exists and is accessible
-- Required custom fields exist (Status, Review Status)
+- GitHub tokens are set and valid
+- MongoDB connection works
 - Telegram bot is configured (if enabled)
 - Agent configuration is valid
 
@@ -422,16 +381,8 @@ yarn agent:pr-review
 
 ## Troubleshooting
 
-### "Cannot find project"
-- Verify `GITHUB_PROJECT_NUMBER` matches your project's number (visible in project URL)
-- Check that `GITHUB_OWNER` and `GITHUB_OWNER_TYPE` are correct
-
-### "Missing required field"
-- Ensure custom fields are named exactly: `Review Status` (case-sensitive)
-- Verify field options match the exact values listed above
-
 ### "Cannot approve own PR"
-- You need to set up a bot account (see Step 4)
+- You need to set up a bot account (see Step 3)
 - Ensure `GITHUB_BOT_TOKEN` is configured
 
 ### Telegram buttons not working
@@ -439,8 +390,13 @@ yarn agent:pr-review
 - Check that `ownerTelegramChatId` is configured in `src/app.config.js`
 - Ensure the webhook is accessible at `/api/telegram-webhook`
 
+### Workflow items not appearing in admin UI
+- Verify MongoDB connection is working
+- Check that the `workflow-items` collection exists (created automatically on first sync)
+- Review Vercel function logs for sync errors
+
 ## Related Documentation
 
 - **[overview.md](./overview.md)** - System architecture and workflow
-- **[mongodb-github-status.md](./mongodb-github-status.md)** - Status tracking system
-- **[Main integration docs](../github-projects-integration.md)** - Complete reference
+- **[workflow-items-architecture.md](./workflow-items-architecture.md)** - Workflow items data model and pipeline tracking
+- **[setup-guide-legacy-github-projects.md](./setup-guide-legacy-github-projects.md)** - Legacy setup using GitHub Projects V2

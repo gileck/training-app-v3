@@ -12,7 +12,8 @@ import {
     isClarificationComment,
     extractClarificationFromComment,
 } from '../utils';
-import { GitHubProjectsAdapter } from '@/server/project-management/adapters/github';
+import { getProjectManagementAdapter } from '@/server/project-management';
+import type { ProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
 
 /**
@@ -32,8 +33,8 @@ export async function getClarification(
     }
 
     try {
-        // Initialize GitHub adapter
-        const adapter = new GitHubProjectsAdapter();
+        // Initialize adapter
+        const adapter = getProjectManagementAdapter();
         await adapter.init();
 
         // Get issue details
@@ -95,7 +96,7 @@ export async function getClarification(
  * This is used by submitAnswer to ensure we're answering the right issue.
  */
 export async function verifyWaitingForClarification(
-    adapter: GitHubProjectsAdapter,
+    adapter: ProjectManagementAdapter,
     issueNumber: number
 ): Promise<{ valid: boolean; itemId?: string; error?: string }> {
     // List items to find this issue

@@ -10,12 +10,12 @@ key_points:
   - 5-minute undo window for accidental Request Changes clicks
 related_docs:
   - overview.md
-  - mongodb-github-status.md
+  - workflow-items-architecture.md
 ---
 
 # GitHub Agents Workflow - End-to-End Scenarios
 
-This document provides comprehensive visual workflows for all scenarios in the GitHub Projects integration, from initial submission to completion.
+This document provides comprehensive visual workflows for all scenarios in the agents workflow, from initial submission to completion.
 
 ---
 
@@ -98,7 +98,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
               │ Admin clicks "Ready for development"
               ▼
 ┌─────────────────────────────────────┐
-│ GITHUB PROJECTS BOARD               │
+│ WORKFLOW PIPELINE               │
 │ - Column: Ready for development     │
 │ - Review Status: (empty)            │
 └─────────────┬───────────────────────┘
@@ -578,8 +578,8 @@ This document provides comprehensive visual workflows for all scenarios in the G
               │ Admin clicks "Choose Fix Option"
               ▼
 ┌─────────────────────────────────────┐
-│ BUG FIX SELECTION UI                │
-│ /bug-fix/:issueNumber               │
+│ DECISION SELECTION UI               │
+│ /decision/:issueNumber              │
 │ ┌─────────────────────────────────┐ │
 │ │ Choose fix approach:            │ │
 │ │ ○ Add null check (S) → Impl    │ │
@@ -635,7 +635,7 @@ This document provides comprehensive visual workflows for all scenarios in the G
 - **Auto-routed to Bug Investigation** (no routing message shown)
 - Bug Investigator agent uses **read-only** tools (no code changes)
 - Investigation posted as **issue comment** (not a PR)
-- Admin selects fix approach via **web UI** (`/bug-fix/:issueNumber`)
+- Admin selects fix approach via **web UI** (`/decision/:issueNumber`)
 - Can route to **Tech Design** (complex fixes) or **Implementation** (simple fixes)
 - Diagnostics (session logs, stack traces) included in agent prompt (not in GitHub issue)
 
@@ -1378,7 +1378,7 @@ All bugs are automatically routed to **Bug Investigation** on approval. The Bug 
               ▼
 ┌─────────────────────────────────────┐
 │ ADMIN SELECTS FIX OPTION            │
-│ - Via /bug-fix/:issueNumber UI      │
+│ - Via /decision/:issueNumber UI     │
 │ - Chooses "Direct Implementation"   │
 └─────────────┬───────────────────────┘
               │
@@ -1621,4 +1621,4 @@ This document covers all major workflow scenarios:
 - Complete status transition table
 - Decision point guide
 
-Use this document to understand the complete end-to-end workflow for any scenario in the GitHub Projects integration.
+Use this document to understand the complete end-to-end workflow for any scenario in the agents workflow pipeline.

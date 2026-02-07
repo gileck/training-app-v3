@@ -17,6 +17,7 @@
  */
 
 import { GitHubProjectsAdapter } from './adapters/github';
+import { AppProjectAdapter } from './adapters/app-project';
 import type { ProjectManagementAdapter } from './types';
 
 // Export types
@@ -30,19 +31,24 @@ let adapter: ProjectManagementAdapter | null = null;
  * Get the project management adapter instance (singleton)
  *
  * The adapter type is determined by the PROJECT_MANAGEMENT_TYPE environment variable.
- * Currently only 'github' is supported (and is the default).
+ * - 'app': MongoDB-backed workflow tracking with GitHub for issues/PRs (recommended)
+ * - 'github': GitHub Projects V2 for workflow tracking (legacy)
  */
 export function getProjectManagementAdapter(): ProjectManagementAdapter {
     if (!adapter) {
         const type = process.env.PROJECT_MANAGEMENT_TYPE || 'github';
 
         switch (type) {
+            case 'app':
+                adapter = new AppProjectAdapter();
+                break;
             case 'github':
             default:
                 adapter = new GitHubProjectsAdapter();
+                break;
         }
     }
-    return adapter;
+    return adapter as ProjectManagementAdapter;
 }
 
 /**

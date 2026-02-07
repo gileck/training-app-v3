@@ -45,8 +45,8 @@ There are **three entry points** to the workflow, but they all converge into the
 │  │                    ▼                                                   │ │
 │  │           syncItemToGitHub<T>() (sync-core.ts)                         │ │
 │  │           - Creates GitHub Issue                                       │ │
-│  │           - Adds to Projects board                                     │ │
-│  │           - Sets status to Backlog                                     │ │
+│  │           - Creates workflow-item document                              │ │
+│  │           - Sets pipeline status to Backlog                            │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
                             │
@@ -63,11 +63,11 @@ There are **three entry points** to the workflow, but they all converge into the
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                 UNIFIED GITHUB PROJECTS WORKFLOW                             │
+│                    WORKFLOW PIPELINE (workflow-items collection)              │
 │                                                                              │
 │  Backlog → Product Design → Tech Design → Implementation → PR Review → Done │
 │                                                                              │
-│  (Same workflow for ALL entry points - features and bugs)                   │
+│  (Same pipeline for ALL entry points - features and bugs)                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -232,7 +232,7 @@ new → in_progress → done
                  → rejected
 ```
 
-### GitHub Projects Status (Detailed)
+### Pipeline Status (workflow-items collection)
 ```
 Backlog → Product Design → Tech Design → Ready for development → PR Review → Done
 ```

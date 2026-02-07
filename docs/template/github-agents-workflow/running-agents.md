@@ -4,7 +4,7 @@ This document explains how to run the AI agents, when to run them, the agents co
 
 ## Overview
 
-The GitHub Projects integration includes five AI agents that automate different phases of the development workflow:
+The workflow includes five AI agents that automate different phases of the development pipeline:
 
 1. **Product Development Agent** (Optional) - Transforms vague ideas into concrete product specs
 2. **Product Design Agent** - Generates UX/UI designs and mockups

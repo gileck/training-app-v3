@@ -33,6 +33,8 @@ export interface PlanSubagentConfig {
  * Configuration structure for agents
  */
 export interface AgentsConfig {
+    /** When true, ALL agents use Claude Opus 4.6 regardless of library/model config */
+    useOpus: boolean;
     /** Default library to use for all workflows */
     defaultLibrary: string;
     /** Per-workflow library overrides */
@@ -65,6 +67,9 @@ export interface AgentsConfig {
  * To use a different library for a specific workflow, add it to workflowOverrides.
  */
 export const agentsConfig: AgentsConfig = {
+    // When true, ALL agents use Claude Opus 4.6 (overrides all library/model settings)
+    useOpus: true,
+
     // Default library for all workflows
     defaultLibrary: 'claude-code-sdk',
 

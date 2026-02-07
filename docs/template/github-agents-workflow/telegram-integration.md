@@ -451,7 +451,7 @@ Quick actions allow admins to perform workflow operations with a single button c
 
 The Revert action is available after any PR merge and:
 - Creates a revert PR (doesn't directly push to main)
-- Restores the GitHub Project status to "Implementation" with "Request Changes" review status
+- Restores the workflow status to "Implementation" with "Request Changes" review status
 - For multi-phase features, restores the phase counter
 - Updates MongoDB status back to in_progress/investigating
 - The agent can then pick up the work and fix the issues based on feedback
@@ -497,7 +497,7 @@ All "Request Changes" and "Reject" actions show an **Undo button** that remains 
 
 **After 5 Minutes:**
 - Clicking Undo shows error: "Undo window expired (5 minutes)"
-- Manual recovery required via GitHub Projects UI
+- Manual recovery required via admin workflow UI
 
 **Example Undo Flow:**
 
@@ -676,9 +676,12 @@ action:param1:param2:...
 ```
 
 **Examples:**
-- `approve_feature:45` - Approve feature request #45
-- `reject_feature:45` - Reject feature request #45
-- `route:45:product-design` - Route issue #45 to product design
+- `approve_request:requestId` - Approve feature request and create GitHub issue
+- `approve_bug:reportId` - Approve bug report and create GitHub issue
+- `delete_request:requestId` - Delete feature request from MongoDB
+- `delete_bug:reportId` - Delete bug report from MongoDB
+- `route_feature:requestId:destination` - Route feature to destination
+- `route_bug:reportId:destination` - Route bug to destination
 - `approve_design:45:123` - Approve design PR #123 for issue #45
 - `reject_design:45:123` - Reject design PR #123 for issue #45
 - `merge_pr:45:124` - Merge implementation PR #124 for issue #45
