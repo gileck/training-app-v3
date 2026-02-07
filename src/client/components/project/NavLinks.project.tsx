@@ -6,7 +6,7 @@
  */
 
 import { NavItem } from '../template/layout/types';
-import { Home, Dumbbell, TrendingUp, MessageSquare, Settings } from 'lucide-react';
+import { Home, Dumbbell, TrendingUp, Settings } from 'lucide-react';
 
 /** Project-specific admin menu items */
 export const projectAdminMenuItems: NavItem[] = [
@@ -18,7 +18,6 @@ export const navItems: NavItem[] = [
   { path: '/', label: 'Home', icon: <Home size={18} /> },
   { path: '/training-plans', label: 'Plans', icon: <Dumbbell size={18} /> },
   { path: '/progress', label: 'Progress', icon: <TrendingUp size={18} /> },
-  { path: '/ai-chat', label: 'AI Chat', icon: <MessageSquare size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
@@ -27,6 +26,5 @@ export const menuItems: NavItem[] = [
   { path: '/', label: 'Home', icon: <Home size={18} /> },
   { path: '/training-plans', label: 'Training Plans', icon: <Dumbbell size={18} /> },
   { path: '/progress', label: 'Progress', icon: <TrendingUp size={18} /> },
-  { path: '/ai-chat', label: 'AI Chat', icon: <MessageSquare size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];

@@ -6,8 +6,22 @@
  */
 
 import { mergeApiHandlers } from "./registry";
-import { chatApiHandlers } from "./project/chat/server";
+import { activityLogsApiHandlers } from "./project/activity-logs/server";
+import { exerciseDefinitionsApiHandlers } from "./project/exercise-definitions/server";
+import { planDataApiHandlers } from "./project/plan-data/server";
+import { planExercisesApiHandlers } from "./project/plan-exercises/server";
+import { planWorkoutsApiHandlers } from "./project/plan-workouts/server";
+import { trainingPlansApiHandlers } from "./project/training-plans/server";
+import { weeklyProgressApiHandlers } from "./project/weekly-progress/server";
+import { workoutWarmupApiHandlers } from "./project/workout-warmup/server";
 
 export const projectApiHandlers = mergeApiHandlers(
-  chatApiHandlers
+  activityLogsApiHandlers,
+  exerciseDefinitionsApiHandlers,
+  planDataApiHandlers,
+  planExercisesApiHandlers,
+  planWorkoutsApiHandlers,
+  trainingPlansApiHandlers,
+  weeklyProgressApiHandlers,
+  workoutWarmupApiHandlers
 );

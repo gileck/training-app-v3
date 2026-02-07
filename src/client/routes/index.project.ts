@@ -7,7 +7,6 @@
 
 import type { Routes } from '../router';
 import { Home } from './project/Home';
-import { AIChat } from './project/AIChat';
 import { TrainingPlans } from './project/TrainingPlans';
 import { ManagePlan } from './project/ManagePlan';
 import { Progress } from './project/Progress';
@@ -21,6 +20,5 @@ export const projectRoutes: Routes = {
   '/training-plans/:planId': ManagePlan,
   '/active-workout': ActiveWorkout,
   '/progress': Progress,
-  '/ai-chat': AIChat,
   '/share/:token': { component: SharedPlan, public: true },
 };
