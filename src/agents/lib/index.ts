@@ -313,7 +313,7 @@ async function runImplementationPlanSubagent(
                 : { allowedTools: ['Read', 'Glob', 'Grep', 'WebFetch'] }
             ),
             allowWrite: false,
-            stream: false,
+            stream: true,
             verbose: false,
             timeout,
             progressLabel: 'Creating implementation plan',

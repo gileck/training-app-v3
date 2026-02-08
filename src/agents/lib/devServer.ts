@@ -132,11 +132,9 @@ export async function waitForServer(port: number, timeoutMs: number = 90000): Pr
 
     while (Date.now() - startTime < timeoutMs) {
         try {
-            const response = await fetch(`http://localhost:${port}`);
-            // Accept OK, 404, or redirect (307) as signs the server is running
-            if (response.ok || response.status === 404 || response.status === 307) {
-                return true;
-            }
+            await fetch(`http://localhost:${port}`);
+            // Any HTTP response means the server is running
+            return true;
         } catch {
             // Server not ready yet
         }

@@ -211,11 +211,16 @@ function createInstructionsSection(): string {
 Review this PR and make your final decision. Provide your review decision (APPROVED or REQUEST_CHANGES) and detailed feedback.
 
 **⚠️ STRICT APPROVAL CRITERIA:**
-- **Request changes** if there are ANY Minor Issues, Suggestions, or Improvements
-- **Only approve** if there are absolutely ZERO Minor Issues, ZERO Suggestions, and ZERO Improvements recommended
-- **Never approve** a PR that has minor suggestions, minor improvements, or minor issues - these should ALL trigger "Request Changes"
+- **Request changes** if there are ANY issues or improvements that provide clear, meaningful value
+- **Only approve** if there are no issues or improvements worth requesting
 - If you find yourself wanting to say "Approved with minor suggestions" or "Looks good but consider..." - that is a REQUEST_CHANGES, not an approval
-- **All feedback must be in scope** - issues, suggestions, and improvements must be within the context of the task/PR scope. Do not request changes for unrelated code or out-of-scope improvements
+- **All feedback must be in scope** - issues and improvements must be within the context of the task/PR scope. Do not request changes for unrelated code or out-of-scope improvements
+
+**⚠️ FEEDBACK QUALITY - No Nitpicking:**
+- **Only raise issues that provide real, meaningful value.** Every issue you raise triggers a full revision cycle, so it must be worth the cost.
+- **Do NOT raise** minor/speculative issues such as: hypothetical edge cases that aren't demonstrated problems, requests to "add a comment explaining X", optional accessibility improvements on decorative elements, or theoretical concerns without concrete impact.
+- **DO raise** issues such as: actual bugs or logic errors, violations of documented project guidelines, missing error/loading/empty state handling, security concerns, performance problems with real impact.
+- Ask yourself: "Would a senior engineer request changes for this, or would they just merge it?" If the answer is merge, don't raise it.
 
 **CRITICAL: Project Docs Override Generic Best Practices**
 

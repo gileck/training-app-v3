@@ -32,7 +32,7 @@ export class AnthropicAdapter implements AIModel {
     // Make the API call
     const response = await this.anthropic.messages.create({
       model: modelId,
-      max_tokens: Math.min(model.maxTokens, 4096),
+      max_tokens: model.maxOutputTokens,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
     });
@@ -71,7 +71,7 @@ export class AnthropicAdapter implements AIModel {
     // Make the API call
     const response = await this.anthropic.messages.create({
       model: modelId,
-      max_tokens: Math.min(model.maxTokens, 4096),
+      max_tokens: model.maxOutputTokens,
       messages: [{ role: 'user', content: jsonPrompt }],
       temperature: 0.7,
     });

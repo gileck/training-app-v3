@@ -36,7 +36,7 @@ let adapter: ProjectManagementAdapter | null = null;
  */
 export function getProjectManagementAdapter(): ProjectManagementAdapter {
     if (!adapter) {
-        const type = process.env.PROJECT_MANAGEMENT_TYPE || 'github';
+        const type = process.env.PROJECT_MANAGEMENT_TYPE || 'app';
 
         switch (type) {
             case 'app':

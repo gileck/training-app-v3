@@ -13,7 +13,6 @@
  * - TELEGRAM_NOTIFICATIONS_ENABLED: Set to 'true' to enable GitHub Actions notifications
  * - PROJECT_OWNER: GitHub username or organization (from GITHUB_OWNER in env)
  * - PROJECT_REPO: Repository name (from GITHUB_REPO in env)
- * - PROJECT_NUMBER: GitHub Project number (from GITHUB_PROJECT_NUMBER in env)
  * - PROJECT_OWNER_TYPE: 'user' or 'organization' (from GITHUB_OWNER_TYPE in env)
  *
  * Usage:
@@ -54,7 +53,6 @@ const STATIC_VARIABLES = [
 const ENV_BASED_VARIABLES = [
     { envKey: 'GITHUB_OWNER', githubKey: 'PROJECT_OWNER', description: 'GitHub username or organization' },
     { envKey: 'GITHUB_REPO', githubKey: 'PROJECT_REPO', description: 'Repository name' },
-    { envKey: 'GITHUB_PROJECT_NUMBER', githubKey: 'PROJECT_NUMBER', description: 'GitHub Project number' },
     { envKey: 'GITHUB_OWNER_TYPE', githubKey: 'PROJECT_OWNER_TYPE', description: 'Owner type (user or organization)' },
 ];
 

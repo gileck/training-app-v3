@@ -16,6 +16,7 @@ export interface PendingItem {
     type: 'feature' | 'bug';
     title: string;
     source?: string;
+    priority?: string;
     createdAt: string;
 }
 
@@ -37,6 +38,7 @@ export interface WorkflowItem {
     status: string | null;
     reviewStatus: string | null;
     content: WorkflowItemContent | null;
+    implementationPhase?: string | null;
     createdAt: string | null;
 }
 
@@ -49,5 +51,15 @@ export type ListWorkflowItemsRequest = Record<string, never>;
 export interface ListWorkflowItemsResponse {
     pendingItems?: PendingItem[];
     workflowItems?: WorkflowItem[];
+    error?: string;
+}
+
+export interface UpdateWorkflowStatusRequest {
+    itemId: string;
+    status: string;
+}
+
+export interface UpdateWorkflowStatusResponse {
+    success?: boolean;
     error?: string;
 }

@@ -16,7 +16,7 @@ export interface Settings {
 }
 
 export const defaultSettings: Settings = {
-    aiModel: '',
+    aiModel: 'gemini-2.5-flash-lite',
     theme: 'light',
     offlineMode: false,
     staleWhileRevalidate: true,

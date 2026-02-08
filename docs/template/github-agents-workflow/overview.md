@@ -17,6 +17,7 @@ related_docs:
   - agent-logging.md
   - telegram-integration.md
   - running-agents.md
+  - directory-locking.md
 ---
 
 # GitHub Agents Workflow - Overview
@@ -74,6 +75,7 @@ Items can enter the workflow through three paths (all converge into the same pip
 - **Implement agent auto-moves to PR Review**: After creating a PR, the item moves from "Ready for development" to "PR Review"
 - **Single webhook**: All Telegram approval and routing buttons use `/api/telegram-webhook` for instant in-app feedback
 - **Post-merge revert**: One-click revert button on merge success → creates revert PR (not direct push) → restores status for agent to fix
+- **Directory locking**: Master script acquires per-directory lock to prevent concurrent agent runs on same working directory
 - **Three-tier MongoDB storage**: Source collections (`feature-requests`, `reports`) store intake data, `workflow-items` collection tracks pipeline status
 - **Separate source collections**: `feature-requests` and `reports` (bugs need session logs, screenshots, diagnostics)
 - **Design documents as files**: Stored in `design-docs/issue-{N}/` with PR-based review workflow
@@ -178,6 +180,7 @@ When adding new workflow functionality:
 │  │ ├── config.ts         # Agent-specific config + re-exports       │  │
 │  │ ├── claude.ts         # Claude SDK utilities                     │  │
 │  │ ├── notifications.ts  # Telegram notifications                   │  │
+│  │ ├── directory-lock.ts # Directory-level concurrency lock         │  │
 │  │ ├── prompts/          # Prompt templates (split by phase)        │  │
 │  │ │   ├── product-design.ts, technical-design.ts, etc.            │  │
 │  │ └── types.ts          # Agent-specific types                     │  │
@@ -270,4 +273,5 @@ When admin clicks "Request Changes":
 - **[setup-guide.md](./setup-guide.md)** - Step-by-step setup for environment and tokens
 - **[workflow-items-architecture.md](./workflow-items-architecture.md)** - Workflow items data model and pipeline tracking
 - **[agent-logging.md](./agent-logging.md)** - Complete logging system documentation (CRITICAL)
+- **[directory-locking.md](./directory-locking.md)** - Directory-level lock for preventing concurrent agent runs
 - **Main integration docs**: [../github-projects-integration.md](../github-projects-integration.md)

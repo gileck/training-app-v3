@@ -123,7 +123,7 @@ export function DecisionForm({ decision, issueNumber, token, onSubmitted }: Deci
                                         <RadioGroup
                                             value={customDestination}
                                             onValueChange={setCustomDestination}
-                                            className="flex gap-4"
+                                            className="flex flex-col sm:flex-row gap-2 sm:gap-4"
                                         >
                                             {decision.customDestinationOptions!.map((dest) => (
                                                 <div key={dest.value} className="flex items-center space-x-2">

@@ -8,7 +8,7 @@ import {
 export class GeminiAdapter implements AIModel {
   static provider = 'gemini';
   private genAI: GoogleGenAI;
-  private static readonly defaultConfig = { maxOutputTokens: 1000, temperature: 0.7 } as const;
+  private static readonly defaultConfig = { maxOutputTokens: 65536, temperature: 0.7 } as const;
 
   constructor() {
     // Get API key from environment variable

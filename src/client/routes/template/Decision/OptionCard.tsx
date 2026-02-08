@@ -24,7 +24,7 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
 
     return (
         <div
-            className={`p-3 rounded-md border transition-colors cursor-pointer ${
+            className={`p-3 rounded-md border transition-colors cursor-pointer overflow-hidden ${
                 isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-muted-foreground/50'
@@ -35,15 +35,15 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
             }}
         >
             {/* Title row with radio */}
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2 sm:gap-3">
                 <RadioGroupItem
                     value={option.id}
                     id={`decision-${option.id}`}
                     className="mt-0.5 shrink-0"
                 />
-                <Label htmlFor={`decision-${option.id}`} className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{option.title}</span>
+                <Label htmlFor={`decision-${option.id}`} className="flex-1 min-w-0 cursor-pointer">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <span className="font-medium text-sm sm:text-base">{option.title}</span>
                         {inlineFields.map(field => {
                             const value = option.metadata[field.key];
                             if (value === undefined) return null;
@@ -52,7 +52,7 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
                             );
                         })}
                         {option.isRecommended && (
-                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium">
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                                 Recommended
                             </span>
                         )}
@@ -62,7 +62,7 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
 
             {/* Description rendered as markdown */}
             {option.description && (
-                <div className="markdown-body text-sm mt-2 pl-7">
+                <div className="markdown-body text-sm mt-2 pl-6 sm:pl-7 overflow-hidden">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {option.description}
                     </ReactMarkdown>
@@ -74,7 +74,7 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
                 const value = option.metadata[field.key];
                 if (value === undefined) return null;
                 return (
-                    <div key={field.key} className="mt-1 pl-7">
+                    <div key={field.key} className="mt-1 pl-6 sm:pl-7 overflow-hidden">
                         <MetadataField config={field} value={value} />
                     </div>
                 );

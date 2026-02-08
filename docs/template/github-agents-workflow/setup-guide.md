@@ -243,7 +243,8 @@ You can organize notifications into separate topics within a single supergroup t
 |-------|--------------|---------------|
 | **Github Issues** | `GH_TELEGRAM_CHAT_ID` | PR events, issue events, comments |
 | **Vercel Deployments** | `VERCEL_TELEGRAM_CHAT_ID` | Deployment started/success/failed |
-| **Agents** | `AGENT_TELEGRAM_CHAT_ID` | Bug reports, feature routing, approvals, merges |
+| **Agents (Actionable)** | `AGENT_TELEGRAM_CHAT_ID` | Approvals, merges, decisions, clarifications |
+| **Agents (Info)** | `AGENT_INFO_TELEGRAM_CHAT_ID` | Agent started, PR created, status updates |
 
 #### Setup Topics
 
@@ -276,9 +277,10 @@ You can organize notifications into separate topics within a single supergroup t
 
    **`.env.local`:**
    ```bash
-   GH_TELEGRAM_CHAT_ID="-100xxxxxxxxx:3"      # Github Issues topic
-   VERCEL_TELEGRAM_CHAT_ID="-100xxxxxxxxx:4"  # Vercel Deployments topic
-   AGENT_TELEGRAM_CHAT_ID="-100xxxxxxxxx:2"   # Agents topic
+   GH_TELEGRAM_CHAT_ID="-100xxxxxxxxx:3"           # Github Issues topic
+   VERCEL_TELEGRAM_CHAT_ID="-100xxxxxxxxx:4"       # Vercel Deployments topic
+   AGENT_TELEGRAM_CHAT_ID="-100xxxxxxxxx:2"        # Agents actionable (approve, merge, decide)
+   AGENT_INFO_TELEGRAM_CHAT_ID="-100xxxxxxxxx:5"   # Agents info (started, PR created, status updates)
    ```
 
 7. **Set GitHub secrets** (for GitHub Actions):
@@ -289,10 +291,12 @@ You can organize notifications into separate topics within a single supergroup t
 
    **Note:** GitHub doesn't allow secrets starting with `GITHUB_`, so we use `GH_TELEGRAM_CHAT_ID`.
 
-8. **Set Vercel env var** (for app runtime):
+8. **Set Vercel env vars** (for app runtime):
    ```bash
    echo "-100xxxxxxxxx:2" | vercel env add AGENT_TELEGRAM_CHAT_ID production
    echo "-100xxxxxxxxx:2" | vercel env add AGENT_TELEGRAM_CHAT_ID preview
+   echo "-100xxxxxxxxx:5" | vercel env add AGENT_INFO_TELEGRAM_CHAT_ID production
+   echo "-100xxxxxxxxx:5" | vercel env add AGENT_INFO_TELEGRAM_CHAT_ID preview
    ```
 
 9. **Re-enable the webhook**:

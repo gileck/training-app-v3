@@ -39,6 +39,7 @@ These markers enable the workflow reviewer (`/workflow-review`) to search logs p
 | `[LOG:GITHUB]` | GitHub API action | `[LOG:GITHUB] pr_created: PR #45` |
 | `[LOG:ERROR]` | Non-fatal error | `[LOG:ERROR] Error: Something went wrong` |
 | `[LOG:FATAL]` | Fatal error (stops execution) | `[LOG:FATAL] Error: Critical failure` |
+| `[LOG:TIMEOUT]` | Agent timeout with diagnostics | `### [LOG:TIMEOUT] Agent Timeout` |
 | `[LOG:SUMMARY]` | Final summary table | `## [LOG:SUMMARY] Summary` |
 | `[LOG:WEBHOOK]` | Telegram webhook event | `[LOG:WEBHOOK] approved: Feature #43` |
 | `[LOG:ACTION]` | GitHub Action event | `[LOG:ACTION] deploy: Started deployment` |
@@ -333,6 +334,9 @@ Grep pattern="\[LOG:STATUS\]" path="agent-logs/issue-43.md"
 
 # Find GitHub actions
 Grep pattern="\[LOG:GITHUB\]" path="agent-logs/issue-43.md"
+
+# Find timeout events
+Grep pattern="\[LOG:TIMEOUT\]" path="agent-logs/issue-43.md"
 
 # Find phase results with context
 Grep pattern="\[LOG:PHASE_END\]" path="agent-logs/issue-43.md" -A 5

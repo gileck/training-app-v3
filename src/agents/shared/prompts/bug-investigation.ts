@@ -105,6 +105,18 @@ For each option, specify:
 - **complexity**: S, M, L, or XL
 - **files affected**: Which files need changes
 
+### Auto-Submit (Obvious Fixes)
+
+If the fix is **obvious and simple**, set \`autoSubmit: true\` in your output. This skips the admin selection UI and immediately routes the recommended fix to implementation.
+
+Set \`autoSubmit: true\` ONLY when ALL of these are true:
+1. Root cause is confirmed (high confidence)
+2. There is exactly one obviously correct fix approach
+3. The fix is small (S complexity) and goes directly to implementation
+4. No meaningful trade-offs or alternative approaches to consider
+
+When autoSubmit is true, still provide the fix option(s) and mark one as recommended - the recommended option will be auto-submitted.
+
 ---
 
 ## OUTPUT FORMAT

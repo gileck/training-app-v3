@@ -34,10 +34,39 @@ export function git(command: string, options: GitOptions = {}): string {
 
 /**
  * Check if there are uncommitted changes
+ *
+ * @param excludePaths - Optional array of path prefixes to exclude from the check.
+ *   Useful when the caller itself has modified files (e.g., agent-logs/) that should
+ *   not be treated as unexpected dirty state.
  */
-export function hasUncommittedChanges(): boolean {
+export function hasUncommittedChanges(excludePaths?: string[]): boolean {
     const status = git('status --porcelain', { silent: true });
-    return status.length > 0;
+    if (!excludePaths || excludePaths.length === 0) {
+        return status.length > 0;
+    }
+    const lines = status.split('\n').filter(line => line.trim().length > 0);
+    const relevantLines = lines.filter(line => {
+        const filePath = line.slice(3); // Remove status prefix (e.g., " M ", "?? ")
+        return !excludePaths.some(exclude => filePath.startsWith(exclude));
+    });
+    return relevantLines.length > 0;
+}
+
+/**
+ * Get the list of uncommitted changes (for diagnostics).
+ * Returns the raw `git status --porcelain` output, optionally excluding paths.
+ */
+export function getUncommittedChanges(excludePaths?: string[]): string {
+    const status = git('status --porcelain', { silent: true });
+    if (!excludePaths || excludePaths.length === 0) {
+        return status;
+    }
+    const lines = status.split('\n').filter(line => line.trim().length > 0);
+    const relevantLines = lines.filter(line => {
+        const filePath = line.slice(3);
+        return !excludePaths.some(exclude => filePath.startsWith(exclude));
+    });
+    return relevantLines.join('\n');
 }
 
 /**

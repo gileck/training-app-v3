@@ -16,6 +16,7 @@ interface WorkflowPageState {
     selectedItems: Record<string, SelectableItem>;
     showBulkDeleteConfirm: boolean;
     isBulkDeleting: boolean;
+    isBulkApproving: boolean;
 
     // Actions
     setTypeFilter: (filter: TypeFilter) => void;
@@ -27,6 +28,7 @@ interface WorkflowPageState {
     toggleItemSelect: (key: string, item: SelectableItem) => void;
     setShowBulkDeleteConfirm: (show: boolean) => void;
     setIsBulkDeleting: (deleting: boolean) => void;
+    setIsBulkApproving: (approving: boolean) => void;
     resetBulkDelete: () => void;
 }
 
@@ -42,6 +44,7 @@ export const useWorkflowPageStore = createStore<WorkflowPageState>({
         selectedItems: {},
         showBulkDeleteConfirm: false,
         isBulkDeleting: false,
+        isBulkApproving: false,
 
         setTypeFilter: (filter) => set({ typeFilter: filter }),
         setViewFilter: (filter) => set({ viewFilter: filter }),
@@ -81,10 +84,12 @@ export const useWorkflowPageStore = createStore<WorkflowPageState>({
 
         setShowBulkDeleteConfirm: (show) => set({ showBulkDeleteConfirm: show }),
         setIsBulkDeleting: (deleting) => set({ isBulkDeleting: deleting }),
+        setIsBulkApproving: (approving) => set({ isBulkApproving: approving }),
 
         resetBulkDelete: () =>
             set({
                 isBulkDeleting: false,
+                isBulkApproving: false,
                 showBulkDeleteConfirm: false,
                 selectedItems: {},
                 selectMode: false,

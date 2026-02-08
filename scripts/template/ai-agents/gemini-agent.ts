@@ -1,7 +1,7 @@
 /**
  * Gemini AI Agent
  *
- * Uses Gemini 2.5 Flash for fast code change descriptions (~1s).
+ * Uses Gemini 3 Flash for fast code change descriptions (~1s).
  * Requires GEMINI_API_KEY in environment or .env file.
  * All methods fail gracefully - return null on any error.
  */
@@ -13,7 +13,7 @@ import * as path from 'path';
 // ============================================================
 // CONFIGURATION
 // ============================================================
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3-flash-preview';
 const TIMEOUT_MS = 10000;
 // ============================================================
 

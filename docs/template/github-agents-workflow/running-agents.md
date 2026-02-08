@@ -236,10 +236,11 @@ This is **fully encapsulated** - you don't need to configure anything. The plan 
 **Visual Verification (UI Changes):**
 
 When implementing UI changes, the agent will:
-1. Use Playwright MCP to open the app at `http://localhost:3000`
-2. Navigate to the relevant page/component
-3. Resize browser to 400px width (mobile viewport)
-4. Take screenshots to verify:
+1. Start dev server and verify it's healthy (no build errors)
+2. Use Playwright MCP to open the app at `http://localhost:3000`
+3. Navigate to the relevant page/component
+4. Resize browser to 400px width (mobile viewport)
+5. Take screenshots to verify:
    - Layout looks correct on mobile
    - Touch targets are at least 44px
    - No content overflow or horizontal scrolling
@@ -257,6 +258,8 @@ When implementing UI changes, the agent will:
   }
 }
 ```
+
+If the dev server has build errors, visual verification is automatically skipped and a warning is logged.
 
 If Playwright MCP is unavailable:
 ```json
@@ -485,6 +488,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## Safety: PreToolUse Hook
+
+A PreToolUse hook (`.claude/hooks.json`) validates that all file-modifying tool calls (Edit, Write, Bash) stay within the agent's working directory. This prevents agents from accidentally writing to wrong directories when running with `bypassPermissions`.
+
+The hook automatically:
+- **Allows** relative paths and absolute paths within the working directory
+- **Blocks** Edit/Write operations targeting paths outside the working directory
+- **Blocks** Bash commands with `rm`, `mv`, `cp` targeting absolute paths outside the working directory
+
+If an agent is blocked by this hook, check that the working directory is correct (the agents copy should be used).
 
 ## Troubleshooting
 

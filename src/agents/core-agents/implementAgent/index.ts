@@ -27,16 +27,13 @@
  */
 
 import '../../shared/loadEnv';
-import { execSync } from 'child_process';
 import {
     // Config
     STATUSES,
     REVIEW_STATUSES,
     agentConfig,
-    getProjectConfig,
     // Project management
     getProjectManagementAdapter,
-    type ProjectItem,
     // Claude
     runAgent,
     getLibraryForWorkflow,
@@ -49,16 +46,9 @@ import {
     notifyBatchComplete,
     notifyAgentStarted,
     notifyAdmin,
-    // Prompts
-    buildImplementationPrompt,
-    buildPRRevisionPrompt,
-    buildImplementationClarificationPrompt,
-    buildBugImplementationPrompt,
     // Types
-    type CommonCLIOptions,
     type GitHubComment,
     type ImplementationOutput,
-    type ImplementationPhase,
     // Utils
     getIssueType,
     getBugDiagnostics,
@@ -66,11 +56,10 @@ import {
     handleClarificationRequest,
     // Output schemas
     IMPLEMENTATION_OUTPUT_FORMAT,
-    // Agent Identity
-    addAgentPrefix,
     // Git utilities (shared)
     git,
     hasUncommittedChanges,
+    getUncommittedChanges,
     checkoutBranch,
     commitChanges,
     pushBranch,
@@ -78,22 +67,12 @@ import {
     createCLI,
 } from '../../shared';
 import {
-    extractPhasesFromTechDesign,
-    parsePhaseString,
-} from '../../lib/parsing';
-import {
-    parsePhasesFromComment,
-} from '../../lib/phases';
-import {
     getProductDesignPath,
     getTechDesignPath,
-    getTaskBranch,
     generateTaskBranchName,
     generatePhaseBranchName,
-    updateImplementationPhaseArtifact,
-    setTaskBranch,
 } from '../../lib/artifacts';
-import { getArtifactsFromIssue, getPhasesFromDB, savePhaseStatusToDB, saveTaskBranchToDB } from '../../lib/workflow-db';
+import { getArtifactsFromIssue } from '../../lib/workflow-db';
 import {
     readDesignDoc,
 } from '../../lib/design-files';
@@ -115,180 +94,13 @@ import {
     logFeatureBranch,
 } from '../../lib/logging';
 
-// ============================================================
-// TYPES
-// ============================================================
-
-interface ProcessableItem {
-    item: ProjectItem;
-    mode: 'new' | 'feedback' | 'clarification';
-    prNumber?: number;
-    /**
-     * Branch name for feedback mode.
-     * For feedback mode, this is retrieved FROM the open PR (not regenerated).
-     * This is more reliable than regenerating because:
-     * - Title could have changed
-     * - Phase number could be wrong
-     * - The PR itself knows its actual branch name
-     */
-    branchName?: string;
-    /** Phase info for multi-PR workflow */
-    phaseInfo?: {
-        current: number;
-        total: number;
-        phases: ImplementationPhase[];
-    };
-}
-
-interface ImplementOptions extends CommonCLIOptions {
-    skipPush?: boolean;
-    skipPull?: boolean;
-    skipLocalTest?: boolean;
-}
-
-// ============================================================
-// GIT UTILITIES (agent-specific, not shared)
-// ============================================================
-
-/**
- * Create a branch from a specific base branch
- * Used for creating phase branches from feature branch in multi-phase workflow
- */
-function createBranchFromBase(newBranch: string, baseBranch: string, issueNumber: number): void {
-    const msg = `Creating branch ${newBranch} from ${baseBranch}`;
-    console.log(`  🌿 ${msg}`);
-    logFeatureBranch(issueNumber, msg);
-    // Ensure base branch is up to date
-    try {
-        git(`fetch origin ${baseBranch}`, { silent: true });
-    } catch {
-        const fetchMsg = `Could not fetch ${baseBranch} - may not exist remotely yet`;
-        console.log(`  🌿 ${fetchMsg}`);
-        logFeatureBranch(issueNumber, fetchMsg);
-    }
-    // Create new branch from base
-    git(`checkout -b ${newBranch} origin/${baseBranch}`);
-}
-
-/**
- * Create the feature branch for multi-phase workflow
- * Returns the feature branch name
- */
-async function ensureFeatureBranch(
-    adapter: Awaited<ReturnType<typeof getProjectManagementAdapter>>,
-    issueNumber: number,
-    defaultBranch: string
-): Promise<string> {
-    const taskBranchName = generateTaskBranchName(issueNumber);
-    const ensureMsg = `Ensuring feature branch exists: ${taskBranchName}`;
-    console.log(`  🌿 ${ensureMsg}`);
-    logFeatureBranch(issueNumber, ensureMsg);
-
-    // Check if branch exists remotely
-    const branchExists = await adapter.branchExists(taskBranchName);
-
-    if (branchExists) {
-        const existsMsg = `Feature branch already exists: ${taskBranchName}`;
-        console.log(`  🌿 ${existsMsg}`);
-        logFeatureBranch(issueNumber, existsMsg);
-    } else {
-        const createMsg = `Creating feature branch: ${taskBranchName} from ${defaultBranch}`;
-        console.log(`  🌿 ${createMsg}`);
-        logFeatureBranch(issueNumber, createMsg);
-        await adapter.createBranch(taskBranchName, defaultBranch);
-        const successMsg = `Feature branch created successfully`;
-        console.log(`  🌿 ${successMsg}`);
-        logFeatureBranch(issueNumber, successMsg);
-    }
-
-    return taskBranchName;
-}
-
-/**
- * Generate a branch name from issue number and title
- * For multi-phase features, includes the phase number
- */
-function generateBranchName(issueNumber: number, title: string, isBug: boolean = false, phaseNumber?: number): string {
-    const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .slice(0, 40)
-        .replace(/^-|-$/g, ''); // Remove leading/trailing dashes AFTER truncating
-    const prefix = isBug ? 'fix' : 'feature';
-    if (phaseNumber) {
-        return `${prefix}/issue-${issueNumber}-phase-${phaseNumber}-${slug}`;
-    }
-    return `${prefix}/issue-${issueNumber}-${slug}`;
-}
-
-/**
- * Verify all commits are pushed to remote
- */
-function verifyAllPushed(branchName: string): boolean {
-    try {
-        // Check if there are any commits that exist locally but not on remote
-        const unpushedCommits = git(`rev-list origin/${branchName}..HEAD`, { silent: true });
-        return unpushedCommits.trim().length === 0;
-    } catch {
-        // If the remote branch doesn't exist yet, that's expected for new branches
-        // The push command would have failed if there was an issue
-        return true;
-    }
-}
-
-/**
- * Pull latest from a branch
- */
-function pullBranch(branchName: string): void {
-    git(`pull origin ${branchName} --rebase`);
-}
-
-/**
- * Run yarn checks:ci and return results
- * This runs BOTH TypeScript and ESLint checks, showing ALL errors at once
- *
- * CRITICAL: Uses exit code to determine success/failure, NOT output parsing.
- * Exit code 0 = success, non-zero = failure. This is the ONLY reliable way.
- */
-function runYarnChecks(): { success: boolean; output: string } {
-    try {
-        const output = execSync('yarn checks:ci', {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 120000,
-        });
-        // If execSync didn't throw, the command succeeded (exit code 0)
-        return {
-            success: true,
-            output
-        };
-    } catch (error) {
-        // execSync throws when command exits with non-zero code = failure
-        const err = error as { status?: number; stdout?: string | Buffer; stderr?: string | Buffer; message?: string };
-        const stdout = typeof err.stdout === 'string' ? err.stdout : err.stdout?.toString() || '';
-        const stderr = typeof err.stderr === 'string' ? err.stderr : err.stderr?.toString() || '';
-        const output = stdout + stderr || err.message || String(error);
-
-        return {
-            success: false,
-            output,
-        };
-    }
-}
-
-/**
- * Get list of changed files compared to base branch
- * Uses origin/baseBranch...HEAD to get all files changed since branching
- */
-function getChangedFiles(baseBranch: string = 'main'): string[] {
-    try {
-        // Get files changed since branching from base (not uncommitted changes)
-        const output = git(`diff --name-only origin/${baseBranch}...HEAD`, { silent: true });
-        return output.split('\n').filter((f) => f.trim());
-    } catch {
-        return [];
-    }
-}
+// Submodules
+import type { ProcessableItem, ImplementOptions } from './types';
+import { createBranchFromBase, generateBranchName, verifyAllPushed, pullBranch, runYarnChecks } from './gitUtils';
+import { resolvePhaseInfo } from './phaseSetup';
+import { buildPromptForMode, appendPhaseContext, appendLocalTestingContext } from './promptBuilder';
+import { validateAndFixChanges } from './changeValidation';
+import { createImplementationPR, postFeedbackResponse } from './prManagement';
 
 // ============================================================
 // MAIN LOGIC
@@ -341,9 +153,10 @@ async function processItem(
         }
 
         try {
-        // Check for uncommitted changes
-        if (hasUncommittedChanges()) {
-            return { success: false, error: 'Uncommitted changes in working directory. Please commit or stash them first.' };
+        // Check for uncommitted changes (exclude agent-logs/ since logExecutionStart already modified it)
+        if (hasUncommittedChanges(['agent-logs/'])) {
+            const changes = getUncommittedChanges(['agent-logs/']);
+            return { success: false, error: `Uncommitted changes in working directory. Please commit or stash them first.\n${changes}` };
         }
 
         const diagnostics = issueType === 'bug'
@@ -418,108 +231,13 @@ async function processItem(
             }
         }
 
-        // Check for multi-phase implementation (L/XL features)
-        // Need to check phase for ALL modes to generate correct branch name
-        let phaseInfo = processable.phaseInfo;
-        let currentPhase: number | undefined;
-        let totalPhases: number | undefined;
-        let currentPhaseDetails: ImplementationPhase | undefined;
-
-        // First, check if phase tracking already exists in GitHub project
-        const existingPhase = await adapter.getImplementationPhase(item.id);
-        const parsed = parsePhaseString(existingPhase);
-
-        // Track task branch for multi-phase workflow
-        let taskBranchForPhase: string | null = null;
-
-        if (parsed) {
-            // Phase tracking exists - use it for all modes
-            currentPhase = parsed.current;
-            totalPhases = parsed.total;
-            const multiPhaseMsg = `Multi-phase feature: Phase ${currentPhase}/${totalPhases}`;
-            console.log(`  🌿 ${multiPhaseMsg}`);
-            logFeatureBranch(issueNumber, multiPhaseMsg);
-
-            // Try to get phase details from DB first, then comments, then markdown
-            const parsedPhases = await getPhasesFromDB(issueNumber) ||
-                                 parsePhasesFromComment(issueComments) ||
-                                 (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
-            if (parsedPhases) {
-                currentPhaseDetails = parsedPhases.find(p => p.order === currentPhase);
-                phaseInfo = {
-                    current: currentPhase,
-                    total: totalPhases,
-                    phases: parsedPhases,
-                };
-                console.log('  Phases loaded');
-            }
-
-            // Get task branch from artifact for continuing phases (Phase 2+)
-            if (mode === 'new' && currentPhase > 1) {
-                taskBranchForPhase = getTaskBranch(artifact);
-                if (taskBranchForPhase) {
-                    const retrievedMsg = `Retrieved task branch from artifact: ${taskBranchForPhase}`;
-                    console.log(`  🌿 ${retrievedMsg}`);
-                    logFeatureBranch(issueNumber, retrievedMsg);
-                } else {
-                    console.warn(`  ⚠️ Task branch not found in artifact for Phase ${currentPhase}/${totalPhases}`);
-                    console.warn(`  Expected: Task branch should have been set in Phase 1`);
-                    logFeatureBranch(issueNumber, `WARNING: Task branch not found in artifact for Phase ${currentPhase}/${totalPhases}`);
-                    // Fallback: try to generate the expected branch name
-                    taskBranchForPhase = generateTaskBranchName(issueNumber);
-                    const fallbackMsg = `Using generated task branch name: ${taskBranchForPhase}`;
-                    console.log(`  🌿 ${fallbackMsg}`);
-                    logFeatureBranch(issueNumber, fallbackMsg);
-                }
-            }
-        } else if (mode === 'new' && !phaseInfo) {
-            // No existing phase - check if we should start multi-phase (only for new implementations)
-            // Try DB first, then comment, then markdown
-            const parsedPhases = await getPhasesFromDB(issueNumber) ||
-                                 parsePhasesFromComment(issueComments) ||
-                                 (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
-
-            if (parsedPhases && parsedPhases.length >= 2) {
-                // Start new multi-phase implementation
-                currentPhase = 1;
-                totalPhases = parsedPhases.length;
-                const detectedMsg = `Detected multi-phase feature: ${totalPhases} phases`;
-                console.log(`  🌿 ${detectedMsg}`);
-                logFeatureBranch(issueNumber, detectedMsg);
-                console.log('  Phases loaded');
-
-                // Set phase tracking in GitHub project
-                if (!options.dryRun && adapter.hasImplementationPhaseField()) {
-                    await adapter.setImplementationPhase(item.id, `${currentPhase}/${totalPhases}`);
-                    console.log(`  Set Implementation Phase to: ${currentPhase}/${totalPhases}`);
-                }
-
-                // Create feature branch for multi-phase workflow (NEW)
-                if (!options.dryRun) {
-                    const taskBranchName = await ensureFeatureBranch(adapter, issueNumber, defaultBranch);
-                    // Store task branch in DB + artifact comment for future phases to reference
-                    await saveTaskBranchToDB(issueNumber, taskBranchName);
-                    await setTaskBranch(adapter, issueNumber, taskBranchName);
-                    const storedMsg = `Feature branch stored in artifact: ${taskBranchName}`;
-                    console.log(`  🌿 ${storedMsg}`);
-                    logFeatureBranch(issueNumber, storedMsg);
-                }
-
-                // Get current phase details
-                currentPhaseDetails = parsedPhases.find(p => p.order === currentPhase);
-                phaseInfo = {
-                    current: currentPhase,
-                    total: totalPhases,
-                    phases: parsedPhases,
-                };
-            }
-        } else if (phaseInfo) {
-            // Phase info passed in (from previous processing)
-            currentPhase = phaseInfo.current;
-            totalPhases = phaseInfo.total;
-            currentPhaseDetails = phaseInfo.phases.find(p => p.order === currentPhase);
-            console.log(`  📋 Continuing phase ${currentPhase}/${totalPhases}`);
-        }
+        // Resolve multi-phase implementation info
+        const {
+            currentPhase,
+            totalPhases,
+            currentPhaseDetails,
+            taskBranchForPhase,
+        } = await resolvePhaseInfo(processable, adapter, issueNumber, issueComments, techDesign, artifact, defaultBranch, options);
 
         // Determine branch name:
         // - For feedback mode: use the branch name from the OPEN PR (more reliable)
@@ -551,102 +269,24 @@ async function processItem(
             console.log('  Note: No product design found - implementing from technical design only (internal work)');
         }
 
-        let prompt: string;
-        let prReviewComments: Array<{ path?: string; line?: number; body: string; author: string }> = [];
-
-        if (mode === 'new') {
-            // Flow A: New implementation
-            // Check if branch already exists
-            const branchExistsRemotely = await adapter.branchExists(branchName);
-            if (branchExistsRemotely) {
-                console.log(`  Branch ${branchName} already exists, will use it`);
-            }
-
-            if (diagnostics) {
-                // Bug fix implementation
-                prompt = buildBugImplementationPrompt(content, diagnostics, productDesign, techDesign, branchName, issueComments);
-            } else {
-                // Feature implementation
-                prompt = buildImplementationPrompt(content, productDesign, techDesign, branchName, issueComments);
-            }
-
-            // Add phase-specific context if this is a multi-phase implementation
-            if (currentPhase && totalPhases && currentPhaseDetails) {
-                const phaseContext = `
-
-## IMPORTANT: Multi-Phase Implementation
-
-This is **Phase ${currentPhase} of ${totalPhases}**: ${currentPhaseDetails.name}
-
-**Phase Description:** ${currentPhaseDetails.description}
-
-**Files for this phase:**
-${currentPhaseDetails.files.map(f => `- ${f}`).join('\n')}
-
-**CRITICAL Instructions:**
-1. ONLY implement what's described for Phase ${currentPhase}
-2. Do NOT implement features from later phases
-3. Each phase will be a separate PR that gets reviewed and merged
-4. Make sure this phase is independently mergeable and testable
-5. Future phases will build on top of this work
-
-${currentPhase > 1 ? `\n**Note:** This builds on previous phases that have already been merged.` : ''}
-`;
-                prompt = prompt + phaseContext;
-            }
-
-            // Local testing instructions are added later after dev server is started
-        } else if (mode === 'feedback') {
-            // Flow B: Address feedback
-            if (!processable.prNumber) {
-                return { success: false, error: 'No PR number available for feedback mode' };
-            }
-
-            // Fetch PR review comments (inline code comments)
-            const prReviewCommentsRaw = await adapter.getPRReviewComments(processable.prNumber);
-            prReviewComments = prReviewCommentsRaw.map((c) => ({
-                path: c.path,
-                line: c.line,
-                body: c.body,
-                author: c.author,
-            }));
-
-            // Fetch PR conversation comments (general comments on the PR)
-            const prConversationComments = await adapter.getPRComments(processable.prNumber);
-            const prComments: GitHubComment[] = prConversationComments.map((c) => ({
-                id: c.id,
-                body: c.body,
-                author: c.author,
-                createdAt: c.createdAt,
-                updatedAt: c.updatedAt,
-            }));
-
-            const totalFeedback = issueComments.length + prReviewComments.length + prComments.length;
-            if (totalFeedback === 0) {
-                return { success: false, error: 'No feedback comments found' };
-            }
-
-            console.log(`  Found ${issueComments.length} issue comments, ${prComments.length} PR comments, ${prReviewComments.length} PR review comments`);
-
-            // Combine issue comments and PR comments for the prompt
-            const allComments = [...issueComments, ...prComments];
-            prompt = buildPRRevisionPrompt(content, productDesign, techDesign, allComments, prReviewComments);
-        } else {
-            // Flow C: Continue after clarification
-            const clarification = issueComments[issueComments.length - 1];
-
-            if (!clarification) {
-                return { success: false, error: 'No clarification comment found' };
-            }
-
-            prompt = buildImplementationClarificationPrompt(
-                { title: content.title, number: issueNumber, body: content.body },
-                productDesign,
-                techDesign,
-                branchName,
-                issueComments,
-                clarification
+        // Build prompt for the appropriate mode
+        let promptResult;
+        try {
+            promptResult = await buildPromptForMode(
+                processable, adapter, content, issueNumber, issueComments,
+                productDesign, techDesign, branchName, diagnostics,
             );
+        } catch (error) {
+            if (error instanceof Error) {
+                return { success: false, error: error.message };
+            }
+            throw error;
+        }
+        let { prompt } = promptResult;
+
+        // Add phase-specific context if this is a multi-phase new implementation
+        if (mode === 'new' && currentPhase && totalPhases && currentPhaseDetails) {
+            prompt = appendPhaseContext(prompt, currentPhase, totalPhases, currentPhaseDetails);
         }
 
         // Checkout the feature branch
@@ -722,38 +362,36 @@ ${currentPhase > 1 ? `\n**Note:** This builds on previous phases that have alrea
                     startupTimeout: agentConfig.localTesting.devServerStartupTimeout,
                 });
 
-                // Add local testing instructions with the dev server URL
-                // Language is deliberately soft - if MCP tools fail, agent can still complete
-                const localTestContext = `
+                // Health check: verify dev server isn't serving error pages
+                try {
+                    const healthResponse = await fetch(devServer.url);
+                    const body = await healthResponse.text();
+                    const buildErrorPatterns = [
+                        'Module not found',
+                        'Cannot find module',
+                        'Build Error',
+                        'Compilation Error',
+                        'SyntaxError',
+                        'Internal Server Error',
+                    ];
+                    const hasError = buildErrorPatterns.some(pattern => body.includes(pattern));
+                    if (hasError) {
+                        console.log('  ⚠️ Dev server has build errors — skipping visual verification');
+                        stopDevServer(devServer);
+                        devServer = null;
+                    }
+                } catch {
+                    console.log('  ⚠️ Dev server health check failed — skipping visual verification');
+                    if (devServer) {
+                        stopDevServer(devServer);
+                        devServer = null;
+                    }
+                }
 
-## LOCAL TESTING (Optional but Recommended)
-
-A dev server is running at: **${devServer.url}**
-
-After implementing the feature and running \`yarn checks\`, try to verify your implementation using Playwright MCP tools if they are available:
-
-1. **Navigate to the app**: Use \`mcp__playwright__browser_navigate\` to go to ${devServer.url}
-2. **Take a snapshot**: Use \`mcp__playwright__browser_snapshot\` to see the page structure
-3. **Test the feature**: Interact with the feature you implemented
-4. **Verify it works**: Confirm the expected behavior occurs
-5. **Close browser**: Use \`mcp__playwright__browser_close\` when done
-
-**Playwright MCP Tools (if available):**
-- \`mcp__playwright__browser_navigate\` - Navigate to URLs
-- \`mcp__playwright__browser_snapshot\` - Capture page DOM/accessibility tree
-- \`mcp__playwright__browser_click\` - Click elements
-- \`mcp__playwright__browser_type\` - Type text into inputs
-- \`mcp__playwright__browser_close\` - Close browser
-
-**IMPORTANT:**
-- The dev server is already running - do NOT run \`yarn dev\`
-- The browser runs in headless mode (no visible window)
-- Focus on happy-path verification only
-- **If MCP tools fail or are unavailable, proceed without local testing** - this is not a blocker
-- If you can test and it passes, include test results in your PR summary
-- If you cannot test (tools unavailable), mention that in PR summary
-`;
-                prompt = prompt + localTestContext;
+                // Only add local testing context if dev server is healthy
+                if (devServer) {
+                    prompt = appendLocalTestingContext(prompt, devServer.url);
+                }
             } catch (error) {
                 const devServerError = `Failed to start dev server: ${error instanceof Error ? error.message : String(error)}`;
                 console.log(`  ⚠️ ${devServerError}`);
@@ -799,6 +437,58 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
 
         if (!result.success) {
             const error = result.error || 'Implementation failed';
+            const isTimeout = error.includes('Timed out');
+
+            if (isTimeout) {
+                // Log timeout diagnostics
+                const diagnostics = result.timeoutDiagnostics;
+                if (diagnostics) {
+                    console.log(`  Timeout classification: ${diagnostics.classification}`);
+                    console.log(`  Total tool calls: ${diagnostics.totalToolCalls}`);
+                    if (diagnostics.pendingToolCall) {
+                        console.log(`  Pending tool: ${diagnostics.pendingToolCall.name} -> ${diagnostics.pendingToolCall.target}`);
+                    }
+                    console.log(`  Last tool calls:`);
+                    for (const tc of diagnostics.lastToolCalls) {
+                        const ago = Math.floor((Date.now() - tc.timestamp) / 1000);
+                        console.log(`    - ${tc.name} -> ${tc.target} (${ago}s ago)`);
+                    }
+                }
+
+                // Capture modified files before cleanup
+                let modifiedFiles = '';
+                try {
+                    modifiedFiles = git('diff --stat', { silent: true });
+                } catch { /* ignore */ }
+
+                // Log timeout section to agent log
+                const timeoutLogContent = `\n### [LOG:TIMEOUT] Agent Timeout\n\n` +
+                    `**Classification:** ${diagnostics?.classification || 'Unknown'}\n` +
+                    `**Total Tool Calls:** ${diagnostics?.totalToolCalls || 0}\n` +
+                    (diagnostics?.pendingToolCall ? `**Pending Tool:** ${diagnostics.pendingToolCall.name} -> ${diagnostics.pendingToolCall.target}\n` : '') +
+                    `**Time Since Last Tool Call:** ${diagnostics?.timeSinceLastToolCall || 0}s\n` +
+                    `**Time Since Last Response:** ${diagnostics?.timeSinceLastResponse || 0}s\n` +
+                    `**Token Usage:** ${result.usage ? `${result.usage.inputTokens + result.usage.outputTokens} tokens ($${result.usage.totalCostUSD?.toFixed(4) || '0'})` : 'N/A'}\n\n` +
+                    (diagnostics?.lastToolCalls.length ? `**Last Tool Calls:**\n${diagnostics.lastToolCalls.map(tc => `- ${tc.name} -> ${tc.target}`).join('\n')}\n\n` : '') +
+                    (modifiedFiles ? `**Files Modified at Timeout:**\n\`\`\`\n${modifiedFiles}\n\`\`\`\n\n` : '') +
+                    `**Action:** Changes discarded for clean retry\n\n`;
+
+                // Write to agent log
+                try {
+                    const { appendToLog } = await import('../../lib/logging/writer');
+                    appendToLog(issueNumber, timeoutLogContent);
+                } catch { /* ignore logging failures */ }
+
+                // Clean up: discard all changes for clean retry
+                try {
+                    git('checkout -- .', { silent: true });
+                    git('clean -fd', { silent: true });
+                    console.log('  Cleaned up working directory for retry');
+                } catch (cleanupError) {
+                    console.error('  Warning: Failed to clean up after timeout:', cleanupError);
+                }
+            }
+
             // Checkout back to default branch before failing
             git(`checkout ${defaultBranch}`);
             if (!options.dryRun) {
@@ -851,29 +541,20 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
         // Check if there are changes to commit
         const hasChanges = hasUncommittedChanges();
         if (!hasChanges) {
-            // In feedback mode, agent might have already committed changes (via yarn checks auto-fix)
-            // or changes might have been pushed in a previous run
+            // Agent might have already committed changes via Bash tool
             // Check if there are commits on this branch that aren't on the default branch
-            if (mode === 'feedback') {
-                console.log('  No uncommitted changes (feedback mode - checking for pushed commits)');
-                try {
-                    const diffOutput = git(`log ${defaultBranch}..HEAD --oneline`, { silent: true });
-                    if (diffOutput.trim()) {
-                        console.log('  Found existing commits on branch - proceeding to update Review Status');
-                        // Skip commit/push steps but continue to update Review Status
-                    } else {
-                        console.log('  No commits on branch either');
-                        git(`checkout ${defaultBranch}`);
-                        return { success: false, error: 'Agent did not make any changes' };
-                    }
-                } catch {
-                    console.log('  Could not check for branch commits');
+            console.log('  No uncommitted changes - checking for branch commits...');
+            try {
+                const diffOutput = git(`log ${defaultBranch}..HEAD --oneline`, { silent: true });
+                if (diffOutput.trim()) {
+                    console.log('  Found existing commits on branch - proceeding');
+                } else {
+                    console.log('  No commits on branch either');
                     git(`checkout ${defaultBranch}`);
                     return { success: false, error: 'Agent did not make any changes' };
                 }
-            } else {
-                // New implementation mode - must have changes
-                console.log('  No changes to commit');
+            } catch {
+                console.log('  Could not check for branch commits');
                 git(`checkout ${defaultBranch}`);
                 return { success: false, error: 'Agent did not make any changes' };
             }
@@ -881,37 +562,7 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
 
         // Run post-work yarn checks - fix any new issues
         if (!options.dryRun) {
-            console.log('  Running post-work yarn checks...');
-            const postChecks = runYarnChecks();
-            if (!postChecks.success) {
-                console.log('  ⚠️ Issues found - asking Claude to fix...');
-
-                // Run Claude to fix the issues (skip plan mode - this is a simple fix task)
-                const fixResult = await runAgent({
-                    prompt: `The following yarn checks errors need to be fixed:\n\n${postChecks.output}\n\nFix these issues in the codebase. Only fix the issues shown above, do not make any other changes.`,
-                    stream: options.stream,
-                    verbose: options.verbose,
-                    timeout: options.timeout,
-                    progressLabel: 'Fixing yarn checks issues',
-                    allowWrite: true,
-                    workflow: 'implementation',
-                    shouldUsePlanMode: false,
-                });
-
-                if (!fixResult.success) {
-                    console.error('  ⚠️ Could not auto-fix issues - continuing anyway');
-                } else {
-                    // Re-run checks to verify
-                    const recheck = runYarnChecks();
-                    if (recheck.success) {
-                        console.log('  ✅ Issues fixed');
-                    } else {
-                        console.log('  ⚠️ Some issues may remain - continuing anyway');
-                    }
-                }
-            } else {
-                console.log('  ✅ No new issues introduced');
-            }
+            await validateAndFixChanges(options);
         }
 
         if (options.dryRun) {
@@ -939,8 +590,11 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
             return { success: true };
         }
 
+        // Re-check for uncommitted changes (fix agent or yarn checks auto-fix may have created new ones)
+        const hasChangesToCommit = hasUncommittedChanges();
+
         // Commit changes (only if there are uncommitted changes)
-        if (hasChanges) {
+        if (hasChangesToCommit) {
             const commitPrefix = issueType === 'bug' ? 'fix' : 'feat';
             const phaseLabel = currentPhase && totalPhases
                 ? ` (Phase ${currentPhase}/${totalPhases})`
@@ -954,27 +608,24 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
 
             console.log('  Committing changes...');
             commitChanges(commitMessage);
+        } else {
+            console.log('  Skipping commit (no uncommitted changes - using existing commits)');
+        }
 
-            // Push to remote
-            if (!options.skipPush) {
+        // Push to remote (always push if there are unpushed commits)
+        if (!options.skipPush) {
+            if (!verifyAllPushed(branchName)) {
                 console.log('  Pushing to remote...');
                 pushBranch(branchName, mode === 'feedback');
 
-                // Verify all commits are pushed
+                // Verify push succeeded
                 console.log('  Verifying all commits are pushed...');
                 if (!verifyAllPushed(branchName)) {
                     return { success: false, error: 'Failed to push all commits to remote. Please check network connection and try again.' };
                 }
                 console.log('  ✅ All commits pushed successfully');
-            }
-        } else {
-            console.log('  Skipping commit (no uncommitted changes - using existing commits)');
-            // Verify existing commits are already pushed
-            if (!options.skipPush) {
-                console.log('  Verifying existing commits are pushed...');
-                if (!verifyAllPushed(branchName)) {
-                    console.log('  ⚠️ Warning: Some commits may not be pushed to remote');
-                }
+            } else {
+                console.log('  ✅ All commits already pushed');
             }
         }
 
@@ -987,204 +638,31 @@ After implementing the feature and running \`yarn checks\`, try to verify your i
         // If there's truly a duplicate (e.g., crash recovery), GitHub will return an error
         // that we can handle gracefully.
         if (mode === 'new') {
-            console.log('  Creating pull request...');
-            const repoDefaultBranch = await adapter.getDefaultBranch();
-
-            // Determine base branch for PR:
-            // - Multi-phase: target the feature branch
-            // - Single-phase: target the default branch (unchanged)
-            let prBaseBranch: string;
-            if (currentPhase && totalPhases && totalPhases > 1) {
-                // Multi-phase: PR targets feature branch
-                prBaseBranch = generateTaskBranchName(issueNumber);
-                const prTargetMsg = `PR will target feature branch: ${branchName} → ${prBaseBranch}`;
-                console.log(`  🌿 ${prTargetMsg}`);
-                logFeatureBranch(issueNumber, prTargetMsg);
-            } else {
-                // Single-phase: PR targets default branch (unchanged)
-                prBaseBranch = repoDefaultBranch;
-            }
-
-                // Get list of changed files for PR description
-                const changedFiles = getChangedFiles(prBaseBranch);
-                const filesList = changedFiles.length > 0
-                    ? changedFiles.map((f) => `- ${f}`).join('\n')
-                    : 'No files changed';
-
-                // Build commit-message-ready PR title and body
-                // PR title will be the squash merge commit title
-                const prPrefix = issueType === 'bug' ? 'fix' : 'feat';
-                const phaseLabel = currentPhase && totalPhases
-                    ? ` (Phase ${currentPhase}/${totalPhases})`
-                    : '';
-                const prTitle = `${prPrefix}: ${content.title}${phaseLabel}`;
-
-                // Everything before the --- separator will be included in squash merge commit body
-                // Use the agent's PR summary if available, otherwise fall back to generic text
-                let prBodyAboveSeparator: string;
-
-                // Phase info header for multi-phase features
-                const phaseHeader = currentPhase && totalPhases && currentPhaseDetails
-                    ? `## Phase ${currentPhase}/${totalPhases}: ${currentPhaseDetails.name}
-
-${currentPhaseDetails.description}
-
-`
-                    : '';
-
-                if (prSummary) {
-                    prBodyAboveSeparator = `${phaseHeader}${prSummary}
-
-${currentPhase && totalPhases && currentPhase === totalPhases ? `Closes #${issueNumber}` : `Part of #${issueNumber}`}`;
-                } else {
-                    // No structured output summary - use minimal description
-                    // (Agent adapter may not support structured output)
-                    const issueRef = currentPhase && totalPhases && currentPhase === totalPhases
-                        ? `Closes #${issueNumber}`
-                        : `Part of #${issueNumber}`;
-                    prBodyAboveSeparator = `${phaseHeader}See issue #${issueNumber} for details.
-
-${issueRef}`;
-                }
-
-                const prBody = `${prBodyAboveSeparator}
-
----
-
-**Files changed:**
-${filesList}
-
-**Test plan:**
-- \`yarn checks\` passes ✅
-- Manual testing completed ✅
-
-See issue #${issueNumber} for full context, product design, and technical design.
-
-*Generated by Implementation Agent*`;
-
-                // Get admin username from config to request review
-                const adminUsername = getProjectConfig().github.owner;
-
-                const pr = await adapter.createPullRequest(
-                    branchName,
-                    prBaseBranch,
-                    prTitle,
-                    prBody,
-                    [adminUsername] // Request review from admin
-                );
-                prNumber = pr.number;
-                console.log(`  Created PR #${prNumber}: ${pr.url}`);
-
-                // Log PR targeting for multi-phase
-                if (currentPhase && totalPhases && totalPhases > 1) {
-                    const prCreatedMsg = `Phase ${currentPhase}/${totalPhases} PR #${prNumber} targets feature branch`;
-                    console.log(`  🌿 ${prCreatedMsg}`);
-                    logFeatureBranch(issueNumber, prCreatedMsg);
-                }
-
-                // Update artifact comment with implementation PR
-                try {
-                    if (currentPhase && totalPhases && currentPhaseDetails) {
-                        // Multi-phase feature
-                        await savePhaseStatusToDB(issueNumber, currentPhase, 'in-review', prNumber);
-                        await updateImplementationPhaseArtifact(
-                            adapter,
-                            issueNumber,
-                            currentPhase,
-                            totalPhases,
-                            currentPhaseDetails.name,
-                            'in-review',
-                            prNumber
-                        );
-                    } else {
-                        // Single-phase feature - use Phase 1/1 format for consistency
-                        await savePhaseStatusToDB(issueNumber, 1, 'in-review', prNumber);
-                        await updateImplementationPhaseArtifact(
-                            adapter,
-                            issueNumber,
-                            1,
-                            1,
-                            '', // No name for single-phase
-                            'in-review',
-                            prNumber
-                        );
-                    }
-                    console.log('  Updated artifact comment with PR link');
-                } catch (error) {
-                    // Non-fatal error - PR is still created successfully
-                    console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
-                }
-
-                // Trigger Claude Code review
-                try {
-                    console.log('  Triggering Claude Code review...');
-                    const reviewInstructions = `@claude please review this PR
-
-**Review Guidelines:**
-- Request changes if there are ANY Minor Issues, Suggestions, or Improvements
-- Only approve if there are absolutely ZERO Minor Issues, ZERO Suggestions, and ZERO Improvements recommended
-- Never approve a PR that has minor suggestions, minor improvements, or minor issues - these should all trigger "Request Changes"
-- All issues, suggestions, and improvements must be within the context of the task/PR scope - do not request changes for unrelated code or out-of-scope improvements`;
-                    await adapter.addPRComment(prNumber, reviewInstructions);
-                    console.log('  ✅ Claude Code review triggered');
-                } catch (error) {
-                    // Non-fatal error - PR is still created successfully
-                    console.warn('  Warning: Failed to trigger Claude Code review:', error instanceof Error ? error.message : String(error));
-                }
-
-                // Add status comment on issue (phase-aware)
-                const phasePrefix = currentPhase && totalPhases
-                    ? `**Phase ${currentPhase}/${totalPhases}**: `
-                    : '';
-                const phaseName = currentPhaseDetails?.name ? ` - ${currentPhaseDetails.name}` : '';
-                const prLinkComment = addAgentPrefix('implementor', `📋 ${phasePrefix}Opening PR #${prNumber}${phaseName}`);
-                await adapter.addIssueComment(issueNumber, prLinkComment);
-
-                // Post summary comment on PR (if available)
-                if (comment) {
-                    const prefixedComment = addAgentPrefix('implementor', comment);
-                    await adapter.addPRComment(prNumber, prefixedComment);
-                    console.log('  Summary comment posted on PR');
-                    logGitHubAction(logCtx, 'comment', 'Posted implementation summary comment on PR');
-                }
+            prNumber = await createImplementationPR({
+                adapter,
+                issueNumber,
+                issueType,
+                contentTitle: content.title,
+                branchName,
+                prSummary,
+                comment,
+                currentPhase,
+                totalPhases,
+                currentPhaseDetails,
+                logCtx,
+            });
         } else {
             // Feedback mode: Add comments on both issue and PR
             if (prNumber) {
-                // Add status comment on issue (phase-aware)
-                const feedbackPhasePrefix = currentPhase && totalPhases
-                    ? `**Phase ${currentPhase}/${totalPhases}**: `
-                    : '';
-                const issueStatusComment = addAgentPrefix('implementor', `🔧 ${feedbackPhasePrefix}Addressed feedback on PR #${prNumber} - ready for re-review`);
-                await adapter.addIssueComment(issueNumber, issueStatusComment);
-
-                // Use structured output comment if available, otherwise warn
-                let feedbackComment: string | undefined;
-                if (comment) {
-                    feedbackComment = comment;
-                } else {
-                    console.warn('  ⚠️ No comment in structured output for feedback response');
-                }
-                // Post feedback comment on PR if available
-                const reReviewInstructions = `
-
-**Review Guidelines:**
-- Request changes if there are ANY Minor Issues, Suggestions, or Improvements
-- Only approve if there are absolutely ZERO Minor Issues, ZERO Suggestions, and ZERO Improvements recommended
-- Never approve a PR that has minor suggestions, minor improvements, or minor issues - these should all trigger "Request Changes"
-- All issues, suggestions, and improvements must be within the context of the task/PR scope - do not request changes for unrelated code or out-of-scope improvements`;
-
-                if (feedbackComment) {
-                    const prefixedComment = addAgentPrefix('implementor', feedbackComment);
-                    // Add @claude to trigger Claude GitHub App to re-review the fixes
-                    const commentWithReviewRequest = `${prefixedComment}\n\n@claude please review the changes${reReviewInstructions}`;
-                    await adapter.addPRComment(prNumber, commentWithReviewRequest);
-                    console.log('  Feedback response comment posted on PR (with @claude review request)');
-                    logGitHubAction(logCtx, 'comment', 'Posted feedback response on PR with @claude review request');
-                } else {
-                    // Still trigger @claude review even without detailed comment
-                    await adapter.addPRComment(prNumber, `@claude please review the changes${reReviewInstructions}`);
-                    console.log('  Review request posted on PR (no detailed comment available)');
-                }
+                await postFeedbackResponse({
+                    adapter,
+                    issueNumber,
+                    prNumber,
+                    comment,
+                    currentPhase,
+                    totalPhases,
+                    logCtx,
+                });
             }
         }
 
@@ -1197,7 +675,7 @@ See issue #${issueNumber} for full context, product design, and technical design
         }
 
         // Log GitHub actions
-        if (prNumber) {
+        if (mode === 'new' && prNumber) {
             logGitHubAction(logCtx, 'pr_created', `Created PR #${prNumber}`);
         }
         if (adapter.hasReviewStatusField()) {
@@ -1275,6 +753,7 @@ async function main(): Promise<void> {
     if (hasUncommittedChanges()) {
         console.error('Error: Uncommitted changes in working directory.');
         console.error('Please commit or stash your changes before running this agent.');
+        console.error('Uncommitted files:\n' + getUncommittedChanges());
         process.exit(1);
     }
 

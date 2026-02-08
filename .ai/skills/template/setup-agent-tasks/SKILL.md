@@ -32,7 +32,7 @@ Replace `<repo-name>` with the project's repository name (e.g., `my-app`, `book-
   "description": "Runs all workflow agents sequentially every 10 minutes",
   "script": {
     "path": "github-workflows-agent",
-    "args": ["--all", "--global-limit", "--stream", "--reset"],
+    "args": ["--all", "--global-limit", "--stream", "--reset", "--stale-timeout", "20", "--triggeredBy", "task-manager"],
     "interpreter": "npm",
     "workingDirectory": "/Users/gileck/Projects/agents-copy/<repo-name>"
   },
@@ -84,6 +84,7 @@ task-cli get <repo-name>:agent:all
 - **`output.logFile` / `output.statusFile`** — Must point to the project's own `agent-tasks/all/runs/` folder, not the template's.
 - **`uniqueKey`** — Use `<repo-name>:agent:all` to avoid conflicts with other projects.
 - **`name`** — Use `Agent(<repo-name>): All` to identify the project in `task-cli get` output.
+- **`--stale-timeout 20`** — Directory lock is considered stale after 20 minutes. Use `0` to force-clear any existing lock.
 
 ### What `--all --global-limit` does
 
@@ -115,7 +116,7 @@ Replace `<repo-name>` with the project's repository name:
   "description": "Reviews recent commits for bugs and improvements (diff-budget batched, every 4h)",
   "script": {
     "path": "agent:code-reviewer",
-    "args": ["--stream"],
+    "args": ["--stream", "--triggeredBy", "task-manager"],
     "interpreter": "npm",
     "workingDirectory": "/Users/gileck/Projects/<repo-name>"
   },

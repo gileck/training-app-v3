@@ -1,14 +1,16 @@
 ---
 title: Bug Investigation Workflow
 description: Complete documentation for the Bug Investigator agent and bug fix selection flow.
-summary: "Bugs are auto-routed to Bug Investigation on approval. The Bug Investigator agent performs read-only investigation, posts root cause analysis with fix options, and admin selects a fix approach via web UI to route to Tech Design or Implementation."
+summary: "Bugs are auto-routed to Bug Investigation on approval. The Bug Investigator agent performs read-only investigation, posts root cause analysis with fix options. For obvious simple fixes (high confidence, S complexity), the agent auto-submits the fix. Otherwise, admin selects a fix approach via web UI to route to Tech Design or Implementation. Telegram notifications are sent for both auto-submitted and manually selected decisions."
 priority: 5
 key_points:
   - "Bugs auto-route to Bug Investigation on approval (no routing message)"
   - "Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)"
   - "Investigation posted as GitHub issue comment with fix options"
-  - "Admin selects fix approach via /decision/:issueNumber web UI"
+  - "Obvious fixes (high confidence, S complexity) auto-submit without admin selection"
+  - "Admin selects fix approach via /decision/:issueNumber web UI (when not auto-submitted)"
   - "Routes to Tech Design (complex fixes) or Implementation (simple fixes)"
+  - "Telegram notifications sent for auto-submits and manual submissions"
 related_docs:
   - overview.md
   - workflow-e2e.md
@@ -25,9 +27,11 @@ When a bug report is approved, it is **automatically routed** to the "Bug Invest
 
 1. Investigates the bug using **read-only** tools (no code changes)
 2. Saves investigation results to MongoDB `artifacts.decision` and posts a comment on the GitHub issue with root cause analysis and fix options
-3. Sends a Telegram notification with links to view the investigation and select a fix approach
-4. Admin selects a fix option via the `/decision/:issueNumber` web UI
-5. The bug is routed to **Technical Design** or **Implementation** based on the selected option
+3. **If obvious fix** (`autoSubmit=true`): Auto-submits the recommended option, routes directly to Implementation, and sends a Telegram confirmation
+4. **Otherwise**: Sends a Telegram notification with links to view the investigation and select a fix approach
+5. Admin selects a fix option via the `/decision/:issueNumber` web UI
+6. The bug is routed to **Technical Design** or **Implementation** based on the selected option
+7. A Telegram confirmation is sent after submission with the selected option and next steps
 
 ## Auto-Routing on Approval
 
@@ -91,6 +95,7 @@ interface BugInvestigationOutput {
   filesExamined: string[];
   additionalLogsNeeded?: string;
   summary: string;
+  autoSubmit?: boolean;        // Skip admin selection for obvious fixes
 }
 ```
 
@@ -189,9 +194,9 @@ If routing config is missing, the submit handler sets Review Status to "Approved
 
 ## Telegram Notifications
 
-### Investigation Ready
+### Investigation Ready (Manual Selection)
 
-Sent when the Bug Investigator agent completes its investigation:
+Sent when the Bug Investigator agent completes its investigation and admin selection is needed:
 
 ```
 Agent (Bug Investigation): Decision Ready
@@ -210,6 +215,38 @@ Summary:
 - **View Issue**: Opens the GitHub issue
 - **Request Changes**: Sets Review Status to "Request Changes" (triggers feedback mode)
 
+### Auto-Submitted (Obvious Fix)
+
+Sent when the agent auto-submits an obvious fix without requiring admin selection:
+
+```
+Agent (Bug Investigation): Auto-Submitted
+Bug
+
+Issue #60: "Login fails on Safari"
+
+Selected: Add null check for auth token
+Routed to: Ready for development
+
+Obvious fix auto-submitted. The implementation agent will pick this up next.
+```
+
+### Submission Confirmed
+
+Sent after the admin submits a fix selection via the web UI:
+
+```
+Decision Submitted: Confirmed
+Bug
+
+Issue #60: "Login fails on Safari"
+
+Selected: Add null check for auth token
+Routed to: Ready for development
+
+The next agent will pick this up automatically.
+```
+
 ## E2E Flow Diagram
 
 ```
@@ -218,26 +255,37 @@ Summary:
 2. Bug Investigator agent runs
    |- Investigates codebase (read-only)
    |- Posts investigation comment on GitHub issue (Agent Decision format)
-   '- Sends Telegram: [Choose Option] [View Issue] [Request Changes]
    |
-3. Admin clicks "Choose Option" -> Opens /decision/:issueNumber UI
+   +--> [Auto-Submit Path] (autoSubmit=true, high confidence, S complexity)
+   |    |- Posts selection comment on issue
+   |    |- Routes directly to "Ready for development"
+   |    '- Sends Telegram: "Auto-Submitted" confirmation
+   |    |
+   |    '--> 6. Implementation agent picks up
    |
-4. Admin selects option (or provides custom) -> Submits
-   |
-5. API processes submission
-   |- Posts selection comment on issue
-   |- Reads routing config from DECISION_META
-   |- Routes to destination (Tech Design or Implementation)
-   '- Clears Review Status
-   |
-6. Next agent picks up with full context from issue comments
+   +--> [Manual Selection Path] (normal flow)
+        |- Sends Telegram: [Choose Option] [View Issue] [Request Changes]
+        |
+        3. Admin clicks "Choose Option" -> Opens /decision/:issueNumber UI
+        |
+        4. Admin selects option (or provides custom) -> Submits
+        |
+        5. API processes submission
+        |- Posts selection comment on issue
+        |- Reads routing config from DECISION_META
+        |- Routes to destination (Tech Design or Implementation)
+        |- Clears Review Status
+        '- Sends Telegram: submission confirmation with next steps
+        |
+        6. Next agent picks up with full context from issue comments
 ```
 
 ## Status Transitions
 
 | Starting State | Event | Ending State | Actor |
 |----------------|-------|--------------|-------|
-| Bug Investigation, Review: empty | Agent investigates | Bug Investigation, Review: Waiting for Review | Agent |
+| Bug Investigation, Review: empty | Agent investigates (normal) | Bug Investigation, Review: Waiting for Review | Agent |
+| Bug Investigation, Review: empty | Agent investigates (auto-submit) | Ready for development, Review: empty | Agent |
 | Bug Investigation, Review: Waiting for Review | Admin selects fix -> Implementation | Ready for development, Review: empty | Admin (UI) |
 | Bug Investigation, Review: Waiting for Review | Admin selects fix -> Tech Design | Technical Design, Review: empty | Admin (UI) |
 | Bug Investigation, Review: Waiting for Review | Admin requests changes | Bug Investigation, Review: Request Changes | Admin (Telegram) |
@@ -252,7 +300,7 @@ Summary:
 | `src/agents/core-agents/bugInvestigatorAgent/index.ts` | Main agent |
 | `src/agents/shared/prompts/bug-investigation.ts` | Prompt builders |
 | `src/agents/shared/output-schemas.ts` | `BUG_INVESTIGATION_OUTPUT_FORMAT` |
-| `src/agents/shared/notifications.ts` | `notifyDecisionNeeded()` |
+| `src/agents/shared/notifications.ts` | `notifyDecisionNeeded()`, `notifyDecisionAutoSubmitted()`, `notifyDecisionSubmitted()` |
 | `src/client/routes/template/Decision/` | Decision selection UI (generic) |
 | `src/client/routes/template/BugFix/` | Legacy redirect to `/decision/` |
 | `src/apis/template/agent-decision/` | Agent decision API handlers |

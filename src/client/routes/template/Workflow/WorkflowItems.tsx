@@ -11,7 +11,7 @@
 
 import { useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronRight, ChevronsUpDown, Loader2, ExternalLink, Clock, CheckCircle, Trash2, Check, Copy } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsUpDown, Loader2, ExternalLink, Clock, CheckCircle, Trash2, Check, Copy, RefreshCw, Github, ArrowRightLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Card, CardContent } from '@/client/components/template/ui/card';
@@ -23,7 +23,7 @@ import { toast } from '@/client/components/template/ui/toast';
 import { ErrorDisplay } from '@/client/features/template/error-tracking';
 import { useRouter } from '@/client/features';
 import { useQueryClient } from '@tanstack/react-query';
-import { useWorkflowItems } from './hooks';
+import { useWorkflowItems, useUpdateWorkflowStatus } from './hooks';
 import { useItemDetail, useApproveItem, useDeleteItem, parseItemId } from '@/client/routes/template/ItemDetail/hooks';
 import { useWorkflowPageStore } from './store';
 import type { TypeFilter, ViewFilter } from './store';
@@ -58,6 +58,11 @@ const BADGE_COLORS: Record<string, { bg: string; text: string }> = {
     'Approved': { bg: '#22c55e', text: '#fff' },
     'Request Changes': { bg: '#f97316', text: '#fff' },
     'Rejected': { bg: '#ef4444', text: '#fff' },
+    // Priority
+    'critical': { bg: '#dc2626', text: '#fff' },
+    'high': { bg: '#f97316', text: '#fff' },
+    'medium': { bg: '#3b82f6', text: '#fff' },
+    'low': { bg: '#9ca3af', text: '#fff' },
     // Source
     'source': { bg: '#6b7280', text: '#fff' },
 };
@@ -73,6 +78,44 @@ function StatusBadge({ label, colorKey }: { label: string; colorKey?: string }) 
         >
             {label}
         </span>
+    );
+}
+
+// ── Summary Stats Bar ────────────────────────────────────────────────────────
+
+function StatsBar({ pendingCount, statusCounts, onClickStatus }: {
+    pendingCount: number;
+    statusCounts: { status: string; count: number }[];
+    onClickStatus: (view: ViewFilter) => void;
+}) {
+    const total = pendingCount + statusCounts.reduce((sum, s) => sum + s.count, 0);
+    if (total === 0) return null;
+
+    return (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mb-3">
+            {pendingCount > 0 && (
+                <button
+                    onClick={() => onClickStatus('pending')}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: BADGE_COLORS['Pending Approval'].bg }} />
+                    <span>Pending {pendingCount}</span>
+                </button>
+            )}
+            {statusCounts.map(({ status, count }) => (
+                <button
+                    key={status}
+                    onClick={() => onClickStatus(status === 'Done' ? 'done' : 'active')}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                    <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: (BADGE_COLORS[status] || DEFAULT_BADGE_COLOR).bg }}
+                    />
+                    <span>{status} {count}</span>
+                </button>
+            ))}
+        </div>
     );
 }
 
@@ -119,6 +162,9 @@ function PendingCard({ item, onSelect, selectMode, selected, onToggleSelect }: {
                         <div className="flex flex-wrap items-center gap-1.5">
                             <StatusBadge label={item.type === 'bug' ? 'Bug' : 'Feature'} colorKey={item.type} />
                             <StatusBadge label="Pending Approval" />
+                            {item.priority && (
+                                <StatusBadge label={item.priority} colorKey={item.priority} />
+                            )}
                             {item.source && (
                                 <StatusBadge label={`via ${item.source}`} colorKey="source" />
                             )}
@@ -139,6 +185,7 @@ function WorkflowCard({ item, onSelect, selectMode, selected, onToggleSelect }: 
 }) {
     const navId = item.sourceId || item.id;
     const typeLabel = item.type === 'bug' ? 'Bug' : item.type === 'task' ? 'Task' : 'Feature';
+    const ghUrl = item.content?.url;
     return (
         <Card
             className={`cursor-pointer hover:bg-accent/50 transition-colors ${selected ? 'ring-2 ring-primary' : ''}`}
@@ -153,6 +200,11 @@ function WorkflowCard({ item, onSelect, selectMode, selected, onToggleSelect }: 
                                 {item.content?.title || 'Untitled'}
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
+                                {item.implementationPhase && (
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        Phase {item.implementationPhase}
+                                    </span>
+                                )}
                                 {item.createdAt && (
                                     <span className="text-xs text-muted-foreground">
                                         {formatDate(item.createdAt)}
@@ -162,6 +214,18 @@ function WorkflowCard({ item, onSelect, selectMode, selected, onToggleSelect }: 
                                     <span className="text-xs text-muted-foreground">
                                         #{item.content.number}
                                     </span>
+                                )}
+                                {ghUrl && (
+                                    <a
+                                        href={ghUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-muted-foreground hover:text-foreground transition-colors"
+                                        title="Open GitHub issue"
+                                    >
+                                        <Github className="w-3.5 h-3.5" />
+                                    </a>
                                 )}
                             </div>
                         </div>
@@ -181,12 +245,25 @@ function WorkflowCard({ item, onSelect, selectMode, selected, onToggleSelect }: 
 
 // ── Item preview dialog ─────────────────────────────────────────────────────
 
+const ALL_STATUSES = [
+    'Backlog',
+    'Product Development',
+    'Product Design',
+    'Bug Investigation',
+    'Technical Design',
+    'Ready for development',
+    'PR Review',
+    'Final Review',
+    'Done',
+] as const;
+
 function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose: () => void }) {
     const { navigate } = useRouter();
     const queryClient = useQueryClient();
     const { item, isLoading } = useItemDetail(itemId || undefined);
     const { approveFeature, approveBug, isPending: isApproving } = useApproveItem();
     const { deleteFeature, deleteBug, isPending: isDeleting } = useDeleteItem();
+    const updateStatusMutation = useUpdateWorkflowStatus();
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral confirm dialog state
     const [showApproveConfirm, setShowApproveConfirm] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral confirm dialog state
@@ -209,6 +286,11 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
         : false;
     const canApprove = isNew && !isAlreadySynced;
     const canDelete = !isAlreadySynced;
+
+    // Determine if this is a workflow item (has a non-composite ID = plain ObjectId)
+    const isWorkflowItem = itemId ? !itemId.includes(':') : false;
+    // For workflow items, the itemId IS the workflow item's _id
+    const workflowItemId = isWorkflowItem ? itemId : null;
 
     const { mongoId } = itemId ? parseItemId(itemId) : { mongoId: '' };
 
@@ -274,6 +356,16 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
         }
     };
 
+    const handleStatusChange = async (newStatus: string) => {
+        if (!workflowItemId) return;
+        try {
+            await updateStatusMutation.mutateAsync({ itemId: workflowItemId, status: newStatus });
+            toast.success(`Moved to ${newStatus}`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to update status');
+        }
+    };
+
     return (
         <Dialog open={!!itemId} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
@@ -292,7 +384,7 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
                                 <StatusBadge label={isFeature ? 'Feature' : 'Bug'} colorKey={item.type} />
                                 <StatusBadge label={status} />
                                 {isFeature && item.feature!.priority && (
-                                    <StatusBadge label={item.feature!.priority} colorKey="source" />
+                                    <StatusBadge label={item.feature!.priority} colorKey={item.feature!.priority} />
                                 )}
                                 {isFeature && item.feature!.source && (
                                     <StatusBadge label={`via ${item.feature!.source}`} colorKey="source" />
@@ -365,6 +457,24 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
                         </div>
 
                         <div className="pt-3 border-t -mx-6 px-6 flex flex-col gap-2">
+                            {workflowItemId && (
+                                <div className="flex items-center gap-2">
+                                    <ArrowRightLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <Select
+                                        value=""
+                                        onValueChange={handleStatusChange}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs flex-1">
+                                            <SelectValue placeholder="Move to..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {ALL_STATUSES.map((s) => (
+                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                             {(canApprove || canDelete) && (
                                 <div className="flex gap-2">
                                     {canApprove && (
@@ -532,7 +642,7 @@ const ALL_SECTION_KEYS = ['pending', ...PIPELINE_STATUSES, 'Done'] as const;
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function WorkflowItems() {
-    const { data, isLoading, error } = useWorkflowItems();
+    const { data, isLoading, error, isFetching } = useWorkflowItems();
 
     const typeFilter = useWorkflowPageStore((s) => s.typeFilter);
     const viewFilter = useWorkflowPageStore((s) => s.viewFilter);
@@ -542,6 +652,7 @@ export function WorkflowItems() {
     const selectedItems = useWorkflowPageStore((s) => s.selectedItems);
     const showBulkDeleteConfirm = useWorkflowPageStore((s) => s.showBulkDeleteConfirm);
     const isBulkDeleting = useWorkflowPageStore((s) => s.isBulkDeleting);
+    const isBulkApproving = useWorkflowPageStore((s) => s.isBulkApproving);
 
     const setTypeFilter = useWorkflowPageStore((s) => s.setTypeFilter);
     const setViewFilter = useWorkflowPageStore((s) => s.setViewFilter);
@@ -553,9 +664,19 @@ export function WorkflowItems() {
     const setShowBulkDeleteConfirm = useWorkflowPageStore((s) => s.setShowBulkDeleteConfirm);
     const resetBulkDelete = useWorkflowPageStore((s) => s.resetBulkDelete);
     const setIsBulkDeleting = useWorkflowPageStore((s) => s.setIsBulkDeleting);
+    const setIsBulkApproving = useWorkflowPageStore((s) => s.setIsBulkApproving);
 
     const queryClient = useQueryClient();
     const { deleteFeature, deleteBug } = useDeleteItem();
+    const { approveFeature, approveBug } = useApproveItem();
+
+    const isBulkBusy = isBulkDeleting || isBulkApproving;
+
+    // Check if all selected items are pending (for bulk approve)
+    const allSelectedArePending = useMemo(() => {
+        const keys = Object.keys(selectedItems);
+        return keys.length > 0 && keys.every((k) => k.startsWith('pending:'));
+    }, [selectedItems]);
 
     const handleBulkDelete = async () => {
         setIsBulkDeleting(true);
@@ -578,11 +699,9 @@ export function WorkflowItems() {
             }
         }
 
-        // Close dialog and reset state first
         resetBulkDelete();
         queryClient.invalidateQueries({ queryKey: ['workflow-items'] });
 
-        // Show toast after state updates so it's visible
         if (failCount > 0 && successCount === 0) {
             toast.error(`Failed to delete ${failCount} item${failCount !== 1 ? 's' : ''}: ${lastError}`);
         } else if (failCount > 0) {
@@ -590,6 +709,43 @@ export function WorkflowItems() {
         } else {
             toast.success(`Deleted ${successCount} item${successCount !== 1 ? 's' : ''}`);
         }
+    };
+
+    const handleBulkApprove = async () => {
+        setIsBulkApproving(true);
+        let successCount = 0;
+        let failCount = 0;
+        let lastError = '';
+
+        for (const key of Object.keys(selectedItems)) {
+            const { type, mongoId } = selectedItems[key];
+            try {
+                if (type === 'feature') {
+                    await approveFeature(mongoId);
+                } else {
+                    await approveBug(mongoId);
+                }
+                successCount++;
+            } catch (err) {
+                failCount++;
+                lastError = err instanceof Error ? err.message : 'Unknown error';
+            }
+        }
+
+        resetBulkDelete();
+        queryClient.invalidateQueries({ queryKey: ['workflow-items'] });
+
+        if (failCount > 0 && successCount === 0) {
+            toast.error(`Failed to approve ${failCount} item${failCount !== 1 ? 's' : ''}: ${lastError}`);
+        } else if (failCount > 0) {
+            toast.error(`Approved ${successCount}, failed ${failCount}: ${lastError}`);
+        } else {
+            toast.success(`Approved ${successCount} item${successCount !== 1 ? 's' : ''}`);
+        }
+    };
+
+    const handleRefresh = () => {
+        queryClient.invalidateQueries({ queryKey: ['workflow-items'] });
     };
 
     const toggleAll = () => toggleAllSections(ALL_SECTION_KEYS);
@@ -661,6 +817,29 @@ export function WorkflowItems() {
         return items;
     }, [data?.workflowItems, typeFilter, viewFilter]);
 
+    // Stats for the summary bar (computed from unfiltered data)
+    const statusCounts = useMemo(() => {
+        if (!data?.workflowItems) return [];
+        const counts = new Map<string, number>();
+        for (const item of data.workflowItems) {
+            const status = item.status || 'Unknown';
+            counts.set(status, (counts.get(status) || 0) + 1);
+        }
+        // Return in pipeline order
+        const result: { status: string; count: number }[] = [];
+        for (const status of [...PIPELINE_STATUSES, 'Done']) {
+            const count = counts.get(status);
+            if (count) {
+                result.push({ status, count });
+                counts.delete(status);
+            }
+        }
+        for (const [status, count] of counts) {
+            result.push({ status, count });
+        }
+        return result;
+    }, [data?.workflowItems]);
+
     if (isLoading || data === undefined) {
         return (
             <div className="p-4">
@@ -703,14 +882,21 @@ export function WorkflowItems() {
                     </Select>
                     <button
                         onClick={toggleSelectMode}
-                        disabled={isBulkDeleting}
+                        disabled={isBulkBusy}
                         className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                             selectMode
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                        } ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${isBulkBusy ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {selectMode ? 'Cancel' : 'Select'}
+                    </button>
+                    <button
+                        onClick={handleRefresh}
+                        title="Refresh"
+                        className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </button>
                     <button
                         onClick={toggleAll}
@@ -721,6 +907,12 @@ export function WorkflowItems() {
                     </button>
                 </div>
             </div>
+
+            <StatsBar
+                pendingCount={data.pendingItems.length}
+                statusCounts={statusCounts}
+                onClickStatus={setViewFilter}
+            />
 
             <div className="mb-4">
                 <ViewTabs active={viewFilter} onChange={setViewFilter} />
@@ -811,19 +1003,35 @@ export function WorkflowItems() {
                         <span className="text-sm font-medium">
                             {selectedCount} selected
                         </span>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setShowBulkDeleteConfirm(true)}
-                            disabled={isBulkDeleting}
-                        >
-                            {isBulkDeleting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="mr-2 h-4 w-4" />
+                        <div className="flex items-center gap-2">
+                            {allSelectedArePending && (
+                                <Button
+                                    size="sm"
+                                    onClick={handleBulkApprove}
+                                    disabled={isBulkBusy}
+                                >
+                                    {isBulkApproving ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                    )}
+                                    {isBulkApproving ? 'Approving...' : 'Approve Selected'}
+                                </Button>
                             )}
-                            {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
-                        </Button>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setShowBulkDeleteConfirm(true)}
+                                disabled={isBulkBusy}
+                            >
+                                {isBulkDeleting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                )}
+                                {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

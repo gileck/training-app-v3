@@ -114,10 +114,11 @@ async function main() {
     console.log('  1. Simple mode: Use ONE chat for all notifications');
     console.log('  2. Advanced mode: Use 3 SEPARATE chats for different notification types');
     console.log('');
-    console.log('Advanced mode (3 chats) helps reduce information overload by splitting:');
+    console.log('Advanced mode (4 chats) helps reduce information overload by splitting:');
     console.log('  • Chat 1: Vercel deployments (FYI - catch errors)');
     console.log('  • Chat 2: GitHub activity (FYI - awareness)');
-    console.log('  • Chat 3: Agent workflow (action required - important!)');
+    console.log('  • Chat 3: Agent workflow - actionable (approve, merge, decide)');
+    console.log('  • Chat 4: Agent workflow - info (agent started, PR created, status updates)');
     console.log('');
     console.log('Waiting for a message to your bot...');
     console.log('Send any message to your Telegram bot to get your chat ID.');
@@ -184,6 +185,7 @@ async function main() {
                         console.log(`   VERCEL_TELEGRAM_CHAT_ID=${combinedId}`);
                         console.log(`   GITHUB_TELEGRAM_CHAT_ID=${chatId}:<other-thread-id>`);
                         console.log(`   AGENT_TELEGRAM_CHAT_ID=${chatId}:<other-thread-id>`);
+                        console.log(`   AGENT_INFO_TELEGRAM_CHAT_ID=${chatId}:<other-thread-id>`);
                         console.log('');
                         console.log('Waiting for more messages...');
                     } else {

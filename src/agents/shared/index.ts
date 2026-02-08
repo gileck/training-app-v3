@@ -155,14 +155,16 @@ export {
     extractFeedbackResolution,
     formatFeedbackResolution,
     extractPRSummary,
-    // Concurrent processing lock
-    acquireAgentLock,
-    releaseAgentLock,
-    hasAgentLock,
     type BugDiagnostics,
     type FeedbackResolution,
     type ExtractedClarification,
 } from './utils';
+
+// Directory lock
+export {
+    acquireDirectoryLock,
+    releaseDirectoryLock,
+} from './directory-lock';
 
 // Agent Identity
 export {
@@ -198,6 +200,7 @@ export {
 export {
     git,
     hasUncommittedChanges,
+    getUncommittedChanges,
     branchExistsLocally,
     checkoutBranch,
     getCurrentBranch,

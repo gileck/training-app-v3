@@ -55,12 +55,12 @@ export function MetadataField({ config, value }: MetadataFieldProps) {
         const files = Array.isArray(value) ? value : [value];
         if (files.length === 0) return null;
         return (
-            <div className="text-xs text-muted-foreground">
-                <strong>{config.label}:</strong>{' '}
+            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1">
+                <strong className="shrink-0">{config.label}:</strong>
                 {files.map((f, i) => (
                     <span key={f}>
-                        <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{f}</code>
-                        {i < files.length - 1 && ', '}
+                        <code className="bg-muted px-1 py-0.5 rounded text-[11px] break-all">{f}</code>
+                        {i < files.length - 1 && ','}
                     </span>
                 ))}
             </div>

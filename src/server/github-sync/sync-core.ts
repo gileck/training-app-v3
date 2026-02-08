@@ -74,8 +74,8 @@ export async function syncItemToGitHub<T extends GitHubSyncedFields>(
             githubIssueUrl: issueUrl,
         });
 
-        // 6. Set initial status (defaults to Backlog)
-        const initialStatus = config.initialStatus || STATUSES.backlog;
+        // 6. Set initial status (override > config > Backlog)
+        const initialStatus = options?.initialStatusOverride || config.initialStatus || STATUSES.backlog;
         await adapter.updateItemStatus(projectItemId, initialStatus);
 
         // 7. Create empty artifact comment (design docs and implementation PRs will be tracked here)
@@ -89,8 +89,8 @@ export async function syncItemToGitHub<T extends GitHubSyncedFields>(
             githubIssueTitle: title,
         });
 
-        // 9. Send routing notification (unless skipped or auto-routed via initialStatus)
-        if (!options?.skipNotification && !config.initialStatus) {
+        // 9. Send routing notification (unless skipped, auto-routed via initialStatus, or overridden)
+        if (!options?.skipNotification && !config.initialStatus && !options?.initialStatusOverride) {
             try {
                 await config.sendRoutingNotification(item, { number: issueNumber, url: issueUrl });
             } catch (error) {
@@ -123,7 +123,8 @@ export async function syncItemToGitHub<T extends GitHubSyncedFields>(
  */
 export async function approveItem<T extends GitHubSyncedFields>(
     itemId: string,
-    config: ApproveItemConfig<T>
+    config: ApproveItemConfig<T>,
+    options?: SyncOptions
 ): Promise<{
     success: boolean;
     item?: T;
@@ -138,7 +139,7 @@ export async function approveItem<T extends GitHubSyncedFields>(
         }
 
         // 2. Sync to GitHub
-        const githubResult = await config.syncToGitHub(itemId);
+        const githubResult = await config.syncToGitHub(itemId, options);
 
         if (!githubResult.success) {
             // 3. Revert status if GitHub sync failed

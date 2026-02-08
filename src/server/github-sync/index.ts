@@ -196,7 +196,8 @@ export async function syncFeatureRequestToGitHub(
  * Updates MongoDB status to 'in_progress' and creates GitHub issue
  */
 export async function approveFeatureRequest(
-    requestId: string
+    requestId: string,
+    syncOptions?: SyncOptions
 ): Promise<{
     success: boolean;
     featureRequest?: FeatureRequestDocument;
@@ -207,10 +208,10 @@ export async function approveFeatureRequest(
         getFromDB: (id) => featureRequests.findFeatureRequestById(id),
         setInProgressStatus: (id) => featureRequests.updateFeatureRequestStatus(id, 'in_progress'),
         revertToNewStatus: (id) => featureRequests.updateFeatureRequestStatus(id, 'new').then(() => {}),
-        syncToGitHub: syncFeatureRequestToGitHub,
+        syncToGitHub: (id, options) => syncFeatureRequestToGitHub(id, options),
     };
 
-    const result = await approveItem(requestId, approveConfig);
+    const result = await approveItem(requestId, approveConfig, syncOptions);
 
     return {
         success: result.success,
@@ -240,7 +241,8 @@ export async function syncBugReportToGitHub(
  * Updates MongoDB status to 'investigating' and creates GitHub issue
  */
 export async function approveBugReport(
-    reportId: string
+    reportId: string,
+    syncOptions?: SyncOptions
 ): Promise<{
     success: boolean;
     bugReport?: ReportDocument;
@@ -254,10 +256,10 @@ export async function approveBugReport(
             return updated ? await reports.findReportById(id) : null;
         },
         revertToNewStatus: (id) => reports.updateReport(id, { status: 'new' }).then(() => {}),
-        syncToGitHub: syncBugReportToGitHub,
+        syncToGitHub: (id, options) => syncBugReportToGitHub(id, options),
     };
 
-    const result = await approveItem(reportId, approveConfig);
+    const result = await approveItem(reportId, approveConfig, syncOptions);
 
     return {
         success: result.success,

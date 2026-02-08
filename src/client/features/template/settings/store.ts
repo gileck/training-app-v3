@@ -39,12 +39,17 @@ export const useSettingsStore = createStore<SettingsState>({
         // Merge persisted settings with defaults to handle new fields
         merge: (persistedState, currentState) => {
             const persisted = persistedState as { settings?: Partial<Settings> };
+            const merged = {
+                ...defaultSettings,
+                ...persisted?.settings,
+            };
+            // Fall back to default if persisted aiModel is empty
+            if (!merged.aiModel) {
+                merged.aiModel = defaultSettings.aiModel;
+            }
             return {
                 ...currentState,
-                settings: {
-                    ...defaultSettings,
-                    ...persisted?.settings,
-                },
+                settings: merged,
             };
         },
     },

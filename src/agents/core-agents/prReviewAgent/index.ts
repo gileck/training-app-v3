@@ -48,6 +48,7 @@ import {
     // Git utilities
     git,
     hasUncommittedChanges,
+    getUncommittedChanges,
     checkoutBranch,
     getCurrentBranch,
     // CLI
@@ -212,7 +213,8 @@ async function processItem(
         try {
         // Check for uncommitted changes
         if (hasUncommittedChanges()) {
-            return { success: false, error: 'Uncommitted changes in working directory. Please commit or stash them first.' };
+            const changes = getUncommittedChanges();
+            return { success: false, error: `Uncommitted changes in working directory. Please commit or stash them first.\n${changes}` };
         }
 
         // Use branch name from the PR (retrieved via findOpenPRForIssue)

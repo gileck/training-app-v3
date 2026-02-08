@@ -69,8 +69,8 @@ import {
     logGitHubAction,
     logError,
 } from '../../lib/logging';
-import { notifyDecisionNeeded } from '../../shared/notifications';
-import { formatDecisionComment, isDecisionComment as isGenericDecisionComment, saveDecisionToDB } from '@/apis/template/agent-decision/utils';
+import { notifyDecisionNeeded, notifyDecisionAutoSubmitted } from '../../shared/notifications';
+import { formatDecisionComment, isDecisionComment as isGenericDecisionComment, saveDecisionToDB, formatDecisionSelectionComment, saveSelectionToDB } from '@/apis/template/agent-decision/utils';
 import type { DecisionOption, MetadataFieldConfig, DestinationOption, RoutingConfig } from '@/apis/template/agent-decision/types';
 
 // ============================================================
@@ -403,25 +403,68 @@ async function processItem(
                 BUG_FIX_ROUTING
             );
 
-            // Update review status
-            if (adapter.hasReviewStatusField()) {
-                await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
-                console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
+            // Check for auto-submit: skip admin selection for obvious fixes
+            const recommendedOption = output.fixOptions.find(opt => opt.isRecommended);
+            if (
+                output.autoSubmit &&
+                recommendedOption &&
+                output.confidence === 'high' &&
+                recommendedOption.complexity === 'S' &&
+                recommendedOption.destination === 'implement'
+            ) {
+                console.log(`  Auto-submitting recommended fix: ${recommendedOption.id} (${recommendedOption.title})`);
+
+                // Post selection comment on issue
+                const selection = { selectedOptionId: recommendedOption.id };
+                const selectionComment = formatDecisionSelectionComment(selection, decisionOptions);
+                await adapter.addIssueComment(issueNumber, selectionComment);
+                await saveSelectionToDB(issueNumber, selection);
+
+                // Route directly to implementation
+                const targetStatus = 'Ready for development';
+                await adapter.updateItemStatus(item.id, targetStatus);
+                console.log(`  Item auto-routed to: ${targetStatus}`);
+
+                if (adapter.hasReviewStatusField()) {
+                    await adapter.updateItemReviewStatus(item.id, '');
+                    console.log('  Review status cleared');
+                }
+
+                logGitHubAction(logCtx, 'issue_updated', `Auto-submitted fix "${recommendedOption.title}" → ${targetStatus}`);
+
+                // Send auto-submit Telegram notification
+                await notifyDecisionAutoSubmitted(
+                    'Bug Investigation',
+                    content.title,
+                    issueNumber,
+                    recommendedOption.title,
+                    targetStatus,
+                    'bug'
+                );
+                console.log('  Telegram auto-submit notification sent');
+            } else {
+                // Normal flow: wait for admin to select an option
+
+                // Update review status
+                if (adapter.hasReviewStatusField()) {
+                    await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
+                    console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
+                }
+
+                logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
+
+                // Send Telegram notification with decision selection link
+                await notifyDecisionNeeded(
+                    'Bug Investigation',
+                    content.title,
+                    issueNumber,
+                    output.summary,
+                    output.fixOptions.length,
+                    'bug',
+                    mode === 'feedback'
+                );
+                console.log('  Telegram notification sent');
             }
-
-            logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
-
-            // Send Telegram notification with decision selection link
-            await notifyDecisionNeeded(
-                'Bug Investigation',
-                content.title,
-                issueNumber,
-                output.summary,
-                output.fixOptions.length,
-                'bug',
-                mode === 'feedback'
-            );
-            console.log('  Telegram notification sent');
 
             // Log execution end
             logExecutionEnd(logCtx, {

@@ -38,6 +38,7 @@ export async function listItems(
                 type: 'feature',
                 title: f.title,
                 source: f.source,
+                priority: f.priority,
                 createdAt: new Date(f.createdAt).toISOString(),
             });
         }
@@ -82,6 +83,7 @@ export async function listItems(
                     state: 'OPEN' as const,
                     labels,
                 },
+                implementationPhase: doc.implementationPhase || null,
                 createdAt: new Date(doc.createdAt).toISOString(),
             };
         });

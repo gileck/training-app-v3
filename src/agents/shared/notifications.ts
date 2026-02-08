@@ -62,12 +62,22 @@ function parseChatId(chatIdString: string): { chatId: string; threadId?: number 
 }
 
 /**
- * Get the owner's Telegram chat ID from app.config.js
- * Returns parsed chat ID and optional thread ID for topic-based groups
+ * Get the actionable channel chat ID for agent workflow notifications.
+ * Uses AGENT_TELEGRAM_CHAT_ID env var, falls back to ownerTelegramChatId.
  */
-function getOwnerChatId(): { chatId: string; threadId?: number } | null {
-    const rawChatId = appConfig.ownerTelegramChatId;
+function getActionableChatId(): { chatId: string; threadId?: number } | null {
+    const rawChatId = process.env.AGENT_TELEGRAM_CHAT_ID || appConfig.ownerTelegramChatId;
     if (!rawChatId) return null;
+    return parseChatId(rawChatId);
+}
+
+/**
+ * Get the info channel chat ID for non-actionable updates.
+ * Uses AGENT_INFO_TELEGRAM_CHAT_ID env var, falls back to actionable channel.
+ */
+function getInfoChatId(): { chatId: string; threadId?: number } | null {
+    const rawChatId = process.env.AGENT_INFO_TELEGRAM_CHAT_ID;
+    if (!rawChatId) return getActionableChatId(); // Fallback to actionable channel
     return parseChatId(rawChatId);
 }
 
@@ -150,10 +160,10 @@ async function sendToAdmin(
         return { success: false, error: 'Missing bot token' };
     }
 
-    const parsedChatId = getOwnerChatId();
+    const parsedChatId = getActionableChatId();
     if (!parsedChatId) {
-        console.warn('  Telegram notification skipped: ownerTelegramChatId not configured');
-        return { success: false, error: 'Owner chat ID not configured' };
+        console.warn('  Telegram notification skipped: AGENT_TELEGRAM_CHAT_ID not configured');
+        return { success: false, error: 'Actionable chat ID not configured' };
     }
 
     const { chatId, threadId } = parsedChatId;
@@ -213,6 +223,84 @@ async function sendToAdmin(
     return { success: false, error: 'Max retries reached' };
 }
 
+/**
+ * Send a Telegram message to the info channel (non-actionable updates)
+ * Falls back to admin channel if info channel is not configured
+ */
+async function sendToInfoChannel(
+    message: string,
+    replyMarkup?: InlineKeyboardMarkup
+): Promise<SendResult> {
+    if (!agentConfig.telegram.enabled) {
+        return { success: true };
+    }
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+        console.warn('  Telegram notification skipped: missing TELEGRAM_BOT_TOKEN');
+        return { success: false, error: 'Missing bot token' };
+    }
+
+    const parsedChatId = getInfoChatId();
+    if (!parsedChatId) {
+        console.warn('  Telegram notification skipped: no chat ID configured');
+        return { success: false, error: 'Chat ID not configured' };
+    }
+
+    const { chatId, threadId } = parsedChatId;
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 3000;
+
+    const chatIdDisplay = threadId ? `${chatId}:${threadId}` : chatId;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const body: Record<string, unknown> = {
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML',
+                disable_web_page_preview: true,
+            };
+
+            if (threadId) {
+                body.message_thread_id = threadId;
+            }
+
+            if (replyMarkup) {
+                body.reply_markup = replyMarkup;
+            }
+
+            const response = await fetch(`${TELEGRAM_API_URL}${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Telegram API error: ${error}`);
+            }
+
+            console.log('  Telegram info notification sent');
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`  Telegram info notification attempt ${attempt}/${MAX_RETRIES} failed (chat_id: ${chatIdDisplay}):`, errorMessage);
+
+            if (attempt < MAX_RETRIES) {
+                console.log(`  Retrying in ${RETRY_DELAY_MS / 1000} seconds...`);
+                await sleep(RETRY_DELAY_MS);
+            } else {
+                console.error(`  All retry attempts exhausted. Telegram info notification not sent. (chat_id: ${chatIdDisplay})`);
+                return { success: false, error: errorMessage };
+            }
+        }
+    }
+
+    return { success: false, error: 'Max retries reached' };
+}
+
 // ============================================================
 // NOTIFICATION TEMPLATES
 // ============================================================
@@ -235,7 +323,7 @@ export async function notifyIssueSynced(
 
 Waiting for product design generation.`;
 
-    return sendToAdmin(message, buildViewIssueButton(issueUrl));
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
 }
 
 /**
@@ -354,7 +442,7 @@ ${typeEmoji} ${typeLabel}
 
 ${isRevision ? 'PR updated based on feedback. ' : ''}Waiting for PR Review agent to review.${summarySection}`;
 
-    return sendToAdmin(message, buildViewPRButton(prUrl));
+    return sendToInfoChannel(message, buildViewPRButton(prUrl));
 }
 
 /**
@@ -394,7 +482,7 @@ ${typeEmoji} ${typeLabel}
         ],
     };
 
-    return sendToAdmin(message, buttons);
+    return sendToInfoChannel(message, buttons);
 }
 
 /**
@@ -457,7 +545,38 @@ ${escapeHtml(issueTitle)} (#${issueNumber})
 
 Issue will be marked as Done.`;
 
-    return sendToAdmin(message, buildViewIssueButton(issueUrl));
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
+}
+
+/**
+ * Notify admin that an agent decision was auto-submitted (obvious fix).
+ * Sent when the bug investigator auto-selects the recommended fix option.
+ */
+export async function notifyDecisionAutoSubmitted(
+    phase: string,
+    title: string,
+    issueNumber: number,
+    selectedOptionTitle: string,
+    routedTo: string,
+    itemType: 'bug' | 'feature' = 'feature'
+): Promise<SendResult> {
+    const issueUrl = getIssueUrl(issueNumber);
+
+    const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
+    const typeLabel = itemType === 'bug' ? 'Bug' : 'Feature';
+
+    const message = `<b>Agent (${escapeHtml(phase)}):</b> ⚡ Auto-Submitted
+${typeEmoji} ${typeLabel}
+
+📋 ${escapeHtml(title)}
+🔗 Issue #${issueNumber}
+
+<b>Selected:</b> ${escapeHtml(selectedOptionTitle)}
+<b>Routed to:</b> ${escapeHtml(routedTo)}
+
+Obvious fix auto-submitted. The implementation agent will pick this up next.`;
+
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
 }
 
 /**
@@ -547,7 +666,7 @@ export async function notifyAgentError(
 Check logs for details.`;
 
     const buttons = issueUrl ? buildViewIssueButton(issueUrl) : undefined;
-    return sendToAdmin(message, buttons);
+    return sendToInfoChannel(message, buttons);
 }
 
 /**
@@ -568,7 +687,7 @@ export async function notifyBatchComplete(
 
 ${failed > 0 ? 'Check logs for failed items.' : 'All items processed successfully.'}`;
 
-    return sendToAdmin(message, buildViewProjectButton(projectUrl));
+    return sendToInfoChannel(message, buildViewProjectButton(projectUrl));
 }
 
 // ============================================================
@@ -604,7 +723,7 @@ export async function notifyAutoAdvance(
 
 Ready for next phase.`;
 
-    return sendToAdmin(message, buildViewIssueButton(issueUrl));
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
 }
 
 /**
@@ -640,7 +759,7 @@ ${typeEmoji} ${typeLabel}
 📋 ${escapeHtml(title)}
 🔗 Issue #${issueNumber}`;
 
-    return sendToAdmin(message, buildViewIssueButton(issueUrl));
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
 }
 
 /**
@@ -771,7 +890,7 @@ ${nextAction}`;
         ],
     };
 
-    return sendToAdmin(message, buttons);
+    return sendToInfoChannel(message, buttons);
 }
 
 /**
@@ -813,7 +932,7 @@ ${nextAction}`;
         ],
     };
 
-    return sendToAdmin(message, buttons);
+    return sendToInfoChannel(message, buttons);
 }
 
 /**
@@ -835,7 +954,39 @@ export async function notifyFinalMergeComplete(
 
 Issue will be marked as Done. Branches cleaned up.`;
 
-    return sendToAdmin(message, buildViewIssueButton(issueUrl));
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
+}
+
+/**
+ * Notify admin that a decision selection was submitted via the web UI.
+ * Confirms which option was selected and where the item was routed.
+ */
+export async function notifyDecisionSubmitted(
+    title: string,
+    issueNumber: number,
+    selectedOptionTitle: string,
+    routedTo: string | undefined,
+    itemType: 'bug' | 'feature' = 'feature'
+): Promise<SendResult> {
+    const issueUrl = getIssueUrl(issueNumber);
+
+    const typeEmoji = itemType === 'bug' ? '🐛' : '✨';
+    const typeLabel = itemType === 'bug' ? 'Bug' : 'Feature';
+
+    const routedSection = routedTo
+        ? `<b>Routed to:</b> ${escapeHtml(routedTo)}\n\nThe next agent will pick this up automatically.`
+        : 'Selection recorded. The agent will process this in the next workflow run.';
+
+    const message = `<b>Decision Submitted:</b> ✅ Confirmed
+${typeEmoji} ${typeLabel}
+
+📋 ${escapeHtml(title)}
+🔗 Issue #${issueNumber}
+
+<b>Selected:</b> ${escapeHtml(selectedOptionTitle)}
+${routedSection}`;
+
+    return sendToInfoChannel(message, buildViewIssueButton(issueUrl));
 }
 
 /**

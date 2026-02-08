@@ -41,6 +41,7 @@ import type { LogContext } from '../lib/logging';
 import {
     git,
     hasUncommittedChanges,
+    getUncommittedChanges,
     branchExistsLocally,
     checkoutBranch,
     getCurrentBranch,
@@ -244,7 +245,8 @@ export function createDesignProcessor(
                 if (mode === 'feedback' && existingPR) {
                     // Ensure clean working directory before branch operations
                     if (hasUncommittedChanges()) {
-                        return { success: false, error: 'Uncommitted changes detected - please commit or stash first' };
+                        const changes = getUncommittedChanges();
+                        return { success: false, error: `Uncommitted changes detected - please commit or stash first\n${changes}` };
                     }
                     console.log(`  Checking out PR branch to read existing design: ${existingPR.branchName}`);
                     checkoutBranch(existingPR.branchName);
@@ -439,7 +441,8 @@ export function createDesignProcessor(
                 if (!alreadyOnPRBranch) {
                     // Ensure clean working directory before branch operations
                     if (hasUncommittedChanges()) {
-                        return { success: false, error: 'Uncommitted changes detected - please commit or stash first' };
+                        const changes = getUncommittedChanges();
+                        return { success: false, error: `Uncommitted changes detected - please commit or stash first\n${changes}` };
                     }
 
                     if (isExistingBranch) {

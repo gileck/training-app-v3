@@ -106,6 +106,15 @@ export interface AgentRunResult {
     durationSeconds: number;
     /** Structured output when outputFormat is specified */
     structuredOutput?: unknown;
+    /** Timeout diagnostic information (only present when agent timed out) */
+    timeoutDiagnostics?: {
+        classification: string;
+        lastToolCalls: Array<{ name: string; target: string; timestamp: number; id: string }>;
+        pendingToolCall: { name: string; target: string; timestamp: number; id: string } | null;
+        totalToolCalls: number;
+        timeSinceLastToolCall: number;
+        timeSinceLastResponse: number;
+    };
 }
 
 /**

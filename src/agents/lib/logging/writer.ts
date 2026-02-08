@@ -56,10 +56,14 @@ export function writeLogHeader(
         return;
     }
 
-    // Fall back to local file
-    ensureLogDir();
-    const logPath = getLogPath(issueNumber);
-    fs.writeFileSync(logPath, header, 'utf-8');
+    // Fall back to local file (may fail on read-only filesystems like Vercel)
+    try {
+        ensureLogDir();
+        const logPath = getLogPath(issueNumber);
+        fs.writeFileSync(logPath, header, 'utf-8');
+    } catch (err) {
+        console.warn(`Failed to write local log for issue #${issueNumber}:`, err instanceof Error ? err.message : err);
+    }
 }
 
 /**
@@ -76,10 +80,14 @@ export function appendToLog(issueNumber: number, content: string): void {
         return;
     }
 
-    // Fall back to local file
-    ensureLogDir();
-    const logPath = getLogPath(issueNumber);
-    fs.appendFileSync(logPath, content, 'utf-8');
+    // Fall back to local file (may fail on read-only filesystems like Vercel)
+    try {
+        ensureLogDir();
+        const logPath = getLogPath(issueNumber);
+        fs.appendFileSync(logPath, content, 'utf-8');
+    } catch (err) {
+        console.warn(`Failed to append to local log for issue #${issueNumber}:`, err instanceof Error ? err.message : err);
+    }
 }
 
 /**
@@ -123,9 +131,13 @@ export function readLog(issueNumber: number): string {
  * Write the entire log file content (overwrites existing)
  */
 export function writeLog(issueNumber: number, content: string): void {
-    ensureLogDir();
-    const logPath = getLogPath(issueNumber);
-    fs.writeFileSync(logPath, content, 'utf-8');
+    try {
+        ensureLogDir();
+        const logPath = getLogPath(issueNumber);
+        fs.writeFileSync(logPath, content, 'utf-8');
+    } catch (err) {
+        console.warn(`Failed to write local log for issue #${issueNumber}:`, err instanceof Error ? err.message : err);
+    }
 }
 
 /**

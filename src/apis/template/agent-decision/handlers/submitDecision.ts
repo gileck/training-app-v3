@@ -19,6 +19,7 @@ import {
 } from '../utils';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
+import { notifyDecisionSubmitted } from '@/agents/shared/notifications';
 
 /**
  * Submit a decision selection.
@@ -157,6 +158,21 @@ export async function submitDecision(
                 console.log(`  Review status set to: ${REVIEW_STATUSES.approved}`);
             }
         }
+
+        // Send Telegram confirmation notification
+        const selectedTitle = selection.selectedOptionId === 'custom'
+            ? 'Custom Solution'
+            : (selectedOption?.title ?? selection.selectedOptionId);
+        const itemType = decision.decisionType === 'bug-fix' ? 'bug' as const : 'feature' as const;
+        await notifyDecisionSubmitted(
+            issueTitle,
+            issueNumber,
+            selectedTitle,
+            routedTo,
+            itemType
+        ).catch(err => {
+            console.error('Failed to send decision submission notification:', err);
+        });
 
         return { success: true, routedTo };
     } catch (error) {

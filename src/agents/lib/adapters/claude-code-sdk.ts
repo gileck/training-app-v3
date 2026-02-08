@@ -90,6 +90,18 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
         let usage: AgentRunResult['usage'] = null;
         let structuredOutput: unknown = undefined;
 
+        // Timeout diagnostics tracking
+        interface ToolCallRecord {
+            name: string;
+            target: string;  // file path or command summary
+            timestamp: number;
+            id: string;
+        }
+        const toolCallHistory: ToolCallRecord[] = [];
+        let lastToolCallTime = 0;
+        let lastToolResponseTime = 0;
+        let pendingToolCall: ToolCallRecord | null = null;
+
         let spinnerInterval: NodeJS.Timeout | null = null;
         let spinnerFrame = 0;
 
@@ -211,6 +223,19 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                                 }
                                 console.log(`  \x1b[36m[${elapsed}s] Tool: ${toolName}${target}\x1b[0m`);
                             }
+
+                            // Track for timeout diagnostics
+                            const diagTarget = toolInput?.file_path
+                                ? String(toolInput.file_path).replace(PROJECT_ROOT + '/', '')
+                                : toolInput?.command
+                                    ? String(toolInput.command).slice(0, 100)
+                                    : toolInput?.pattern
+                                        ? String(toolInput.pattern)
+                                        : '';
+                            lastToolCallTime = Date.now();
+                            pendingToolCall = { name: toolName, target: diagTarget, timestamp: Date.now(), id: toolId };
+                            toolCallHistory.push(pendingToolCall);
+                            if (toolCallHistory.length > 10) toolCallHistory.shift();
                         }
                     }
 
@@ -231,6 +256,10 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
 
                 // Handle final result
                 if (message.type === 'result') {
+                    // Clear pending tool call on result
+                    lastToolResponseTime = Date.now();
+                    pendingToolCall = null;
+
                     const resultMsg = message as SDKResultMessage;
                     if (resultMsg.subtype === 'success' && resultMsg.result) {
                         lastResult = resultMsg.result;
@@ -292,7 +321,19 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
 
             // Check if it was a timeout
             if (abortController.signal.aborted) {
-                console.log(`\r  \x1b[31m✗ Timeout after ${timeout}s\x1b[0m\x1b[K`);
+                const timeSinceLastToolCall = lastToolCallTime > 0 ? Date.now() - lastToolCallTime : 0;
+                const timeSinceLastResponse = lastToolResponseTime > 0 ? Date.now() - lastToolResponseTime : 0;
+
+                let classification: string;
+                if (pendingToolCall && timeSinceLastToolCall > 120000) {
+                    classification = `Tool hang: ${pendingToolCall.name} did not return (${Math.floor(timeSinceLastToolCall / 1000)}s)`;
+                } else if (lastToolResponseTime > 0 && timeSinceLastResponse > 120000) {
+                    classification = `API timeout: no response for ${Math.floor(timeSinceLastResponse / 1000)}s after last tool result`;
+                } else {
+                    classification = `Session timeout: exceeded ${timeout}s total`;
+                }
+
+                console.log(`\r  \x1b[31m✗ Timeout after ${timeout}s (${classification})\x1b[0m\x1b[K`);
                 return {
                     success: false,
                     content: null,
@@ -301,6 +342,14 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     usage,
                     durationSeconds,
                     structuredOutput,
+                    timeoutDiagnostics: {
+                        classification,
+                        lastToolCalls: toolCallHistory.slice(-10),
+                        pendingToolCall,
+                        totalToolCalls: toolCallCount,
+                        timeSinceLastToolCall: Math.floor(timeSinceLastToolCall / 1000),
+                        timeSinceLastResponse: Math.floor(timeSinceLastResponse / 1000),
+                    },
                 };
             }
 

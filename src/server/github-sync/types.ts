@@ -23,6 +23,8 @@ export interface SyncToGitHubResult {
 export interface SyncOptions {
     /** Skip sending Telegram routing notification (for CLI auto-routing) */
     skipNotification?: boolean;
+    /** Override the initial status (e.g., force Backlog instead of Bug Investigation) */
+    initialStatusOverride?: string;
 }
 
 /**
@@ -92,7 +94,7 @@ export interface ApproveItemConfig<T extends GitHubSyncedFields> {
     revertToNewStatus: (id: string) => Promise<void>;
 
     /** Sync the item to GitHub */
-    syncToGitHub: (id: string) => Promise<SyncToGitHubResult>;
+    syncToGitHub: (id: string, options?: SyncOptions) => Promise<SyncToGitHubResult>;
 }
 
 /**

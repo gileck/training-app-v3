@@ -379,6 +379,8 @@ export interface BugInvestigationOutput extends ClarificationFields {
     additionalLogsNeeded?: string;
     /** Summary of the investigation for GitHub comment */
     summary: string;
+    /** Auto-submit the recommended option without admin selection (for obvious, simple fixes) */
+    autoSubmit?: boolean;
 }
 
 // ============================================================
@@ -613,6 +615,18 @@ export const BUG_INVESTIGATION_OUTPUT_FORMAT = {
                     'High-level summary of the investigation for GitHub comment. ' +
                     'Include: root cause (if found), confidence level, and brief overview of fix options. ' +
                     'Use markdown numbered list format.',
+            },
+            autoSubmit: {
+                type: 'boolean',
+                description:
+                    'Set to true to auto-submit the recommended fix option WITHOUT requiring admin selection. ' +
+                    'ONLY set this to true when ALL of these conditions are met: ' +
+                    '(1) rootCauseFound is true, ' +
+                    '(2) confidence is "high", ' +
+                    '(3) there is exactly one obviously correct fix, ' +
+                    '(4) the recommended fix has complexity "S" and destination "implement", ' +
+                    '(5) the fix is straightforward with no meaningful trade-offs. ' +
+                    'When in doubt, leave this false to let the admin choose.',
             },
         },
         required: ['rootCauseFound', 'confidence', 'rootCauseAnalysis', 'fixOptions', 'filesExamined', 'summary'],

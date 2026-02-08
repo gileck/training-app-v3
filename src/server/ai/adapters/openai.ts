@@ -34,7 +34,7 @@ export class OpenAIAdapter implements AIModel {
       model: modelId,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7, // Default temperature
-      max_tokens: Math.min(model.maxTokens, 2000),
+      max_tokens: model.maxOutputTokens,
       top_p: 1, // Default top_p
       frequency_penalty: 0, // Default frequency_penalty
       presence_penalty: 0 // Default presence_penalty
@@ -70,7 +70,7 @@ export class OpenAIAdapter implements AIModel {
       model: modelId,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7, // Default temperature
-      max_tokens: Math.min(model.maxTokens, 2000),
+      max_tokens: model.maxOutputTokens,
       top_p: 1, // Default top_p
       frequency_penalty: 0, // Default frequency_penalty
       presence_penalty: 0, // Default presence_penalty

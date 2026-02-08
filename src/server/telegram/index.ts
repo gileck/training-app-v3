@@ -302,8 +302,14 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
     if (baseUrl.startsWith('https') && request.approvalToken) {
         inlineKeyboard.push([
             {
-                text: '✅ Approve',
+                text: '✅ Approve & Route',
                 callback_data: `approve_request:${request._id}`,
+            },
+        ]);
+        inlineKeyboard.push([
+            {
+                text: '📋 Backlog',
+                callback_data: `approve_request_bl:${request._id}`,
             },
             {
                 text: '🗑 Delete',
@@ -382,8 +388,14 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
     if (baseUrl.startsWith('https') && report.approvalToken) {
         inlineKeyboard.push([
             {
-                text: '✅ Approve',
+                text: '🔍 Approve & Investigate',
                 callback_data: `approve_bug:${report._id}`,
+            },
+        ]);
+        inlineKeyboard.push([
+            {
+                text: '📋 Backlog',
+                callback_data: `approve_bug_bl:${report._id}`,
             },
             {
                 text: '🗑 Delete',

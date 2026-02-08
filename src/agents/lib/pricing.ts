@@ -21,13 +21,9 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
         inputPer1kTokens: 0.0001,    // $0.10 per 1M (estimate)
         outputPer1kTokens: 0.0004,   // $0.40 per 1M (estimate)
     },
-    'gemini-2.5-pro': {
-        inputPer1kTokens: 0.00025,   // $0.25 per 1M
-        outputPer1kTokens: 0.001,    // $1.00 per 1M
-    },
-    'gemini-2.5-flash': {
-        inputPer1kTokens: 0.000075,  // $0.075 per 1M
-        outputPer1kTokens: 0.0003,   // $0.30 per 1M
+    'gemini-3-pro-preview': {
+        inputPer1kTokens: 0.002,     // $2.00 per 1M
+        outputPer1kTokens: 0.012,    // $12.00 per 1M
     },
     'gemini-2.0-flash': {
         inputPer1kTokens: 0.0001,    // $0.10 per 1M
