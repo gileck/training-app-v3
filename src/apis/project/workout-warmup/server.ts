@@ -1,3 +1,10 @@
+/**
+ * Workout Warmup API - Server Handler
+ *
+ * Handler is inlined here (no handlers/ folder) because this is a
+ * single-operation API. See index.ts for architecture notes.
+ */
+
 import { AIModelAdapter } from '../../../server/ai/baseModelAdapter';
 import { AIModelAdapterResponse } from '../../../server/ai/types';
 import { getModelById } from '../../../server/ai/models';
