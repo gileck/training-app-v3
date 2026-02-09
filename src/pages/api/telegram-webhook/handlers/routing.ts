@@ -11,7 +11,7 @@ import {
     logWebhookPhaseEnd,
     logExists,
 } from '@/agents/lib/logging';
-import { answerCallbackQuery, editMessageWithRouting } from '../telegram-api';
+import { editMessageWithRouting } from '../telegram-api';
 import {
     FEATURE_ROUTING_STATUS_MAP,
     BUG_ROUTING_STATUS_MAP,
@@ -63,12 +63,6 @@ export async function handleFeatureRouting(
         });
         logWebhookPhaseEnd(issueNumber, 'Admin Routing', 'success', 'telegram');
     }
-
-    await answerCallbackQuery(
-        botToken,
-        callbackQuery.id,
-        `✅ Moved to ${ROUTING_DESTINATION_LABELS[destination]}`
-    );
 
     // Edit message to show action taken
     if (callbackQuery.message) {
@@ -129,12 +123,6 @@ export async function handleBugRouting(
         });
         logWebhookPhaseEnd(issueNumber, 'Admin Routing', 'success', 'telegram');
     }
-
-    await answerCallbackQuery(
-        botToken,
-        callbackQuery.id,
-        `✅ Moved to ${ROUTING_DESTINATION_LABELS[destination]}`
-    );
 
     // Edit message to show action taken
     if (callbackQuery.message) {

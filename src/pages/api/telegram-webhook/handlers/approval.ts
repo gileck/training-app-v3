@@ -5,13 +5,15 @@
 
 import { featureRequests, reports } from '@/server/database';
 import { approveFeatureRequest, approveBugReport } from '@/server/github-sync';
+import { STATUSES } from '@/server/project-management/config';
 import {
     logWebhookAction,
     logWebhookPhaseStart,
     logWebhookPhaseEnd,
     logExists,
 } from '@/agents/lib/logging';
-import { editMessageWithResult } from '../telegram-api';
+import { editMessageText, editMessageWithResult } from '../telegram-api';
+import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';
 
 /**
@@ -24,47 +26,44 @@ export async function handleFeatureRequestApproval(
     callbackQuery: TelegramCallbackQuery,
     requestId: string
 ): Promise<HandlerResult> {
-    // Fetch the feature request
-    const request = await featureRequests.findFeatureRequestById(requestId);
+    // Atomically claim the approval token to prevent double-click race conditions.
+    // Only the first concurrent request will succeed; subsequent ones get null.
+    const request = await featureRequests.claimApprovalToken(requestId);
 
     if (!request) {
-        console.warn(`[LOG:APPROVAL] Feature request not found: ${requestId}`);
-        return { success: false, error: 'Feature request not found' };
-    }
-
-    // Verify the token exists (token was stored in database when request was created)
-    if (!request.approvalToken) {
-        console.warn(`[LOG:APPROVAL] Invalid approval token for request: ${requestId}`);
+        // Either not found, no token, or already claimed by another request.
+        // Check if already approved to show a friendly message.
+        const existingRequest = await featureRequests.findFeatureRequestById(requestId);
+        if (existingRequest?.githubIssueUrl) {
+            if (callbackQuery.message) {
+                await editMessageWithResult(
+                    botToken,
+                    callbackQuery.message.chat.id,
+                    callbackQuery.message.message_id,
+                    callbackQuery.message.text || '',
+                    true,
+                    'Already approved!',
+                    existingRequest.githubIssueUrl
+                );
+            }
+            return { success: true };
+        }
+        console.warn(`[LOG:APPROVAL] Invalid or already-claimed approval token for request: ${requestId}`);
         return { success: false, error: 'Invalid or expired approval token' };
     }
 
-    // Check if already approved
-    if (request.githubIssueUrl) {
-        // Already approved - still success, show the existing issue
-        if (callbackQuery.message) {
-            await editMessageWithResult(
-                botToken,
-                callbackQuery.message.chat.id,
-                callbackQuery.message.message_id,
-                callbackQuery.message.text || '',
-                true,
-                'Already approved!',
-                request.githubIssueUrl
-            );
-        }
-        return { success: true };
-    }
-
+    // Token is now claimed - no other concurrent request can pass this point.
     // Approve the request (updates status + creates GitHub issue)
     const result = await approveFeatureRequest(requestId);
 
     if (!result.success) {
+        // Restore the approval token so the user can retry
+        if (request.approvalToken) {
+            await featureRequests.updateApprovalToken(requestId, request.approvalToken);
+        }
         console.error(`[LOG:APPROVAL] Failed to approve feature request ${requestId}: ${result.error}`);
         return { success: false, error: result.error || 'Failed to approve' };
     }
-
-    // Clear the approval token (one-time use)
-    await featureRequests.updateApprovalToken(requestId, null);
 
     // Log to agent log file (now that we have the issue number)
     const issueNumber = result.githubResult?.issueNumber;
@@ -105,47 +104,44 @@ export async function handleBugReportApproval(
     callbackQuery: TelegramCallbackQuery,
     reportId: string
 ): Promise<HandlerResult> {
-    // Fetch the bug report
-    const report = await reports.findReportById(reportId);
+    // Atomically claim the approval token to prevent double-click race conditions.
+    // Only the first concurrent request will succeed; subsequent ones get null.
+    const report = await reports.claimApprovalToken(reportId);
 
     if (!report) {
-        console.warn(`[LOG:APPROVAL] Bug report not found: ${reportId}`);
-        return { success: false, error: 'Bug report not found' };
-    }
-
-    // Verify the token exists (token was stored in database when report was created)
-    if (!report.approvalToken) {
-        console.warn(`[LOG:APPROVAL] Invalid approval token for report: ${reportId}`);
+        // Either not found, no token, or already claimed by another request.
+        // Check if already approved to show a friendly message.
+        const existingReport = await reports.findReportById(reportId);
+        if (existingReport?.githubIssueUrl) {
+            if (callbackQuery.message) {
+                await editMessageWithResult(
+                    botToken,
+                    callbackQuery.message.chat.id,
+                    callbackQuery.message.message_id,
+                    callbackQuery.message.text || '',
+                    true,
+                    'Already approved!',
+                    existingReport.githubIssueUrl
+                );
+            }
+            return { success: true };
+        }
+        console.warn(`[LOG:APPROVAL] Invalid or already-claimed approval token for report: ${reportId}`);
         return { success: false, error: 'Invalid or expired approval token' };
     }
 
-    // Check if already approved
-    if (report.githubIssueUrl) {
-        // Already approved - still success, show the existing issue
-        if (callbackQuery.message) {
-            await editMessageWithResult(
-                botToken,
-                callbackQuery.message.chat.id,
-                callbackQuery.message.message_id,
-                callbackQuery.message.text || '',
-                true,
-                'Already approved!',
-                report.githubIssueUrl
-            );
-        }
-        return { success: true };
-    }
-
+    // Token is now claimed - no other concurrent request can pass this point.
     // Approve the bug report (updates status + creates GitHub issue)
     const result = await approveBugReport(reportId);
 
     if (!result.success) {
+        // Restore the approval token so the user can retry
+        if (report.approvalToken) {
+            await reports.updateApprovalToken(reportId, report.approvalToken);
+        }
         console.error(`[LOG:APPROVAL] Failed to approve bug report ${reportId}: ${result.error}`);
         return { success: false, error: result.error || 'Failed to approve' };
     }
-
-    // Clear the approval token (one-time use)
-    await reports.updateApprovalToken(reportId, null);
 
     // Log to agent log file (now that we have the issue number)
     const issueNumber = result.githubResult?.issueNumber;
@@ -168,11 +164,239 @@ export async function handleBugReportApproval(
             callbackQuery.message.message_id,
             callbackQuery.message.text || '',
             true,
-            `GitHub issue created for "${description}"`,
+            `GitHub issue created for "${description}"\n🔍 Routed to: Bug Investigation`,
             result.githubResult?.issueUrl
         );
     }
 
     console.log(`Telegram webhook: approved bug report ${reportId}`);
+    return { success: true };
+}
+
+/**
+ * Handle feature request deletion
+ * Callback format: "delete_request:requestId"
+ * Completely removes the feature request from MongoDB
+ */
+export async function handleFeatureRequestDeletion(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    requestId: string
+): Promise<HandlerResult> {
+    const request = await featureRequests.findFeatureRequestById(requestId);
+
+    if (!request) {
+        if (callbackQuery.message) {
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(callbackQuery.message.text || '') + '\n\n⚠️ <b>Already deleted</b>',
+                'HTML'
+            );
+        }
+        return { success: true };
+    }
+
+    if (request.githubIssueUrl) {
+        return { success: false, error: 'Cannot delete: already synced to GitHub' };
+    }
+
+    const deleted = await featureRequests.deleteFeatureRequest(requestId);
+
+    if (!deleted) {
+        return { success: false, error: 'Failed to delete feature request' };
+    }
+
+    if (callbackQuery.message) {
+        const newText = escapeHtml(callbackQuery.message.text || '') + `\n\n🗑 <b>Deleted</b>\nFeature request "${request.title}" has been deleted.`;
+        await editMessageText(botToken, callbackQuery.message.chat.id, callbackQuery.message.message_id, newText, 'HTML');
+    }
+
+    console.log(`Telegram webhook: deleted feature request ${requestId}`);
+    return { success: true };
+}
+
+/**
+ * Handle bug report deletion
+ * Callback format: "delete_bug:reportId"
+ * Completely removes the bug report from MongoDB
+ */
+export async function handleBugReportDeletion(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    reportId: string
+): Promise<HandlerResult> {
+    const report = await reports.findReportById(reportId);
+
+    if (!report) {
+        if (callbackQuery.message) {
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                escapeHtml(callbackQuery.message.text || '') + '\n\n⚠️ <b>Already deleted</b>',
+                'HTML'
+            );
+        }
+        return { success: true };
+    }
+
+    if (report.githubIssueUrl) {
+        return { success: false, error: 'Cannot delete: already synced to GitHub' };
+    }
+
+    const deleted = await reports.deleteReport(reportId);
+
+    if (!deleted) {
+        return { success: false, error: 'Failed to delete bug report' };
+    }
+
+    const description = report.description?.slice(0, 50) || 'Bug Report';
+    if (callbackQuery.message) {
+        const newText = escapeHtml(callbackQuery.message.text || '') + `\n\n🗑 <b>Deleted</b>\nBug report "${description}" has been deleted.`;
+        await editMessageText(botToken, callbackQuery.message.chat.id, callbackQuery.message.message_id, newText, 'HTML');
+    }
+
+    console.log(`Telegram webhook: deleted bug report ${reportId}`);
+    return { success: true };
+}
+
+/**
+ * Handle feature request approval to Backlog
+ * Callback format: "approve_request_bl:requestId"
+ * Creates GitHub issue but parks it in Backlog without sending a routing notification
+ */
+export async function handleFeatureRequestApprovalToBacklog(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    requestId: string
+): Promise<HandlerResult> {
+    const request = await featureRequests.claimApprovalToken(requestId);
+
+    if (!request) {
+        const existingRequest = await featureRequests.findFeatureRequestById(requestId);
+        if (existingRequest?.githubIssueUrl) {
+            if (callbackQuery.message) {
+                await editMessageWithResult(
+                    botToken,
+                    callbackQuery.message.chat.id,
+                    callbackQuery.message.message_id,
+                    callbackQuery.message.text || '',
+                    true,
+                    'Already approved!',
+                    existingRequest.githubIssueUrl
+                );
+            }
+            return { success: true };
+        }
+        console.warn(`[LOG:APPROVAL] Invalid or already-claimed approval token for request: ${requestId}`);
+        return { success: false, error: 'Invalid or expired approval token' };
+    }
+
+    const result = await approveFeatureRequest(requestId, { skipNotification: true, initialStatusOverride: STATUSES.backlog });
+
+    if (!result.success) {
+        if (request.approvalToken) {
+            await featureRequests.updateApprovalToken(requestId, request.approvalToken);
+        }
+        console.error(`[LOG:APPROVAL] Failed to approve feature request to backlog ${requestId}: ${result.error}`);
+        return { success: false, error: result.error || 'Failed to approve' };
+    }
+
+    const issueNumber = result.githubResult?.issueNumber;
+    if (issueNumber && logExists(issueNumber)) {
+        logWebhookPhaseStart(issueNumber, 'Admin Approval', 'telegram');
+        logWebhookAction(issueNumber, 'feature_approved_backlog', `Feature request "${request.title}" approved to Backlog`, {
+            requestId,
+            issueNumber,
+            issueUrl: result.githubResult?.issueUrl,
+        });
+        logWebhookPhaseEnd(issueNumber, 'Admin Approval', 'success', 'telegram');
+    }
+
+    if (callbackQuery.message) {
+        await editMessageWithResult(
+            botToken,
+            callbackQuery.message.chat.id,
+            callbackQuery.message.message_id,
+            callbackQuery.message.text || '',
+            true,
+            `GitHub issue created for "${request.title}"\n📋 Routed to: Backlog`,
+            result.githubResult?.issueUrl
+        );
+    }
+
+    console.log(`Telegram webhook: approved feature request ${requestId} to backlog`);
+    return { success: true };
+}
+
+/**
+ * Handle bug report approval to Backlog
+ * Callback format: "approve_bug_bl:reportId"
+ * Creates GitHub issue but parks it in Backlog instead of Bug Investigation
+ */
+export async function handleBugReportApprovalToBacklog(
+    botToken: string,
+    callbackQuery: TelegramCallbackQuery,
+    reportId: string
+): Promise<HandlerResult> {
+    const report = await reports.claimApprovalToken(reportId);
+
+    if (!report) {
+        const existingReport = await reports.findReportById(reportId);
+        if (existingReport?.githubIssueUrl) {
+            if (callbackQuery.message) {
+                await editMessageWithResult(
+                    botToken,
+                    callbackQuery.message.chat.id,
+                    callbackQuery.message.message_id,
+                    callbackQuery.message.text || '',
+                    true,
+                    'Already approved!',
+                    existingReport.githubIssueUrl
+                );
+            }
+            return { success: true };
+        }
+        console.warn(`[LOG:APPROVAL] Invalid or already-claimed approval token for report: ${reportId}`);
+        return { success: false, error: 'Invalid or expired approval token' };
+    }
+
+    const result = await approveBugReport(reportId, { skipNotification: true, initialStatusOverride: STATUSES.backlog });
+
+    if (!result.success) {
+        if (report.approvalToken) {
+            await reports.updateApprovalToken(reportId, report.approvalToken);
+        }
+        console.error(`[LOG:APPROVAL] Failed to approve bug report to backlog ${reportId}: ${result.error}`);
+        return { success: false, error: result.error || 'Failed to approve' };
+    }
+
+    const issueNumber = result.githubResult?.issueNumber;
+    const description = report.description?.slice(0, 50) || 'Bug Report';
+    if (issueNumber && logExists(issueNumber)) {
+        logWebhookPhaseStart(issueNumber, 'Admin Approval', 'telegram');
+        logWebhookAction(issueNumber, 'bug_approved_backlog', `Bug report "${description}" approved to Backlog`, {
+            reportId,
+            issueNumber,
+            issueUrl: result.githubResult?.issueUrl,
+        });
+        logWebhookPhaseEnd(issueNumber, 'Admin Approval', 'success', 'telegram');
+    }
+
+    if (callbackQuery.message) {
+        await editMessageWithResult(
+            botToken,
+            callbackQuery.message.chat.id,
+            callbackQuery.message.message_id,
+            callbackQuery.message.text || '',
+            true,
+            `GitHub issue created for "${description}"\n📋 Routed to: Backlog`,
+            result.githubResult?.issueUrl
+        );
+    }
+
+    console.log(`Telegram webhook: approved bug report ${reportId} to backlog`);
     return { success: true };
 }

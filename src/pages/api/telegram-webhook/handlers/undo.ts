@@ -6,6 +6,7 @@
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { STATUSES, COMMIT_MESSAGE_MARKER, getIssueUrl } from '@/server/project-management/config';
 import { parseCommitMessageComment } from '@/agents/lib/commitMessage';
+import { getCommitMessage } from '@/agents/lib/workflow-db';
 import { sendNotificationToOwner } from '@/server/telegram';
 import {
     logWebhookAction,
@@ -46,6 +47,12 @@ export async function handleUndoRequestChanges(
         if (!item) {
             console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo request changes`);
             return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // Idempotency check: if already undone (status is PR Review with no review status), skip
+        if (item.status === STATUSES.prReview && !item.reviewStatus) {
+            console.log(`[LOG:UNDO] Undo already performed for PR #${prNumber}, issue #${issueNumber}`);
+            return { success: true };
         }
 
         await adapter.updateItemStatus(item.itemId, STATUSES.prReview);
@@ -103,13 +110,19 @@ export async function handleUndoRequestChanges(
             issue_number: prNumber,
         });
 
-        let commitMessage = { title: pr.title, body: pr.body || '' };
-        for (const comment of comments) {
-            if (comment.body?.includes(COMMIT_MESSAGE_MARKER)) {
-                const parsed = parseCommitMessageComment(comment.body);
-                if (parsed) {
-                    commitMessage = parsed;
-                    break;
+        // Try DB first for commit message
+        let commitMessage = await getCommitMessage(issueNumber, prNumber);
+
+        // Fallback to PR comment parsing
+        if (!commitMessage) {
+            commitMessage = { title: pr.title, body: pr.body || '' };
+            for (const comment of comments) {
+                if (comment.body?.includes(COMMIT_MESSAGE_MARKER)) {
+                    const parsed = parseCommitMessageComment(comment.body);
+                    if (parsed) {
+                        commitMessage = parsed;
+                        break;
+                    }
                 }
             }
         }
@@ -169,6 +182,12 @@ export async function handleUndoDesignChanges(
         if (!item) {
             console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo design changes`);
             return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // Idempotency check: if review status is already cleared, skip
+        if (!item.reviewStatus) {
+            console.log(`[LOG:UNDO] Undo already performed for design PR #${prNumber}, issue #${issueNumber}`);
+            return { success: true };
         }
 
         await adapter.clearItemReviewStatus(item.itemId);
@@ -267,6 +286,12 @@ export async function handleUndoDesignReview(
         if (!item) {
             console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo design review`);
             return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        }
+
+        // Idempotency check: if review status is already cleared, skip
+        if (!item.reviewStatus) {
+            console.log(`[LOG:UNDO] Undo already performed for design review, issue #${issueNumber}`);
+            return { success: true };
         }
 
         await adapter.clearItemReviewStatus(item.itemId);

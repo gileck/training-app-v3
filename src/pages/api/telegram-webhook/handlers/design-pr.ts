@@ -12,6 +12,7 @@ import {
     updateDesignArtifact,
     getDesignDocLink,
 } from '@/agents/lib';
+import { saveDesignArtifactToDB, savePhasesToDB } from '@/agents/lib/workflow-db';
 import {
     logWebhookAction,
     logWebhookPhaseStart,
@@ -64,13 +65,15 @@ export async function handleDesignPRApproval(
 
         if (designType !== 'product-dev') {
             const isProductDesign = designType === 'product';
-            await updateDesignArtifact(adapter, issueNumber, {
-                type: isProductDesign ? 'product-design' : 'tech-design',
+            const designArtifact = {
+                type: (isProductDesign ? 'product-design' : 'tech-design') as 'product-design' | 'tech-design',
                 path: getDesignDocLink(issueNumber, designType),
-                status: 'approved',
+                status: 'approved' as const,
                 lastUpdated: new Date().toISOString().split('T')[0],
                 prNumber,
-            });
+            };
+            await saveDesignArtifactToDB(issueNumber, designArtifact);
+            await updateDesignArtifact(adapter, issueNumber, designArtifact);
             console.log(`Telegram webhook: updated design artifact for issue #${issueNumber}`);
         }
 
@@ -125,6 +128,7 @@ export async function handleDesignPRApproval(
                             console.log(`Telegram webhook: posted phases comment (${phases.length} phases)`);
                         }
 
+                        await savePhasesToDB(issueNumber, phases);
                         await initializeImplementationPhases(
                             adapter,
                             issueNumber,

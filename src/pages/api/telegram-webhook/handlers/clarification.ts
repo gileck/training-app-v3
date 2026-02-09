@@ -10,7 +10,7 @@ import {
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
-import { answerCallbackQuery, editMessageText } from '../telegram-api';
+import { editMessageText } from '../telegram-api';
 import { escapeHtml, findItemByIssueNumber } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';
 
@@ -56,14 +56,7 @@ export async function handleClarificationReceived(
             });
         }
 
-        // 5. Send toast notification
-        await answerCallbackQuery(
-            botToken,
-            callbackQuery.id,
-            '✅ Status updated. Agent will continue work.'
-        );
-
-        // 6. Edit message to show action taken
+        // 5. Edit message to show action taken
         if (callbackQuery.message) {
             const originalText = callbackQuery.message.text || '';
             const statusUpdate = [

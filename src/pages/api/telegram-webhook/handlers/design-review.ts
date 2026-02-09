@@ -10,7 +10,7 @@ import {
     logWebhookPhaseEnd,
     logExists,
 } from '@/agents/lib/logging';
-import { answerCallbackQuery, editMessageText, editMessageWithUndoButton } from '../telegram-api';
+import { editMessageText, editMessageWithUndoButton } from '../telegram-api';
 import { escapeHtml, findItemByIssueNumber } from '../utils';
 import {
     STATUS_TRANSITIONS,
@@ -42,6 +42,28 @@ export async function handleDesignReviewAction(
     if (!item) {
         console.warn(`[LOG:DESIGN_REVIEW] Issue #${issueNumber} not found in project`);
         return { success: false, error: `Issue #${issueNumber} not found in project` };
+    }
+
+    // Validate item is in a design phase that can be reviewed
+    // This prevents stale Telegram buttons from causing wrong state transitions
+    const designPhases = [
+        'Product Development',
+        'Product Design',
+        'Bug Investigation',
+        'Technical Design',
+    ];
+    if (item.status && !designPhases.includes(item.status)) {
+        console.warn(`[LOG:DESIGN_REVIEW] Issue #${issueNumber} is no longer in a design phase (current status: ${item.status}). Action ignored.`);
+        if (callbackQuery.message) {
+            await editMessageText(
+                botToken,
+                callbackQuery.message.chat.id,
+                callbackQuery.message.message_id,
+                `${escapeHtml(callbackQuery.message.text || '')}\n\n⚠️ <b>Action no longer valid</b>\nThis item has moved to "${escapeHtml(item.status)}" and can no longer be reviewed from this message.`,
+                'HTML'
+            );
+        }
+        return { success: false, error: `Item is no longer in a reviewable design phase (current status: ${item.status})` };
     }
 
     // Update the review status
@@ -100,12 +122,6 @@ export async function handleDesignReviewAction(
     } else if (action === 'reject') {
         statusDetails = `\n\n❌ <b>Rejected</b>\n📊 Status: ${finalStatus}\n📋 Review Status: ${finalReviewStatus}\n\n<i>Changed your mind? Click Undo within 5 minutes.</i>`;
     }
-
-    // Acknowledge the button click (toast notification)
-    const toastMessage = advancedTo
-        ? `✅ Approved → ${advancedTo}`
-        : `${ACTION_EMOJIS[action]} ${ACTION_LABELS[action]}`;
-    await answerCallbackQuery(botToken, callbackQuery.id, toastMessage);
 
     // Edit the message to show the action taken with full details
     if (callbackQuery.message) {
