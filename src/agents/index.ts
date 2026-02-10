@@ -38,6 +38,7 @@
 import { spawn, execSync } from 'child_process';
 import { resolve } from 'path';
 import { acquireDirectoryLock, releaseDirectoryLock } from './shared/directory-lock';
+import { git, hasUncommittedChanges } from './shared/git-utils';
 
 const SCRIPTS = {
     'product-dev': resolve(__dirname, 'core-agents/productDevelopmentAgent/index.ts'),
@@ -51,37 +52,6 @@ const SCRIPTS = {
 
 // Order for --all flag
 const ALL_ORDER = ['auto-advance', 'product-dev', 'product-design', 'bug-investigator', 'tech-design', 'implement', 'pr-review'];
-
-// ============================================================
-// GIT UTILITIES
-// ============================================================
-
-/**
- * Execute a git command and return the output
- */
-function git(command: string, options: { silent?: boolean } = {}): string {
-    try {
-        const result = execSync(`git ${command}`, {
-            cwd: process.cwd(),
-            encoding: 'utf-8',
-            stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
-        });
-        return result.trim();
-    } catch (error) {
-        if (error instanceof Error && 'stderr' in error) {
-            throw new Error((error as { stderr: string }).stderr || error.message);
-        }
-        throw error;
-    }
-}
-
-/**
- * Check if there are uncommitted changes in the working directory
- */
-function hasUncommittedChanges(): boolean {
-    const status = git('status --porcelain', { silent: true });
-    return status.length > 0;
-}
 
 /**
  * Reset to clean main branch

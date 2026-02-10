@@ -11,7 +11,7 @@
  */
 
 import '../shared/loadEnv';
-import { handleStart, handleCreate, handleList, handleGet, handleUpdate, handleLog } from './commands';
+import { handleStart, handleCreate, handleList, handleGet, handleUpdate, handleLog, handleApprove, handleRoute, handleDelete } from './commands';
 
 type CommandHandler = (args: string[]) => Promise<void>;
 
@@ -22,6 +22,9 @@ const COMMANDS: Record<string, CommandHandler> = {
     get: handleGet,
     update: handleUpdate,
     log: handleLog,
+    approve: handleApprove,
+    route: handleRoute,
+    delete: handleDelete,
 };
 
 function printUsage(): void {
@@ -33,6 +36,9 @@ Usage: yarn agent-workflow <command> [options]
 Commands:
   start     Interactive guided process (prompts for all options)
   create    Create with named arguments
+  approve   Approve an item (creates GitHub issue)
+  route     Route an item to a workflow phase
+  delete    Delete an item
   list      List feature requests and bug reports
   get       Get details of a specific item
   update    Update status or priority of an item
@@ -65,6 +71,18 @@ Update options:
                           Bugs: new | investigating | resolved | closed
   --priority <level>      Optional: low | medium | high | critical (features only)
   --dry-run               Optional: Preview without updating
+
+Approve options:
+  <id>                    Required: Item ID (full or first 8 chars)
+  --route <destination>   Optional: Route after approving (product-dev | product-design | tech-design | implementation | backlog)
+
+Route options:
+  <id>                    Required: Item ID (full or first 8 chars)
+  --destination <dest>    Required: product-dev | product-design | tech-design | implementation | backlog
+
+Delete options:
+  <id>                    Required: Item ID (full or first 8 chars)
+  --force                 Optional: Delete even if synced to GitHub
 
 Log options:
   <issue-number>          Required: GitHub issue number
@@ -110,6 +128,21 @@ Examples:
 
   # Preview update without applying
   yarn agent-workflow update a1b2c3d4 --status done --dry-run
+
+  # Approve an item (creates GitHub issue)
+  yarn agent-workflow approve a1b2c3d4
+
+  # Approve and route in one step
+  yarn agent-workflow approve a1b2c3d4 --route tech-design
+
+  # Route an item to a workflow phase
+  yarn agent-workflow route a1b2c3d4 --destination product-design
+
+  # Delete an item
+  yarn agent-workflow delete a1b2c3d4
+
+  # Force delete (even if synced to GitHub)
+  yarn agent-workflow delete a1b2c3d4 --force
 
   # Download issue log from S3
   yarn agent-workflow log 42

@@ -35,17 +35,36 @@ const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
  * Handles: **bold**, `code`, _italic_, > blockquote, ## headers
  */
 function markdownToTelegramHtml(text: string): string {
-    return text
+    let result = text
         // Escape HTML special chars first (except our markdown)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         // Then convert markdown to HTML
         .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')      // **bold**
-        .replace(/`(.+?)`/g, '<code>$1</code>')      // `code`
+        .replace(/`(.+?)`/g, '<code>$1</code>');     // `code`
+
+    // Protect code blocks from underscore-to-italic conversion by using placeholders.
+    // This prevents underscores in code (e.g., snake_case_var) from being corrupted.
+    // Placeholder uses \x00 (null char) to avoid any regex pattern conflicts.
+    const codeBlocks: string[] = [];
+    result = result.replace(/<code>(.+?)<\/code>/g, (_match, content) => {
+        codeBlocks.push(content);
+        return `<code>\x00CODE${codeBlocks.length - 1}\x00</code>`;
+    });
+
+    // Apply remaining conversions (safe now that code content is protected)
+    result = result
         .replace(/_(.+?)_/g, '<i>$1</i>')            // _italic_
         .replace(/^## (.+)$/gm, '<b>$1</b>')         // ## header
         .replace(/^&gt; (.+)$/gm, '<i>$1</i>');      // > blockquote (already escaped)
+
+    // Restore code block contents from placeholders
+    codeBlocks.forEach((content, index) => {
+        result = result.replace(`\x00CODE${index}\x00`, content);
+    });
+
+    return result;
 }
 
 export interface InlineKeyboardButton {
@@ -237,6 +256,24 @@ export async function sendNotificationToOwner(
     return sendToChat(ownerChatId, message, options);
 }
 
+/**
+ * Send a Telegram notification to the agent workflow channel.
+ * Uses AGENT_TELEGRAM_CHAT_ID env var, falls back to ownerTelegramChatId.
+ */
+async function sendNotificationToAgent(
+    message: string,
+    options?: SendMessageOptions
+): Promise<SendMessageResult> {
+    const agentChatId = process.env.AGENT_TELEGRAM_CHAT_ID || appConfig.ownerTelegramChatId;
+
+    if (!agentChatId) {
+        console.warn('[Telegram] Agent notification skipped: AGENT_TELEGRAM_CHAT_ID not configured');
+        return { success: false, error: 'Agent chat ID not configured' };
+    }
+
+    return sendToChat(agentChatId, message, options);
+}
+
 // ============================================================================
 // FEATURE REQUEST & BUG REPORT NOTIFICATIONS
 // ============================================================================
@@ -326,10 +363,10 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
     // View details link
     inlineKeyboard.push([{
         text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/item/${request._id}`,
+        url: `${baseUrl}/admin/item/feature:${request._id}`,
     }]);
 
-    return sendNotificationToOwner(message, {
+    return sendNotificationToAgent(message, {
         parseMode: 'HTML',
         inlineKeyboard,
     });
@@ -412,10 +449,10 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
     // View details link
     inlineKeyboard.push([{
         text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/item/${report._id}`,
+        url: `${baseUrl}/admin/item/report:${report._id}`,
     }]);
 
-    return sendNotificationToOwner(message, {
+    return sendNotificationToAgent(message, {
         parseMode: 'HTML',
         inlineKeyboard,
     });

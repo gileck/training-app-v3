@@ -17,6 +17,8 @@ related_docs:
 
 This document provides comprehensive visual workflows for all scenarios in the agents workflow, from initial submission to completion.
 
+> **Note:** All flows described below go through the unified workflow service at `src/server/workflow-service/`, regardless of which transport initiated the action (Telegram, UI, or CLI). This means cross-transport scenarios work seamlessly -- for example, an item approved via CLI will send Telegram routing notifications, and an item routed via the UI will log to agent-logs the same way as one routed via Telegram.
+
 ---
 
 ## Table of Contents

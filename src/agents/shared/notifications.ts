@@ -1030,7 +1030,10 @@ ${escapeHtml(truncatedSummary)}`;
     const buttons: InlineKeyboardMarkup = {
         inline_keyboard: [
             [
-                { text: '🔧 Choose Option', url: decisionUrl },
+                { text: '✅ Choose Recommended', callback_data: `chooserec:${issueNumber}` },
+            ],
+            [
+                { text: '🔧 All Options', url: decisionUrl },
             ],
             [
                 { text: '📋 View Issue', url: issueUrl },

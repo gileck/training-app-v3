@@ -484,7 +484,7 @@ export const CODE_REVIEW_OUTPUT_FORMAT = {
                         },
                         relatedCommit: {
                             type: 'string',
-                            description: 'The commit hash that introduced or is related to this finding',
+                            description: 'The commit hash that pointed to the area of code where this finding was discovered',
                         },
                         shouldCreateIssue: {
                             type: 'boolean',

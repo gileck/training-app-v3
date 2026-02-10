@@ -59,7 +59,6 @@ import {
     runWithLogContext,
     logExecutionStart,
     logExecutionEnd,
-    logGitHubAction,
     logError,
 } from '../../lib/logging';
 import {
@@ -346,8 +345,11 @@ export async function processItem(
                     ? REVIEW_STATUSES.approved
                     : REVIEW_STATUSES.requestChanges;
 
-                logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${newReviewStatus}`);
-                await adapter.updateItemReviewStatus(item.id, newReviewStatus);
+                // Update review status via workflow service
+                const { completeAgentRun } = await import('@/server/workflow-service');
+                await completeAgentRun(issueNumber, 'pr-review', {
+                    reviewStatus: newReviewStatus,
+                });
                 console.log(`  Updated review status to: ${newReviewStatus}`);
 
                 // Handle approval flow: generate commit message, save to PR comment, notify admin
@@ -667,12 +669,14 @@ async function main(): Promise<void> {
     await run(options);
 }
 
-// Run
-main()
-    .then(() => {
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
+// Run (skip when imported as a module in tests)
+if (!process.env.VITEST) {
+    main()
+        .then(() => {
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('Fatal error:', error);
+            process.exit(1);
+        });
+}

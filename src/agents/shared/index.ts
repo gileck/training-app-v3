@@ -208,3 +208,7 @@ export {
     pushBranch,
     getDefaultBranch,
 } from './git-utils';
+
+// Git Adapter (DI)
+export { getGitAdapter, setGitAdapter, resetGitAdapter } from './git-adapter';
+export type { GitAdapter } from './git-adapter';

@@ -10,7 +10,7 @@ import { findFeatureRequests } from '@/server/database/collections/template/feat
 import { findReports } from '@/server/database/collections/template/reports/reports';
 import { findAllWorkflowItems } from '@/server/database/collections/template/workflow-items/workflow-items';
 import { toStringId } from '@/server/utils';
-import type { ListWorkflowItemsResponse, PendingItem, WorkflowItem } from '../types';
+import type { ListWorkflowItemsResponse, PendingItem, WorkflowItem, WorkflowItemPRData } from '../types';
 
 export async function listItems(
     _params: unknown,
@@ -69,6 +69,33 @@ export async function listItems(
                 sourceId = `${prefix}:${toStringId(doc.sourceRef.id)}`;
             }
 
+            // Build prData from artifacts
+            const prData: WorkflowItemPRData = {};
+            if (doc.artifacts) {
+                if (doc.artifacts.phases?.length) {
+                    const phaseWithPR = [...doc.artifacts.phases].reverse().find(p => p.prNumber);
+                    if (phaseWithPR) prData.currentPrNumber = phaseWithPR.prNumber;
+                }
+                if (doc.artifacts.designs?.length) {
+                    prData.designPrs = doc.artifacts.designs
+                        .filter(d => d.prNumber && d.status === 'pending')
+                        .map(d => ({ type: d.type, prNumber: d.prNumber! }));
+                }
+                if (doc.artifacts.finalPrNumber) {
+                    prData.finalPrNumber = doc.artifacts.finalPrNumber;
+                }
+                if (doc.artifacts.decision && !doc.artifacts.decision.selection) {
+                    prData.hasPendingDecision = true;
+                }
+                if (doc.artifacts.lastMergedPr) {
+                    prData.lastMergedPrNumber = doc.artifacts.lastMergedPr.prNumber;
+                    prData.lastMergedPrPhase = doc.artifacts.lastMergedPr.phase;
+                }
+                if (doc.artifacts.revertPrNumber) {
+                    prData.revertPrNumber = doc.artifacts.revertPrNumber;
+                }
+            }
+
             return {
                 id: docId,
                 sourceId,
@@ -84,6 +111,7 @@ export async function listItems(
                     labels,
                 },
                 implementationPhase: doc.implementationPhase || null,
+                prData: Object.keys(prData).length > 0 ? prData : undefined,
                 createdAt: new Date(doc.createdAt).toISOString(),
             };
         });

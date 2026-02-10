@@ -420,15 +420,15 @@ export async function processItem(
                 await adapter.addIssueComment(issueNumber, selectionComment);
                 await saveSelectionToDB(issueNumber, selection);
 
-                // Route directly to implementation
+                // Route directly to implementation via workflow service
                 const targetStatus = 'Ready for development';
-                await adapter.updateItemStatus(item.id, targetStatus);
+                const { completeAgentRun } = await import('@/server/workflow-service');
+                await completeAgentRun(issueNumber, 'bug-investigation', {
+                    status: targetStatus,
+                    clearReviewStatus: true,
+                });
                 console.log(`  Item auto-routed to: ${targetStatus}`);
-
-                if (adapter.hasReviewStatusField()) {
-                    await adapter.updateItemReviewStatus(item.id, '');
-                    console.log('  Review status cleared');
-                }
+                console.log('  Review status cleared');
 
                 logGitHubAction(logCtx, 'issue_updated', `Auto-submitted fix "${recommendedOption.title}" → ${targetStatus}`);
 
@@ -445,13 +445,12 @@ export async function processItem(
             } else {
                 // Normal flow: wait for admin to select an option
 
-                // Update review status
-                if (adapter.hasReviewStatusField()) {
-                    await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
-                    console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
-                }
-
-                logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
+                // Update review status via workflow service
+                const { completeAgentRun: completeRun } = await import('@/server/workflow-service');
+                await completeRun(issueNumber, 'bug-investigation', {
+                    reviewStatus: REVIEW_STATUSES.waitingForReview,
+                });
+                console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
 
                 // Send Telegram notification with decision selection link
                 await notifyDecisionNeeded(
@@ -514,12 +513,14 @@ async function main(): Promise<void> {
     );
 }
 
-// Run
-main()
-    .then(() => {
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
+// Run (skip when imported as a module in tests)
+if (!process.env.VITEST) {
+    main()
+        .then(() => {
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('Fatal error:', error);
+            process.exit(1);
+        });
+}

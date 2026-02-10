@@ -1,7 +1,7 @@
 ---
 title: Repo Commits Code Reviewer
 description: Standalone agent that reviews git commits for bugs and improvements. Use this to understand the automated code review system.
-summary: "Reviews commits using diff-budget batching, creates issues via agent-workflow for admin approval. Runs every 4 hours, NOT part of the GitHub Projects workflow pipeline."
+summary: "Reviews current source code guided by recent commits using diff-budget batching, creates issues via agent-workflow for admin approval. Runs every 4 hours, NOT part of the GitHub Projects workflow pipeline."
 priority: 3
 key_points:
   - "Diff-budget approach: ~1500 lines per run, walks commits chronologically"
@@ -12,13 +12,13 @@ key_points:
 
 # Repo Commits Code Reviewer
 
-Standalone agent that periodically reviews git commits for bugs, security issues, and improvements. Creates issues via `yarn agent-workflow create` for admin approval via Telegram.
+Standalone agent that periodically reviews current source code for bugs, security issues, and improvements, guided by recent git commits. Creates issues via `yarn agent-workflow create` for admin approval via Telegram.
 
 **NOT part of the GitHub Projects workflow pipeline** — this is an independent improvement agent.
 
 ## Overview
 
-The agent runs every 4 hours, reviews commits since its last run using a diff-budget approach, and creates issues for any findings. Admin sees findings in Telegram with full context (priority, size, complexity, risk) to make quick ROI-based decisions.
+The agent runs every 4 hours, collects commits since its last run using a diff-budget approach, and uses them as **pointers** to areas of recent change. The actual review is performed against the **current source code**, not against commit diffs. This source-based approach eliminates false positives from issues that were already fixed in subsequent commits. Admin sees findings in Telegram with full context (priority, size, complexity, risk) to make quick ROI-based decisions.
 
 ### Key Characteristics
 
@@ -40,7 +40,7 @@ Instead of reviewing all commits or commits from a fixed time window, the agent 
 2. Get all commits since last reviewed commit (oldest first)
 3. Walk commits chronologically, accumulating diff lines
 4. Stop when budget (~1500 lines) is reached
-5. Review that batch with Claude
+5. Claude uses commit metadata (titles, files changed, diffstat) to identify what changed, then reads and reviews the **current source code** of those files
 6. Save state at last reviewed commit (not HEAD)
 7. Remaining commits picked up in next run
 
@@ -70,6 +70,19 @@ The agent skips:
   - `.ai/`
   - `task-manager/`
 
+## Review Context
+
+The agent uses commits as pointers to areas of recent change, but all findings are based on the **current source code**. This avoids false positives from issues that were introduced in one commit but fixed in a later one.
+
+Before forming findings, Claude:
+
+1. **Reads project guidelines** — `CLAUDE.md`, relevant docs from `docs/`, skill rules from `.ai/skills/`
+2. **Reads full current source files** — The complete current version of every file mentioned in the commits
+3. **Reads related code** — Uses Grep/Glob to find callers, usages, consumers
+4. **Forms findings against current code** — Each finding must be verifiable in the current source, not in historical diffs
+
+This ensures findings reflect the actual state of the codebase and are based on project conventions, not generic best practices.
+
 ## Finding Output Format
 
 Each finding includes:
@@ -86,7 +99,8 @@ Each finding includes:
 | `title` | string | Actionable title (max 80 chars) |
 | `description` | string | What, why, suggested fix |
 | `affectedFiles` | string[] | Files with line numbers |
-| `relatedCommit` | string | Commit hash |
+| `relatedCommit` | string | Commit hash that pointed to this area |
+| `shouldCreateIssue` | boolean | Whether to create an issue (false = informational only) |
 
 ### Size Guidelines
 
@@ -214,16 +228,6 @@ Or manually edit to set a specific commit:
 ```bash
 echo '{"lastCommitSha": "abc1234", "lastRunAt": "2026-02-05T00:00:00Z"}' > agent-tasks/repo-commits-code-reviewer/state.json
 ```
-
-## Review Context
-
-Before reviewing, the agent instructs Claude to:
-
-1. **Read project guidelines** — `CLAUDE.md`, relevant docs from `docs/`, skill rules from `.ai/skills/`
-2. **Read full source files** — Not just diffs, but complete files for context
-3. **Read related code** — Use Grep/Glob to find callers, usages, consumers
-
-This ensures findings are based on project conventions, not generic best practices.
 
 ## What Gets Reviewed
 

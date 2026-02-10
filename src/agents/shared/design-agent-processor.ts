@@ -539,13 +539,12 @@ ${comment}`;
                 checkoutBranch(originalBranch);
                 console.log(`  Returned to branch: ${originalBranch}`);
 
-                // Update review status
-                if (adapter.hasReviewStatusField()) {
-                    await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForReview);
-                    console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
-                }
-
-                logGitHubAction(logCtx, 'issue_updated', `Set Review Status to ${REVIEW_STATUSES.waitingForReview}`);
+                // Update review status via workflow service
+                const { completeAgentRun } = await import('@/server/workflow-service');
+                await completeAgentRun(issueNumber, config.designType, {
+                    reviewStatus: REVIEW_STATUSES.waitingForReview,
+                });
+                console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForReview}`);
 
                 // Send Telegram notification with merge buttons
                 await notifyDesignPRReady(config.designType, content.title, issueNumber, prNumber, mode === 'feedback', issueType, comment);

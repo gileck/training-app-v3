@@ -12,6 +12,7 @@
     "config/next/next.template.ts",
     "config/typescript/tsconfig.template.json",
     "CLAUDE.md",
+    "app-guildelines/**",
     "docs/template/**",
     "scripts/template/**",
     ".ai/skills/template/**",

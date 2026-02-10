@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -5,9 +6,10 @@ import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { toast } from '@/client/components/template/ui/toast';
 import { useRouter } from '@/client/features/template/router';
-import { useItemDetail, useApproveItem, useDeleteItem, parseItemId } from './hooks';
-import { ItemDetailHeader } from './components/ItemDetailHeader';
+import { useItemDetail, useApproveItem, useDeleteItem, useRouteItem, parseItemId } from './hooks';
+import type { ItemType } from './hooks';
 import { ItemDetailActions } from './components/ItemDetailActions';
+import { ItemDetailHeader } from './components/ItemDetailHeader';
 
 interface ItemDetailPageProps {
     id: string;
@@ -19,6 +21,12 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
     const { item, isLoading, error } = useItemDetail(id);
     const { approveFeature, approveBug, isPending: isApproving } = useApproveItem();
     const { deleteFeature, deleteBug, isPending: isDeleting } = useDeleteItem();
+    const { routeItem, isPending: isRouting } = useRouteItem();
+
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral routing dialog state after approve
+    const [showRoutingDialog, setShowRoutingDialog] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral item type for routing
+    const [routingItemType, setRoutingItemType] = useState<ItemType>('feature');
 
     const navigateBack = () => {
         navigate('/admin/workflow');
@@ -85,16 +93,46 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
 
     const handleApprove = async () => {
         try {
+            let needsRouting = false;
             if (isFeature) {
-                await approveFeature(mongoId);
+                const result = await approveFeature(mongoId);
+                needsRouting = !!result?.needsRouting;
             } else {
-                await approveBug(mongoId);
+                const result = await approveBug(mongoId);
+                needsRouting = !!result?.needsRouting;
             }
-            toast.success('Item approved and synced to GitHub');
-            navigateBack();
+
+            if (needsRouting) {
+                toast.success('Item approved! Choose where to route it.');
+                setRoutingItemType(type);
+                setShowRoutingDialog(true);
+            } else {
+                toast.success('Item approved and synced to GitHub');
+                navigateBack();
+            }
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to approve');
         }
+    };
+
+    const handleRoute = async (routeStatus: string) => {
+        try {
+            await routeItem({
+                sourceId: mongoId,
+                sourceType: routingItemType,
+                status: routeStatus,
+            });
+            toast.success(`Routed to ${routeStatus}`);
+            setShowRoutingDialog(false);
+            navigateBack();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to route');
+        }
+    };
+
+    const handleSkipRouting = () => {
+        setShowRoutingDialog(false);
+        navigateBack();
     };
 
     const handleDelete = async () => {
@@ -194,8 +232,13 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
                 isAlreadySynced={isAlreadySynced}
                 isApproving={isApproving}
                 isDeleting={isDeleting}
+                isRouting={isRouting}
+                showRoutingDialog={showRoutingDialog}
+                routingItemType={routingItemType}
                 onApprove={handleApprove}
                 onDelete={handleDelete}
+                onRoute={handleRoute}
+                onSkipRouting={handleSkipRouting}
             />
         </div>
     );

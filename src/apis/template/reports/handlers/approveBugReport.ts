@@ -1,7 +1,7 @@
 import { API_APPROVE_BUG_REPORT } from '../index';
 import { ApproveBugReportRequest, ApproveBugReportResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
-import { approveBugReport as approveBugReportService } from '@/server/github-sync';
+import { approveWorkflowItem } from '@/server/workflow-service';
 
 export const approveBugReport = async (
     request: ApproveBugReportRequest,
@@ -16,7 +16,7 @@ export const approveBugReport = async (
             return { error: 'Report ID is required' };
         }
 
-        const result = await approveBugReportService(request.reportId);
+        const result = await approveWorkflowItem({ id: request.reportId, type: 'bug' });
 
         if (!result.success) {
             return { error: result.error || 'Failed to approve bug report' };
@@ -24,9 +24,9 @@ export const approveBugReport = async (
 
         return {
             success: true,
-            githubIssueUrl: result.githubResult?.issueUrl,
-            githubIssueNumber: result.githubResult?.issueNumber,
-            githubProjectItemId: result.githubResult?.projectItemId,
+            githubIssueUrl: result.issueUrl,
+            githubIssueNumber: result.issueNumber,
+            needsRouting: result.needsRouting,
         };
     } catch (error: unknown) {
         console.error('Approve bug report error:', error);

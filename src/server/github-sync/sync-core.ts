@@ -28,7 +28,6 @@ import type {
  * 6. Set status to Backlog
  * 7. Create empty artifact comment
  * 8. Update MongoDB with GitHub fields
- * 9. Send routing notification (unless skipped)
  */
 export async function syncItemToGitHub<T extends GitHubSyncedFields>(
     itemId: string,
@@ -88,16 +87,6 @@ export async function syncItemToGitHub<T extends GitHubSyncedFields>(
             githubProjectItemId: projectItemId,
             githubIssueTitle: title,
         });
-
-        // 9. Send routing notification (unless skipped, auto-routed via initialStatus, or overridden)
-        if (!options?.skipNotification && !config.initialStatus && !options?.initialStatusOverride) {
-            try {
-                await config.sendRoutingNotification(item, { number: issueNumber, url: issueUrl });
-            } catch (error) {
-                // Don't fail if notification fails
-                console.warn('Failed to send routing notification:', error);
-            }
-        }
 
         return {
             success: true,

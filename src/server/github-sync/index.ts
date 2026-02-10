@@ -13,10 +13,6 @@
 import { featureRequests, reports } from '@/server/database';
 import type { FeatureRequestDocument } from '@/server/database/collections/template/feature-requests/types';
 import type { ReportDocument } from '@/server/database/collections/template/reports/types';
-import {
-    sendFeatureRoutingNotification,
-    sendBugRoutingNotification,
-} from '@/server/telegram';
 import { STATUSES } from '@/server/project-management/config';
 import { syncItemToGitHub, approveItem } from './sync-core';
 import type { SyncToGitHubResult, SyncOptions, SyncItemConfig, ApproveItemConfig } from './types';
@@ -80,9 +76,6 @@ const featureRequestSyncConfig: SyncItemConfig<FeatureRequestDocument> = {
 
     updateDBWithGitHubFields: (id, fields) =>
         featureRequests.updateGitHubFields(id, fields).then(() => {}),
-
-    sendRoutingNotification: (item, issueResult) =>
-        sendFeatureRoutingNotification(item, issueResult).then(() => {}),
 };
 
 // ============================================================
@@ -169,9 +162,6 @@ const bugReportSyncConfig: SyncItemConfig<ReportDocument> = {
 
     updateDBWithGitHubFields: (id, fields) =>
         reports.updateReport(id, fields).then(() => {}),
-
-    sendRoutingNotification: (item, issueResult) =>
-        sendBugRoutingNotification(item, issueResult).then(() => {}),
 
     initialStatus: STATUSES.bugInvestigation,
 };

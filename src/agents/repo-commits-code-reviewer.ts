@@ -2,10 +2,11 @@
 /**
  * Repo Commits Code Reviewer Agent
  *
- * Standalone agent that reviews git commits using a diff-line budget approach.
+ * Standalone agent that reviews current source code guided by recent commits.
  * Each run walks commits chronologically from the last-reviewed SHA, accumulating
- * diff lines until hitting a budget (~1500 lines). This ensures consistent review
- * quality regardless of commit frequency or size.
+ * diff lines until hitting a budget (~1500 lines). Commit metadata (title, files
+ * changed, diffstat) is used as a pointer to what changed — the actual review is
+ * done against the current source code.
  *
  * Runs every few hours. Busy days with many commits simply take more runs to
  * catch up — each run is bounded and high-quality.
@@ -23,11 +24,11 @@
  */
 
 import './shared/loadEnv';
-import { execSync, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import { runAgent } from './lib';
-import { CODE_REVIEW_OUTPUT_FORMAT } from './shared';
+import { git as sharedGit, CODE_REVIEW_OUTPUT_FORMAT } from './shared';
 import type { CodeReviewOutput, CodeReviewFinding } from './shared';
 
 // ============================================================
@@ -90,11 +91,7 @@ function parseCLIOptions() {
 // ============================================================
 
 function git(command: string): string {
-    return execSync(`git ${command}`, {
-        cwd: process.cwd(),
-        encoding: 'utf-8',
-        stdio: 'pipe',
-    }).trim();
+    return sharedGit(command, { silent: true });
 }
 
 /**
@@ -136,14 +133,8 @@ function getCommitDiffLineCount(hash: string): number {
     }
 }
 
-function getCommitDiff(hash: string, maxLines: number): string {
-    const diff = git(`show ${hash} --stat --patch --no-color`);
-    const lines = diff.split('\n');
-    if (lines.length > maxLines) {
-        return lines.slice(0, maxLines).join('\n') +
-            `\n\n... [truncated: ${lines.length - maxLines} lines omitted]`;
-    }
-    return diff;
+function getCommitStat(hash: string): string {
+    return git(`show ${hash} --stat --no-patch --no-color`);
 }
 
 function getCommitFiles(hash: string): string[] {
@@ -230,17 +221,19 @@ function saveState(state: State): void {
 // PROMPT BUILDING
 // ============================================================
 
-function buildReviewPrompt(commits: Array<{ hash: string; subject: string; diff: string }>): string {
-    const commitDiffs = commits.map(c =>
-        `### Commit: ${c.hash.slice(0, 8)} — ${c.subject}\n\`\`\`diff\n${c.diff}\n\`\`\``
+function buildReviewPrompt(commits: Array<{ hash: string; subject: string; author: string; stat: string }>): string {
+    const commitSections = commits.map(c =>
+        `### Commit: ${c.hash.slice(0, 8)} — ${c.subject} (${c.author})\nFiles changed:\n${c.stat}`
     ).join('\n\n');
 
-    return `You are a senior code reviewer analyzing recent commits to a Next.js TypeScript application.
+    return `You are a senior code reviewer analyzing recent changes to a Next.js TypeScript application.
 
 ## Your Task
-Review the following ${commits.length} commit(s) for bugs, issues, and improvements.
+The commits below tell you WHAT changed recently and WHERE. Your job is to review the CURRENT source code of the affected files for bugs, issues, and improvements.
 
-## CRITICAL: Understand the Full Context Before Reviewing
+## CRITICAL: Review Current Source Code, Not Commit Diffs
+
+Your findings must reflect the **current state of the code**, not the state at the time of any specific commit. If an issue you notice in the commit history has already been fixed in a later commit, DO NOT report it. The commits are pointers to areas of recent change — the actual review target is the current source code.
 
 You have read-only tools (Read, Glob, Grep) available. **You MUST use them before making any judgments.**
 
@@ -249,11 +242,11 @@ Start by reading the project's guidelines and architecture docs:
 - Read \`CLAUDE.md\` in the project root — this is the source of truth for all coding standards, patterns, and architectural decisions.
 - Based on the files changed in the commits, read the relevant docs from \`docs/\` and skill rules from \`.ai/skills/\` that apply (e.g., if the commit touches React components, read the React component organization rules; if it touches API code, read the client-server communication docs).
 
-### Step 2: Read the Full Source Files
-For each file modified in the commits, **read the full file** (not just the diff). The diff shows what changed, but you need the surrounding code to understand:
-- Whether the change is consistent with existing patterns in that file
-- Whether error handling exists elsewhere that covers the changed code
-- Whether the change breaks or conflicts with nearby logic
+### Step 2: Read the Full Current Source Files
+For each file mentioned in the commits, **read the full current file**. You need the complete current source to understand:
+- Whether the code is consistent with existing patterns in that file
+- Whether error handling exists elsewhere that covers the code
+- Whether there are logic errors or conflicts with nearby code
 
 ### Step 3: Read Related Code
 Use Grep and Glob to explore code related to the changes:
@@ -261,7 +254,8 @@ Use Grep and Glob to explore code related to the changes:
 - If a type was modified, find all usages
 - If a hook or store was changed, find all consumers
 
-Only after completing these steps should you form your findings.
+### Step 4: Form Findings Based on Current Source
+Only after reading the current source files should you form your findings. Each finding must be verifiable against the current code — not against an outdated diff.
 
 ## What to Look For
 - **Bugs**: Missing error handling, null/undefined access, race conditions, logic errors, off-by-one errors
@@ -307,9 +301,9 @@ Examples:
 
 This context helps readers quickly understand which part of the codebase is affected without reading the full description.
 
-## Commits to Review
+## Recent Commits (use as pointers to what changed)
 
-${commitDiffs}
+${commitSections}
 
 ## Output
 Return your findings as structured JSON matching the output schema.
@@ -436,15 +430,15 @@ async function main() {
         console.log(`    ${c.hash.slice(0, 8)} (${c.diffLines} lines) ${c.subject}`);
     }
 
-    // Get full diffs for selected commits (truncate individual huge commits to budget)
-    console.log('\n  Collecting diffs...');
-    const commitsWithDiffs = budget.selected.map(c => ({
+    // Collect commit stats for selected commits
+    console.log('\n  Collecting commit stats...');
+    const commitsWithStats = budget.selected.map(c => ({
         ...c,
-        diff: getCommitDiff(c.hash, options.maxDiffLines),
+        stat: getCommitStat(c.hash),
     }));
 
     // Build prompt and run agent
-    const prompt = buildReviewPrompt(commitsWithDiffs);
+    const prompt = buildReviewPrompt(commitsWithStats);
 
     console.log('\n  Running code review agent...\n');
 
@@ -478,10 +472,17 @@ async function main() {
         }
     }
 
-    // Create issues for all findings — admin decides go/no-go via Telegram
-    if (output.findings.length > 0) {
-        console.log(`\n  📝 Creating ${output.findings.length} issue(s)...`);
-        for (const finding of output.findings) {
+    // Create issues only for actionable findings (shouldCreateIssue: true)
+    const actionableFindings = output.findings.filter(f => f.shouldCreateIssue);
+    const skippedCount = output.findings.length - actionableFindings.length;
+
+    if (skippedCount > 0) {
+        console.log(`\n  ℹ️  ${skippedCount} finding(s) marked as informational (shouldCreateIssue: false)`);
+    }
+
+    if (actionableFindings.length > 0) {
+        console.log(`\n  📝 Creating ${actionableFindings.length} issue(s)...`);
+        for (const finding of actionableFindings) {
             createIssue(finding, options.dryRun);
         }
     } else {

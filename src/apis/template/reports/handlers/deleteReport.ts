@@ -1,9 +1,9 @@
 import { DeleteReportRequest, DeleteReportResponse } from '../types';
-import { findReportById, deleteReport as deleteReportFromDb } from '@/server/database/collections/template/reports';
-import { deleteWorkflowItemBySourceRef } from '@/server/database/collections/template/workflow-items';
+import { findReportById } from '@/server/database/collections/template/reports';
 import { ApiHandlerContext } from '@/apis/types';
 import { isObjectIdFormat } from '@/server/utils';
 import { fileStorageAPI } from '@/server/blob';
+import { deleteWorkflowItem } from '@/server/workflow-service';
 
 export const deleteReport = async (
     request: DeleteReportRequest,
@@ -17,40 +17,27 @@ export const deleteReport = async (
             return { error: 'Invalid report ID' };
         }
 
-        // Find the report first to get screenshot URL
+        // Clean up screenshot from storage before deleting (UI-specific concern)
         const report = await findReportById(reportId);
-
-        if (report) {
-            // Delete screenshot from storage if it exists
-            if (report.screenshot) {
-                try {
-                    // Check if it's a URL (not legacy base64)
-                    if (report.screenshot.startsWith('http://') || report.screenshot.startsWith('https://')) {
-                        await fileStorageAPI.delete(report.screenshot);
-                        console.log(`Deleted screenshot from storage: ${report.screenshot}`);
-                    }
-                } catch (error) {
-                    console.error('Failed to delete screenshot from storage:', error);
-                    // Continue with report deletion even if storage deletion fails
+        if (report?.screenshot) {
+            try {
+                if (report.screenshot.startsWith('http://') || report.screenshot.startsWith('https://')) {
+                    await fileStorageAPI.delete(report.screenshot);
+                    console.log(`Deleted screenshot from storage: ${report.screenshot}`);
                 }
-            }
-
-            // Delete the report from database
-            const result = await deleteReportFromDb(reportId);
-
-            if (!result) {
-                return { error: 'Failed to delete report' };
+            } catch (error) {
+                console.error('Failed to delete screenshot from storage:', error);
+                // Continue with report deletion even if storage deletion fails
             }
         }
 
-        // Always clean up the associated workflow item (handles orphaned items)
-        const workflowDeleted = await deleteWorkflowItemBySourceRef('reports', reportId);
+        const result = await deleteWorkflowItem({ id: reportId, type: 'bug' });
 
-        if (!report && !workflowDeleted) {
-            return { error: 'Report not found' };
+        if (!result.success) {
+            return { error: result.error || 'Failed to delete report' };
         }
 
-        console.log(`Report ${reportId} deleted by user ${context.userId || 'anonymous'}${workflowDeleted ? ' (workflow item also removed)' : ''}`);
+        console.log(`Report ${reportId} deleted by user ${context.userId || 'anonymous'}`);
 
         return { success: true };
     } catch (error) {
@@ -60,4 +47,3 @@ export const deleteReport = async (
         };
     }
 };
-

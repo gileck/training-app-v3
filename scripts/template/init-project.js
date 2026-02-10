@@ -45,7 +45,7 @@ const TEMPLATE_DEFAULTS = {
 };
 
 function getAppConfigValues() {
-    const configPath = path.resolve(__dirname, '..', 'src', 'app.config.js');
+    const configPath = path.resolve(__dirname, '..', '..', 'src', 'app.config.js');
     const content = fs.readFileSync(configPath, 'utf8');
     const appNameMatch = content.match(/appName:\s*['\"]([^'\"]*)['\"]/)
     const dbNameMatch = content.match(/dbName:\s*['\"]([^'\"]*)['\"]/)
@@ -61,7 +61,7 @@ function isAppConfigCustomized() {
 }
 
 function updateAppConfig(projectName, dbName) {
-    const configPath = path.resolve(__dirname, '..', 'src', 'app.config.js');
+    const configPath = path.resolve(__dirname, '..', '..', 'src', 'app.config.js');
     const content = fs.readFileSync(configPath, 'utf8');
 
     // Replace appName: '...' and dbName: '...'
@@ -103,7 +103,7 @@ async function createLocalUserAndWriteEnv() {
         await client.connect();
 
         // Read dbName from app.config.js without executing arbitrary code: parse by regexp
-        const configPath = path.resolve(__dirname, '..', 'src', 'app.config.js');
+        const configPath = path.resolve(__dirname, '..', '..', 'src', 'app.config.js');
         const cfg = fs.readFileSync(configPath, 'utf8');
         const dbMatch = cfg.match(/dbName:\s*['\"]([^'\"]+)['\"]/);
         if (!dbMatch) throw new Error('Failed to read dbName from app.config.js');
@@ -184,7 +184,7 @@ function ensureEnvFromParentOrEmpty() {
 }
 
 function createPwaConfig(projectName, description, themeColor) {
-    const configDir = path.resolve(__dirname, '..', 'src', 'config');
+    const configDir = path.resolve(__dirname, '..', '..', 'src', 'config');
     const configPath = path.join(configDir, 'pwa.config.ts');
 
     // Check if already exists
@@ -233,7 +233,7 @@ export const pwaConfig = {
 }
 
 function createManifest(projectName, description, themeColor) {
-    const manifestPath = path.resolve(__dirname, '..', 'public', 'manifest.json');
+    const manifestPath = path.resolve(__dirname, '..', '..', 'public', 'manifest.json');
 
     // Check if manifest exists and has been customized (name != template default)
     if (fs.existsSync(manifestPath)) {
@@ -303,7 +303,7 @@ function runInitTemplate() {
 
     console.log('[Template Tracking] Initializing...');
     try {
-        const initTemplateScript = path.resolve(__dirname, 'template', 'init-template.ts');
+        const initTemplateScript = path.resolve(__dirname, 'init-template.ts');
         execSync(`npx tsx "${initTemplateScript}" "${remoteUrl}"`, {
             encoding: 'utf8',
             stdio: 'inherit',

@@ -176,6 +176,96 @@ yarn agent-workflow update 697f15ce --priority high
 yarn agent-workflow update 697f15ce --status done --dry-run
 ```
 
+### `approve` - Approve Item
+
+Approve a pending workflow item (creates GitHub issue and optionally routes):
+
+```bash
+yarn agent-workflow approve <id> [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--route <destination>` | Route immediately after approval: `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
+
+**Examples:**
+```bash
+# Approve and wait for routing via Telegram
+yarn agent-workflow approve 697f15ce
+
+# Approve and route directly to tech design
+yarn agent-workflow approve 697f15ce --route tech-design
+
+# Approve and route to implementation (skip all design)
+yarn agent-workflow approve 697f15ce --route implementation
+```
+
+### `route` - Route Item
+
+Route an already-approved item to a workflow phase:
+
+```bash
+yarn agent-workflow route <id> --destination <destination>
+```
+
+**Required options:**
+| Option | Description |
+|--------|-------------|
+| `--destination <dest>` | Target phase: `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
+
+**Examples:**
+```bash
+# Route to tech design
+yarn agent-workflow route 697f15ce --destination tech-design
+
+# Route to implementation
+yarn agent-workflow route 697f15ce --destination implementation
+
+# Move back to backlog
+yarn agent-workflow route 697f15ce --destination backlog
+```
+
+**Valid destinations:**
+
+| Destination | Description | Best For |
+|-------------|-------------|----------|
+| `product-dev` | Product development phase (features only) | Vague ideas needing product spec |
+| `product-design` | UX/UI design phase | Features needing visual design |
+| `tech-design` | Technical architecture phase | Complex bugs, architectural changes |
+| `implementation` | Skip design, go to coding | Simple fixes, clear requirements |
+| `backlog` | Keep in backlog | Not ready to start |
+
+### `delete` - Delete Item
+
+Delete a workflow item from the system:
+
+```bash
+yarn agent-workflow delete <id> [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--force` | Delete even if already synced to GitHub (source doc only -- GitHub issue remains) |
+
+**Examples:**
+```bash
+# Delete a pending item (not yet synced to GitHub)
+yarn agent-workflow delete 697f15ce
+
+# Force delete an item that was already synced to GitHub
+yarn agent-workflow delete 697f15ce --force
+```
+
+**Notes:**
+- By default, items that have already been synced to GitHub cannot be deleted. Use `--force` to override.
+- Deleting removes the source document (feature-request or report) and the workflow-items entry.
+- The GitHub issue (if any) is not affected by deletion.
+- A Telegram notification is sent confirming the deletion.
+
+---
+
 ## Workflow Modes
 
 ### Default (no flags)

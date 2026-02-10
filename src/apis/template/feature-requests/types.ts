@@ -147,6 +147,7 @@ export interface ApproveFeatureRequestResponse {
     featureRequest?: FeatureRequestClient;
     githubIssueUrl?: string;
     githubIssueNumber?: number;
+    needsRouting?: boolean;
     error?: string;
 }
 

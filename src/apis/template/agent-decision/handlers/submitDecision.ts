@@ -19,6 +19,7 @@ import {
 } from '../utils';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
+import { submitDecisionRouting } from '@/server/workflow-service';
 import { notifyDecisionSubmitted } from '@/agents/shared/notifications';
 
 /**
@@ -33,7 +34,8 @@ import { notifyDecisionSubmitted } from '@/agents/shared/notifications';
 export async function submitDecision(
     params: SubmitDecisionRequest
 ): Promise<SubmitDecisionResponse> {
-    const { issueNumber, token, selection } = params;
+    const { issueNumber, token } = params;
+    let selection = params.selection;
 
     // Validate token
     if (!validateDecisionToken(issueNumber, token)) {
@@ -41,7 +43,7 @@ export async function submitDecision(
     }
 
     // Validate selection
-    if (!selection || !selection.selectedOptionId) {
+    if (!selection || (!selection.selectedOptionId && !selection.chooseRecommended)) {
         return { error: 'No option selected' };
     }
 
@@ -91,6 +93,15 @@ export async function submitDecision(
             return { error: 'Could not parse decision' };
         }
 
+        // Resolve chooseRecommended to the actual recommended option
+        if (selection.chooseRecommended) {
+            const recommended = decision.options.find(o => o.isRecommended);
+            if (!recommended) {
+                return { error: 'No recommended option found' };
+            }
+            selection = { ...selection, selectedOptionId: recommended.id };
+        }
+
         // Validate selected option exists (unless custom)
         let selectedOption = null;
         if (selection.selectedOptionId !== 'custom') {
@@ -102,19 +113,8 @@ export async function submitDecision(
             }
         }
 
-        // Format and post the selection comment
-        const selectionComment = formatDecisionSelectionComment(
-            selection,
-            decision.options
-        );
-
-        await adapter.addIssueComment(issueNumber, selectionComment);
-        console.log(`  Posted decision selection comment on issue #${issueNumber}`);
-
-        // Save selection to DB
-        await saveSelectionToDB(issueNumber, selection);
-
-        // Resolve routing if config is present
+        // Validate routing BEFORE any side effects (comment posting, DB save)
+        // This ensures we don't leave the system in an inconsistent state if routing fails
         const routing = decision.routing;
         let routedTo: string | undefined;
 
@@ -142,27 +142,37 @@ export async function submitDecision(
                 }
                 routedTo = routing.statusMap[metaValue];
             }
-
-            // Route item to target status and clear review status
-            await adapter.updateItemStatus(verification.itemId, routedTo!);
-            console.log(`  Item routed to: ${routedTo}`);
-
-            if (adapter.hasReviewStatusField()) {
-                await adapter.updateItemReviewStatus(verification.itemId, '');
-                console.log(`  Review status cleared`);
-            }
-        } else {
-            // No routing config — set review status to Approved for agent to pick up
-            if (adapter.hasReviewStatusField()) {
-                await adapter.updateItemReviewStatus(verification.itemId, REVIEW_STATUSES.approved);
-                console.log(`  Review status set to: ${REVIEW_STATUSES.approved}`);
-            }
         }
+
+        // Format and post the selection comment (only after routing validation passes)
+        const selectionComment = formatDecisionSelectionComment(
+            selection,
+            decision.options
+        );
+
+        await adapter.addIssueComment(issueNumber, selectionComment);
+        console.log(`  Posted decision selection comment on issue #${issueNumber}`);
+
+        // Save selection to DB
+        await saveSelectionToDB(issueNumber, selection);
+
+        // Use workflow service for status/review updates
+        await submitDecisionRouting(issueNumber, routedTo, {
+            reviewStatus: routedTo ? undefined : REVIEW_STATUSES.approved,
+            logAction: routedTo ? 'decision_routed' : 'decision_approved',
+            logDescription: routedTo
+                ? `Decision routed to ${routedTo}`
+                : `Review status set to ${REVIEW_STATUSES.approved}`,
+            logMetadata: { selectedOption: selection.selectedOptionId },
+        });
+        console.log(routedTo
+            ? `  Item routed to: ${routedTo}`
+            : `  Review status set to: ${REVIEW_STATUSES.approved}`);
 
         // Send Telegram confirmation notification
         const selectedTitle = selection.selectedOptionId === 'custom'
             ? 'Custom Solution'
-            : (selectedOption?.title ?? selection.selectedOptionId);
+            : (selectedOption?.title ?? selection.selectedOptionId ?? 'Unknown');
         const itemType = decision.decisionType === 'bug-fix' ? 'bug' as const : 'feature' as const;
         await notifyDecisionSubmitted(
             issueTitle,

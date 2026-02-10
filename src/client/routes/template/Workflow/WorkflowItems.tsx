@@ -26,6 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWorkflowItems, useUpdateWorkflowStatus } from './hooks';
 import { useItemDetail, useApproveItem, useDeleteItem, parseItemId } from '@/client/routes/template/ItemDetail/hooks';
 import { useWorkflowPageStore } from './store';
+import { WorkflowActionButtons } from './WorkflowActionButtons';
 import type { TypeFilter, ViewFilter } from './store';
 import type { PendingItem, WorkflowItem } from '@/apis/template/workflow/types';
 
@@ -257,7 +258,7 @@ const ALL_STATUSES = [
     'Done',
 ] as const;
 
-function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose: () => void }) {
+function ItemPreviewDialog({ itemId, onClose, workflowItems }: { itemId: string | null; onClose: () => void; workflowItems?: WorkflowItem[] }) {
     const { navigate } = useRouter();
     const queryClient = useQueryClient();
     const { item, isLoading } = useItemDetail(itemId || undefined);
@@ -291,6 +292,17 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
     const isWorkflowItem = itemId ? !itemId.includes(':') : false;
     // For workflow items, the itemId IS the workflow item's _id
     const workflowItemId = isWorkflowItem ? itemId : null;
+
+    // Look up the WorkflowItem for action buttons
+    const matchedWorkflowItem = useMemo(() => {
+        if (!workflowItems || !itemId) return null;
+        // If itemId is a workflow item ID (plain ObjectId), match by id
+        if (isWorkflowItem) {
+            return workflowItems.find((wi) => wi.id === itemId) || null;
+        }
+        // If itemId is a composite sourceId, match by sourceId
+        return workflowItems.find((wi) => wi.sourceId === itemId) || null;
+    }, [workflowItems, itemId, isWorkflowItem]);
 
     const { mongoId } = itemId ? parseItemId(itemId) : { mongoId: '' };
 
@@ -474,6 +486,12 @@ function ItemPreviewDialog({ itemId, onClose }: { itemId: string | null; onClose
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            )}
+                            {matchedWorkflowItem && matchedWorkflowItem.content?.number && (
+                                <WorkflowActionButtons
+                                    item={matchedWorkflowItem}
+                                    onActionComplete={onClose}
+                                />
                             )}
                             {(canApprove || canDelete) && (
                                 <div className="flex gap-2">
@@ -1039,6 +1057,7 @@ export function WorkflowItems() {
             <ItemPreviewDialog
                 itemId={selectedItemId}
                 onClose={() => setSelectedItemId(null)}
+                workflowItems={data?.workflowItems}
             />
 
             <ConfirmDialog

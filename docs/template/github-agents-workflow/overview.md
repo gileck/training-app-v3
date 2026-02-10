@@ -18,6 +18,7 @@ related_docs:
   - telegram-integration.md
   - running-agents.md
   - directory-locking.md
+  - workflow-service.md
 ---
 
 # GitHub Agents Workflow - Overview
@@ -132,6 +133,22 @@ When adding new workflow functionality:
 4. **Use structured markers** - All logs must use `[LOG:TYPE]` markers for grep-based analysis.
 
 **See [agent-logging.md](./agent-logging.md) for complete logging documentation.**
+
+## Workflow Service Layer
+
+All transports -- Telegram, UI, and CLI -- go through a unified service layer at `src/server/workflow-service/`. The service centralizes all business logic for approve, route, and delete operations.
+
+**What the service handles:**
+- State validation (prevent double-approval, check GitHub sync status)
+- GitHub sync (issue creation via github-sync)
+- Adapter status updates (move items between columns)
+- Review status clearing
+- Agent logging to `agent-logs/issue-{N}.md`
+- Telegram notifications (universal notification center)
+
+**Transports are thin wrappers:** parse input (callback data, request body, CLI args) -> call the service function -> format output for the transport.
+
+**See [workflow-service.md](./workflow-service.md) for full documentation.**
 
 ## Architecture
 

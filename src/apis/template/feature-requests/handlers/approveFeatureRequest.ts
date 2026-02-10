@@ -2,7 +2,8 @@ import { API_APPROVE_FEATURE_REQUEST } from '../index';
 import { ApproveFeatureRequestRequest, ApproveFeatureRequestResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClient } from './utils';
-import { approveFeatureRequest as approveFeatureRequestService } from '@/server/github-sync';
+import { approveWorkflowItem } from '@/server/workflow-service';
+import { featureRequests } from '@/server/database';
 
 export const approveFeatureRequest = async (
     request: ApproveFeatureRequestRequest,
@@ -17,20 +18,23 @@ export const approveFeatureRequest = async (
             return { error: 'Request ID is required' };
         }
 
-        const result = await approveFeatureRequestService(request.requestId);
+        const result = await approveWorkflowItem({ id: request.requestId, type: 'feature' });
 
         if (!result.success) {
             return { error: result.error || 'Failed to approve feature request' };
         }
 
-        if (!result.featureRequest) {
+        // Fetch the updated feature request for the response
+        const featureRequest = await featureRequests.findFeatureRequestById(request.requestId);
+        if (!featureRequest) {
             return { error: 'Feature request not found after approval' };
         }
 
         return {
-            featureRequest: toFeatureRequestClient(result.featureRequest),
-            githubIssueUrl: result.githubResult?.issueUrl,
-            githubIssueNumber: result.githubResult?.issueNumber,
+            featureRequest: toFeatureRequestClient(featureRequest),
+            githubIssueUrl: result.issueUrl,
+            githubIssueNumber: result.issueNumber,
+            needsRouting: result.needsRouting,
         };
     } catch (error: unknown) {
         console.error('Approve feature request error:', error);

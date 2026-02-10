@@ -15,6 +15,7 @@ import {
 } from '../utils';
 import { getProjectManagementAdapter } from '@/server/project-management';
 import { REVIEW_STATUSES } from '@/server/project-management/config';
+import { updateReviewStatus } from '@/server/workflow-service';
 import { verifyWaitingForClarification } from './getClarification';
 
 /**
@@ -78,14 +79,12 @@ export async function submitAnswer(
         await adapter.addIssueComment(issueNumber, answerComment);
         console.log(`  Posted answer comment on issue #${issueNumber}`);
 
-        // Update review status to "Clarification Received"
-        if (adapter.hasReviewStatusField() && verification.itemId) {
-            await adapter.updateItemReviewStatus(
-                verification.itemId,
-                REVIEW_STATUSES.clarificationReceived
-            );
-            console.log(`  Updated review status to: ${REVIEW_STATUSES.clarificationReceived}`);
-        }
+        // Update review status to "Clarification Received" via workflow service
+        await updateReviewStatus(issueNumber, REVIEW_STATUSES.clarificationReceived, {
+            logAction: 'clarification_answer_submitted',
+            logDescription: 'Clarification answer submitted via web UI',
+        });
+        console.log(`  Updated review status to: ${REVIEW_STATUSES.clarificationReceived}`);
 
         return { success: true };
     } catch (error) {

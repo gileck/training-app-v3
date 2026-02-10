@@ -144,6 +144,7 @@ export interface ApproveBugReportResponse {
     githubIssueUrl?: string;
     githubIssueNumber?: number;
     githubProjectItemId?: string;
+    needsRouting?: boolean;
 }
 
 // Re-export types for convenience

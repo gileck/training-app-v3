@@ -21,8 +21,6 @@ export interface SyncToGitHubResult {
  * Options for sync operations
  */
 export interface SyncOptions {
-    /** Skip sending Telegram routing notification (for CLI auto-routing) */
-    skipNotification?: boolean;
     /** Override the initial status (e.g., force Backlog instead of Bug Investigation) */
     initialStatusOverride?: string;
 }
@@ -72,9 +70,6 @@ export interface SyncItemConfig<T extends GitHubSyncedFields> {
         id: string,
         fields: { githubIssueUrl: string; githubIssueNumber: number; githubProjectItemId: string; githubIssueTitle: string }
     ) => Promise<void>;
-
-    /** Send routing notification after sync (optional, can be skipped via SyncOptions) */
-    sendRoutingNotification: (item: T, issueResult: IssueResult) => Promise<void>;
 
     /** Initial status to set after adding to project (defaults to Backlog) */
     initialStatus?: string;

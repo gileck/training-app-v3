@@ -2,25 +2,17 @@
  * Create Command
  *
  * Handles creation of feature requests and bug reports via CLI.
+ * DB insert only — approval and routing delegated to workflow-service.
  */
 
 import { randomBytes } from 'crypto';
 import { ObjectId } from 'mongodb';
 import { featureRequests, reports } from '@/server/database';
-import { syncFeatureRequestToGitHub, syncBugReportToGitHub } from '@/server/github-sync';
 import { sendFeatureRequestNotification, sendBugReportNotification } from '@/server/telegram';
-import { getProjectManagementAdapter, STATUSES } from '@/server/project-management';
+import { approveWorkflowItem } from '@/server/workflow-service';
+import type { RoutingDestination } from '@/server/workflow-service';
 import type { FeatureRequestPriority } from '@/server/database/collections/template/feature-requests/types';
 import { parseArgs, validateCreateArgs } from '../utils/parse-args';
-
-// Map route names to status values
-const ROUTE_TO_STATUS: Record<string, string> = {
-    'product-dev': STATUSES.productDevelopment,
-    'product-design': STATUSES.productDesign,
-    'tech-design': STATUSES.techDesign,
-    'implementation': STATUSES.implementation,
-    'backlog': STATUSES.backlog,
-};
 
 export interface CreateOptions {
     title: string;
@@ -122,30 +114,23 @@ export async function createFeatureWorkflow(options: CreateOptions): Promise<voi
         return;
     }
 
-    // 2. Sync to GitHub (creates issue)
-    // Skip routing notification if we're auto-routing (we'll set the status directly)
-    const result = await syncFeatureRequestToGitHub(request._id.toString(), {
-        skipNotification: !!options.workflowRoute,
-    });
+    // 2. Approve via workflow-service (creates GitHub issue + logs + notifications)
+    const result = await approveWorkflowItem(
+        { id: request._id.toString(), type: 'feature' },
+        options.workflowRoute ? { initialRoute: options.workflowRoute as RoutingDestination } : undefined
+    );
 
     if (!result.success) {
-        console.error(`  GitHub sync failed: ${result.error}`);
+        console.error(`  Approval failed: ${result.error}`);
         process.exit(1);
     }
 
     console.log(`  GitHub issue created: #${result.issueNumber}`);
     console.log(`  URL: ${result.issueUrl}`);
 
-    // 3. Route to phase if specified (otherwise Telegram routing notification was already sent)
-    if (options.workflowRoute && result.projectItemId) {
-        const targetStatus = ROUTE_TO_STATUS[options.workflowRoute];
-        if (targetStatus) {
-            const adapter = getProjectManagementAdapter();
-            await adapter.init();
-            await adapter.updateItemStatus(result.projectItemId, targetStatus);
-            console.log(`  Routed to: ${targetStatus}`);
-        }
-    } else {
+    if (options.workflowRoute) {
+        console.log(`  Routed to: ${options.workflowRoute}`);
+    } else if (result.needsRouting) {
         console.log(`  Telegram routing notification sent`);
     }
 
@@ -162,7 +147,7 @@ export async function createBugWorkflow(options: CreateOptions): Promise<void> {
         console.log(`  Description: ${options.description}`);
         console.log(`  Auto-approve: ${options.autoApprove ? 'yes' : 'no (sends approval notification)'}`);
         if (options.autoApprove) {
-            console.log(`  Route: ${options.workflowRoute || 'Telegram (for routing decision)'}`);
+            console.log(`  Route: ${options.workflowRoute || 'Bug Investigation (default)'}`);
         }
         return;
     }
@@ -208,31 +193,24 @@ export async function createBugWorkflow(options: CreateOptions): Promise<void> {
         return;
     }
 
-    // 2. Sync to GitHub (creates issue)
-    // Skip routing notification if we're auto-routing (we'll set the status directly)
-    const result = await syncBugReportToGitHub(report._id.toString(), {
-        skipNotification: !!options.workflowRoute,
-    });
+    // 2. Approve via workflow-service (creates GitHub issue + logs + notifications)
+    const result = await approveWorkflowItem(
+        { id: report._id.toString(), type: 'bug' },
+        options.workflowRoute ? { initialRoute: options.workflowRoute as RoutingDestination } : undefined
+    );
 
     if (!result.success) {
-        console.error(`  GitHub sync failed: ${result.error}`);
+        console.error(`  Approval failed: ${result.error}`);
         process.exit(1);
     }
 
     console.log(`  GitHub issue created: #${result.issueNumber}`);
     console.log(`  URL: ${result.issueUrl}`);
 
-    // 3. Route to phase if specified (otherwise Telegram routing notification was already sent)
-    if (options.workflowRoute && result.projectItemId) {
-        const targetStatus = ROUTE_TO_STATUS[options.workflowRoute];
-        if (targetStatus) {
-            const adapter = getProjectManagementAdapter();
-            await adapter.init();
-            await adapter.updateItemStatus(result.projectItemId, targetStatus);
-            console.log(`  Routed to: ${targetStatus}`);
-        }
+    if (options.workflowRoute) {
+        console.log(`  Routed to: ${options.workflowRoute}`);
     } else {
-        console.log(`  Telegram routing notification sent`);
+        console.log(`  Auto-routed to: Bug Investigation`);
     }
 
     console.log('\nBug report created successfully!');
