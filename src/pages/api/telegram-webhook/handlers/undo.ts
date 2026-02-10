@@ -3,18 +3,20 @@
  * Handlers for undo operations
  */
 
-import { getProjectManagementAdapter } from '@/server/project-management';
 import { STATUSES, COMMIT_MESSAGE_MARKER, getIssueUrl } from '@/server/project-management/config';
 import { parseCommitMessageComment } from '@/agents/lib/commitMessage';
 import { getCommitMessage } from '@/agents/lib/workflow-db';
 import { sendNotificationToOwner } from '@/server/telegram';
 import {
-    logWebhookAction,
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
+import {
+    undoStatusChange,
+    findItemByIssueNumber,
+} from '@/server/workflow-service';
 import { editMessageText } from '../telegram-api';
-import { escapeHtml, findItemByIssueNumber, isUndoValid } from '../utils';
+import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, DesignType, HandlerResult } from '../types';
 
 /**
@@ -29,40 +31,31 @@ export async function handleUndoRequestChanges(
     timestamp: number
 ): Promise<HandlerResult> {
     try {
-        if (!isUndoValid(timestamp)) {
-            console.warn(`[LOG:UNDO] Undo window expired for PR #${prNumber}, issue #${issueNumber}`);
-            if (logExists(issueNumber)) {
-                logWebhookAction(issueNumber, 'undo_expired', `Undo window expired for PR #${prNumber}`, {
-                    prNumber,
-                    timestamp,
-                });
-            }
-            return { success: false, error: 'Undo window expired (5 minutes)' };
-        }
-
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
-
-        const item = await findItemByIssueNumber(adapter, issueNumber);
-        if (!item) {
-            console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo request changes`);
-            return { success: false, error: `Issue #${issueNumber} not found in project.` };
-        }
-
-        // Idempotency check: if already undone (status is PR Review with no review status), skip
-        if (item.status === STATUSES.prReview && !item.reviewStatus) {
+        // Check idempotency first
+        const item = await findItemByIssueNumber(issueNumber);
+        if (item && item.status === STATUSES.prReview && !item.reviewStatus) {
             console.log(`[LOG:UNDO] Undo already performed for PR #${prNumber}, issue #${issueNumber}`);
             return { success: true };
         }
 
-        await adapter.updateItemStatus(item.itemId, STATUSES.prReview);
-        await adapter.clearItemReviewStatus(item.itemId);
+        // Undo: restore to PR Review + clear review status
+        const result = await undoStatusChange(
+            issueNumber,
+            STATUSES.prReview,
+            null, // clear review status
+            {
+                timestamp,
+                logAction: 'undo_request_changes',
+                logDescription: `Undid request changes for PR #${prNumber}`,
+                logMetadata: { prNumber, restoredStatus: STATUSES.prReview },
+            }
+        );
 
-        if (logExists(issueNumber)) {
-            logWebhookAction(issueNumber, 'undo_request_changes', `Undid request changes for PR #${prNumber}`, {
-                prNumber,
-                restoredStatus: STATUSES.prReview,
-            });
+        if (!result.success) {
+            if (result.expired) {
+                console.warn(`[LOG:UNDO] Undo window expired for PR #${prNumber}, issue #${issueNumber}`);
+            }
+            return { success: false, error: result.error };
         }
 
         if (callbackQuery.message) {
@@ -127,9 +120,12 @@ export async function handleUndoRequestChanges(
             }
         }
 
+        // Re-fetch item for title (may have been refreshed)
+        const currentItem = await findItemByIssueNumber(issueNumber);
+
         const { notifyPRReadyToMerge } = await import('@/agents/shared/notifications');
         await notifyPRReadyToMerge(
-            item.title,
+            currentItem?.title || item?.title || `Issue #${issueNumber}`,
             issueNumber,
             prNumber,
             commitMessage,
@@ -163,46 +159,31 @@ export async function handleUndoDesignChanges(
     timestamp: number
 ): Promise<HandlerResult> {
     try {
-        if (!isUndoValid(timestamp)) {
-            console.warn(`[LOG:UNDO] Undo window expired for design PR #${prNumber}, issue #${issueNumber}`);
-            if (logExists(issueNumber)) {
-                logWebhookAction(issueNumber, 'undo_expired', `Undo window expired for design PR #${prNumber}`, {
-                    prNumber,
-                    designType,
-                    timestamp,
-                });
-            }
-            return { success: false, error: 'Undo window expired (5 minutes)' };
-        }
-
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
-
-        const item = await findItemByIssueNumber(adapter, issueNumber);
-        if (!item) {
-            console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo design changes`);
-            return { success: false, error: `Issue #${issueNumber} not found in project.` };
-        }
-
-        // Idempotency check: if review status is already cleared, skip
-        if (!item.reviewStatus) {
+        // Check idempotency first
+        const item = await findItemByIssueNumber(issueNumber);
+        if (item && !item.reviewStatus) {
             console.log(`[LOG:UNDO] Undo already performed for design PR #${prNumber}, issue #${issueNumber}`);
             return { success: true };
         }
 
-        await adapter.clearItemReviewStatus(item.itemId);
+        // Undo: just clear review status (don't change main status)
+        const result = await undoStatusChange(
+            issueNumber,
+            null, // don't change status
+            null, // clear review status
+            {
+                timestamp,
+                logAction: 'undo_design_changes',
+                logDescription: `Undid request changes for ${designType === 'product-dev' ? 'Product Development' : designType === 'product' ? 'Product Design' : 'Technical Design'} PR #${prNumber}`,
+                logMetadata: { prNumber, designType },
+            }
+        );
 
-        const designLabel = designType === 'product-dev'
-            ? 'Product Development'
-            : designType === 'product'
-                ? 'Product Design'
-                : 'Technical Design';
-
-        if (logExists(issueNumber)) {
-            logWebhookAction(issueNumber, 'undo_design_changes', `Undid request changes for ${designLabel} PR #${prNumber}`, {
-                prNumber,
-                designType,
-            });
+        if (!result.success) {
+            if (result.expired) {
+                console.warn(`[LOG:UNDO] Undo window expired for design PR #${prNumber}, issue #${issueNumber}`);
+            }
+            return { success: false, error: result.error };
         }
 
         if (callbackQuery.message) {
@@ -216,7 +197,7 @@ export async function handleUndoDesignChanges(
                 '━━━━━━━━━━━━━━━━━━━━',
                 '↩️ <b>Undone!</b>',
                 '',
-                `📊 Status: ${item.status}`,
+                `📊 Status: ${item?.status}`,
                 '📋 Review Status: (cleared)',
                 '',
                 'Re-sending Design PR Ready notification...',
@@ -234,7 +215,7 @@ export async function handleUndoDesignChanges(
         const { notifyDesignPRReady } = await import('@/agents/shared/notifications');
         await notifyDesignPRReady(
             designType,
-            item.title,
+            item?.title || `Issue #${issueNumber}`,
             issueNumber,
             prNumber,
             false,
@@ -268,40 +249,31 @@ export async function handleUndoDesignReview(
     timestamp: number
 ): Promise<HandlerResult> {
     try {
-        if (!isUndoValid(timestamp)) {
-            console.warn(`[LOG:UNDO] Undo window expired for design review, issue #${issueNumber}`);
-            if (logExists(issueNumber)) {
-                logWebhookAction(issueNumber, 'undo_expired', `Undo window expired for design review ${originalAction}`, {
-                    originalAction,
-                    timestamp,
-                });
-            }
-            return { success: false, error: 'Undo window expired (5 minutes)' };
-        }
-
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
-
-        const item = await findItemByIssueNumber(adapter, issueNumber);
-        if (!item) {
-            console.warn(`[LOG:UNDO] Issue #${issueNumber} not found in project for undo design review`);
-            return { success: false, error: `Issue #${issueNumber} not found in project.` };
-        }
-
-        // Idempotency check: if review status is already cleared, skip
-        if (!item.reviewStatus) {
+        // Check idempotency first
+        const item = await findItemByIssueNumber(issueNumber);
+        if (item && !item.reviewStatus) {
             console.log(`[LOG:UNDO] Undo already performed for design review, issue #${issueNumber}`);
             return { success: true };
         }
 
-        await adapter.clearItemReviewStatus(item.itemId);
+        // Undo: just clear review status
+        const result = await undoStatusChange(
+            issueNumber,
+            null, // don't change status
+            null, // clear review status
+            {
+                timestamp,
+                logAction: 'undo_design_review',
+                logDescription: `Undid ${originalAction} for design review`,
+                logMetadata: { originalAction, status: item?.status },
+            }
+        );
 
-        if (logExists(issueNumber)) {
-            logWebhookAction(issueNumber, 'undo_design_review', `Undid ${originalAction} for design review`, {
-                issueNumber,
-                originalAction,
-                status: item.status,
-            });
+        if (!result.success) {
+            if (result.expired) {
+                console.warn(`[LOG:UNDO] Undo window expired for design review, issue #${issueNumber}`);
+            }
+            return { success: false, error: result.error };
         }
 
         if (callbackQuery.message) {
@@ -315,7 +287,7 @@ export async function handleUndoDesignReview(
                 '━━━━━━━━━━━━━━━━━━━━',
                 '↩️ <b>Undone!</b>',
                 '',
-                `📊 Status: ${item.status}`,
+                `📊 Status: ${item?.status}`,
                 '📋 Review Status: (cleared)',
                 '',
                 'Re-sending review notification...',
@@ -333,7 +305,7 @@ export async function handleUndoDesignReview(
         const issueUrl = getIssueUrl(issueNumber);
 
         await sendNotificationToOwner(
-            `<b>🔄 Review Restored</b>\n\n📋 ${escapeHtml(item.title)}\n🔗 Issue #${issueNumber}\n📊 Status: ${item.status}\n\nReady for review again.`,
+            `<b>🔄 Review Restored</b>\n\n📋 ${escapeHtml(item?.title || `Issue #${issueNumber}`)}\n🔗 Issue #${issueNumber}\n📊 Status: ${item?.status}\n\nReady for review again.`,
             {
                 parseMode: 'HTML',
                 inlineKeyboard: [

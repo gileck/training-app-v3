@@ -178,7 +178,7 @@ function isInvestigationComment(body: string): boolean {
 // MAIN LOGIC
 // ============================================================
 
-async function processItem(
+export async function processItem(
     processable: ProcessableItem,
     options: CommonCLIOptions,
     adapter: Awaited<ReturnType<typeof getProjectManagementAdapter>>

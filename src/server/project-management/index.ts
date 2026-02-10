@@ -52,6 +52,13 @@ export function getProjectManagementAdapter(): ProjectManagementAdapter {
 }
 
 /**
+ * Set the adapter instance (useful for testing / DI)
+ */
+export function setProjectManagementAdapter(newAdapter: ProjectManagementAdapter): void {
+    adapter = newAdapter;
+}
+
+/**
  * Reset the adapter instance (useful for testing)
  */
 export function resetProjectManagementAdapter(): void {

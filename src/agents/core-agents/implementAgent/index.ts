@@ -106,7 +106,7 @@ import { createImplementationPR, postFeedbackResponse } from './prManagement';
 // MAIN LOGIC
 // ============================================================
 
-async function processItem(
+export async function processItem(
     processable: ProcessableItem,
     options: ImplementOptions,
     adapter: Awaited<ReturnType<typeof getProjectManagementAdapter>>,

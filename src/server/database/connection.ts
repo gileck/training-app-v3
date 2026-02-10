@@ -6,6 +6,13 @@ import { appConfig } from '@/app.config';
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = appConfig.dbName;
 
+// Override URI for testing (e.g., mongodb-memory-server)
+let overrideUri: string | null = null;
+
+export function setMongoUri(uri: string): void {
+    overrideUri = uri;
+}
+
 // --- Connection Management (Singleton Pattern) ---
 let client: MongoClient | null = null;
 let dbInstance: Db | null = null;
@@ -16,10 +23,11 @@ async function connectClient(): Promise<MongoClient> {
     if (client) {
         return client;
     }
-    if (!MONGO_URI) {
+    const uri = overrideUri || MONGO_URI;
+    if (!uri) {
         throw new Error('MONGO_URI environment variable is not set.');
     }
-    client = new MongoClient(MONGO_URI);
+    client = new MongoClient(uri);
     console.log('Connecting client to MongoDB...');
     try {
         await client.connect();
@@ -87,4 +95,19 @@ export async function closeDbConnection(): Promise<void> {
             console.error('Error closing MongoDB connection:', error);
         }
     }
+}
+
+/**
+ * Reset the DB connection completely (useful for testing).
+ * Closes the client and clears all cached state so the next
+ * getDb()/getMongoClient() call will reconnect (using overrideUri if set).
+ */
+export async function resetDbConnection(): Promise<void> {
+    if (client) {
+        try { await client.close(); } catch { /* ignore */ }
+    }
+    client = null;
+    dbInstance = null;
+    clientPromise = null;
+    overrideUri = null;
 }

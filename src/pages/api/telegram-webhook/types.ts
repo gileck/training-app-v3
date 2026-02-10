@@ -33,13 +33,6 @@ export interface HandlerResult {
     error?: string;
 }
 
-export interface ProjectItem {
-    itemId: string;
-    title: string;
-    status: string | null;
-    reviewStatus: string | null;
-}
-
 export interface ParsedCallbackData {
     action: string;
     parts: string[];

@@ -60,7 +60,8 @@
     "setup-s3-logging": "tsx scripts/template/setup-s3-logging.ts",
     "test-s3-logging": "tsx scripts/template/test-s3-logging.ts",
     "agent:code-reviewer": "tsx src/agents/repo-commits-code-reviewer.ts",
-    "agent:bug-investigator": "tsx src/agents/core-agents/bugInvestigatorAgent/index.ts"
+    "agent:bug-investigator": "tsx src/agents/core-agents/bugInvestigatorAgent/index.ts",
+    "test:e2e": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
@@ -138,6 +139,9 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.19.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "mongodb-memory-server": "^11.0.1",
+    "vite-tsconfig-paths": "^6.0.5",
+    "vitest": "^4.0.18"
   }
 }

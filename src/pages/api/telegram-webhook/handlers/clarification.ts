@@ -1,17 +1,18 @@
 /* eslint-disable restrict-api-routes/no-direct-api-routes */
 /**
  * Handler for clarification received action
+ *
+ * Delegates business logic to workflow-service/clarification.
+ * This handler only manages Telegram message editing.
  */
 
-import { getProjectManagementAdapter } from '@/server/project-management';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
 import {
-    logWebhookAction,
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
+import { markClarificationReceived } from '@/server/workflow-service';
 import { editMessageText } from '../telegram-api';
-import { escapeHtml, findItemByIssueNumber } from '../utils';
+import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';
 
 /**
@@ -24,39 +25,13 @@ export async function handleClarificationReceived(
     issueNumber: number
 ): Promise<HandlerResult> {
     try {
-        // 1. Initialize adapter
-        const adapter = getProjectManagementAdapter();
-        await adapter.init();
+        const result = await markClarificationReceived(issueNumber);
 
-        // 2. Find project item by issue number
-        const item = await findItemByIssueNumber(adapter, issueNumber);
-
-        if (!item) {
-            console.warn(`[LOG:CLARIFICATION] Item not found in GitHub Projects: issue #${issueNumber}`);
-            return { success: false, error: 'Item not found in GitHub Projects' };
+        if (!result.success) {
+            return { success: false, error: result.error };
         }
 
-        // 3. Verify current status
-        if (item.reviewStatus !== REVIEW_STATUSES.waitingForClarification) {
-            console.warn(`[LOG:CLARIFICATION] Issue #${issueNumber} not waiting for clarification (current: ${item.reviewStatus || 'none'})`);
-            return {
-                success: false,
-                error: `Item is not waiting for clarification (current: ${item.reviewStatus || 'none'})`
-            };
-        }
-
-        // 4. Update review status to "Clarification Received"
-        await adapter.updateItemReviewStatus(item.itemId, REVIEW_STATUSES.clarificationReceived);
-
-        // Log to agent log file
-        if (logExists(issueNumber)) {
-            logWebhookAction(issueNumber, 'clarification_received', 'Clarification received from admin', {
-                issueNumber,
-                reviewStatus: REVIEW_STATUSES.clarificationReceived,
-            });
-        }
-
-        // 5. Edit message to show action taken
+        // Edit message to show action taken
         if (callbackQuery.message) {
             const originalText = callbackQuery.message.text || '';
             const statusUpdate = [
@@ -76,7 +51,7 @@ export async function handleClarificationReceived(
             );
         }
 
-        console.log(`Telegram webhook: clarification received for issue #${issueNumber} (item ${item.itemId})`);
+        console.log(`Telegram webhook: clarification received for issue #${issueNumber}`);
         return { success: true };
     } catch (error) {
         console.error(`[LOG:CLARIFICATION] Error handling clarification for issue #${issueNumber}:`, error);

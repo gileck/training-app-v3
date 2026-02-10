@@ -127,8 +127,10 @@ export interface GetDecisionResponse {
  * Selected option from the UI
  */
 export interface DecisionSelection {
-    /** ID of the selected option (or "custom" for custom solution) */
-    selectedOptionId: string;
+    /** ID of the selected option (or "custom" for custom solution). Optional when chooseRecommended is true. */
+    selectedOptionId?: string;
+    /** Set to true to auto-select the recommended option (selectedOptionId not needed) */
+    chooseRecommended?: boolean;
     /** Custom solution text (required if selectedOptionId is "custom") */
     customSolution?: string;
     /** Custom destination value (required if selectedOptionId is "custom" and destinations exist) */

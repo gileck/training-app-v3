@@ -20,6 +20,9 @@ export interface ParsedArgs {
     // Fields for log command
     issue?: string;
     output?: string;
+    // Fields for route/delete commands
+    destination?: string;
+    force?: boolean;
 }
 
 /**
@@ -83,6 +86,15 @@ export function parseArgs(args: string[]): ParsedArgs {
         } else if (arg === '--output' && args[i + 1]) {
             result.output = args[i + 1];
             i += 2;
+        } else if (arg === '--destination' && args[i + 1]) {
+            result.destination = args[i + 1];
+            i += 2;
+        } else if (arg === '--route' && args[i + 1]) {
+            result.workflowRoute = args[i + 1];
+            i += 2;
+        } else if (arg === '--force') {
+            result.force = true;
+            i += 1;
         } else {
             // Unknown argument, skip
             i += 1;

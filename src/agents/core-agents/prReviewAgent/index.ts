@@ -165,7 +165,7 @@ const PR_REVIEW_OUTPUT_FORMAT = {
 // MAIN LOGIC
 // ============================================================
 
-async function processItem(
+export async function processItem(
     processable: ProcessableItem,
     options: PRReviewOptions,
     adapter: Awaited<ReturnType<typeof getProjectManagementAdapter>>,

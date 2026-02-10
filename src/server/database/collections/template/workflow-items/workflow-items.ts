@@ -372,6 +372,84 @@ export const deleteWorkflowItemBySourceRef = async (
 };
 
 /**
+ * Set the final PR number in artifacts
+ */
+export const setFinalPrNumber = async (
+    issueNumber: number,
+    prNumber: number
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.finalPrNumber': prNumber,
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Set the last merged PR info in artifacts
+ */
+export const setLastMergedPr = async (
+    issueNumber: number,
+    prNumber: number,
+    phase?: string
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.lastMergedPr': {
+                    prNumber,
+                    ...(phase ? { phase } : {}),
+                    mergedAt: new Date().toISOString(),
+                },
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Set the pending revert PR number in artifacts
+ */
+export const setRevertPrNumber = async (
+    issueNumber: number,
+    revertPrNumber: number
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $set: {
+                'artifacts.revertPrNumber': revertPrNumber,
+                updatedAt: new Date(),
+            },
+        }
+    );
+};
+
+/**
+ * Clear the pending revert PR number from artifacts
+ */
+export const clearRevertPrNumber = async (
+    issueNumber: number
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $unset: { 'artifacts.revertPrNumber': '' },
+            $set: { updatedAt: new Date() },
+        }
+    );
+};
+
+/**
  * Set the decision selection within the decision artifact
  */
 export const setDecisionSelection = async (
