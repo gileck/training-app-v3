@@ -22,8 +22,8 @@ import { vi, describe, it, beforeAll, afterAll, beforeEach, afterEach, expect } 
 // ============================================================
 
 import { mockRunAgent, agentCalls, resetAgentCalls, pushAgentResponse, resetAgentOverrides, CLARIFICATION_OUTPUT } from './mocks/mock-run-agent';
-vi.mock('@/agents/lib', async (importOriginal) => {
-    const original = await importOriginal() as Record<string, unknown>;
+vi.mock('@/agents/lib', async (importOriginal: () => Promise<Record<string, unknown>>) => {
+    const original = await importOriginal();
     return {
         ...original,
         runAgent: mockRunAgent,
@@ -62,8 +62,8 @@ vi.mock('@/agents/agents.config', () => ({
     },
 }));
 
-vi.mock('@/agents/shared/config', async (importOriginal) => {
-    const original = await importOriginal() as Record<string, unknown>;
+vi.mock('@/agents/shared/config', async (importOriginal: () => Promise<Record<string, unknown>>) => {
+    const original = await importOriginal();
     return {
         ...original,
         agentConfig: {
