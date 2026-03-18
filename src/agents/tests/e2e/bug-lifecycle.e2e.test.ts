@@ -21,8 +21,8 @@ import { vi, describe, it, beforeAll, afterAll, beforeEach, afterEach, expect } 
 
 // 1. Mock the AI engine (LLM boundary)
 import { mockRunAgent, agentCalls, resetAgentCalls } from './mocks/mock-run-agent';
-vi.mock('@/agents/lib', async (importOriginal) => {
-    const original = await importOriginal() as Record<string, unknown>;
+vi.mock('@/agents/lib', async (importOriginal: () => Promise<Record<string, unknown>>) => {
+    const original = await importOriginal();
     return {
         ...original,
         runAgent: mockRunAgent,
@@ -68,8 +68,8 @@ vi.mock('@/agents/agents.config', () => ({
 }));
 
 // 8. Mock shared/config (requires env vars not available in tests)
-vi.mock('@/agents/shared/config', async (importOriginal) => {
-    const original = await importOriginal() as Record<string, unknown>;
+vi.mock('@/agents/shared/config', async (importOriginal: () => Promise<Record<string, unknown>>) => {
+    const original = await importOriginal();
     return {
         ...original,
         agentConfig: {

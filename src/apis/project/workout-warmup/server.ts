@@ -9,6 +9,7 @@ import { AIModelAdapter } from '../../../server/ai/baseModelAdapter';
 import { AIModelAdapterResponse } from '../../../server/ai/types';
 import { getModelById } from '../../../server/ai/models';
 import { GenerateWarmupRequest, GenerateWarmupResponse, WarmupExerciseData } from './types';
+import { DEFAULT_MODEL_ID } from '../../../common/ai/models';
 import { GENERATE_WARMUP } from './index';
 
 export * from './index';
@@ -90,7 +91,7 @@ export const process = async (request: GenerateWarmupRequest): Promise<GenerateW
         const prompt = buildWarmupPrompt(exercises);
 
         // Use provided model or default to a fast, cost-effective model
-        const selectedModelId = request.modelId || 'gemini-2.5-flash';
+        const selectedModelId = request.modelId || DEFAULT_MODEL_ID;
         const adapter = new AIModelAdapter(selectedModelId);
 
         // Generate warmup

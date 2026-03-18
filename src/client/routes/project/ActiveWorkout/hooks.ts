@@ -49,6 +49,7 @@ import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types'
 import { useDeleteActivity } from '@/client/routes/project/Progress/hooks';
 import { generateWarmup } from '@/apis/project/workout-warmup/client';
 import type { WarmupExerciseData } from '@/apis/project/workout-warmup/types';
+import { DEFAULT_MODEL_ID } from '@/common/ai/models';
 
 /**
  * Aggregates all state needed for an active workout session.
@@ -148,7 +149,7 @@ export function useActiveWorkoutState() {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral loading state
     const [isGeneratingWarmup, setIsGeneratingWarmup] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral model selection state
-    const [warmupModelId, setWarmupModelId] = useState('gemini-2.5-flash');
+    const [warmupModelId, setWarmupModelId] = useState(DEFAULT_MODEL_ID);
 
     // Calculate total and completed sets from actual exercise data
     const totalSets = sessionExercises.reduce((sum, ex) => sum + ex.targetSets, 0);

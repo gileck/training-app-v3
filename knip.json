@@ -22,7 +22,9 @@
     "src/pages/api/**",
     "node_modules/**",
     "src/agents/lib/**",
-    "src/server/s3/example.ts"
+    "src/server/s3/example.ts",
+    "vitest.config.ts",
+    "src/agents/tests/e2e/**"
   ],
   "ignoreDependencies": [
     "@types/*",
@@ -39,12 +41,16 @@
     "@anthropic-ai/claude-code",
     "aws-sdk",
     "date-fns",
-    "undici"
+    "undici",
+    "vitest",
+    "vite-tsconfig-paths",
+    "mongodb-memory-server"
   ],
   "ignoreBinaries": [
     "madge"
   ],
   "ignoreExportsUsedInFile": true,
+  "vitest": false,
   "next": {
     "entry": [
       "src/pages/**/*.{ts,tsx}",
