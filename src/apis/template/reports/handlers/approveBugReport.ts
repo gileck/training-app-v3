@@ -1,7 +1,7 @@
 import { API_APPROVE_BUG_REPORT } from '../index';
 import { ApproveBugReportRequest, ApproveBugReportResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
-import { approveWorkflowItem } from '@/server/workflow-service';
+import { approveWorkflowItem } from '@/server/template/workflow-service';
 
 export const approveBugReport = async (
     request: ApproveBugReportRequest,
@@ -16,7 +16,10 @@ export const approveBugReport = async (
             return { error: 'Report ID is required' };
         }
 
-        const result = await approveWorkflowItem({ id: request.reportId, type: 'bug' });
+        const result = await approveWorkflowItem(
+            { id: request.reportId, type: 'bug' },
+            request.toBacklog ? { initialRoute: 'backlog' } : undefined
+        );
 
         if (!result.success) {
             return { error: result.error || 'Failed to approve bug report' };

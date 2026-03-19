@@ -4,7 +4,7 @@ This document explains how to run the AI agents, when to run them, the agents co
 
 ## Overview
 
-The workflow includes six AI agents that automate different phases of the development pipeline:
+The workflow includes eight AI agents that automate different phases of the development pipeline:
 
 1. **Product Development Agent** (Optional) - Transforms vague ideas into concrete product specs
 2. **Product Design Agent** - Generates UX/UI designs and mockups
@@ -12,6 +12,8 @@ The workflow includes six AI agents that automate different phases of the develo
 4. **Tech Design Agent** - Creates technical architecture documents
 5. **Implementation Agent** - Writes code and creates PRs
 6. **PR Review Agent** - Reviews implementation PRs and generates commit messages
+7. **Workflow Review Agent** - Reviews completed items and creates improvement issues
+8. **Triage Agent** (Standalone) - Classifies Backlog items by domain and suggests metadata
 
 ## Running Agents with Agents Copy (Recommended)
 
@@ -312,6 +314,72 @@ yarn agent:pr-review --pr 123
 6. Merge: Uses saved commit message, squash merges
 7. Request Changes: Back to implementor (admin must comment explaining changes)
 
+### 7. Workflow Review Agent
+
+**When to run:** Items have reached "Done" status
+
+**What it does:**
+- Reviews completed workflow items by analyzing their agent execution logs
+- Identifies errors, inefficiencies, and systemic improvements
+- Creates workflow items for findings via `yarn agent-workflow create`
+- Appends `[LOG:REVIEW]` section to the agent log file
+- Stores review summary on the workflow item in MongoDB
+- Sends Telegram notification with review results
+
+**Command:**
+```bash
+yarn agent:workflow-review
+
+# Or with specific issue:
+yarn agent:workflow-review --id 43
+
+# Preview without saving:
+yarn agent:workflow-review --dry-run --stream
+```
+
+**Automated Execution:**
+- Runs as the last step in `--all` pipeline (after PR Review)
+- Processes 1 item per run by default (configurable via `--limit`)
+- Skips items without local log files or already-reviewed items
+
+**See [workflow-review.md](./workflow-review.md) for full documentation.**
+
+### 8. Triage Agent (Standalone)
+
+**When to run:** Items are in "Backlog" with missing domain or metadata
+
+**What it does:**
+- Classifies Backlog items by domain (e.g., `ui`, `api`, `agents`, `database`)
+- Suggests priority, size, and complexity if not already set
+- Verifies bugs still exist and features are not yet implemented
+- Appends a triage summary to the item description with investigation findings
+- Flags items that may no longer be relevant (already resolved)
+- Processes up to 3 items per run by default
+
+**Command:**
+```bash
+yarn agent:triage
+
+# Preview without saving:
+yarn agent:triage --dry-run
+
+# Stream output:
+yarn agent:triage --stream
+
+# Limit items:
+yarn agent:triage --limit 5
+```
+
+**Standalone execution:**
+- NOT part of the `--all` pipeline — runs independently via task config
+- Configured in `agent-tasks/triage/config.json` to run every 30 minutes
+- Domain values are free-form strings, normalized to lowercase
+- Existing domains from the database are shown in the prompt to encourage reuse
+
+**Skip conditions:**
+- Items already triaged (description contains `**Triage Summary:**`) AND all metadata fields present
+- Items without issue numbers or content
+
 ## Agent Execution Logs
 
 All agent executions are logged to MongoDB for debugging and auditing.
@@ -348,7 +416,7 @@ All agent executions are logged to MongoDB for debugging and auditing.
 
 **Via MongoDB:**
 ```typescript
-import { getAgentLogs } from '@/server/database/collections/agent-logs';
+import { getAgentLogs } from '@/server/template/database/collections/agent-logs';
 
 // Get all logs for an issue
 const logs = await getAgentLogs({ issueNumber: 123 });
@@ -437,7 +505,7 @@ To run agents automatically:
 
 **2. Create cron API endpoint (`src/pages/api/cron/pr-review.ts`):**
 ```typescript
-import { verifyVercelCronRequest } from '@/server/utils/vercel-cron';
+import { verifyVercelCronRequest } from '@/server/template/utils/vercel-cron';
 import { execSync } from 'child_process';
 
 export default async function handler(req, res) {
@@ -540,6 +608,8 @@ If an agent is blocked by this hook, check that the working directory is correct
 - `yarn agent:tech-design` - Create architecture docs
 - `yarn agent:implement` - Write code and create PRs
 - `yarn agent:pr-review` - Review PRs (automated via cron)
+- `yarn agent:workflow-review` - Review completed items and create improvement issues
+- `yarn agent:triage` - Classify Backlog items by domain and suggest metadata (standalone)
 
 **Monitoring:**
 - Check agent logs in MongoDB

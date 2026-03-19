@@ -57,6 +57,10 @@ This is the **pipeline** collection. Items are created here when approved and sy
     githubIssueUrl?: string,
     githubIssueTitle?: string,
     labels?: string[],                    // GitHub issue labels
+    priority?: 'critical' | 'high' | 'medium' | 'low',
+    size?: 'XS' | 'S' | 'M' | 'L' | 'XL',
+    complexity?: 'High' | 'Medium' | 'Low',
+    domain?: string,                      // Domain classification (e.g., 'ui', 'api', 'agents')
     artifacts?: {                         // Structured workflow metadata (see Artifacts section)
         designs?: DesignArtifactRecord[],
         phases?: PhaseArtifactRecord[],
@@ -64,6 +68,10 @@ This is the **pipeline** collection. Items are created here when approved and sy
         commitMessages?: CommitMessageRecord[],
         decision?: DecisionArtifactRecord,
     },
+    history?: HistoryEntry[],            // Workflow action history timeline
+    reviewed?: boolean,                   // Whether workflow review agent has reviewed this item
+    reviewSummary?: string,              // Brief assessment from workflow review
+    createdBy?: string,                  // Agent that created this item (e.g., 'workflow-review')
     createdAt: Date,
     updatedAt: Date,
 }
@@ -218,9 +226,9 @@ The `app` adapter stores pipeline status in the `workflow-items` collection and 
 | Workflow-items CRUD | `src/server/database/collections/template/workflow-items/workflow-items.ts` |
 | Artifact DB helpers (server-only) | `src/agents/lib/workflow-db.ts` |
 | Decision DB helpers | `src/apis/template/agent-decision/utils.ts` |
-| AppProjectAdapter | `src/server/project-management/adapters/app-project.ts` |
-| Adapter factory | `src/server/project-management/index.ts` |
-| Sync core (creates workflow-items) | `src/server/github-sync/sync-core.ts` |
+| AppProjectAdapter | `src/server/template/project-management/adapters/app-project.ts` |
+| Adapter factory | `src/server/template/project-management/index.ts` |
+| Sync core (creates workflow-items) | `src/server/template/github-sync/sync-core.ts` |
 | Workflow API handler | `src/apis/template/workflow/handlers/listItems.ts` |
 | Workflow UI | `src/client/routes/template/Workflow/WorkflowItems.tsx` |
 | Migration script | `scripts/template/migrate-workflow-items.ts` |

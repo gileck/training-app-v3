@@ -24,6 +24,7 @@
  */
 
 import './shared/loadEnv';
+import { runAgentMain } from './shared/main-factory';
 import { spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
@@ -240,7 +241,7 @@ You have read-only tools (Read, Glob, Grep) available. **You MUST use them befor
 ### Step 1: Read Project Guidelines
 Start by reading the project's guidelines and architecture docs:
 - Read \`CLAUDE.md\` in the project root — this is the source of truth for all coding standards, patterns, and architectural decisions.
-- Based on the files changed in the commits, read the relevant docs from \`docs/\` and skill rules from \`.ai/skills/\` that apply (e.g., if the commit touches React components, read the React component organization rules; if it touches API code, read the client-server communication docs).
+- Based on the files changed in the commits, read the relevant docs from \`docs/\` and project guidelines from \`docs/template/project-guidelines/\` that apply (e.g., if the commit touches React components, read the React component organization rules; if it touches API code, read the client-server communication docs).
 
 ### Step 2: Read the Full Current Source Files
 For each file mentioned in the commits, **read the full current file**. You need the complete current source to understand:
@@ -275,7 +276,7 @@ Only after reading the current source files should you form your findings. Each 
 - Be conservative — better to miss a minor issue than create noise
 - Consolidate related findings (don't create 3 issues for the same underlying problem)
 - Focus on things that could cause real problems in production
-- Do NOT flag something as a violation if the project docs explicitly endorse that pattern
+- If the project docs explicitly endorse a pattern or document it as an acceptable exception, it is NOT an issue — do not include it in findings at all. Every finding you report must be something genuinely wrong, not something that looks unusual but is documented as acceptable.
 
 ## Title and Description Format
 
@@ -333,6 +334,10 @@ function createIssue(finding: CodeReviewFinding, dryRun: boolean): void {
             '--priority', finding.priority,
             '--description', description,
         ];
+
+        if (finding.size) args.push('--size', finding.size);
+        if (finding.complexity) args.push('--complexity', finding.complexity);
+        args.push('--created-by', 'repo-commits-code-reviewer');
 
         // Add client page route if the finding is route-specific
         if (finding.route) {
@@ -472,17 +477,10 @@ async function main() {
         }
     }
 
-    // Create issues only for actionable findings (shouldCreateIssue: true)
-    const actionableFindings = output.findings.filter(f => f.shouldCreateIssue);
-    const skippedCount = output.findings.length - actionableFindings.length;
-
-    if (skippedCount > 0) {
-        console.log(`\n  ℹ️  ${skippedCount} finding(s) marked as informational (shouldCreateIssue: false)`);
-    }
-
-    if (actionableFindings.length > 0) {
-        console.log(`\n  📝 Creating ${actionableFindings.length} issue(s)...`);
-        for (const finding of actionableFindings) {
+    // Create issues for all findings — admin decides go/no-go via Telegram
+    if (output.findings.length > 0) {
+        console.log(`\n  📝 Creating ${output.findings.length} issue(s)...`);
+        for (const finding of output.findings) {
             createIssue(finding, options.dryRun);
         }
     } else {
@@ -501,10 +499,6 @@ async function main() {
     }
 
     console.log('\nDone!');
-    process.exit(0);
 }
 
-main().catch((error) => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-});
+runAgentMain(main);

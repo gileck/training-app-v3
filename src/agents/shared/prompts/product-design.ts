@@ -5,7 +5,7 @@
  * will look and feel from a user perspective (UI/UX).
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 import {
     AMBIGUITY_INSTRUCTIONS,
@@ -21,6 +21,83 @@ import {
 } from './shared-instructions';
 
 /**
+ * Build the design mock options instructions block.
+ * Shared between new design and clarification prompts.
+ */
+function buildMockInstructions(issueNumber: number): string {
+    return `## Design Mock Options
+
+In addition to the written design document, create **2-3 design mock options** as interactive React pages. Each option represents a different UI/UX approach to the feature.
+
+**IMPORTANT — Write mock files directly:**
+You have write access. You MUST write each mock option as a React component file BEFORE producing structured output. The files will be deployed to a Vercel preview URL for the admin to review.
+
+**File structure:**
+- Each option component: \`src/pages/design-mocks/components/issue-${issueNumber}-{optId}.tsx\` (e.g., \`issue-${issueNumber}-optA.tsx\`)
+- Main page with tabs: \`src/pages/design-mocks/issue-${issueNumber}.tsx\`
+
+**Requirements for mock components:**
+- Each option must be a self-contained React function component (default export)
+- Use ONLY shadcn/ui components imported from \`@/client/components/template/ui/\` — available components: Button, Card, Input, Label, Badge, Avatar, Select, Switch, Textarea, Dialog, Sheet, Separator, Skeleton, DropdownMenu, RadioGroup, Alert, Collapsible, Calendar
+- Use semantic theme tokens for all colors (\`bg-background\`, \`text-foreground\`, \`bg-muted\`, \`text-muted-foreground\`, \`bg-primary\`, \`text-primary-foreground\`, \`border\`, etc.) — NEVER hardcode colors
+- Design mobile-first for ~400px viewport (use \`max-w-md mx-auto\`)
+- Include realistic content appropriate to the feature (not lorem ipsum)
+- Keep each component focused — one clear design approach per option
+- Import React hooks (useState, etc.) from 'react' as needed
+
+**Props — viewState and colorMode:**
+The mock preview shell passes two props to the main page component. You MUST accept and forward these to each option component:
+- \`viewState\`: \`'populated' | 'empty' | 'loading'\` — controls which state to render
+  - \`'populated'\`: Show the component with realistic sample data (DEFAULT)
+  - \`'empty'\`: Show the empty state (no items, no data, blank slate with helpful message/action)
+  - \`'loading'\`: Show the loading/skeleton state
+- \`colorMode\`: \`'light' | 'dark'\` — the current color mode (the shell wraps your component in a \`dark\` CSS class container, so semantic tokens like \`bg-background\` automatically adapt — you don't need to handle this manually, just make sure you use semantic tokens and NOT hardcoded colors)
+
+Each option component signature should be:
+\`\`\`tsx
+export default function OptionA({ viewState = 'populated' }: { viewState?: 'populated' | 'empty' | 'loading' }) {
+  if (viewState === 'loading') return <LoadingSkeleton />;
+  if (viewState === 'empty') return <EmptyState />;
+  return <PopulatedView />;
+}
+\`\`\`
+
+The main page component must accept and forward these props:
+\`\`\`tsx
+export default function MockPage({ viewState, colorMode }: { viewState?: string; colorMode?: string }) {
+  // ... forward viewState to each option component
+  <OptionA viewState={viewState as 'populated' | 'empty' | 'loading'} />
+}
+\`\`\`
+
+**Main page structure (\`src/pages/design-mocks/issue-${issueNumber}.tsx\`):**
+- Import each option component using React.lazy and dynamic import
+- Render tabs (Option A / Option B / etc.) with useState for tab switching
+- Each option rendered inside a mobile-width container (\`max-w-md mx-auto\`)
+- Wrap lazy components in React.Suspense with a loading fallback
+- Accept \`viewState\` and \`colorMode\` props, forward \`viewState\` to option components
+
+**After writing mock files, verify they compile:**
+- Run \`npx tsc --noEmit src/pages/design-mocks/issue-${issueNumber}.tsx\` to check for TypeScript errors
+- Fix any compilation errors before proceeding
+
+**Each option should differ meaningfully** — for example:
+- Option A: Minimalist approach with fewer elements
+- Option B: Feature-rich approach with more detail
+- Option C: Alternative layout or interaction pattern
+
+**IMPORTANT:** Only write files to \`src/pages/design-mocks/\`. Do NOT modify any other files in the project.
+**IMPORTANT:** Write all mock files BEFORE producing the structured JSON output.`;
+}
+
+/** Phase 1 output format: mocks only (no design doc) */
+const MOCK_OUTPUT_FORMAT = `Provide your response as structured JSON with these fields:
+- **comment**: High-level summary of the mock options to post as GitHub comment (3-5 bullet points describing key differences between options). Use markdown numbered list with each item on a NEW LINE
+- **mockOptions**: Array of 2-3 design mock option metadata, each with: id, title, description, isRecommended (the actual component code is written to files, not included here)
+
+**IMPORTANT:** Do NOT include a "design" field. This phase produces mocks only — the full design document will be written after admin selects an option.`;
+
+/**
  * Build prompt for generating a new product design
  *
  * @param issue - The GitHub issue content
@@ -30,7 +107,8 @@ import {
 export function buildProductDesignPrompt(
     issue: ProjectItemContent,
     productDevelopmentDoc?: string | null,
-    comments?: GitHubComment[]
+    comments?: GitHubComment[],
+    options?: { allowWrite?: boolean }
 ): string {
     const commentsSection = buildCommentsSection(comments);
 
@@ -46,125 +124,67 @@ ${productDevelopmentDoc}
 `
         : '';
 
-    return `You are creating a Product Design document for a GitHub issue.${productDevelopmentDoc ? ' The Product Development document has been approved, defining WHAT to build. Now you need to design HOW it will look and feel.' : ''} Your task is to:
+    const modeInstruction = options?.allowWrite
+        ? 'IMPORTANT: You are in WRITE mode. You MUST write design mock page files to src/pages/design-mocks/ using the Write tool. You also have access to Read, Glob, Grep, WebFetch, Edit, and Bash tools.'
+        : READ_ONLY_MODE_INSTRUCTIONS;
+
+    return `You are creating design mock options for a GitHub issue.${productDevelopmentDoc ? ' The Product Development document has been approved, defining WHAT to build. Now you need to explore different UI/UX approaches.' : ''} Your task is to:
 1. Understand the feature from the issue description
 2. Explore the codebase to understand existing patterns and architecture
-3. Create a Product Design document
+3. Create 2-3 design mock options as interactive React pages${options?.allowWrite ? '\n4. Write design mock page files to src/pages/design-mocks/' : ''}
 
-${READ_ONLY_MODE_INSTRUCTIONS}
+**IMPORTANT:** This is Phase 1 — you are creating visual mock options ONLY. Do NOT write a full design document. The admin will review the mocks and pick one. A full design document will be written in Phase 2 based on the chosen option.
+
+${modeInstruction}
 
 ${buildIssueDetailsHeader(issue, { includeLabels: true })}
 ${commentsSection}${pddSection}
 ## Your Task
 
-Create a Product Design document. The size of your output should match the complexity of the feature - simple features get simple designs, complex features get detailed designs.${productDevelopmentDoc ? '\n\n**Important:** The Product Development Document above defines the requirements and acceptance criteria. Your design should address those requirements from a UI/UX perspective.' : ''}
+Create 2-3 design mock options that show different UI/UX approaches for this feature. Each option should be meaningfully different. Focus on the visual and interaction design — the admin will pick the best approach.${productDevelopmentDoc ? '\n\n**Important:** The Product Development Document above defines the requirements and acceptance criteria. Your mock options should explore different ways to address those requirements from a UI/UX perspective.' : ''}
 
 ${PRODUCT_DESIGN_ONLY_WARNING}
 
 ${MOBILE_FIRST_INSTRUCTIONS}
 
-**Required sections:**
-1. **Size Estimate** - S (small, few hours) / M (medium, 1-2 days) / L (large, multiple days)
-2. **Overview** - Brief summary of what this feature does and why it's needed
-3. **UI/UX Design** - How the feature will look and behave (MOBILE-FIRST)
-   - Describe the interface elements for mobile (~400px) first
-   - User flow and interactions optimized for touch
-   - Include error handling and loading states naturally within the flow
-   - Describe tablet/desktop enhancements separately if needed
-
-**Optional sections (include only when relevant):**
-- **User Stories** - Only for features where multiple user types or complex workflows need clarification
-- **Edge Cases** - Only for features with non-obvious edge cases that need explicit design decisions
-
 ## Research Strategy
 
-Before writing the design, explore the codebase:
+Before creating the mocks, explore the codebase:
 1. Read \`src/client/routes/index.ts\` to understand the routing structure
 2. If a page is mentioned, find and read that component
 3. Look at similar existing features for patterns
 4. Check relevant types in \`src/apis/\` if the feature needs API work
 
+${buildMockInstructions(issue.number ?? 0)}
+
 ## Output Format
 
-Provide your response as structured JSON with these fields:
-- **design**: Complete Product Design document in markdown format (same structure as before)
-- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
-
-Keep the design concise. A small feature might only need a few paragraphs. A large feature needs more detail.
+${MOCK_OUTPUT_FORMAT}
 
 ## Output Format Example
 
 **GOOD comment example:**
 \`\`\`
-Here's the product design:
-1. Added logout button to the user menu dropdown with loading state and error toast
-2. Mobile-first: button placed at bottom of dropdown for easy thumb access (44px touch target)
-3. On success redirects to /login, on error shows non-blocking toast notification
-4. Size estimate: S - simple addition to existing dropdown component
+Here are the design mock options:
+1. Option A: Minimalist card layout — focuses on simplicity with a clean single-column view
+2. Option B: Feature-rich dashboard — includes filters, sorting, and inline editing
+3. Option C: Conversational UI — step-by-step guided flow with progressive disclosure
+4. Recommended: Option A for its simplicity and mobile-first approach
 \`\`\`
 
 **BAD comment example (too generic, avoid this):**
 \`\`\`
-Here's the product design:
-1. Designed the feature
-2. Added UI details
-3. Wrote the document
-\`\`\`
-
-Example for a SMALL feature (S):
-
-\`\`\`markdown
-# Product Design: Add logout button
-
-**Size: S**
-
-## Overview
-Add a logout button to the user menu dropdown. When clicked, clears the session and redirects to the login page.
-
-## UI/UX Design
-- Add "Logout" item at the bottom of the existing user dropdown menu
-- Shows loading spinner while logging out
-- On success: redirect to /login
-- On error: show toast notification
-\`\`\`
-
-Example for a MEDIUM/LARGE feature:
-
-\`\`\`markdown
-# Product Design: [Feature Title]
-
-**Size: M** (or L)
-
-## Overview
-[1-2 paragraph summary]
-
-## User Stories (if needed)
-- As a user, I want to...
-- As an admin, I want to...
-
-## UI/UX Design
-
-### Layout
-[Description of the interface]
-
-### User Flow
-1. User navigates to...
-2. User clicks...
-3. System shows loading state...
-4. On success/error...
-
-### Mobile Considerations
-[Only if relevant]
-
-## Edge Cases (if needed)
-[Only non-obvious cases that need design decisions]
+Here are 3 options:
+1. Option A
+2. Option B
+3. Option C
 \`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
-Now explore the codebase and create the Product Design document.`;
+Now explore the codebase and create the design mock options.`;
 }
 
 /**
@@ -236,7 +256,8 @@ Now revise the Product Design based on the feedback.`;
 export function buildProductDesignClarificationPrompt(
     content: { title: string; number: number; body: string; labels?: string[] },
     issueComments: Array<{ body: string; author: string; createdAt: string }>,
-    clarification: { body: string; author: string; createdAt: string }
+    clarification: { body: string; author: string; createdAt: string },
+    options?: { allowWrite?: boolean }
 ): string {
     const commentsSection = issueComments.length > 0
         ? `\n## All Issue Comments\n\n${formatCommentsList(issueComments)}\n`
@@ -262,9 +283,101 @@ You asked for clarification because you encountered ambiguity. Review the GitHub
 ${clarification.body}
 
 ## Task
-Continue your product design work using the admin's clarification as guidance. Complete the product design document.
+Continue your product design work using the admin's clarification as guidance. Complete the product design document${options?.allowWrite ? ' and write design mock page files to src/pages/design-mocks/' : ''}.
+
+${options?.allowWrite ? 'IMPORTANT: You are in WRITE mode. You MUST write design mock page files to src/pages/design-mocks/ using the Write tool before producing structured output. You also have access to Read, Glob, Grep, WebFetch, Edit, and Bash tools.' : ''}
 
 If the admin's response is still unclear or raises new ambiguities, you may ask another clarification question using the same format.
+
+${PRODUCT_DESIGN_ONLY_WARNING}
+
+${MOBILE_FIRST_INSTRUCTIONS}
+
+**Required sections:**
+1. **Size Estimate** - S (small, few hours) / M (medium, 1-2 days) / L (large, multiple days)
+2. **Overview** - Brief summary of what this feature does and why it's needed
+3. **UI/UX Design** - How the feature will look and behave (MOBILE-FIRST)
+   - Describe the interface elements for mobile (~400px) first
+   - User flow and interactions optimized for touch
+   - Include error handling and loading states naturally within the flow
+   - Describe tablet/desktop enhancements separately if needed
+
+**Optional sections (include only when relevant):**
+- **User Stories** - Only for features where multiple user types or complex workflows need clarification
+- **Edge Cases** - Only for features with non-obvious edge cases that need explicit design decisions
+
+${options?.allowWrite ? buildMockInstructions(content.number) : ''}
+
+## Output Format
+
+${options?.allowWrite ? MOCK_OUTPUT_FORMAT : `Provide your response as structured JSON with these fields:
+- **design**: Complete Product Design document in markdown format
+- **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE`}
+
+## Output Format Example
+
+**GOOD comment example:**
+\`\`\`
+Here's the product design (after clarification):
+1. Admin clarified the feature should only apply to premium users - scoped the design accordingly
+2. Designed a collapsible filter panel for the settings page with mobile-first layout
+3. Added empty state when no items match filters, with a "clear filters" action
+4. Size estimate: M - requires new UI panel and filter logic
+\`\`\`
+
+${MARKDOWN_FORMATTING_INSTRUCTIONS}
+
+${AMBIGUITY_INSTRUCTIONS}
+
+Now complete the Product Design document using the clarification provided.`;
+}
+
+/**
+ * Build prompt for Phase 2: writing a full design document for the chosen mock option
+ *
+ * @param issue - The GitHub issue content
+ * @param chosenOption - The admin-selected mock option (title + description)
+ * @param mockSource - The React source code of the chosen mock component (if available)
+ * @param comments - Issue comments for context
+ */
+export function buildProductDesignPostSelectionPrompt(
+    issue: ProjectItemContent,
+    chosenOption: { title: string; description: string },
+    mockSource: string | null,
+    comments?: GitHubComment[],
+): string {
+    const commentsSection = buildCommentsSection(comments);
+
+    const mockSourceSection = mockSource
+        ? `\n## Chosen Mock Source Code
+
+The following is the React component source code for the chosen mock option:
+
+\`\`\`tsx
+${mockSource}
+\`\`\`
+
+Use this implementation as the reference for your design document. The design should describe and formalize what this mock demonstrates.
+
+---
+`
+        : '';
+
+    return `You are writing a Product Design document for a GitHub issue based on an admin-selected design mock option.
+
+${READ_ONLY_MODE_INSTRUCTIONS}
+
+${buildIssueDetailsHeader(issue, { includeLabels: true })}
+${commentsSection}
+## Admin's Chosen Design Option
+
+**Option:** ${chosenOption.title}
+
+**Description:** ${chosenOption.description}
+${mockSourceSection}
+## Your Task
+
+Write a complete Product Design document that formalizes the chosen mock option into a full design specification. The mock shows the visual approach — your document should describe the full user experience, interactions, states, and edge cases.
 
 ${PRODUCT_DESIGN_ONLY_WARNING}
 
@@ -286,23 +399,25 @@ ${MOBILE_FIRST_INSTRUCTIONS}
 ## Output Format
 
 Provide your response as structured JSON with these fields:
-- **design**: Complete Product Design document in markdown format
+- **design**: Complete Product Design document in markdown format for the chosen mock option
 - **comment**: High-level design overview to post as GitHub comment (3-5 bullet points). Use markdown numbered list with each item on a NEW LINE
+
+**IMPORTANT:** Do NOT create new mocks or mockOptions. This phase produces a design document only.
 
 ## Output Format Example
 
 **GOOD comment example:**
 \`\`\`
-Here's the product design (after clarification):
-1. Admin clarified the feature should only apply to premium users - scoped the design accordingly
-2. Designed a collapsible filter panel for the settings page with mobile-first layout
-3. Added empty state when no items match filters, with a "clear filters" action
-4. Size estimate: M - requires new UI panel and filter logic
+Here's the product design based on the chosen "${chosenOption.title}" option:
+1. Formalized the minimalist card layout with mobile-first responsive design
+2. Defined loading, empty, and error states for all data-dependent views
+3. Added user flow: browse → select → confirm with inline editing support
+4. Size estimate: M - new route with card grid, filtering, and CRUD operations
 \`\`\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
 ${AMBIGUITY_INSTRUCTIONS}
 
-Now complete the Product Design document using the clarification provided.`;
+Now write the Product Design document for the chosen mock option.`;
 }

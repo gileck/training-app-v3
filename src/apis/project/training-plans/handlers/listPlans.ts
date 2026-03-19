@@ -1,6 +1,6 @@
 import { ApiHandlerContext, ListPlansRequest, ListPlansResponse } from '../types';
 import { trainingPlans } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const listPlans = async (
     _: ListPlansRequest,

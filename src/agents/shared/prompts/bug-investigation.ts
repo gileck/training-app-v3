@@ -5,7 +5,7 @@
  * analysis of bugs to identify root causes and suggest fix options.
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 import type { BugDiagnostics } from '../utils';
 import { formatSessionLogs } from '../utils';

@@ -40,6 +40,7 @@ export const FEATURE_ROUTING_STATUS_MAP: Record<string, string> = {
  * Map routing destinations to GitHub Project statuses (for bugs — no product-dev)
  */
 export const BUG_ROUTING_STATUS_MAP: Record<string, string> = {
+    'bug-investigation': STATUSES.bugInvestigation,
     'product-design': STATUSES.productDesign,
     'tech-design': STATUSES.techDesign,
     'implementation': STATUSES.implementation,
@@ -51,6 +52,7 @@ export const BUG_ROUTING_STATUS_MAP: Record<string, string> = {
  */
 export const ROUTING_DESTINATION_LABELS: Record<string, string> = {
     'product-dev': 'Product Development',
+    'bug-investigation': 'Bug Investigation',
     'product-design': 'Product Design',
     'tech-design': 'Technical Design',
     'implementation': 'Ready for Development',

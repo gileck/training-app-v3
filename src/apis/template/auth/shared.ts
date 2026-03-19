@@ -6,14 +6,12 @@ import type { User } from "@/server/database/collections/template/users/types";
 
 export const SALT_ROUNDS = 10;
 
-if (!process.env.JWT_SECRET) {
-  console.error(
-    "[AUTH ERROR] JWT_SECRET environment variable is not set. Authentication will not work."
-  );
-  throw new Error("JWT_SECRET environment variable is required");
+export function getJwtSecret(): string {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is required");
+  }
+  return process.env.JWT_SECRET;
 }
-
-export const JWT_SECRET = process.env.JWT_SECRET;
 export const JWT_EXPIRES_IN = "3650d";
 export const COOKIE_NAME = "auth_token";
 export const COOKIE_OPTIONS = {

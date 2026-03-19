@@ -24,7 +24,7 @@
 
 import '../../agents/shared/loadEnv';
 import { spawn } from 'child_process';
-import { getProjectManagementAdapter, STATUSES, REVIEW_STATUSES } from '@/server/project-management';
+import { getProjectManagementAdapter, STATUSES, REVIEW_STATUSES } from '@/server/template/project-management';
 import {
     generateDecisionToken,
     isDecisionComment,

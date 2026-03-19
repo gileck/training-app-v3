@@ -11,7 +11,7 @@ const logContextStorage = new AsyncLocalStorage<LogContext>();
  */
 export function createLogContext(options: {
     issueNumber: number;
-    workflow: 'product-dev' | 'product-design' | 'tech-design' | 'bug-investigation' | 'implement' | 'pr-review';
+    workflow: LogContext['workflow'];
     phase: string;
     mode?: string;
     issueTitle: string;

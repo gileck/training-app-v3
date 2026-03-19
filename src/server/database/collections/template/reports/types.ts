@@ -191,6 +191,9 @@ export interface ReportDocument {
     // Source tracking
     source?: ReportSource;            // Where this was created from (ui, cli, auto)
 
+    // Agent attribution
+    createdBy?: string;               // Which agent created this (e.g., 'workflow-review', 'repo-commits-code-reviewer')
+
     createdAt: Date;
     updatedAt: Date;
 }

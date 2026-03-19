@@ -2,15 +2,16 @@
 // This endpoint must be a direct API route because it returns HTML for Telegram approval links
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { featureRequests } from '@/server/database';
-import { approveFeatureRequest } from '@/server/github-sync';
+import { approveWorkflowItem } from '@/server/template/workflow-service';
 
 /**
  * Public API endpoint for approving feature requests via Telegram link.
  *
  * This endpoint:
- * 1. Verifies the approval token matches the stored token
- * 2. Approves the feature request (updates status + creates GitHub issue)
- * 3. Returns a simple HTML response (since this is clicked from Telegram)
+ * 1. Atomically claims the approval token (prevents race conditions)
+ * 2. Verifies the claimed token matches the provided token
+ * 3. Approves the feature request (updates status + creates GitHub issue)
+ * 4. Returns a simple HTML response (since this is clicked from Telegram)
  *
  * GET /api/feature-requests/approve/[requestId]?token=[approvalToken]
  */
@@ -35,47 +36,57 @@ export default async function handler(
     }
 
     try {
-        // Fetch the feature request
-        const request = await featureRequests.findFeatureRequestById(requestId);
+        // Atomically claim the approval token to prevent race conditions (TOCTOU vulnerability)
+        // This is the key fix: claimApprovalToken uses findOneAndUpdate to atomically
+        // find a document with a token and unset it in a single operation.
+        // Only the first concurrent request will succeed; subsequent requests get null.
+        const request = await featureRequests.claimApprovalToken(requestId);
 
         if (!request) {
-            return sendHtmlResponse(res, 404, 'Not Found', 'Feature request not found');
-        }
-
-        // Verify the token
-        if (!request.approvalToken || request.approvalToken !== token) {
+            // Token was already claimed or doesn't exist - check if already approved
+            const existingRequest = await featureRequests.findFeatureRequestById(requestId);
+            if (existingRequest?.githubIssueUrl) {
+                return sendHtmlResponse(
+                    res,
+                    200,
+                    'Already Approved',
+                    `This feature request has already been approved.\n\nGitHub Issue: ${existingRequest.githubIssueUrl}`,
+                    existingRequest.githubIssueUrl
+                );
+            }
+            // Either request doesn't exist or token was invalid/expired
             return sendHtmlResponse(res, 403, 'Invalid Token', 'The approval link is invalid or has expired');
         }
 
-        // Check if already approved
-        if (request.githubIssueUrl) {
-            return sendHtmlResponse(
-                res,
-                200,
-                'Already Approved',
-                `This feature request has already been approved.\n\nGitHub Issue: ${request.githubIssueUrl}`,
-                request.githubIssueUrl
-            );
+        // Verify the claimed token matches the one provided in the URL
+        // (claimApprovalToken returns the document with the token BEFORE it was cleared)
+        if (request.approvalToken !== token) {
+            // Token mismatch - restore the original token since we incorrectly claimed it
+            // We know approvalToken exists because claimApprovalToken only succeeds for docs with a token
+            if (request.approvalToken) {
+                await featureRequests.updateApprovalToken(requestId, request.approvalToken);
+            }
+            return sendHtmlResponse(res, 403, 'Invalid Token', 'The approval link is invalid or has expired');
         }
 
-        // Approve the request
-        const result = await approveFeatureRequest(requestId);
+        // Approve the request using workflow service (handles GitHub sync, logging, routing, notifications)
+        const result = await approveWorkflowItem({ id: requestId, type: 'feature' });
 
         if (!result.success) {
+            // Restore the approval token so the user can retry
+            if (request.approvalToken) {
+                await featureRequests.updateApprovalToken(requestId, request.approvalToken);
+            }
             return sendHtmlResponse(res, 500, 'Error', result.error || 'Failed to approve feature request');
         }
 
-        // Clear the approval token (one-time use)
-        await featureRequests.updateApprovalToken(requestId, null);
-
-        // Success response
-        const issueUrl = result.githubResult?.issueUrl;
+        // Success response (token was already cleared by claimApprovalToken)
         return sendHtmlResponse(
             res,
             200,
             'Approved!',
             `Feature request "${request.title}" has been approved and a GitHub issue has been created.`,
-            issueUrl
+            result.issueUrl
         );
     } catch (error) {
         console.error('Approval endpoint error:', error);

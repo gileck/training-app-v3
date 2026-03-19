@@ -1,4 +1,4 @@
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 import {
     FeatureRequestDocument,
     FeatureRequestClient,

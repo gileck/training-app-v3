@@ -7,9 +7,9 @@ import {
 } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { getProjectManagementAdapter } from '@/server/project-management';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
 import { parseArtifactComment, type GitHubComment } from '@/agents/lib/artifacts';
-import { getProjectConfig } from '@/server/project-management/config';
+import { getProjectConfig } from '@/server/template/project-management/config';
 
 /**
  * Convert parsed artifact comment to API-friendly IssueArtifacts

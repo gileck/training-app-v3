@@ -31,7 +31,6 @@ import {
     // Config
     STATUSES,
     REVIEW_STATUSES,
-    agentConfig,
     // Project management
     getProjectManagementAdapter,
     // Claude
@@ -41,11 +40,8 @@ import {
     extractProductDesign,
     extractTechDesign,
     // Notifications
-    notifyPRReady,
     notifyAgentError,
-    notifyBatchComplete,
     notifyAgentStarted,
-    notifyAdmin,
     // Types
     type GitHubComment,
     type ImplementationOutput,
@@ -63,8 +59,8 @@ import {
     checkoutBranch,
     commitChanges,
     pushBranch,
-    // CLI
-    createCLI,
+    // Token calculation
+    calcTotalTokens,
 } from '../../shared';
 import {
     getProductDesignPath,
@@ -79,10 +75,6 @@ import {
 import {
     PLAYWRIGHT_MCP_CONFIG,
     PLAYWRIGHT_TOOLS,
-    isPlaywrightMCPAvailable,
-    startDevServer,
-    stopDevServer,
-    type DevServerState,
 } from '../../lib';
 import {
     createLogContext,
@@ -90,17 +82,21 @@ import {
     logExecutionStart,
     logExecutionEnd,
     logGitHubAction,
-    logError,
     logFeatureBranch,
+    logError,
 } from '../../lib/logging';
+import { handleAgentError } from '../../shared/error-handler';
+import { runAgentMain } from '../../shared/main-factory';
 
 // Submodules
 import type { ProcessableItem, ImplementOptions } from './types';
 import { createBranchFromBase, generateBranchName, verifyAllPushed, pullBranch, runYarnChecks } from './gitUtils';
 import { resolvePhaseInfo } from './phaseSetup';
-import { buildPromptForMode, appendPhaseContext, appendLocalTestingContext } from './promptBuilder';
+import { buildPromptForMode, appendPhaseContext } from './promptBuilder';
 import { validateAndFixChanges } from './changeValidation';
 import { createImplementationPR, postFeedbackResponse } from './prManagement';
+import { setupDevServer, stopDevServer } from './devServerSetup';
+import { warnMissingBugDiagnostics, sendPRReadyNotification } from './notifications';
 
 // ============================================================
 // MAIN LOGIC
@@ -156,6 +152,7 @@ export async function processItem(
         // Check for uncommitted changes (exclude agent-logs/ since logExecutionStart already modified it)
         if (hasUncommittedChanges(['agent-logs/'])) {
             const changes = getUncommittedChanges(['agent-logs/']);
+            await logExecutionEnd(logCtx, { success: false, toolCallsCount: 0, totalTokens: 0, totalCost: 0 });
             return { success: false, error: `Uncommitted changes in working directory. Please commit or stash them first.\n${changes}` };
         }
 
@@ -168,13 +165,7 @@ export async function processItem(
 
             // Warn if diagnostics are missing for a bug
             if (!diagnostics && !options.dryRun) {
-                await notifyAdmin(
-                    `⚠️ <b>Warning:</b> Bug diagnostics missing\n\n` +
-                    `📋 ${content.title}\n` +
-                    `🔗 Issue #${issueNumber}\n\n` +
-                    `The bug report does not have diagnostics (session logs, stack trace). ` +
-                    `The implementation may be incomplete without this context.`
-                );
+                await warnMissingBugDiagnostics(content.title, issueNumber);
             }
         }
 
@@ -278,6 +269,7 @@ export async function processItem(
             );
         } catch (error) {
             if (error instanceof Error) {
+                await logExecutionEnd(logCtx, { success: false, toolCallsCount: 0, totalTokens: 0, totalCost: 0 });
                 return { success: false, error: error.message };
             }
             throw error;
@@ -315,14 +307,21 @@ export async function processItem(
             }
         } else {
             checkoutBranch(branchName, false);
-            if (mode === 'feedback' || mode === 'clarification') {
-                // Pull latest changes
-                try {
-                    pullBranch(branchName);
-                } catch {
-                    console.log('  Note: Could not pull from remote (branch may not exist remotely yet)');
-                }
+            // Always pull latest from remote to avoid stale local branches
+            try {
+                pullBranch(branchName);
+            } catch {
+                console.log('  Note: Could not pull from remote (branch may not exist remotely yet)');
             }
+        }
+
+        // Merge latest default branch into feature branch to pick up structural changes
+        // This prevents errors when main has refactored paths that the feature branch lacks
+        try {
+            git(`merge origin/${defaultBranch} --no-edit`, { silent: true });
+            console.log(`  ✅ Merged latest ${defaultBranch} into ${branchName}`);
+        } catch {
+            console.log(`  Note: Could not merge ${defaultBranch} (may already be up to date or have conflicts)`);
         }
 
         // Run pre-work yarn checks (informational only)
@@ -337,69 +336,10 @@ export async function processItem(
             }
         }
 
-        // Determine if local testing is enabled for this run
-        // Check: config enabled + not skipped + new mode + Playwright MCP available
-        const playwrightAvailable = isPlaywrightMCPAvailable();
-        const enableLocalTesting = agentConfig.localTesting.enabled &&
-            !options.skipLocalTest &&
-            mode === 'new' &&
-            playwrightAvailable;
-
-        if (agentConfig.localTesting.enabled && !options.skipLocalTest && mode === 'new' && !playwrightAvailable) {
-            const mcpWarning = 'Local testing disabled: @playwright/mcp not installed. To enable: yarn add -D @playwright/mcp';
-            console.log(`  ⚠️ ${mcpWarning}`);
-            // Log to issue logger (non-fatal)
-            logError(logCtx, mcpWarning, false);
-        }
-
-        // Start dev server for local testing (if enabled)
-        let devServer: DevServerState | null = null;
-        if (enableLocalTesting && !options.dryRun) {
-            console.log('\n  🧪 Starting dev server for local testing...');
-            try {
-                devServer = await startDevServer({
-                    cwd: process.cwd(),
-                    startupTimeout: agentConfig.localTesting.devServerStartupTimeout,
-                });
-
-                // Health check: verify dev server isn't serving error pages
-                try {
-                    const healthResponse = await fetch(devServer.url);
-                    const body = await healthResponse.text();
-                    const buildErrorPatterns = [
-                        'Module not found',
-                        'Cannot find module',
-                        'Build Error',
-                        'Compilation Error',
-                        'SyntaxError',
-                        'Internal Server Error',
-                    ];
-                    const hasError = buildErrorPatterns.some(pattern => body.includes(pattern));
-                    if (hasError) {
-                        console.log('  ⚠️ Dev server has build errors — skipping visual verification');
-                        stopDevServer(devServer);
-                        devServer = null;
-                    }
-                } catch {
-                    console.log('  ⚠️ Dev server health check failed — skipping visual verification');
-                    if (devServer) {
-                        stopDevServer(devServer);
-                        devServer = null;
-                    }
-                }
-
-                // Only add local testing context if dev server is healthy
-                if (devServer) {
-                    prompt = appendLocalTestingContext(prompt, devServer.url);
-                }
-            } catch (error) {
-                const devServerError = `Failed to start dev server: ${error instanceof Error ? error.message : String(error)}`;
-                console.log(`  ⚠️ ${devServerError}`);
-                console.log('  Continuing without local testing...');
-                // Log to issue logger (non-fatal - implementation continues)
-                logError(logCtx, `Local testing skipped: ${devServerError}`, false);
-            }
-        }
+        // Set up dev server for local testing (if enabled)
+        const devServerResult = await setupDevServer(mode, prompt, options, logCtx);
+        const devServer = devServerResult.devServer;
+        prompt = devServerResult.prompt;
 
         // Run the agent (WRITE mode)
         console.log('');
@@ -494,6 +434,12 @@ export async function processItem(
             if (!options.dryRun) {
                 await notifyAgentError('Implementation', content.title, issueNumber, error);
             }
+            await logExecutionEnd(logCtx, {
+                success: false,
+                toolCallsCount: result.toolCallsCount ?? 0,
+                totalTokens: calcTotalTokens(result.usage),
+                totalCost: result.usage?.totalCostUSD ?? 0,
+            });
             return { success: false, error };
         }
 
@@ -503,6 +449,12 @@ export async function processItem(
             console.log('  🤔 Agent needs clarification');
             // Checkout back to default branch before pausing
             git(`checkout ${defaultBranch}`);
+            await logExecutionEnd(logCtx, {
+                success: false,
+                toolCallsCount: result.toolCallsCount ?? 0,
+                totalTokens: calcTotalTokens(result.usage),
+                totalCost: result.usage?.totalCostUSD ?? 0,
+            });
             return await handleClarificationRequest(
                 adapter,
                 { id: item.id, content: { number: issueNumber, title: content.title, labels: content.labels } },
@@ -529,13 +481,18 @@ export async function processItem(
             if (prSummary && comment) {
                 console.log('  PR summary extracted (structured output)');
             } else {
-                console.warn('  ⚠️ Structured output returned but missing fields:');
-                if (!prSummary) console.warn('    - prSummary is missing');
-                if (!comment) console.warn('    - comment is missing');
+                const missingFields = [
+                    ...(!prSummary ? ['prSummary'] : []),
+                    ...(!comment ? ['comment'] : []),
+                ].join(', ');
+                const warnMsg = `Structured output missing fields: ${missingFields}`;
+                console.warn(`  ⚠️ ${warnMsg}`);
+                logError(logCtx, warnMsg, false);
             }
         } else {
-            console.warn('  ⚠️ Structured output not returned by agent adapter');
-            console.warn('    Agent library may not support structured output');
+            const warnMsg = 'Structured output not returned by agent adapter — library may not support it';
+            console.warn(`  ⚠️ ${warnMsg}`);
+            logError(logCtx, warnMsg, false);
         }
 
         // Check if there are changes to commit
@@ -551,11 +508,23 @@ export async function processItem(
                 } else {
                     console.log('  No commits on branch either');
                     git(`checkout ${defaultBranch}`);
+                    await logExecutionEnd(logCtx, {
+                        success: false,
+                        toolCallsCount: result.toolCallsCount ?? 0,
+                        totalTokens: calcTotalTokens(result.usage),
+                        totalCost: result.usage?.totalCostUSD ?? 0,
+                    });
                     return { success: false, error: 'Agent did not make any changes' };
                 }
             } catch {
                 console.log('  Could not check for branch commits');
                 git(`checkout ${defaultBranch}`);
+                await logExecutionEnd(logCtx, {
+                    success: false,
+                    toolCallsCount: result.toolCallsCount ?? 0,
+                    totalTokens: calcTotalTokens(result.usage),
+                    totalCost: result.usage?.totalCostUSD ?? 0,
+                });
                 return { success: false, error: 'Agent did not make any changes' };
             }
         }
@@ -587,6 +556,12 @@ export async function processItem(
             } catch (cleanupError) {
                 console.error('  Warning: Failed to clean up after dry run:', cleanupError);
             }
+            await logExecutionEnd(logCtx, {
+                success: true,
+                toolCallsCount: result.toolCallsCount ?? 0,
+                totalTokens: calcTotalTokens(result.usage),
+                totalCost: result.usage?.totalCostUSD ?? 0,
+            });
             return { success: true };
         }
 
@@ -621,6 +596,12 @@ export async function processItem(
                 // Verify push succeeded
                 console.log('  Verifying all commits are pushed...');
                 if (!verifyAllPushed(branchName)) {
+                    await logExecutionEnd(logCtx, {
+                        success: false,
+                        toolCallsCount: result.toolCallsCount ?? 0,
+                        totalTokens: calcTotalTokens(result.usage),
+                        totalCost: result.usage?.totalCostUSD ?? 0,
+                    });
                     return { success: false, error: 'Failed to push all commits to remote. Please check network connection and try again.' };
                 }
                 console.log('  ✅ All commits pushed successfully');
@@ -667,7 +648,7 @@ export async function processItem(
         }
 
         // Update status to PR Review and set review status via workflow service
-        const { completeAgentRun } = await import('@/server/workflow-service');
+        const { completeAgentRun } = await import('@/server/template/workflow-service');
         await completeAgentRun(issueNumber, 'implementation', {
             status: STATUSES.prReview,
             reviewStatus: REVIEW_STATUSES.waitingForReview,
@@ -685,8 +666,7 @@ export async function processItem(
 
         // Send notification (with summary)
         if (prNumber) {
-            await notifyPRReady(content.title, issueNumber, prNumber, mode === 'feedback', issueType, comment);
-            console.log('  Notification sent');
+            await sendPRReadyNotification(content.title, issueNumber, prNumber, mode === 'feedback', issueType, comment);
         }
 
         // Checkout back to default branch
@@ -694,271 +674,30 @@ export async function processItem(
         console.log(`  ✅ Switched back to ${defaultBranch}`);
 
         // Log execution end
-        logExecutionEnd(logCtx, {
+        await logExecutionEnd(logCtx, {
             success: true,
-            toolCallsCount: 0, // Not tracked in UsageStats
-            totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+            toolCallsCount: result.toolCallsCount ?? 0,
+            totalTokens: calcTotalTokens(result.usage),
             totalCost: result.usage?.totalCostUSD ?? 0,
         });
 
         return { success: true, prNumber };
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            console.error(`  Error: ${errorMsg}`);
-
-            // Log error
-            logError(logCtx, error instanceof Error ? error : errorMsg, true);
-
-            // Try to checkout back to default branch
-            try {
-                git(`checkout ${defaultBranch}`);
-            } catch {
-                console.error('  Warning: Could not checkout back to default branch');
-            }
-
-            // Log execution end
-            logExecutionEnd(logCtx, {
-                success: false,
-                toolCallsCount: 0,
-                totalTokens: 0,
-                totalCost: 0,
+            return handleAgentError({
+                error,
+                logCtx,
+                phaseName: 'Implementation',
+                issueTitle: content.title,
+                issueNumber,
+                dryRun: !!options.dryRun,
+                cleanup: () => git(`checkout ${defaultBranch}`),
             });
-
-            if (!options.dryRun) {
-                await notifyAgentError('Implementation', content.title, issueNumber, errorMsg);
-            }
-            return { success: false, error: errorMsg };
         }
     });
 }
 
-async function main(): Promise<void> {
-    const { options: baseOptions, extra } = createCLI({
-        name: 'implement',
-        displayName: 'Implementation Agent',
-        description: 'Implement features and create PRs for GitHub Project items',
-        additionalOptions: [
-            { flag: '--skip-push', description: 'Skip pushing to remote (for testing)', defaultValue: false },
-            { flag: '--skip-pull', description: 'Skip pulling latest changes from master', defaultValue: false },
-            { flag: '--skip-local-test', description: 'Skip local testing with Playwright MCP', defaultValue: false },
-        ],
-    });
-    const options: ImplementOptions = {
-        ...baseOptions,
-        skipPush: Boolean(extra.skipPush),
-        skipPull: Boolean(extra.skipPull),
-        skipLocalTest: Boolean(extra.skipLocalTest),
-    };
-
-    // Check for uncommitted changes before starting
-    if (hasUncommittedChanges()) {
-        console.error('Error: Uncommitted changes in working directory.');
-        console.error('Please commit or stash your changes before running this agent.');
-        console.error('Uncommitted files:\n' + getUncommittedChanges());
-        process.exit(1);
-    }
-
-    // Get default branch and ensure we're on it
-    let defaultBranch: string;
-    try {
-        defaultBranch = git('symbolic-ref refs/remotes/origin/HEAD --short', { silent: true }).replace('origin/', '');
-        console.log(`Switching to ${defaultBranch}...`);
-        git(`checkout ${defaultBranch}`, { silent: true });
-        console.log(`  ✅ On ${defaultBranch}`);
-    } catch (error) {
-        console.error('Error: Failed to checkout default branch.');
-        console.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
-    }
-
-    // Pull latest (unless --skip-pull is specified)
-    if (!options.skipPull) {
-        console.log(`Pulling latest from ${defaultBranch}...`);
-        try {
-            git(`pull origin ${defaultBranch}`, { silent: true });
-            console.log(`  ✅ On latest ${defaultBranch}`);
-        } catch (error) {
-            console.error('Error: Failed to pull latest.');
-            console.error(error instanceof Error ? error.message : String(error));
-            process.exit(1);
-        }
-    } else {
-        console.log('⚠️  Skipping git pull (--skip-pull specified)');
-    }
-
-    // Initialize project management adapter
-    const adapter = getProjectManagementAdapter();
-    await adapter.init();
-
-    // Collect items to process
-    const itemsToProcess: ProcessableItem[] = [];
-
-    if (options.id) {
-        // Process specific item
-        const item = await adapter.getItem(options.id);
-        if (!item) {
-            console.error(`Item not found: ${options.id}`);
-            process.exit(1);
-        }
-
-        // Determine mode based on current status and review status
-        let mode: 'new' | 'feedback' | 'clarification';
-        let prNumber: number | undefined;
-        let branchName: string | undefined;
-
-        if (item.status === STATUSES.implementation && !item.reviewStatus) {
-            mode = 'new';
-        } else if (
-            (item.status === STATUSES.implementation || item.status === STATUSES.prReview) &&
-            item.reviewStatus === REVIEW_STATUSES.requestChanges
-        ) {
-            mode = 'feedback';
-            // Find the open PR and get both PR number AND branch name from it
-            // Getting branch from PR is more reliable than regenerating (title/phase could change)
-            const openPR = await adapter.findOpenPRForIssue(item.content?.number || 0);
-            if (openPR) {
-                prNumber = openPR.prNumber;
-                branchName = openPR.branchName;
-            }
-        } else if (item.status === STATUSES.implementation && item.reviewStatus === REVIEW_STATUSES.clarificationReceived) {
-            mode = 'clarification';
-        } else if (item.status === STATUSES.implementation && item.reviewStatus === REVIEW_STATUSES.waitingForClarification) {
-            console.log('  ⏳ Waiting for clarification from admin');
-            console.log('  Skipping this item (admin needs to respond and click "Clarification Received")');
-            process.exit(0);
-        } else {
-            console.error(`Item is not in a processable state.`);
-            console.error(`  Status: ${item.status}`);
-            console.error(`  Review Status: ${item.reviewStatus}`);
-            console.error(`  Expected: "${STATUSES.implementation}" with empty Review Status, "${REVIEW_STATUSES.requestChanges}", or "${REVIEW_STATUSES.clarificationReceived}"`);
-            process.exit(1);
-        }
-
-        itemsToProcess.push({ item, mode, prNumber, branchName });
-    } else {
-        // Flow A: Fetch items ready for implementation (Implementation status with empty Review Status)
-        // For new implementations, we ALWAYS create a new PR (no idempotency check needed)
-        const allImplementationItems = await adapter.listItems({ status: STATUSES.implementation, limit: options.limit || 50 });
-        const newItems = allImplementationItems.filter((item) => !item.reviewStatus);
-        for (const item of newItems) {
-            itemsToProcess.push({ item, mode: 'new' });
-        }
-
-        // Flow B: Fetch items needing revision (Implementation or PR Review status with Request Changes)
-        // For feedback mode, we find the OPEN PR and get its branch name directly from the PR
-        // This is more reliable than regenerating the branch name (title/phase could have changed)
-        if (adapter.hasReviewStatusField()) {
-            const feedbackItems = allImplementationItems.filter(
-                (item) => item.reviewStatus === REVIEW_STATUSES.requestChanges
-            );
-            for (const item of feedbackItems) {
-                const openPR = await adapter.findOpenPRForIssue(item.content?.number || 0);
-                if (openPR) {
-                    itemsToProcess.push({
-                        item,
-                        mode: 'feedback',
-                        prNumber: openPR.prNumber,
-                        branchName: openPR.branchName,
-                    });
-                }
-            }
-
-            // Also fetch PR Review items with Request Changes
-            const prReviewItems = await adapter.listItems({ status: STATUSES.prReview, limit: options.limit || 50 });
-            const prFeedbackItems = prReviewItems.filter(
-                (item) => item.reviewStatus === REVIEW_STATUSES.requestChanges
-            );
-            for (const item of prFeedbackItems) {
-                const openPR = await adapter.findOpenPRForIssue(item.content?.number || 0);
-                if (openPR) {
-                    itemsToProcess.push({
-                        item,
-                        mode: 'feedback',
-                        prNumber: openPR.prNumber,
-                        branchName: openPR.branchName,
-                    });
-                }
-            }
-
-            // Flow C: Fetch items with clarification received
-            const clarificationItems = allImplementationItems.filter(
-                (item) => item.reviewStatus === REVIEW_STATUSES.clarificationReceived
-            );
-            for (const item of clarificationItems) {
-                itemsToProcess.push({ item, mode: 'clarification' });
-            }
-        }
-
-        // Apply limit
-        if (options.limit && itemsToProcess.length > options.limit) {
-            itemsToProcess.length = options.limit;
-        }
-    }
-
-    if (itemsToProcess.length === 0) {
-        console.log('No items to process.');
-        return;
-    }
-
-    console.log(`\nProcessing ${itemsToProcess.length} item(s)...`);
-
-    // Track results
-    const results = {
-        processed: 0,
-        succeeded: 0,
-        failed: 0,
-    };
-
-    // Process each item
-    for (const processable of itemsToProcess) {
-        results.processed++;
-        const { item } = processable;
-        const title = item.content?.title || 'Unknown';
-
-        console.log(`\n----------------------------------------`);
-        console.log(`[${results.processed}/${itemsToProcess.length}] ${title}`);
-        console.log(`  Item ID: ${item.id}`);
-        console.log(`  Status: ${item.status}`);
-        if (item.reviewStatus) {
-            console.log(`  Review Status: ${item.reviewStatus}`);
-        }
-
-        const result = await processItem(processable, options, adapter, defaultBranch);
-
-        if (result.success) {
-            results.succeeded++;
-            if (result.prNumber) {
-                console.log(`  PR: #${result.prNumber}`);
-            }
-        } else {
-            results.failed++;
-            console.error(`  Failed: ${result.error}`);
-        }
-    }
-
-    // Print summary
-    console.log('\n========================================');
-    console.log('  Summary');
-    console.log('========================================');
-    console.log(`  Processed: ${results.processed}`);
-    console.log(`  Succeeded: ${results.succeeded}`);
-    console.log(`  Failed: ${results.failed}`);
-    console.log('========================================\n');
-
-    // Send batch completion notification
-    if (!options.dryRun && results.processed > 1) {
-        await notifyBatchComplete('Implementation', results.processed, results.succeeded, results.failed);
-    }
-}
+// Create and run the main function (using factory to avoid circular imports)
+import { createMain } from './mainFlow';
 
 // Run (skip when imported as a module in tests)
-if (!process.env.VITEST) {
-    main()
-        .then(() => {
-            process.exit(0);
-        })
-        .catch((error) => {
-            console.error('Fatal error:', error);
-            process.exit(1);
-        });
-}
+runAgentMain(createMain(processItem), { skipInTest: true });

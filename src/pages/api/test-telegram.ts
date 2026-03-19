@@ -17,7 +17,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { sendNotificationToOwner } from '@/server/telegram';
+import { sendNotificationToOwner } from '@/server/template/telegram';
 import { appConfig } from '@/app.config';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

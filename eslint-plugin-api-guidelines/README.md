@@ -63,8 +63,8 @@ Prevents exporting process functions from index.ts, which would cause them to be
 Warns when using direct ObjectId methods in API handlers that may fail with UUID strings. This app supports both MongoDB ObjectIds (legacy) and client-generated UUIDs for `_id` fields.
 
 **Warns on:**
-- `.toHexString()` calls → suggests `toStringId()` from `@/server/utils`
-- `new ObjectId(variable)` → suggests `toQueryId()` or `toDocumentId()` from `@/server/utils`
+- `.toHexString()` calls → suggests `toStringId()` from `@/server/template/utils`
+- `new ObjectId(variable)` → suggests `toQueryId()` or `toDocumentId()` from `@/server/template/utils`
 
 **Allows:**
 - `new ObjectId()` with no arguments (generates new ID)

@@ -1,7 +1,7 @@
 import { API_DELETE_FEATURE_REQUEST } from '../index';
 import { DeleteFeatureRequestRequest, DeleteFeatureRequestResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
-import { deleteWorkflowItem } from '@/server/workflow-service';
+import { deleteWorkflowItem } from '@/server/template/workflow-service';
 
 export const deleteFeatureRequest = async (
     request: DeleteFeatureRequestRequest,
@@ -16,7 +16,7 @@ export const deleteFeatureRequest = async (
             return { error: 'Request ID is required' };
         }
 
-        const result = await deleteWorkflowItem({ id: request.requestId, type: 'feature' });
+        const result = await deleteWorkflowItem({ id: request.requestId, type: 'feature' }, { force: true });
 
         if (!result.success) {
             return { error: result.error || 'Failed to delete feature request' };

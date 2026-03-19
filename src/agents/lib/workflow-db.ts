@@ -8,7 +8,7 @@
  * Import directly: import { ... } from '@/agents/lib/workflow-db';
  */
 
-import type { ProjectManagementAdapter } from '@/server/project-management/types';
+import type { ProjectManagementAdapter } from '@/server/template/project-management/types';
 import type { ImplementationPhase } from '../shared/output-schemas';
 import type { CommitMessageResult } from './commitMessage';
 import {

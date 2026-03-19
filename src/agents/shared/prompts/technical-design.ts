@@ -5,7 +5,7 @@
  * the feature from a technical perspective.
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 import {
     AMBIGUITY_INSTRUCTIONS,
@@ -169,7 +169,7 @@ Provide your response as structured JSON with these fields:
   "order": 1,                    // Phase number (1, 2, 3, etc.)
   "name": "Database Schema",     // Short phase name
   "description": "...",          // What this phase implements
-  "files": ["src/...", "docs/...", ".ai/skills/..."],  // Source files to modify + relevant docs
+  "files": ["src/...", "docs/..."],  // Source files to modify + relevant docs
   "estimatedSize": "S"           // S or M (never L/XL for a single phase)
 }
 \`\`\`
@@ -179,14 +179,14 @@ The \`files\` array should include BOTH:
 1. **Source files to create/modify** - The actual implementation files (e.g., \`src/apis/...\`, \`src/client/...\`)
 2. **Relevant documentation** - Docs the implementor should read before implementing this phase:
    - \`docs/\` files for detailed patterns (e.g., \`docs/mongodb-usage.md\`, \`docs/theming.md\`)
-   - \`.ai/skills/\` files for coding guidelines (e.g., \`.ai/skills/state-management-guidelines/SKILL.md\`)
+   - \`docs/template/project-guidelines/\` files for coding guidelines (e.g., \`docs/template/project-guidelines/state-management-guidelines.md\`)
 
 Select docs based on what the phase touches:
-- Database work → \`docs/mongodb-usage.md\`, \`.ai/skills/mongodb-usage/SKILL.md\`
-- API endpoints → \`docs/api-endpoint-format.md\`, \`.ai/skills/client-server-communications/SKILL.md\`
-- UI components → \`docs/theming.md\`, \`.ai/skills/react-component-organization/SKILL.md\`, \`.ai/skills/shadcn-usage/SKILL.md\`
-- State management → \`docs/state-management.md\`, \`.ai/skills/state-management-guidelines/SKILL.md\`
-- Authentication → \`docs/authentication.md\`, \`.ai/skills/user-access/SKILL.md\`
+- Database work → \`docs/template/mongodb-usage.md\`, \`docs/template/project-guidelines/mongodb-usage.md\`
+- API endpoints → \`docs/template/api-endpoint-format.md\`, \`docs/template/project-guidelines/client-server-communications.md\`
+- UI components → \`docs/template/theming.md\`, \`docs/template/project-guidelines/react-component-organization.md\`, \`docs/template/project-guidelines/shadcn-usage.md\`
+- State management → \`docs/template/state-management.md\`, \`docs/template/project-guidelines/state-management-guidelines.md\`
+- Authentication → \`docs/template/authentication.md\`, \`docs/template/project-guidelines/user-access.md\`
 - Offline/PWA → \`docs/offline-pwa-support.md\`, \`docs/react-query-mutations.md\`
 
 Keep the design concise. A small feature might only need a short list of files. A large feature needs more detail.
@@ -407,8 +407,8 @@ Here's the technical design:
     "files": [
       "src/server/database/collections/users.ts",
       "src/server/database/collections/sessions.ts",
-      "docs/mongodb-usage.md",
-      ".ai/skills/mongodb-usage/SKILL.md"
+      "docs/template/mongodb-usage.md",
+      "docs/template/project-guidelines/mongodb-usage.md"
     ],
     "estimatedSize": "S"
   },
@@ -419,8 +419,8 @@ Here's the technical design:
     "files": [
       "src/apis/auth/types.ts",
       "src/apis/auth/handlers/login.ts",
-      "docs/api-endpoint-format.md",
-      ".ai/skills/client-server-communications/SKILL.md"
+      "docs/template/api-endpoint-format.md",
+      "docs/template/project-guidelines/client-server-communications.md"
     ],
     "estimatedSize": "M"
   },
@@ -430,9 +430,9 @@ Here's the technical design:
     "description": "Login form, register form, protected route wrapper",
     "files": [
       "src/client/features/auth/components/LoginForm.tsx",
-      "docs/theming.md",
-      ".ai/skills/react-component-organization/SKILL.md",
-      ".ai/skills/shadcn-usage/SKILL.md"
+      "docs/template/theming.md",
+      "docs/template/project-guidelines/react-component-organization.md",
+      "docs/template/project-guidelines/shadcn-usage.md"
     ],
     "estimatedSize": "M"
   }

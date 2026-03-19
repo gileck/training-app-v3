@@ -5,7 +5,7 @@ import { featureRequests, users } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
 import { FeatureRequestComment } from '@/server/database/collections/template/feature-requests/types';
-import { toDocumentId } from '@/server/utils';
+import { toDocumentId } from '@/server/template/utils';
 
 export const addUserComment = async (
     request: AddUserCommentRequest,

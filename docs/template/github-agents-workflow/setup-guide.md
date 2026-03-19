@@ -350,7 +350,7 @@ export const agentConfig: AgentConfig = {
 };
 ```
 
-**Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/project-management/config.ts` and should NOT be modified.
+**Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/template/project-management/config.ts` and should NOT be modified.
 
 ## Step 7: Verify Setup
 

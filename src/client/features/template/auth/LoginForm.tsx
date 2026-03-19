@@ -240,6 +240,11 @@ function cleanErrorMessage(error: string): string {
         return 'Username already taken.';
     }
 
+    // HTTP status errors (e.g., "HTTP 405", "HTTP 500")
+    if (/http\s+[45]\d{2}/i.test(cleaned)) {
+        return 'Server error. Please try again later.';
+    }
+
     // Generic network/offline via shared util
     if (isNetworkError(error)) {
         if (cleaned.includes('offline') || cleaned.includes('available offline')) {

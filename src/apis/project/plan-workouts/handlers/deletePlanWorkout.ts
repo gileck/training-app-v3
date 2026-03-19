@@ -1,4 +1,4 @@
-import { isObjectIdFormat, isUuidFormat } from '@/server/utils';
+import { isObjectIdFormat, isUuidFormat } from '@/server/template/utils';
 import { ApiHandlerContext, DeletePlanWorkoutRequest, DeletePlanWorkoutResponse } from '../types';
 import { planWorkouts, trainingPlans } from '@/server/database';
 

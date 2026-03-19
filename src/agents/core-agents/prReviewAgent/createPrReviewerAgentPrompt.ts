@@ -48,10 +48,10 @@ function createPhaseContextSection(phaseInfo: PhaseInfo): string {
 
     // Separate source files from documentation files
     const sourceFiles = phaseFiles?.filter(f =>
-        !f.startsWith('docs/') && !f.startsWith('.ai/skills/')
+        !f.startsWith('docs/')
     ) || [];
     const docFiles = phaseFiles?.filter(f =>
-        f.startsWith('docs/') || f.startsWith('.ai/skills/')
+        f.startsWith('docs/')
     ) || [];
 
     let section = `## ⚠️ MULTI-PHASE IMPLEMENTATION - PHASE-SPECIFIC REVIEW REQUIRED
@@ -224,7 +224,7 @@ Review this PR and make your final decision. Provide your review decision (APPRO
 
 **CRITICAL: Project Docs Override Generic Best Practices**
 
-This project has specific patterns documented in \`docs/\` and \`.ai/skills/\` that may differ from generic best practices. These project-specific patterns exist for good reasons (e.g., to prevent known bugs).
+This project has specific patterns documented in \`docs/\` and \`docs/template/project-guidelines/\` that may differ from generic best practices. These project-specific patterns exist for good reasons (e.g., to prevent known bugs).
 
 **You MUST:**
 1. READ the relevant project docs before suggesting changes
@@ -234,20 +234,20 @@ This project has specific patterns documented in \`docs/\` and \`.ai/skills/\` t
 
 **Example:** If project docs say "use individual Zustand selectors, not combined object selectors", do NOT request combining them even if that's a common pattern elsewhere.
 
-**IMPORTANT**: Check compliance with project guidelines in \`.ai/skills/\` (Only when relevant to code changes):
-- TypeScript guidelines (\`.ai/skills/typescript-guidelines/SKILL.md\`)
-- React patterns (\`.ai/skills/react-component-organization/SKILL.md\`, \`.ai/skills/react-hook-organization/SKILL.md\`)
-- State management (\`.ai/skills/state-management-guidelines/SKILL.md\`)
-- UI/UX patterns (\`.ai/skills/ui-design-guidelines/SKILL.md\`, \`.ai/skills/shadcn-usage/SKILL.md\`)
-- File organization (\`.ai/skills/feature-based-structure/SKILL.md\`)
-- API patterns (\`.ai/skills/client-server-communications/SKILL.md\`)
-- Comprehensive checklist (\`.ai/skills/app-guidelines-checklist/SKILL.md\`)
-- mongoDB usage (\`.ai/skills/mongodb-usage/SKILL.md\`)
-- pages-and-routing-guidelines (\`.ai/skills/pages-and-routing-guidelines/SKILL.md\`)
-- shadcn-usage (\`.ai/skills/shadcn-usage/SKILL.md\`)
-- theming-guidelines (\`.ai/skills/theming-guidelines/SKILL.md\`)
-- user-access (\`.ai/skills/user-access/SKILL.md\`)
-- ui-mobile-first-shadcn (\`.ai/skills/ui-mobile-first-shadcn/SKILL.md\`)
+**IMPORTANT**: Check compliance with project guidelines in \`docs/template/project-guidelines/\` (Only when relevant to code changes):
+- TypeScript guidelines (\`docs/template/project-guidelines/typescript-guidelines.md\`)
+- React patterns (\`docs/template/project-guidelines/react-component-organization.md\`, \`docs/template/project-guidelines/react-hook-organization.md\`)
+- State management (\`docs/template/project-guidelines/state-management-guidelines.md\`)
+- UI/UX patterns (\`docs/template/project-guidelines/ui-design-guidelines.md\`, \`docs/template/project-guidelines/shadcn-usage.md\`)
+- File organization (\`docs/template/project-guidelines/feature-based-structure.md\`)
+- API patterns (\`docs/template/project-guidelines/client-server-communications.md\`)
+- Comprehensive checklist (\`docs/template/project-guidelines/app-guidelines-checklist.md\`)
+- mongoDB usage (\`docs/template/project-guidelines/mongodb-usage.md\`)
+- pages-and-routing-guidelines (\`docs/template/project-guidelines/pages-and-routing-guidelines.md\`)
+- shadcn-usage (\`docs/template/project-guidelines/shadcn-usage.md\`)
+- theming-guidelines (\`docs/template/project-guidelines/theming-guidelines.md\`)
+- user-access (\`docs/template/project-guidelines/user-access.md\`)
+- ui-mobile-first-shadcn (\`docs/template/project-guidelines/ui-mobile-first-shadcn.md\`)
 
 `;
 }

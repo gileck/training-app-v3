@@ -17,6 +17,7 @@ import { Theme } from './template/Theme';
 import { Clarify } from './template/Clarify';
 import { BugFix } from './template/BugFix';
 import { Decision } from './template/Decision';
+import { DesignMocks } from './template/DesignMocks';
 import { ItemDetail } from './template/ItemDetail';
 import { WorkflowItems } from './template/Workflow';
 import { Routes } from '../features/template/router';
@@ -35,6 +36,9 @@ export const templateRoutes: Routes = {
 
   // Agent decision page (public, full-screen - no header/navbar)
   '/decision/:issueNumber': { component: Decision, public: true, fullScreen: true },
+
+  // Design mock preview (public, full-screen - renders agent-generated mock pages)
+  '/design-mocks/:issueSlug': { component: DesignMocks, public: true, fullScreen: true },
 
   // Template protected routes
   '/settings': Settings,

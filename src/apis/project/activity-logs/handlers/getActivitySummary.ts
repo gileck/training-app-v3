@@ -3,7 +3,7 @@ import type { GetActivitySummaryRequest, GetActivitySummaryResponse, DailySummar
 import * as setLogs from '@/server/database/collections/project/setLogs';
 import * as planExercises from '@/server/database/collections/project/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
-import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
+import { toStringId, toQueryId, toDocumentId } from '@/server/template/utils';
 
 /**
  * Get date key for grouping based on aggregation period

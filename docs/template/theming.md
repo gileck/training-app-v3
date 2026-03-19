@@ -430,5 +430,5 @@ When creating or modifying components:
 - `src/client/routes/Settings/Settings.tsx` - Settings page integration
 
 ### Guidelines
-- `.ai/skills/theming-guidelines/SKILL.md` - AI/developer coding guidelines
+- `docs/template/project-guidelines/theming-guidelines.md` - AI/developer coding guidelines
 

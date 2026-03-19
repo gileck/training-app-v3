@@ -44,6 +44,8 @@ import {
     runBatch,
     // Design Agent Processor
     createDesignProcessor,
+    // Main factory
+    runAgentMain,
 } from '../../shared';
 import {
     logGitHubAction,
@@ -53,12 +55,8 @@ import {
     hasPhaseComment,
 } from '../../lib/phases';
 import {
-    readDesignDoc,
+    readDesignDocAsync,
 } from '../../lib/design-files';
-import {
-    getProductDesignPath,
-} from '../../lib/artifacts';
-import { getArtifactsFromIssue } from '../../lib/workflow-db';
 import type { TechDesignOutput } from '../../shared';
 
 // ============================================================
@@ -99,15 +97,11 @@ const processItem = createDesignProcessor({
             clarification,
         ),
 
-    loadAdditionalContext: async ({ issueNumber, adapter, content }) => {
-        // Try to get product design from file first, then fall back to issue body
-        const artifact = await getArtifactsFromIssue(adapter, issueNumber);
-        const productDesignPath = getProductDesignPath(artifact);
-        if (productDesignPath) {
-            const productDesign = readDesignDoc(issueNumber, 'product');
-            if (productDesign) {
-                return { context: productDesign, label: `Loaded product design from file: ${productDesignPath}` };
-            }
+    loadAdditionalContext: async ({ issueNumber, adapter: _adapter, content }) => {
+        // Try S3 first (new flow), then file, then issue body
+        const s3Design = await readDesignDocAsync(issueNumber, 'product');
+        if (s3Design) {
+            return { context: s3Design, label: 'Loaded product design from S3/file' };
         }
         // Fallback to issue body
         const productDesign = extractProductDesign(content.body);
@@ -174,11 +168,4 @@ async function main(): Promise<void> {
 }
 
 // Run
-main()
-    .then(() => {
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
+runAgentMain(main);

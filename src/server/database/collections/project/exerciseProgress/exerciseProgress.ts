@@ -1,7 +1,7 @@
 import { Collection } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { ExerciseProgress, ExerciseProgressCreate, ExerciseProgressUpdate } from './types';
-import { toQueryId } from '@/server/utils';
+import { toQueryId } from '@/server/template/utils';
 
 /**
  * Get a reference to the exerciseProgress collection

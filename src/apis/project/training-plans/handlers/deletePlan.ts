@@ -6,7 +6,7 @@ import {
     exerciseProgress,
     setLogs,
 } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const deletePlan = async (
     request: DeletePlanRequest,

@@ -1,13 +1,14 @@
 ---
 title: Agent Workflow CLI
-description: CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
-summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows."
+description: CLI for managing workflow items. Use this when working with `yarn agent-workflow` commands.
+summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority/size/complexity/domain). Supports `--auto-approve`, `--route`, and `--created-by` for automated workflows."
 priority: 3
 key_points:
-  - "list command: filter by --type, --status, --source"
-  - "get command: shows live pipeline status"
-  - "update command: change status/priority with --dry-run"
-  - "ID prefix matching supported (first 8 chars of ObjectId)"
+  - "list command: filter by --type, --status, --domain"
+  - "get command: shows workflow item details (artifacts, history, createdBy, description)"
+  - "update command: change status/priority/size/complexity/domain with --dry-run"
+  - "ID lookup: workflow-item ObjectId, ID prefix (first 8 chars), or GitHub issue number"
+  - "create command: creates GitHub issue + workflow-item directly (no source docs)"
 related_docs:
   - overview.md
   - workflow-e2e.md
@@ -15,7 +16,9 @@ related_docs:
 
 # Agent Workflow CLI
 
-Command-line interface for managing feature requests and bug reports that feed into the GitHub agents workflow.
+Command-line interface for managing workflow items in the GitHub agents workflow pipeline.
+
+All CLI commands operate directly on the **workflow-items** MongoDB collection. Source documents (feature-requests, reports) are used only by UI/Telegram intake flows.
 
 ## Quick Start
 
@@ -26,24 +29,32 @@ yarn agent-workflow start
 # List all items
 yarn agent-workflow list
 
-# Get details of a specific item (supports ID prefix)
+# Get details of a specific item (supports ID prefix or issue number)
 yarn agent-workflow get 697f15ce
+yarn agent-workflow get 42
 
-# Create and wait for approval via Telegram
+# Create a workflow item + GitHub issue
 yarn agent-workflow create --type feature --title "Add dark mode" --description "User can toggle theme"
 
-# Auto-approve and sync to GitHub immediately
-yarn agent-workflow create --type feature --title "Add dark mode" --description "User can toggle theme" --auto-approve
-
 # Update item status
-yarn agent-workflow update 697f15ce --status in_progress
+yarn agent-workflow update 697f15ce --status "Technical Design"
 ```
+
+## ID Lookup
+
+All commands that accept `<id>` support three lookup methods:
+
+| Method | Example | Description |
+|--------|---------|-------------|
+| Full ObjectId | `697f15cee8f23c43f4208adb` | Exact 24-char workflow-item ID |
+| ID prefix | `697f15ce` | First 6+ chars of workflow-item ID |
+| Issue number | `42` | GitHub issue number |
 
 ## Commands
 
 ### `start` - Interactive Mode
 
-Launches an interactive prompt that guides you through all options:
+Launches an interactive prompt that guides you through creating a workflow item:
 
 ```bash
 yarn agent-workflow start
@@ -54,12 +65,11 @@ Prompts for:
 - Title
 - Description
 - Priority (features only)
-- Auto-approve vs wait for Telegram approval
-- Route to phase (if auto-approving)
+- Route to phase
 
 ### `create` - Direct Creation
 
-Create a feature request or bug report with named arguments:
+Create a workflow item and GitHub issue directly:
 
 ```bash
 yarn agent-workflow create [options]
@@ -75,14 +85,25 @@ yarn agent-workflow create [options]
 **Optional options:**
 | Option | Description |
 |--------|-------------|
-| `--auto-approve` | Skip approval notification, sync to GitHub immediately |
-| `--route <phase>` | Auto-route to phase (implies `--auto-approve`): `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
-| `--priority <level>` | Priority: `low`, `medium`, `high`, `critical` (features only) |
+| `--route <phase>` | Initial status/phase: `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
+| `--priority <level>` | Priority: `low`, `medium`, `high`, `critical` |
+| `--size <size>` | Estimated size: `XS`, `S`, `M`, `L`, `XL` |
+| `--complexity <level>` | Complexity level: `High`, `Medium`, `Low` |
+| `--domain <domain>` | Domain classification (free-form, e.g., `ui`, `api`, `agents`) |
+| `--created-by <agent>` | Agent attribution (e.g., `workflow-review`, `repo-commits-code-reviewer`) |
+| `--auto-approve` | Accepted for backward compatibility (no-op, all CLI creates are direct) |
 | `--dry-run` | Preview without creating |
+
+**What create does:**
+1. Creates a GitHub issue with title, description, and labels
+2. Creates a workflow-item in MongoDB (no source doc)
+3. Sets initial status from `--route` (defaults to Backlog)
+4. Writes agent log header for the issue
+5. Creates artifact comment on the GitHub issue
 
 ### `list` - List Items
 
-List feature requests and bug reports with optional filters:
+List workflow items with optional filters:
 
 ```bash
 yarn agent-workflow list [options]
@@ -92,8 +113,10 @@ yarn agent-workflow list [options]
 | Option | Description |
 |--------|-------------|
 | `--type <type>` | Filter by type: `feature` or `bug` |
-| `--status <status>` | Filter by status: `new`, `in_progress`, `done`, `resolved`, `rejected` |
-| `--source <source>` | Filter by source: `ui`, `cli`, `auto` |
+| `--status <status>` | Filter by pipeline status: `Backlog`, `Product Design`, `Technical Design`, etc. |
+| `--domain <domain>` | Filter by domain: `ui`, `api`, `agents`, etc. |
+
+**Output columns:** ID (8-char prefix), TYPE, STATUS, TITLE, DOMAIN, ISSUE#, UPDATED
 
 **Examples:**
 ```bash
@@ -103,30 +126,26 @@ yarn agent-workflow list
 # List only features
 yarn agent-workflow list --type feature
 
-# List new bug reports
-yarn agent-workflow list --type bug --status new
+# List items in Backlog
+yarn agent-workflow list --status Backlog
 
-# List items created via CLI
-yarn agent-workflow list --source cli
+# List items in a specific domain
+yarn agent-workflow list --domain api
 ```
 
 ### `get` - Get Item Details
 
-Get full details of a specific item by ID or ID prefix:
+Get full details of a workflow item:
 
 ```bash
-yarn agent-workflow get <id> [options]
+yarn agent-workflow get <id>
 ```
 
-**Options:**
-| Option | Description |
-|--------|-------------|
-| `--type <type>` | Hint which collection to search: `feature` or `bug` |
-
 **Features:**
-- Supports ID prefix matching (e.g., `697f15ce` matches full ObjectId)
-- Displays pipeline status and review status from workflow-items collection
-- Shows all item details including comments, admin notes, investigation info
+- Supports ID prefix matching, full ObjectId, or GitHub issue number
+- Displays all workflow-item fields including description
+- Shows artifacts: designs, phases, task branch, commit messages, decisions
+- Shows history timeline with timestamps and actors
 
 **Examples:**
 ```bash
@@ -136,21 +155,13 @@ yarn agent-workflow get 697f15cee8f23c43f4208adb
 # Get item by ID prefix (first 8 chars)
 yarn agent-workflow get 697f15ce
 
-# Get feature by ID (faster lookup)
-yarn agent-workflow get 697f15ce --type feature
+# Get item by GitHub issue number
+yarn agent-workflow get 42
 ```
-
-**Output includes:**
-- Basic info: ID, title, status, priority, source, dates
-- GitHub Issue link and number (if synced)
-- Pipeline status (from workflow-items collection)
-- Description and admin notes
-- Comments with timestamps and authors
-- For bugs: error message, browser info, investigation details
 
 ### `update` - Update Item
 
-Update status, priority, or other fields of an item:
+Update fields on a workflow item:
 
 ```bash
 yarn agent-workflow update <id> [options]
@@ -159,26 +170,31 @@ yarn agent-workflow update <id> [options]
 **Options:**
 | Option | Description |
 |--------|-------------|
-| `--status <status>` | New status: `new`, `in_progress`, `done`, `resolved`, `rejected` |
-| `--priority <level>` | New priority: `low`, `medium`, `high`, `critical` (features only) |
-| `--type <type>` | Hint which collection to search: `feature` or `bug` |
+| `--status <status>` | Pipeline status: `Backlog`, `Product Design`, `Technical Design`, `Ready for development`, etc. |
+| `--priority <level>` | Priority: `low`, `medium`, `high`, `critical` |
+| `--size <size>` | Estimated size: `XS`, `S`, `M`, `L`, `XL` |
+| `--complexity <level>` | Complexity level: `High`, `Medium`, `Low` |
+| `--domain <domain>` | Domain classification |
 | `--dry-run` | Preview changes without applying |
 
 **Examples:**
 ```bash
-# Update status
-yarn agent-workflow update 697f15ce --status in_progress
+# Update status to a pipeline phase
+yarn agent-workflow update 697f15ce --status "Technical Design"
 
 # Update priority
 yarn agent-workflow update 697f15ce --priority high
 
+# Update multiple fields at once
+yarn agent-workflow update 697f15ce --priority critical --size L --complexity High
+
 # Preview changes without applying
-yarn agent-workflow update 697f15ce --status done --dry-run
+yarn agent-workflow update 697f15ce --status Done --dry-run
 ```
 
 ### `approve` - Approve Item
 
-Approve a pending workflow item (creates GitHub issue and optionally routes):
+Approve a pending workflow item (source-doc-based, for UI/Telegram submissions):
 
 ```bash
 yarn agent-workflow approve <id> [options]
@@ -189,21 +205,9 @@ yarn agent-workflow approve <id> [options]
 |--------|-------------|
 | `--route <destination>` | Route immediately after approval: `product-dev`, `product-design`, `tech-design`, `implementation`, `backlog` |
 
-**Examples:**
-```bash
-# Approve and wait for routing via Telegram
-yarn agent-workflow approve 697f15ce
-
-# Approve and route directly to tech design
-yarn agent-workflow approve 697f15ce --route tech-design
-
-# Approve and route to implementation (skip all design)
-yarn agent-workflow approve 697f15ce --route implementation
-```
-
 ### `route` - Route Item
 
-Route an already-approved item to a workflow phase:
+Route a workflow item to a specific pipeline phase:
 
 ```bash
 yarn agent-workflow route <id> --destination <destination>
@@ -220,25 +224,15 @@ yarn agent-workflow route <id> --destination <destination>
 yarn agent-workflow route 697f15ce --destination tech-design
 
 # Route to implementation
-yarn agent-workflow route 697f15ce --destination implementation
+yarn agent-workflow route 42 --destination implementation
 
 # Move back to backlog
 yarn agent-workflow route 697f15ce --destination backlog
 ```
 
-**Valid destinations:**
-
-| Destination | Description | Best For |
-|-------------|-------------|----------|
-| `product-dev` | Product development phase (features only) | Vague ideas needing product spec |
-| `product-design` | UX/UI design phase | Features needing visual design |
-| `tech-design` | Technical architecture phase | Complex bugs, architectural changes |
-| `implementation` | Skip design, go to coding | Simple fixes, clear requirements |
-| `backlog` | Keep in backlog | Not ready to start |
-
 ### `delete` - Delete Item
 
-Delete a workflow item from the system:
+Delete a workflow item:
 
 ```bash
 yarn agent-workflow delete <id> [options]
@@ -247,168 +241,56 @@ yarn agent-workflow delete <id> [options]
 **Options:**
 | Option | Description |
 |--------|-------------|
-| `--force` | Delete even if already synced to GitHub (source doc only -- GitHub issue remains) |
-
-**Examples:**
-```bash
-# Delete a pending item (not yet synced to GitHub)
-yarn agent-workflow delete 697f15ce
-
-# Force delete an item that was already synced to GitHub
-yarn agent-workflow delete 697f15ce --force
-```
+| `--force` | Delete even if synced to GitHub |
 
 **Notes:**
-- By default, items that have already been synced to GitHub cannot be deleted. Use `--force` to override.
-- Deleting removes the source document (feature-request or report) and the workflow-items entry.
-- The GitHub issue (if any) is not affected by deletion.
-- A Telegram notification is sent confirming the deletion.
+- Items synced to GitHub cannot be deleted without `--force`
+- Deleting removes the workflow-item from MongoDB
+- If a GitHub issue exists, it is closed with a comment
+- No source doc cleanup needed (CLI-created items have no source doc)
 
 ---
 
-## Workflow Modes
-
-### Default (no flags)
-Creates item and waits for Telegram approval:
-1. Creates MongoDB document with `status: 'new'`
-2. Sends approval notification to Telegram with "Approve" button
-3. Item stays in MongoDB until admin approves via Telegram
-4. On approval: syncs to GitHub and sends routing notification
-
-### With `--auto-approve`
-Immediately syncs to GitHub and asks for routing:
-1. Creates MongoDB document with `status: 'in_progress'`
-2. Syncs to GitHub (creates issue on Projects board in Backlog)
-3. Sends routing notification to Telegram (asks where to route)
-
-### With `--route <phase>` (implies `--auto-approve`)
-Immediately syncs and routes without any notifications:
-1. Creates MongoDB document with `status: 'in_progress'`
-2. Syncs to GitHub (creates issue on Projects board)
-3. Auto-moves to specified phase (no Telegram notifications)
-
-## Examples
-
-### Feature Requests
-
-```bash
-# Create and wait for approval via Telegram
-yarn agent-workflow create \
-  --type feature \
-  --title "Add dark mode toggle" \
-  --description "User should be able to toggle between light and dark themes"
-
-# Auto-approve and sync (sends routing notification)
-yarn agent-workflow create \
-  --type feature \
-  --title "Add dark mode toggle" \
-  --description "User should be able to toggle themes" \
-  --auto-approve
-
-# High priority feature with auto-approve
-yarn agent-workflow create \
-  --type feature \
-  --title "Security fix" \
-  --description "XSS vulnerability in comments" \
-  --priority critical \
-  --auto-approve
-
-# Skip all notifications - route directly to implementation
-yarn agent-workflow create \
-  --type feature \
-  --title "Fix typo in header" \
-  --description "Header says 'Welcom' instead of 'Welcome'" \
-  --route implementation
-```
-
-### Bug Reports
-
-```bash
-# Create and wait for approval via Telegram
-yarn agent-workflow create \
-  --type bug \
-  --title "Login button not working" \
-  --description "Button doesn't respond to taps on iOS Safari"
-
-# Auto-approve and sync (sends routing notification)
-yarn agent-workflow create \
-  --type bug \
-  --title "Login button not working" \
-  --description "Details here" \
-  --auto-approve
-
-# Route directly to tech design (recommended for complex bugs)
-yarn agent-workflow create \
-  --type bug \
-  --title "API timeout on large requests" \
-  --description "Requests over 1MB fail after 30 seconds" \
-  --route tech-design
-```
-
 ## Routing Options
 
-| Route | Description | Best For |
-|-------|-------------|----------|
-| `product-dev` | Product development phase (vague ideas) | Needs product spec |
-| `product-design` | UX/UI design phase | Features needing visual design |
-| `tech-design` | Technical architecture phase | Complex bugs, architectural changes |
-| `implementation` | Skip design, go to coding | Simple fixes, clear requirements |
-| `backlog` | Keep in backlog | Not ready to start |
+| Route | Status | Best For |
+|-------|--------|----------|
+| `product-dev` | Product Development | Vague ideas needing product spec |
+| `product-design` | Product Design | Features needing visual design |
+| `tech-design` | Technical Design | Complex bugs, architectural changes |
+| `implementation` | Ready for development | Simple fixes, clear requirements |
+| `backlog` | Backlog | Not ready to start |
 
 ## Flow Diagram
 
 ```
 yarn agent-workflow create --type <type> --title "..." --description "..."
-    │
-    ▼
-┌─────────────────────────────────┐
-│ Parse command & options         │
-│ - --type: feature | bug         │
-│ - --title, --description        │
-│ - --auto-approve (optional)     │
-│ - --route, --priority (optional)│
-└─────────────┬───────────────────┘
-              │
-              ▼
-┌─────────────────────────────────┐
-│ --auto-approve specified?       │
-│ (or --route which implies it)   │
-└─────────────┬───────────────────┘
-              │
-    ┌─────────┴─────────┐
-    │                   │
-    ▼                   ▼
-   NO                  YES
-    │                   │
-    ▼                   ▼
-┌───────────────┐   ┌───────────────┐
-│ Create with   │   │ Create with   │
-│ status: 'new' │   │ status:       │
-│               │   │ 'in_progress' │
-└───────┬───────┘   └───────┬───────┘
-        │                   │
-        ▼                   ▼
-┌───────────────┐   ┌───────────────┐
-│ Send approval │   │ Sync to       │
-│ notification  │   │ GitHub        │
-│ to Telegram   │   └───────┬───────┘
-└───────────────┘           │
-                            ▼
-                  ┌─────────────────────┐
-                  │ --route specified?  │
-                  └─────────┬───────────┘
-                            │
-                  ┌─────────┴─────────┐
-                  │                   │
-                  ▼                   ▼
-                 NO                  YES
-                  │                   │
-                  ▼                   ▼
-          ┌───────────────┐   ┌───────────────┐
-          │ Send routing  │   │ Auto-route    │
-          │ notification  │   │ to phase      │
-          │ to Telegram   │   │ (no notif)    │
-          └───────────────┘   └───────────────┘
+    |
+    v
++----------------------------------+
+| 1. Create GitHub Issue           |
+|    (title, description, labels)  |
++----------------------------------+
+    |
+    v
++----------------------------------+
+| 2. Create workflow-item          |
+|    (no source doc)               |
+|    status = --route or Backlog   |
++----------------------------------+
+    |
+    v
++----------------------------------+
+| 3. Set extra fields              |
+|    (priority, size, complexity,  |
+|     domain, createdBy)           |
++----------------------------------+
+    |
+    v
++----------------------------------+
+| 4. Write log header              |
+|    + create artifact comment     |
++----------------------------------+
 ```
 
 ## See Also

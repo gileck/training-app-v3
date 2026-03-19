@@ -4,7 +4,7 @@
  * Contains reusable instruction blocks used across multiple prompt templates.
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 
 // ============================================================
@@ -216,7 +216,7 @@ This is a mobile-first application. ALL UI designs must prioritize small screens
 - Ensure all touch targets are at least 44px
 - Place primary actions in thumb-friendly zones (bottom of screen)
 - Avoid designs that require horizontal scrolling on mobile
-- See \`.ai/skills/ui-mobile-first-shadcn/SKILL.md\` for detailed mobile-first guidelines`;
+- See \`docs/template/project-guidelines/ui-mobile-first-shadcn.md\` for detailed mobile-first guidelines`;
 
 /**
  * Product-design-only warning block. Used in product design prompts.
@@ -261,24 +261,24 @@ Focus ONLY on:
  */
 export const IMPLEMENTATION_GUIDELINES = `## Implementation Guidelines
 
-**CRITICAL**: Before implementing, read the project guidelines in \`.ai/skills/\`:
-- \`.ai/skills/ui-mobile-first-shadcn/SKILL.md\` - **CRITICAL** Mobile-first UI implementation
-- \`.ai/skills/typescript-guidelines/SKILL.md\` - TypeScript coding standards
-- \`.ai/skills/react-component-organization/SKILL.md\` - Component structure and patterns
-- \`.ai/skills/react-hook-organization/SKILL.md\` - Custom hook patterns
-- \`.ai/skills/state-management-guidelines/SKILL.md\` - Zustand and React Query usage
-- \`.ai/skills/feature-based-structure/SKILL.md\` - File organization by feature
-- \`.ai/skills/ui-design-guidelines/SKILL.md\` - UI/UX patterns
-- \`.ai/skills/shadcn-usage/SKILL.md\` - shadcn/ui component usage
-- \`.ai/skills/theming-guidelines/SKILL.md\` - **CRITICAL** Theming and color usage
-- \`.ai/skills/client-server-communications/SKILL.md\` - API patterns
-- \`.ai/skills/mongodb-usage/SKILL.md\` - Database operations (if applicable)
-- \`.ai/skills/app-guidelines-checklist/SKILL.md\` - Comprehensive checklist`;
+**CRITICAL**: Before implementing, read the project guidelines in \`docs/template/project-guidelines/\`:
+- \`docs/template/project-guidelines/ui-mobile-first-shadcn.md\` - **CRITICAL** Mobile-first UI implementation
+- \`docs/template/project-guidelines/typescript-guidelines.md\` - TypeScript coding standards
+- \`docs/template/project-guidelines/react-component-organization.md\` - Component structure and patterns
+- \`docs/template/project-guidelines/react-hook-organization.md\` - Custom hook patterns
+- \`docs/template/project-guidelines/state-management-guidelines.md\` - Zustand and React Query usage
+- \`docs/template/project-guidelines/feature-based-structure.md\` - File organization by feature
+- \`docs/template/project-guidelines/ui-design-guidelines.md\` - UI/UX patterns
+- \`docs/template/project-guidelines/shadcn-usage.md\` - shadcn/ui component usage
+- \`docs/template/project-guidelines/theming-guidelines.md\` - **CRITICAL** Theming and color usage
+- \`docs/template/project-guidelines/client-server-communications.md\` - API patterns
+- \`docs/template/project-guidelines/mongodb-usage.md\` - Database operations (if applicable)
+- \`docs/template/project-guidelines/app-guidelines-checklist.md\` - Comprehensive checklist`;
 
 /**
  * Theming instructions block. Used in implementation and PR revision prompts.
  */
-export const THEMING_INSTRUCTIONS = `**THEMING (Read \`docs/theming.md\` and \`.ai/skills/theming-guidelines/SKILL.md\` before styling)**:
+export const THEMING_INSTRUCTIONS = `**THEMING (Read \`docs/theming.md\` and \`docs/template/project-guidelines/theming-guidelines.md\` before styling)**:
 - **NEVER** use hardcoded colors like \`bg-white\`, \`text-black\`, \`bg-blue-500\`, or hex values
 - **ALWAYS** use semantic tokens: \`bg-background\`, \`bg-card\`, \`text-foreground\`, \`text-muted-foreground\`, \`bg-primary\`, etc.
 - For status colors use: \`text-success\`, \`text-warning\`, \`text-destructive\`, \`text-info\`

@@ -6,8 +6,8 @@
  */
 
 import '../src/agents/shared/loadEnv';
-import { getProjectManagementAdapter } from '../src/server/project-management';
-import { sendNotificationToOwner } from '../src/server/telegram';
+import { getProjectManagementAdapter } from '../src/server/template/project-management';
+import { sendNotificationToOwner } from '../src/server/template/telegram';
 
 const ISSUE_NUMBER = parseInt(process.argv[2] || '25');
 

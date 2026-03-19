@@ -2,7 +2,7 @@ import { API_UPDATE_GITHUB_REVIEW_STATUS } from '../index';
 import { UpdateGitHubReviewStatusRequest, UpdateGitHubReviewStatusResponse } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { updateGitHubReviewStatus } from '@/server/github-status';
+import { updateGitHubReviewStatus } from '@/server/template/github-status';
 
 export const updateGitHubReviewStatusHandler = async (
     request: UpdateGitHubReviewStatusRequest,

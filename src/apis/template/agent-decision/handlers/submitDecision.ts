@@ -17,9 +17,9 @@ import {
     getDecisionFromDB,
     saveSelectionToDB,
 } from '../utils';
-import { getProjectManagementAdapter } from '@/server/project-management';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
-import { submitDecisionRouting } from '@/server/workflow-service';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
+import { submitDecisionRouting, advanceStatus } from '@/server/template/workflow-service';
 import { notifyDecisionSubmitted } from '@/agents/shared/notifications';
 
 /**
@@ -62,7 +62,7 @@ export async function submitDecision(
         // Verify the issue is ready
         const verification = await findDecisionItem(adapter, issueNumber);
         if (!verification.valid || !verification.itemId) {
-            return { error: verification.error };
+            return { error: 'This decision request has expired or already been submitted' };
         }
 
         // Try DB first for decision data
@@ -118,7 +118,10 @@ export async function submitDecision(
         const routing = decision.routing;
         let routedTo: string | undefined;
 
-        if (routing) {
+        if (routing?.continueAfterSelection) {
+            // continueAfterSelection: stay in current phase (agent will pick up with Decision Submitted)
+            routedTo = undefined;
+        } else if (routing) {
             // Routing config is present — routing MUST succeed or we fail
             if (selection.selectedOptionId === 'custom') {
                 if (!routing.customDestinationStatusMap) {
@@ -157,17 +160,31 @@ export async function submitDecision(
         await saveSelectionToDB(issueNumber, selection);
 
         // Use workflow service for status/review updates
-        await submitDecisionRouting(issueNumber, routedTo, {
-            reviewStatus: routedTo ? undefined : REVIEW_STATUSES.approved,
-            logAction: routedTo ? 'decision_routed' : 'decision_approved',
-            logDescription: routedTo
-                ? `Decision routed to ${routedTo}`
-                : `Review status set to ${REVIEW_STATUSES.approved}`,
-            logMetadata: { selectedOption: selection.selectedOptionId },
-        });
-        console.log(routedTo
-            ? `  Item routed to: ${routedTo}`
-            : `  Review status set to: ${REVIEW_STATUSES.approved}`);
+        if (routing?.continueAfterSelection) {
+            // Stay in current phase — set Decision Submitted for agent to pick up
+            await submitDecisionRouting(issueNumber, undefined, {
+                reviewStatus: REVIEW_STATUSES.decisionSubmitted,
+                logAction: 'decision_continue',
+                logDescription: `Decision submitted, staying in current phase (${REVIEW_STATUSES.decisionSubmitted})`,
+                logMetadata: { selectedOption: selection.selectedOptionId },
+            });
+            console.log(`  Review status set to: ${REVIEW_STATUSES.decisionSubmitted} (continue in current phase)`);
+        } else if (routedTo) {
+            await advanceStatus(issueNumber, routedTo, {
+                logAction: 'decision_routed',
+                logDescription: `Decision routed to ${routedTo}`,
+                logMetadata: { selectedOption: selection.selectedOptionId },
+            });
+            console.log(`  Item routed to: ${routedTo}`);
+        } else {
+            await submitDecisionRouting(issueNumber, undefined, {
+                reviewStatus: REVIEW_STATUSES.approved,
+                logAction: 'decision_approved',
+                logDescription: `Review status set to ${REVIEW_STATUSES.approved}`,
+                logMetadata: { selectedOption: selection.selectedOptionId },
+            });
+            console.log(`  Review status set to: ${REVIEW_STATUSES.approved}`);
+        }
 
         // Send Telegram confirmation notification
         const selectedTitle = selection.selectedOptionId === 'custom'

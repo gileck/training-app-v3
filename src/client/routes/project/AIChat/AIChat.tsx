@@ -93,9 +93,9 @@ export function AIChat() {
         // Add AI message
         const aiMessage: Message = {
           id: Date.now().toString(),
-          text: result,
+          text: result ?? '',
           sender: 'ai',
-          cost: cost.totalCost,
+          cost: cost?.totalCost,
           timestamp: new Date(),
           isFromCache,
           cacheProvider: metadata?.provider

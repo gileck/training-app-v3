@@ -37,7 +37,7 @@ There are **three entry points** to the workflow, but they all converge into the
          └──────────────────┬───────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      GITHUB SYNC (src/server/github-sync/)                   │
+│                      GITHUB SYNC (src/server/template/github-sync/)                   │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
 │  │ syncFeatureRequestToGitHub()  │  syncBugReportToGitHub()               │ │
 │  │         │                     │         │                              │ │
@@ -88,9 +88,9 @@ Users submit feature requests through the app UI.
 **Code Path:**
 ```
 src/apis/feature-requests/handlers/createFeatureRequest.ts
-  → src/server/telegram/index.ts (sendFeatureRequestNotification)
-  → src/server/github-sync/index.ts (approveFeatureRequest, syncFeatureRequestToGitHub)
-  → src/server/telegram/index.ts (sendFeatureRoutingNotification)
+  → src/server/template/telegram/index.ts (sendFeatureRequestNotification)
+  → src/server/template/github-sync/index.ts (approveFeatureRequest, syncFeatureRequestToGitHub)
+  → src/server/template/telegram/index.ts (sendFeatureRoutingNotification)
 ```
 
 ## Entry Point 2: UI Bug Report
@@ -110,9 +110,9 @@ Users submit bug reports or the app auto-captures errors.
 **Code Path:**
 ```
 src/apis/reports/handlers/createReport.ts
-  → src/server/telegram/index.ts (sendBugReportNotification)
-  → src/server/github-sync/index.ts (approveBugReport, syncBugReportToGitHub)
-  → src/server/telegram/index.ts (sendBugRoutingNotification)
+  → src/server/template/telegram/index.ts (sendBugReportNotification)
+  → src/server/template/github-sync/index.ts (approveBugReport, syncBugReportToGitHub)
+  → src/server/template/telegram/index.ts (sendBugRoutingNotification)
 ```
 
 **Note:** Automatic error reports (type: 'error') don't send approval notifications - only user-submitted bugs do.
@@ -145,16 +145,16 @@ Developers create items directly via command line.
 ```
 src/agents/cli/index.ts
   → src/agents/cli/commands/create.ts
-    → src/server/telegram/index.ts (sendFeatureRequestNotification OR sendBugReportNotification)
-    → src/server/github-sync/index.ts (syncFeatureRequestToGitHub OR syncBugReportToGitHub)
-    → src/server/telegram/index.ts (sendFeatureRoutingNotification OR sendBugRoutingNotification)
+    → src/server/template/telegram/index.ts (sendFeatureRequestNotification OR sendBugReportNotification)
+    → src/server/template/github-sync/index.ts (syncFeatureRequestToGitHub OR syncBugReportToGitHub)
+    → src/server/template/telegram/index.ts (sendFeatureRoutingNotification OR sendBugRoutingNotification)
 ```
 
 ## Shared Components
 
 All entry points use these shared components:
 
-### Telegram Notifications (`src/server/telegram/index.ts`)
+### Telegram Notifications (`src/server/template/telegram/index.ts`)
 
 | Function | Purpose | Entry Points |
 |----------|---------|--------------|
@@ -163,12 +163,12 @@ All entry points use these shared components:
 | `sendFeatureRoutingNotification()` | Routing buttons after approval | UI, CLI |
 | `sendBugRoutingNotification()` | Routing buttons after approval | UI, CLI |
 
-### GitHub Sync (`src/server/github-sync/`)
+### GitHub Sync (`src/server/template/github-sync/`)
 
 The GitHub sync service uses a **shared core architecture** to eliminate duplication between feature requests and bug reports:
 
 ```
-src/server/github-sync/
+src/server/template/github-sync/
 ├── index.ts       # Public API - type-specific wrappers
 ├── sync-core.ts   # Shared sync logic (generic functions)
 └── types.ts       # Shared types and interfaces

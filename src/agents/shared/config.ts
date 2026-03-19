@@ -2,7 +2,7 @@
  * Agent-Specific Configuration
  *
  * Configuration specific to the agent scripts.
- * Status values and project config are imported from @/server/project-management.
+ * Status values and project config are imported from @/server/template/project-management.
  */
 
 // Re-export from project management for convenience
@@ -18,7 +18,7 @@ export {
     getPrUrl,
     type Status,
     type ReviewStatus,
-} from '@/server/project-management';
+} from '@/server/template/project-management';
 
 // ============================================================
 // AGENT-SPECIFIC CONFIG

@@ -11,8 +11,8 @@
  * - This file ensures consistent marker format and reliable parsing
  */
 
-import type { ProjectManagementAdapter } from '@/server/project-management/types';
-import { getProjectConfig } from '@/server/project-management/config';
+import type { ProjectManagementAdapter } from '@/server/template/project-management/types';
+import { getProjectConfig } from '@/server/template/project-management/config';
 
 // ============================================================
 // CONSTANTS

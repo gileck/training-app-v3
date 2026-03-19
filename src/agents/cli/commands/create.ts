@@ -1,34 +1,32 @@
 /**
  * Create Command
  *
- * Handles creation of feature requests and bug reports via CLI.
- * DB insert only — approval and routing delegated to workflow-service.
+ * Creates a workflow item + GitHub issue directly, bypassing source docs.
+ * Source docs (feature-requests, reports) remain for UI/Telegram intake only.
  */
 
-import { randomBytes } from 'crypto';
-import { ObjectId } from 'mongodb';
-import { featureRequests, reports } from '@/server/database';
-import { sendFeatureRequestNotification, sendBugReportNotification } from '@/server/telegram';
-import { approveWorkflowItem } from '@/server/workflow-service';
-import type { RoutingDestination } from '@/server/workflow-service';
-import type { FeatureRequestPriority } from '@/server/database/collections/template/feature-requests/types';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
+import { createWorkflowItem, updateWorkflowFields } from '@/server/database/collections/template/workflow-items/workflow-items';
+import { STATUSES } from '@/server/template/project-management/config';
+import { getRoutingStatusMap } from '@/server/template/workflow-service/constants';
+import { writeLogHeader } from '@/agents/lib/logging/writer';
+import { ensureArtifactComment } from '@/agents/lib/artifacts';
 import { parseArgs, validateCreateArgs } from '../utils/parse-args';
+import { sendItemCreatedNotification } from '@/server/template/telegram';
 
 export interface CreateOptions {
+    type: 'feature' | 'bug';
     title: string;
     description: string;
     priority?: string;
-    workflowRoute?: string;    // Workflow routing (product-dev, tech-design, etc.)
-    clientPageRoute?: string;  // Affected client page route for bugs (e.g., "/settings")
+    size?: string;
+    complexity?: string;
+    domain?: string;
+    workflowRoute?: string;
+    clientPageRoute?: string;
     dryRun?: boolean;
     autoApprove?: boolean;
-}
-
-/**
- * Generate a secure approval token
- */
-function generateApprovalToken(): string {
-    return randomBytes(32).toString('hex');
+    createdBy?: string;
 }
 
 /**
@@ -43,175 +41,156 @@ export async function handleCreate(args: string[]): Promise<void> {
         process.exit(1);
     }
 
-    // --workflow-route implies --auto-approve (can't route without syncing to GitHub first)
-    const autoApprove = parsed.autoApprove || !!parsed.workflowRoute;
-
     const options: CreateOptions = {
+        type: parsed.type as 'feature' | 'bug',
         title: parsed.title!,
         description: parsed.description!,
         priority: parsed.priority,
+        size: parsed.size,
+        complexity: parsed.complexity,
+        domain: parsed.domain,
         workflowRoute: parsed.workflowRoute,
         clientPageRoute: parsed.clientPageRoute,
         dryRun: parsed.dryRun,
-        autoApprove,
+        autoApprove: parsed.autoApprove,
+        createdBy: parsed.createdBy,
     };
 
-    if (parsed.type === 'feature') {
-        await createFeatureWorkflow(options);
-    } else {
-        await createBugWorkflow(options);
-    }
+    await createWorkflowItemDirect(options);
 }
 
 /**
- * Create a feature request through the workflow
+ * Create a workflow item + GitHub issue directly
  */
-export async function createFeatureWorkflow(options: CreateOptions): Promise<void> {
+async function createWorkflowItemDirect(options: CreateOptions): Promise<void> {
     if (options.dryRun) {
-        console.log('\nDRY RUN - Would create feature request:');
+        console.log(`\nDRY RUN - Would create ${options.type}:`);
         console.log(`  Title: ${options.title}`);
         console.log(`  Description: ${options.description}`);
         console.log(`  Priority: ${options.priority || 'medium'}`);
-        console.log(`  Auto-approve: ${options.autoApprove ? 'yes' : 'no (sends approval notification)'}`);
-        if (options.autoApprove) {
-            console.log(`  Route: ${options.workflowRoute || 'Telegram (for routing decision)'}`);
-        }
+        if (options.domain) console.log(`  Domain: ${options.domain}`);
+        if (options.createdBy) console.log(`  Created By: ${options.createdBy}`);
+        if (options.workflowRoute) console.log(`  Route: ${options.workflowRoute}`);
         return;
     }
 
-    console.log('\nCreating feature request...\n');
+    console.log(`\nCreating ${options.type}...\n`);
 
-    // Generate approval token for non-auto-approve flow
-    const approvalToken = options.autoApprove ? undefined : generateApprovalToken();
+    // 1. Create GitHub issue
+    const adapter = getProjectManagementAdapter();
+    await adapter.init();
 
-    // 1. Create MongoDB document
-    const request = await featureRequests.createFeatureRequest({
+    const labels = [options.type];
+    const issueBody = buildIssueBody(options);
+
+    const issue = await adapter.createIssue(options.title, issueBody, labels);
+    console.log(`  GitHub issue created: #${issue.number}`);
+    console.log(`  URL: ${issue.url}`);
+
+    // 2. Determine initial status
+    let initialStatus: string = STATUSES.backlog;
+    if (options.workflowRoute) {
+        const statusMap = getRoutingStatusMap(options.type);
+        const mapped = statusMap[options.workflowRoute];
+        if (mapped) initialStatus = mapped;
+    }
+
+    // 3. Create workflow item
+    const now = new Date();
+    const workflowItem = await createWorkflowItem({
+        type: options.type,
         title: options.title,
         description: options.description,
-        status: options.autoApprove ? 'in_progress' : 'new',
-        priority: (options.priority || 'medium') as FeatureRequestPriority,
-        needsUserInput: false,
-        requestedBy: new ObjectId(), // CLI-created, no user
-        requestedByName: 'CLI',
-        comments: [],
-        approvalToken,
-        source: 'cli',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        status: initialStatus,
+        githubIssueNumber: issue.number,
+        githubIssueUrl: issue.url,
+        githubIssueTitle: options.title,
+        labels,
+        artifacts: {},
+        history: [{
+            action: 'created',
+            description: `Workflow item created via CLI for ${options.type}`,
+            timestamp: now.toISOString(),
+            actor: options.createdBy || 'cli',
+        }],
+        createdBy: options.createdBy,
+        createdAt: now,
+        updatedAt: now,
     });
 
-    console.log(`  MongoDB document created: ${request._id}`);
+    console.log(`  Workflow item created: ${workflowItem._id}`);
 
-    // If not auto-approving, send approval notification and stop
-    if (!options.autoApprove) {
-        try {
-            await sendFeatureRequestNotification(request);
-            console.log(`  Telegram approval notification sent`);
-        } catch (error) {
-            console.warn(`  Warning: Failed to send approval notification: ${error}`);
-        }
-        console.log('\nFeature request created! Waiting for approval via Telegram.');
-        return;
+    // 4. Set additional fields (priority, size, complexity, domain)
+    const extraFields: Parameters<typeof updateWorkflowFields>[1] = {};
+    if (options.priority) extraFields.priority = options.priority as 'critical' | 'high' | 'medium' | 'low';
+    if (options.size) extraFields.size = options.size as 'XS' | 'S' | 'M' | 'L' | 'XL';
+    if (options.complexity) extraFields.complexity = options.complexity as 'High' | 'Medium' | 'Low';
+    if (options.domain) extraFields.domain = options.domain;
+    if (Object.keys(extraFields).length > 0) {
+        await updateWorkflowFields(workflowItem._id, extraFields);
+        console.log(`  Fields set: ${Object.entries(extraFields).map(([k, v]) => `${k}=${v}`).join(', ')}`);
     }
 
-    // 2. Approve via workflow-service (creates GitHub issue + logs + notifications)
-    const result = await approveWorkflowItem(
-        { id: request._id.toString(), type: 'feature' },
-        options.workflowRoute ? { initialRoute: options.workflowRoute as RoutingDestination } : undefined
-    );
+    // 5. Write log header
+    writeLogHeader(issue.number, options.title, options.type);
+    console.log(`  Log header written for issue #${issue.number}`);
 
-    if (!result.success) {
-        console.error(`  Approval failed: ${result.error}`);
-        process.exit(1);
+    // 6. Create artifact comment on GitHub issue
+    try {
+        await ensureArtifactComment(adapter, issue.number);
+        console.log(`  Artifact comment created`);
+    } catch (error) {
+        console.warn(`  Warning: Failed to create artifact comment: ${error}`);
     }
-
-    console.log(`  GitHub issue created: #${result.issueNumber}`);
-    console.log(`  URL: ${result.issueUrl}`);
 
     if (options.workflowRoute) {
-        console.log(`  Routed to: ${options.workflowRoute}`);
-    } else if (result.needsRouting) {
-        console.log(`  Telegram routing notification sent`);
+        console.log(`  Routed to: ${options.workflowRoute} (${initialStatus})`);
     }
 
-    console.log('\nFeature request created successfully!');
+    // 7. Send Telegram notification
+    try {
+        await sendItemCreatedNotification(
+            workflowItem._id.toString(),
+            options.type,
+            options.title,
+            { number: issue.number, url: issue.url },
+            {
+                priority: options.priority,
+                createdBy: options.createdBy,
+            }
+        );
+        console.log(`  Telegram notification sent`);
+    } catch (error) {
+        console.warn(`  Warning: Failed to send Telegram notification: ${error}`);
+    }
+
+    console.log(`\n${options.type === 'feature' ? 'Feature request' : 'Bug report'} created successfully!`);
 }
 
 /**
- * Create a bug report through the workflow
+ * Build the GitHub issue body
  */
-export async function createBugWorkflow(options: CreateOptions): Promise<void> {
-    if (options.dryRun) {
-        console.log('\nDRY RUN - Would create bug report:');
-        console.log(`  Title: ${options.title}`);
-        console.log(`  Description: ${options.description}`);
-        console.log(`  Auto-approve: ${options.autoApprove ? 'yes' : 'no (sends approval notification)'}`);
-        if (options.autoApprove) {
-            console.log(`  Route: ${options.workflowRoute || 'Bug Investigation (default)'}`);
-        }
-        return;
+function buildIssueBody(options: CreateOptions): string {
+    const lines: string[] = [];
+
+    lines.push(options.description);
+
+    if (options.priority) {
+        lines.push('');
+        lines.push(`**Priority:** ${options.priority}`);
     }
 
-    console.log('\nCreating bug report...\n');
-
-    // Generate approval token for non-auto-approve flow
-    const approvalToken = options.autoApprove ? undefined : generateApprovalToken();
-
-    // 1. Create MongoDB document
-    const report = await reports.createReport({
-        type: 'bug',
-        status: options.autoApprove ? 'investigating' : 'new',
-        description: options.description ? `${options.title}\n\n${options.description}` : options.title,
-        sessionLogs: [],
-        browserInfo: {
-            userAgent: 'CLI',
-            viewport: { width: 0, height: 0 },
-            language: 'en',
-        },
-        route: options.clientPageRoute || '',  // Affected client route (if any)
-        networkStatus: 'online',
-        occurrenceCount: 1,
-        firstOccurrence: new Date(),
-        lastOccurrence: new Date(),
-        approvalToken,
-        source: 'cli',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    });
-
-    console.log(`  MongoDB document created: ${report._id}`);
-
-    // If not auto-approving, send approval notification and stop
-    if (!options.autoApprove) {
-        try {
-            await sendBugReportNotification(report);
-            console.log(`  Telegram approval notification sent`);
-        } catch (error) {
-            console.warn(`  Warning: Failed to send approval notification: ${error}`);
-        }
-        console.log('\nBug report created! Waiting for approval via Telegram.');
-        return;
+    if (options.domain) {
+        lines.push(`**Domain:** ${options.domain}`);
     }
 
-    // 2. Approve via workflow-service (creates GitHub issue + logs + notifications)
-    const result = await approveWorkflowItem(
-        { id: report._id.toString(), type: 'bug' },
-        options.workflowRoute ? { initialRoute: options.workflowRoute as RoutingDestination } : undefined
-    );
-
-    if (!result.success) {
-        console.error(`  Approval failed: ${result.error}`);
-        process.exit(1);
+    if (options.createdBy) {
+        lines.push(`**Created by:** ${options.createdBy}`);
     }
 
-    console.log(`  GitHub issue created: #${result.issueNumber}`);
-    console.log(`  URL: ${result.issueUrl}`);
-
-    if (options.workflowRoute) {
-        console.log(`  Routed to: ${options.workflowRoute}`);
-    } else {
-        console.log(`  Auto-routed to: Bug Investigation`);
+    if (options.clientPageRoute) {
+        lines.push(`**Affected route:** ${options.clientPageRoute}`);
     }
 
-    console.log('\nBug report created successfully!');
+    return lines.join('\n');
 }

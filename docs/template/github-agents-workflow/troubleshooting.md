@@ -228,7 +228,7 @@ yarn vercel-cli logs | grep "updateStatus"
 ```
 
 #### c) Verify Status Names Match
-Status values must EXACTLY match these constants (defined in `src/server/project-management/config.ts`):
+Status values must EXACTLY match these constants (defined in `src/server/template/project-management/config.ts`):
 - "Backlog"
 - "Product Design"
 - "Technical Design"

@@ -2,7 +2,7 @@ import { API_CLEAR_GITHUB_REVIEW_STATUS } from '../index';
 import { ClearGitHubReviewStatusRequest, ClearGitHubReviewStatusResponse } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { clearGitHubReviewStatus } from '@/server/github-status';
+import { clearGitHubReviewStatus } from '@/server/template/github-status';
 
 export const clearGitHubReviewStatusHandler = async (
     request: ClearGitHubReviewStatusRequest,

@@ -25,10 +25,10 @@
  */
 
 import '../../src/agents/shared/loadEnv';
-import { getProjectManagementAdapter } from '@/server/project-management';
-import type { ProjectManagementAdapter } from '@/server/project-management/types';
-import { STATUSES } from '@/server/project-management/config';
-import { sendNotificationToOwner } from '@/server/telegram';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
+import type { ProjectManagementAdapter } from '@/server/template/project-management/types';
+import { STATUSES } from '@/server/template/project-management/config';
+import { sendNotificationToOwner } from '@/server/template/telegram';
 import { appConfig } from '@/app.config';
 import { findByGitHubIssueNumber as findFeatureByIssue, updateFeatureRequestStatus } from '@/server/database/collections/template/feature-requests';
 import { findByGitHubIssueNumber as findReportByIssue, updateReport } from '@/server/database/collections/template/reports';

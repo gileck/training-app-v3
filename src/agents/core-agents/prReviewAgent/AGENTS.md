@@ -406,7 +406,7 @@ Closes #42 (or "Part of #42" for non-final phases)
 ### Saving to PR Comment
 
 ```typescript
-import { COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
+import { COMMIT_MESSAGE_MARKER } from '@/server/template/project-management/config';
 
 // Check for existing commit message comment (re-approval scenario)
 const existingComment = await adapter.findPRCommentByMarker(prNumber, COMMIT_MESSAGE_MARKER);
@@ -571,14 +571,14 @@ This ensures:
 
 The agent checks compliance with:
 ```markdown
-**IMPORTANT**: Check compliance with project guidelines in `.ai/skills/`:
-- TypeScript guidelines (`.ai/skills/typescript-guidelines/SKILL.md`)
-- React patterns (`.ai/skills/react-component-organization/SKILL.md`, `.ai/skills/react-hook-organization/SKILL.md`)
-- State management (`.ai/skills/state-management-guidelines/SKILL.md`)
-- UI/UX patterns (`.ai/skills/ui-design-guidelines/SKILL.md`, `.ai/skills/shadcn-usage/SKILL.md`)
-- File organization (`.ai/skills/feature-based-structure/SKILL.md`)
-- API patterns (`.ai/skills/client-server-communications/SKILL.md`)
-- Comprehensive checklist (`.ai/skills/app-guidelines-checklist/SKILL.md`)
+**IMPORTANT**: Check compliance with project guidelines in `docs/template/project-guidelines/`:
+- TypeScript guidelines (`docs/template/project-guidelines/typescript-guidelines.md`)
+- React patterns (`docs/template/project-guidelines/react-component-organization.md`, `docs/template/project-guidelines/react-hook-organization.md`)
+- State management (`docs/template/project-guidelines/state-management-guidelines.md`)
+- UI/UX patterns (`docs/template/project-guidelines/ui-design-guidelines.md`, `docs/template/project-guidelines/shadcn-usage.md`)
+- File organization (`docs/template/project-guidelines/feature-based-structure.md`)
+- API patterns (`docs/template/project-guidelines/client-server-communications.md`)
+- Comprehensive checklist (`docs/template/project-guidelines/app-guidelines-checklist.md`)
 ```
 
 ### Phase-Specific Checks (Multi-Phase)
@@ -839,7 +839,7 @@ git status --porcelain
 Both PR Review Agent and Implementation Agent (feedback mode) use the same function:
 
 ```typescript
-// In GitHub adapter: src/server/project-management/adapters/github.ts
+// In GitHub adapter: src/server/template/project-management/adapters/github.ts
 async findOpenPRForIssue(issueNumber: number): Promise<{ prNumber: number; branchName: string } | null> {
     // 1. List all OPEN PRs in the repo
     const { data: prs } = await oc.pulls.list({ owner, repo, state: 'open' });
@@ -1045,12 +1045,11 @@ rm -f ${LOCKFILE}
 
 ## Related Documentation
 
-- **Overall workflow:** `docs/github-projects-integration.md`
-- **PR Merge Flow:** `docs/github-projects-integration.md#pr-merge-flow-admin-approval`
-- **Multi-PR workflow:** `docs/github-projects-integration.md#multi-pr-workflow-lxl-features`
-- **Phase architecture:** `docs/github-projects-integration.md#phase-storage--retrieval`
-- **Project guidelines:** `.ai/skills/`
+- **Overall workflow:** `docs/template/github-agents-workflow/overview.md`
+- **Workflow E2E scenarios:** `docs/template/github-agents-workflow/workflow-e2e.md`
+- **Running agents:** `docs/template/github-agents-workflow/running-agents.md`
+- **Project guidelines:** `docs/template/project-guidelines/`
 - **Phase utilities:** `src/agents/lib/phases.ts`
 - **Commit message utilities:** `src/agents/lib/commitMessage.ts`
 - **Telegram webhook handlers:** `src/pages/api/telegram-webhook.ts`
-- **Cron setup:** `docs/github-projects-integration.md#pr-review-agent-cron-setup`
+- **Cron setup:** `docs/template/github-agents-workflow/running-agents.md`

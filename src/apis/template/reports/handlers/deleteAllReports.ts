@@ -1,7 +1,7 @@
 import { DeleteAllReportsRequest, DeleteAllReportsResponse } from '../types';
 import { findReports, deleteAllReports as deleteAllReportsFromDb } from '@/server/database/collections/template/reports';
 import { ApiHandlerContext } from '@/apis/types';
-import { fileStorageAPI } from '@/server/blob';
+import { fileStorageAPI } from '@/server/template/blob';
 
 export const deleteAllReports = async (
     request: DeleteAllReportsRequest,

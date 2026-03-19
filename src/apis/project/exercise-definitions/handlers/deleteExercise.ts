@@ -2,8 +2,8 @@ import type { ApiHandlerContext } from '@/apis/types';
 import type { DeleteExerciseRequest, DeleteExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import * as planExercises from '@/server/database/collections/project/planExercises';
-import { fileStorageAPI } from '@/server/blob';
-import { toStringId } from '@/server/utils';
+import { fileStorageAPI } from '@/server/template/blob';
+import { toStringId } from '@/server/template/utils';
 
 export async function deleteExercise(
     request: DeleteExerciseRequest,

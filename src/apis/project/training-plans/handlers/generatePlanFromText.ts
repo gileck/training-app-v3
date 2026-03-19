@@ -7,8 +7,8 @@
  */
 
 import type { ApiHandlerContext, GeneratePlanFromTextRequest, GeneratePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
-import { AIModelAdapter } from '@/server/ai/baseModelAdapter';
-import { isModelExists } from '@/server/ai/models';
+import { AIModelAdapter } from '@/server/template/ai/baseModelAdapter';
+import { isModelExists } from '@/server/template/ai/models';
 import { exerciseDefinitions } from '@/server/database';
 import { 
     buildTrainingPlanPrompt, 

@@ -10,7 +10,7 @@ export type ModelTier = 'Budget' | 'Pro' | 'Premium';
 export interface AIModelDefinition {
   id: string;
   name: string;
-  provider: 'gemini' | 'openai' | 'anthropic';
+  provider: 'gemini' | 'openai' | 'anthropic' | 'claude-code';
   tier: ModelTier;
   maxTokens: number;
   maxOutputTokens: number;
@@ -154,11 +154,48 @@ export const ANTHROPIC_MODELS: AIModelDefinition[] = [
   }
 ];
 
+// Claude Code SDK models (routed via RPC to local daemon)
+export const CLAUDE_CODE_MODELS: AIModelDefinition[] = [
+  {
+    id: 'claude-code-haiku',
+    name: 'Claude Code Haiku',
+    provider: 'claude-code',
+    tier: 'Budget',
+    maxTokens: 200000,
+    maxOutputTokens: 64000,
+    inputPricePer1M: 1.00,
+    outputPricePer1M: 5.00,
+    capabilities: ['fast-responses', 'coding', 'summarization']
+  },
+  {
+    id: 'claude-code-sonnet',
+    name: 'Claude Code Sonnet',
+    provider: 'claude-code',
+    tier: 'Pro',
+    maxTokens: 200000,
+    maxOutputTokens: 64000,
+    inputPricePer1M: 3.00,
+    outputPricePer1M: 15.00,
+    capabilities: ['reasoning', 'coding', 'analysis', 'writing']
+  },
+  {
+    id: 'claude-code-opus',
+    name: 'Claude Code Opus',
+    provider: 'claude-code',
+    tier: 'Premium',
+    maxTokens: 200000,
+    maxOutputTokens: 128000,
+    inputPricePer1M: 5.00,
+    outputPricePer1M: 25.00,
+    capabilities: ['deep-reasoning', 'coding', 'analysis', 'writing', 'multimodal']
+  }
+];
+
 // Helper functions
 export const DEFAULT_MODEL_ID = 'gemini-2.5-flash-lite';
 
 export function getAllModels(): AIModelDefinition[] {
-  return [...GEMINI_MODELS, ...OPENAI_MODELS, ...ANTHROPIC_MODELS];
+  return [...GEMINI_MODELS, ...OPENAI_MODELS, ...ANTHROPIC_MODELS, ...CLAUDE_CODE_MODELS];
 }
 
 export function getModelsByProvider(provider: string): AIModelDefinition[] {

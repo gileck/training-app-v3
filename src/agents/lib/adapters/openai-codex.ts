@@ -291,6 +291,8 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -313,6 +315,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -325,6 +328,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -336,6 +340,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                     filesExamined,
                     usage,
                     durationSeconds,
+                    toolCallsCount: toolCallCount,
                 };
             } else {
                 // Non-streaming execution
@@ -366,6 +371,8 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -388,6 +395,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -400,6 +408,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -411,6 +420,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                     filesExamined,
                     usage,
                     durationSeconds,
+                    toolCallsCount: toolCallCount,
                 };
             }
         } catch (error) {
@@ -429,6 +439,7 @@ class OpenAICodexAdapter implements AgentLibraryAdapter {
                 filesExamined,
                 usage: null,
                 durationSeconds,
+                toolCallsCount: toolCallCount,
             };
         }
     }

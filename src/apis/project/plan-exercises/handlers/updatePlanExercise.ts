@@ -4,7 +4,7 @@ import {
     UpdatePlanExerciseResponse,
 } from '../types';
 import { trainingPlans, planExercises } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const updatePlanExercise = async (
     request: UpdatePlanExerciseRequest,

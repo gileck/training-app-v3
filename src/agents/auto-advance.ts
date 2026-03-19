@@ -18,7 +18,8 @@
 
 import './shared/loadEnv';
 import { Command } from 'commander';
-import { autoAdvanceApproved } from '@/server/workflow-service';
+import { autoAdvanceApproved } from '@/server/template/workflow-service';
+import { runAgentMain } from './shared/main-factory';
 
 async function main() {
     const program = new Command()
@@ -83,11 +84,4 @@ async function main() {
     }
 }
 
-main()
-    .then(() => {
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
+runAgentMain(main);

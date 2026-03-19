@@ -2,7 +2,10 @@
  * Design File Utilities
  *
  * Provides utilities for design agents to read/write design documents
- * to the design-docs directory structure.
+ * to the design-docs directory structure and S3 storage.
+ *
+ * S3 is the primary storage for design documents (decoupled from PR merge).
+ * Filesystem is used during agent execution (write to branch, commit, push).
  */
 
 import * as fs from 'fs';
@@ -13,6 +16,7 @@ import * as path from 'path';
 // ============================================================
 
 const DESIGN_DOCS_DIR = 'design-docs';
+const S3_DESIGN_PREFIX = 'design-docs';
 
 // ============================================================
 // TYPES
@@ -27,7 +31,7 @@ const DESIGN_DOCS_DIR = 'design-docs';
 export type DesignDocType = 'product-dev' | 'product' | 'tech';
 
 // ============================================================
-// FILE OPERATIONS
+// S3 KEY HELPERS
 // ============================================================
 
 /**
@@ -40,6 +44,75 @@ function getDesignDocFilename(type: DesignDocType): string {
         case 'tech': return 'tech-design.md';
     }
 }
+
+/**
+ * Get the S3 key for a design document
+ * @returns S3 key: "design-docs/issue-{N}/product-design.md"
+ */
+export function getDesignS3Key(issueNumber: number, type: DesignDocType): string {
+    const filename = getDesignDocFilename(type);
+    return `${S3_DESIGN_PREFIX}/issue-${issueNumber}/${filename}`;
+}
+
+// ============================================================
+// S3 OPERATIONS
+// ============================================================
+
+/**
+ * Save design content to S3.
+ * Used after agent completion so content is available for approval without PR merge.
+ */
+export async function saveDesignToS3(issueNumber: number, type: DesignDocType, content: string): Promise<string> {
+    const { uploadFile } = await import('@/server/template/s3/sdk');
+    const s3Key = getDesignS3Key(issueNumber, type);
+    await uploadFile({
+        content,
+        fileName: s3Key,
+        contentType: 'text/markdown',
+    });
+    return s3Key;
+}
+
+/**
+ * Read design content from S3.
+ * @returns Content string, or null if not found
+ */
+export async function readDesignFromS3(issueNumber: number, type: DesignDocType): Promise<string | null> {
+    const { getFileAsString, fileExists } = await import('@/server/template/s3/sdk');
+    const s3Key = getDesignS3Key(issueNumber, type);
+    try {
+        const exists = await fileExists(s3Key);
+        if (!exists) return null;
+        return await getFileAsString(s3Key);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Delete design files from S3.
+ * If type is provided, deletes a single file. Otherwise deletes all design files for the issue.
+ */
+export async function deleteDesignFromS3(issueNumber: number, type?: DesignDocType): Promise<void> {
+    const { deleteFile, listFiles } = await import('@/server/template/s3/sdk');
+    if (type) {
+        const s3Key = getDesignS3Key(issueNumber, type);
+        try {
+            await deleteFile(s3Key);
+        } catch {
+            // File may not exist, ignore
+        }
+    } else {
+        // Delete all design files for this issue
+        const prefix = `${S3_DESIGN_PREFIX}/issue-${issueNumber}/`;
+        const files = await listFiles(prefix);
+        await Promise.all(files.map(f => deleteFile(f.key)));
+    }
+}
+
+// ============================================================
+// FILESYSTEM OPERATIONS
+// ============================================================
 
 /**
  * Get the full path for a design document
@@ -89,7 +162,23 @@ export function writeDesignDoc(issueNumber: number, type: DesignDocType, content
 }
 
 /**
- * Read design document from design-docs directory
+ * Read design document — tries S3 first, falls back to filesystem.
+ * Async version that supports the new S3-backed storage.
+ * @returns File content, or null if not found in either location
+ */
+export async function readDesignDocAsync(issueNumber: number, type: DesignDocType): Promise<string | null> {
+    // Try S3 first
+    const s3Content = await readDesignFromS3(issueNumber, type);
+    if (s3Content) return s3Content;
+
+    // Fall back to filesystem for backward compat
+    return readDesignDoc(issueNumber, type);
+}
+
+/**
+ * Read design document from design-docs directory (filesystem only, sync).
+ * Kept for backward compatibility and for use during agent execution
+ * (when the file is on the current branch).
  * @returns File content, or null if file doesn't exist
  */
 export function readDesignDoc(issueNumber: number, type: DesignDocType): string | null {

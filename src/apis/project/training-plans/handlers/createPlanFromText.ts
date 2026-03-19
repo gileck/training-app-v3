@@ -9,7 +9,7 @@
 
 import type { ApiHandlerContext, CreatePlanFromTextRequest, CreatePlanFromTextResponse, DraftPlan, DraftExercise } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts } from '@/server/database';
-import { toStringId, toDocumentId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/template/utils';
 import { matchExercise } from './exerciseMatcher';
 
 // Validation limits

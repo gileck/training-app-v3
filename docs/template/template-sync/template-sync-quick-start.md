@@ -121,7 +121,7 @@ Output:
    Only changed in template, no conflicts:
    • src/client/components/ui/button.tsx
    • src/client/config/defaults.ts
-   • src/server/middleware/auth.ts
+   • src/server/template/middleware/auth.ts
    ...
 
 ⚠️  Potential conflicts (2 files):

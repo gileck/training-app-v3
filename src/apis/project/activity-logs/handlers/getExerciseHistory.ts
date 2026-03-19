@@ -5,7 +5,7 @@ import {
 } from '../types';
 import { planExercises, setLogs, trainingPlans } from '@/server/database';
 import type { ApiHandlerContext } from '@/apis/types';
-import { toStringId, toQueryId } from '@/server/utils';
+import { toStringId, toQueryId } from '@/server/template/utils';
 
 export async function getExerciseHistory(
     request: GetExerciseHistoryRequest,

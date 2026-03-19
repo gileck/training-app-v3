@@ -28,7 +28,7 @@ This project uses a **template sync system** that automatically updates certain 
 | `src/client/components/NavLinks.tsx` | Template | ❌ No | Combiner for navigation items |
 | `scripts/template/**` | Template | ❌ No | Synced from template |
 | `docs/template/**` | Template | ❌ No | Synced from template |
-| `.ai/skills/template/**` | Template | ❌ No | Synced from template |
+| `.ai/commands/**` | Template | ❌ No | Synced from template |
 | `*.template.ts` files | Template | ❌ No | Synced from template |
 
 ---
@@ -42,7 +42,7 @@ These paths are **automatically synced** from the template. Any changes you make
 ```
 scripts/template/**                    # Template scripts
 docs/template/**                       # Template documentation
-.ai/skills/template/**                 # Template AI skills
+.ai/commands/**                        # Slash commands
 src/client/components/template/**      # Template components (ui/, layout/, etc.)
 src/client/components/NavLinks.tsx     # Navigation combiner file
 src/client/components/GlobalDialogs.tsx # Dialog combiner file
@@ -54,8 +54,8 @@ src/client/features/index.template.ts  # Template feature exports
 src/client/routes/template/**          # Core template routes (Settings, Profile, etc.)
 src/client/routes/index.ts             # Route combiner file
 src/client/routes/index.template.ts    # Template route exports
-src/server/utils/**                    # Server utilities
-src/server/middleware/**               # Server middleware
+src/server/template/utils/**                    # Server utilities
+src/server/template/middleware/**               # Server middleware
 src/agents/**                          # AI agents system
 config/**                              # ESLint, Next.js, TypeScript configs
 
@@ -79,7 +79,7 @@ src/client/components/project/** # Your custom components
 src/apis/project/**              # Your API modules
 src/server/database/collections/project/** # Your DB collections
 docs/project/**                  # Your documentation
-.ai/skills/project/**            # Your AI skills
+.ai/commands/**                   # Slash commands (via symlink from .claude/commands)
 scripts/project/**               # Your scripts
 *.project.ts                     # Your export files
 ```
@@ -349,9 +349,7 @@ docs/project/my-doc.md
 
 ```
 project-root/
-├── .ai/skills/
-│   ├── template/        # ❌ Template-owned
-│   └── project/         # ✅ Your skills
+├── .ai/commands/          # ❌ Template-owned (slash commands)
 ├── docs/
 │   ├── template/        # ❌ Template-owned
 │   └── project/         # ✅ Your docs

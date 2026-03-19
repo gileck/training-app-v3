@@ -165,11 +165,11 @@ PR #124: Product design for dark mode
 
 [View PR](https://github.com/...)
 
-[Approve & Merge] [Request Changes]
+[Approve] [Request Changes]
 ```
 
 **If Approved:**
-1. PR auto-merges
+1. Design saved to S3 (PR stays open, NOT merged)
 2. Status advances to next phase
 3. Next agent processes item
 
@@ -282,13 +282,13 @@ When implementation is complete:
             ↓              ↓                  │                  │
    ┌────────────────────────────────┐        │                  │
    │  Design PR Approval            │        │                  │
-   │  [Approve & Merge] [Changes]   │        │                  │
+   │  [Approve] [Request Changes]   │        │                  │
    └────────────────────────────────┘        │                  │
             │                                 │                  │
       [If Approved]                           │                  │
             │                                 │                  │
             ↓                                 │                  │
-      PR Auto-Merges                          │                  │
+      Design Approved (S3)                          │                  │
             │                                 │                  │
    Status: Next Phase                         │                  │
             │                                 │                  │
@@ -348,7 +348,7 @@ When implementation is complete:
 | Routing notification | Click **🔧 Tech Design** | Status → Tech Design, agent runs |
 | Routing notification | Click **⚡ Ready for Dev** | Status → Ready for Dev, agent runs |
 | Routing notification | Click **📋 Stay in Backlog** | Status → Backlog, workflow pauses |
-| Design PR notification | Click **Approve & Merge** | PR auto-merges, advances to next phase |
+| Design PR notification | Click **Approve** | Design saved to S3, advances to next phase (PR stays open) |
 | Design PR notification | Click **Request Changes** | Workflow pauses, manual intervention needed |
 | Implementation PR created | Click **View PR** (notification) | PR Review Agent will review automatically (cron) |
 | PR review approved | Click **Merge** | Squash merge → marks Done |

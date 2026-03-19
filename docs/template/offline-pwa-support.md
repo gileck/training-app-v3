@@ -2,6 +2,12 @@
 title: Offline/PWA Support
 description: Full offline support with optimistic updates. Use this when implementing mutations.
 summary: "GET requests serve cached data, POST requests queue in localStorage and batch-sync when online. **CRITICAL: Never update UI from server response** - use optimistic updates in `onMutate`, keep `onSuccess`/`onSettled` empty."
+guidelines:
+  - "CRITICAL: Never update UI from server response — only optimistic updates in `onMutate`"
+  - Keep `onSuccess` empty
+  - Keep `onSettled` empty
+  - Only rollback in `onError`
+  - "Mutations must handle empty `{}` responses (offline queue)"
 priority: 2
 ---
 

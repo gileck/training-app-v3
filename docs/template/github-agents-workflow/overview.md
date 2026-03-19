@@ -5,7 +5,7 @@ summary: "9-status workflow (Backlog → Product Development → Product Design 
 priority: 2
 key_points:
   - "Entry points: UI feature request, UI bug report, or CLI"
-  - "Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review"
+  - "Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review, Workflow Review, Triage (standalone)"
   - "Status tracking: Source collections (high-level) + workflow-items collection (pipeline)"
   - "All actions logged to agent-logs/issue-N.md"
 related_docs:
@@ -45,7 +45,7 @@ Items can enter the workflow through three paths (all converge into the same pip
 
 1. **User submits** feature request or bug report via app UI (or CLI) → stored in MongoDB
 2. **Admin gets Telegram notification** with one-click "Approve" button
-3. **Admin approves** (via Telegram button) → server creates GitHub Issue
+3. **Admin approves** (via Telegram button or UI) → server creates GitHub Issue
    - **Features**: Added to "Backlog", admin receives routing message
    - **Bugs**: Auto-routed to "Bug Investigation" (no routing message)
 4. **Features: Admin receives routing message** → chooses where item should start:
@@ -56,12 +56,13 @@ Items can enter the workflow through three paths (all converge into the same pip
 5. **Bugs: Bug Investigator agent** runs automatically → investigates root cause → posts fix options → admin selects fix approach via web UI → routes to Tech Design or Implementation
 6. **Item moves to selected phase** → AI agent processes accordingly
 7. **AI agent generates design/implementation**:
-   - **Design agents**: Create PR with design file → Telegram notification with Approve/Reject buttons
+   - **Design agents**: Create PR with design file, save design to S3 → Telegram notification with Approve/Reject buttons
+   - **Product Design agent** (new designs): Generates 2-3 interactive React mock options → admin selects via decision UI → chosen design saved to S3
    - **Implementation agent**: Create PR with code changes → Telegram notification with View PR button
    - **Visual verification** (UI changes): Implementation agent verifies at 400px viewport before completing
-8. **Admin approves design PR** (via Telegram button) → PR auto-merged → status advances to next phase
+8. **Admin approves design** (via Telegram button or UI) → design saved to S3 → status advances to next phase (PR stays open, cleaned up when feature reaches Done)
 9. **PR Review agent reviews implementation PR** (cron) → generates commit message → Telegram notification with Merge button
-10. **Admin merges implementation PR** (via Telegram Merge button) → Telegram webhook marks item as Done
+10. **Admin merges implementation PR** (via Telegram Merge button or UI) → marks item as Done
 11. **Post-merge recovery** (if needed): Merge success notification includes "Revert" button → creates revert PR → restores status for agent to fix
 
 **Key concepts:**
@@ -79,7 +80,7 @@ Items can enter the workflow through three paths (all converge into the same pip
 - **Directory locking**: Master script acquires per-directory lock to prevent concurrent agent runs on same working directory
 - **Three-tier MongoDB storage**: Source collections (`feature-requests`, `reports`) store intake data, `workflow-items` collection tracks pipeline status
 - **Separate source collections**: `feature-requests` and `reports` (bugs need session logs, screenshots, diagnostics)
-- **Design documents as files**: Stored in `design-docs/issue-{N}/` with PR-based review workflow
+- **Design documents in S3**: Stored in S3 at `design-docs/issue-{N}/` keys, with PR-based review workflow (PRs are NOT merged — approval saves content from S3, PRs cleaned up on Done)
 - **Artifact comments**: Track design docs and implementation PRs with status (pending → in-review → approved → merged)
 - **Complete workflow logging**: ALL phases and actions logged to `agent-logs/issue-{N}.md` with structured markers
 
@@ -136,15 +137,18 @@ When adding new workflow functionality:
 
 ## Workflow Service Layer
 
-All transports -- Telegram, UI, and CLI -- go through a unified service layer at `src/server/workflow-service/`. The service centralizes all business logic for approve, route, and delete operations.
+All transports -- Telegram, UI, CLI, and agents -- go through a unified service layer at `src/server/template/workflow-service/`. The service centralizes all business logic for the full workflow lifecycle: entry operations (approve, route, delete), mid-pipeline operations (advance, review status, phase, undo, decision), shared admin actions (design review, clarification, request changes, choose recommended, merge, revert).
 
 **What the service handles:**
 - State validation (prevent double-approval, check GitHub sync status)
 - GitHub sync (issue creation via github-sync)
 - Adapter status updates (move items between columns)
-- Review status clearing
+- Review status management (set, clear, update)
+- PR merge/revert with multi-phase support
+- Design review with auto-advance on approval
 - Agent logging to `agent-logs/issue-{N}.md`
 - Telegram notifications (universal notification center)
+- Undo windows (5-minute rollback for accidental actions)
 
 **Transports are thin wrappers:** parse input (callback data, request body, CLI args) -> call the service function -> format output for the transport.
 
@@ -166,7 +170,7 @@ All transports -- Telegram, UI, and CLI -- go through a unified service layer at
 └─────────────────┘      └──────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Project Management Abstraction (src/server/project-management/)       │
+│  Project Management Abstraction (src/server/template/project-management/)       │
 │  ┌────────────────────────────────────────────────────────────────────┐│
 │  │ ProjectManagementAdapter interface (adapter pattern)               ││
 │  │ ├── adapters/app-project.ts  # MongoDB workflow-items (recommended)││
@@ -179,7 +183,7 @@ All transports -- Telegram, UI, and CLI -- go through a unified service layer at
 │  MongoDB Collections:                                                   │
 │  ├── feature-requests  # Intake: title, description, priority, status  │
 │  ├── reports           # Intake: error, stack trace, session logs       │
-│  └── workflow-items    # Pipeline: workflow status, review status       │
+│  └── workflow-items    # Pipeline: status, review, priority, size, complexity, domain │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -196,7 +200,12 @@ All transports -- Telegram, UI, and CLI -- go through a unified service layer at
 │  │ shared/                                                           │  │
 │  │ ├── config.ts         # Agent-specific config + re-exports       │  │
 │  │ ├── claude.ts         # Claude SDK utilities                     │  │
-│  │ ├── notifications.ts  # Telegram notifications                   │  │
+│  │ ├── notifications/    # Telegram notifications (split module)     │  │
+│  │ ├── error-handler.ts  # Standardized agent error handling        │  │
+│  │ ├── main-factory.ts   # Agent entry point boilerplate            │  │
+│  │ ├── decision-utils.ts # Decision comment utilities               │  │
+│  │ ├── phase-resolution.ts # Shared phase resolution logic          │  │
+│  │ ├── console.ts        # CLI progress/warn formatting helpers     │  │
 │  │ ├── directory-lock.ts # Directory-level concurrency lock         │  │
 │  │ ├── prompts/          # Prompt templates (split by phase)        │  │
 │  │ │   ├── product-design.ts, technical-design.ts, etc.            │  │
@@ -217,7 +226,9 @@ Since all agents use the same bot account, each agent prefixes its comments with
 | Tech Design | 🏗️ | Tech Design Agent |
 | Implementor | ⚙️ | Implementor Agent |
 | PR Review | 👀 | PR Review Agent |
+| Workflow Review | 📋 | Workflow Review Agent |
 | Auto-Advance | ⏭️ | Auto-Advance Agent |
+| Triage | 🏷️ | Triage Agent |
 
 **Example Comments:**
 
@@ -255,21 +266,57 @@ Design documents are stored as versioned files with PR-based review, providing v
 
 **Storage Location:**
 ```
-design-docs/
-├── issue-123/
-│   ├── product-design.md
-│   └── tech-design.md
-└── issue-456/
-    └── product-design.md
+S3: design-docs/issue-{N}/product-design.md     (canonical design, written by Phase 2, read by next agent)
+S3: design-docs/issue-{N}/tech-design.md
+
+Branch: design-docs/issue-{N}/product-design.md  (versioned in PR, written by Phase 2)
+Branch: src/pages/design-mocks/issue-{N}.tsx      (main mock page with tabs, written by Phase 1)
+Branch: src/pages/design-mocks/components/issue-{N}-optA.tsx (mock options, written by Phase 1)
 ```
 
-**Design Agent Flow:**
+**Product Design Agent — 2-Phase Flow:**
 
-1. **Agent generates design** → writes to `design-docs/issue-{N}/{type}-design.md`
-2. **Agent creates branch** → `design/issue-{N}-product` or `design/issue-{N}-tech`
-3. **Agent creates PR** → `docs: product design for issue #123`
-4. **Telegram notification** with `[Approve & Merge]` and `[Request Changes]` buttons
-5. **Admin approves** → PR auto-merged → artifact comment updated → status advances
+**Phase 1** (reviewStatus = null → Waiting for Decision):
+- Agent explores codebase and writes 2-3 React mock pages to `src/pages/design-mocks/`
+- Creates decision for admin to choose between mock options
+- Does NOT write a design document (mocks only)
+- Notification: `[Choose Recommended]` `[All Options]` `[Preview Mocks]` `[Request Changes]`
+
+**Phase 2** (reviewStatus = Decision Submitted → Waiting for Review):
+- Agent reads the chosen mock option from DB
+- Writes a full Product Design document based on the chosen approach
+- Notification: `[Approve]` `[Request Changes]` `[View PR]`
+
+**Other modes:**
+- **Feedback** (Request Changes on Phase 2 design doc) — revises design, same as other agents
+- **Clarification Needed** (ambiguous requirements) — agent posts question on issue
+
+**Design Mock Preview Route:**
+
+Mock pages are viewable at `/design-mocks/issue-{N}` on Vercel preview deployments (PR branches). The route is registered as a public, full-screen client route and includes a toolbar with:
+- **View state** dropdown — Populated / Empty / Loading (passed as props to mock components)
+- **Theme preset** dropdown — All 8 built-in themes (uses real theme store, CSS variables update instantly)
+- **Dark/Light toggle** — Switches color mode via theme store
+
+Mock components are generated with `viewState` prop support so each option renders populated data, empty state, and loading skeleton. Since the route is inside `AppThemeProvider`, semantic color tokens (`bg-background`, `text-foreground`, etc.) respond to theme/mode changes automatically.
+
+On production (main branch), the route shows a clean "Design mock not available" fallback since mock files only exist on PR branches.
+
+**Design Agent Flow (tech design and other design agents):**
+
+1. **Agent generates design** → writes to `design-docs/issue-{N}/{type}-design.md` on branch + saves to S3
+2. **Agent creates branch** → `design/issue-{N}-tech` etc.
+3. **Agent creates PR** → `docs: tech design for issue #123`
+4. **Admin approves** → design read from S3 → artifact comment updated → status advances (PR stays open, NOT merged)
+5. **On feature Done** → open design PRs are closed and branches deleted
+
+**Product Design Agent Flow (2-phase):**
+
+1. **Phase 1: Agent creates mocks** → writes React mock pages to `src/pages/design-mocks/` on branch, creates PR, posts decision
+2. **Admin selects option** → reviewStatus set to `Decision Submitted` (item stays in Product Design)
+3. **Phase 2: Agent writes design doc** → reads chosen mock, writes full design doc to branch + S3, reviewStatus → `Waiting for Review`
+4. **Admin approves** → design read from S3 → artifact comment updated → status advances to Tech Design
+5. **On feature Done** → open design PRs are closed and branches deleted
 
 **Feedback Mode:**
 When admin clicks "Request Changes":
@@ -291,4 +338,4 @@ When admin clicks "Request Changes":
 - **[workflow-items-architecture.md](./workflow-items-architecture.md)** - Workflow items data model and pipeline tracking
 - **[agent-logging.md](./agent-logging.md)** - Complete logging system documentation (CRITICAL)
 - **[directory-locking.md](./directory-locking.md)** - Directory-level lock for preventing concurrent agent runs
-- **Main integration docs**: [../github-projects-integration.md](../github-projects-integration.md)
+- **Technical reference**: [reference.md](./reference.md)

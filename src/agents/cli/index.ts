@@ -52,7 +52,9 @@ Create options:
   --workflow-route <phase>  Optional: product-dev | product-design | tech-design | implementation | backlog
                           (implies --auto-approve)
   --client-page-route <route>  Optional: Affected client route for bugs (e.g., "/settings")
-  --priority <level>      Optional: low | medium | high | critical (features only)
+  --priority <level>      Optional: low | medium | high | critical
+  --size <XS|S|M|L|XL>   Optional: Estimated size
+  --complexity <High|Medium|Low>  Optional: Complexity level
   --dry-run               Optional: Preview without creating
 
 List options:
@@ -69,7 +71,9 @@ Update options:
   --status <status>       Optional: New status
                           Features: new | in_progress | done | rejected
                           Bugs: new | investigating | resolved | closed
-  --priority <level>      Optional: low | medium | high | critical (features only)
+  --priority <level>      Optional: low | medium | high | critical
+  --size <XS|S|M|L|XL>   Optional: Estimated size
+  --complexity <High|Medium|Low>  Optional: Complexity level
   --dry-run               Optional: Preview without updating
 
 Approve options:

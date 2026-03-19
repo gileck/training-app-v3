@@ -17,7 +17,7 @@ module.exports = {
         schema: [],
         messages: {
             mustReturnCacheResult: 'Client API functions must return CacheResult<T> type',
-            importCacheResult: 'Missing CacheResult import. Import it from "@/server/cache/types"',
+            importCacheResult: 'Missing CacheResult import. Import it from "@/server/template/cache/types"',
         },
     },
 

@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { parse, serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { AuthTokenPayload, AuthDebugInfo } from "./template/auth/types";
-import { JWT_SECRET, COOKIE_NAME } from "./template/auth/server";
+import { getJwtSecret, COOKIE_NAME } from "./template/auth/server";
 
 
 export function getUserContext(req: NextApiRequest, res: NextApiResponse) {
@@ -38,7 +38,7 @@ export function getUserContext(req: NextApiRequest, res: NextApiResponse) {
   if (token) {
     try {
       // Verify and decode the token
-      const decoded = jwt.verify(token, JWT_SECRET) as unknown as AuthTokenPayload;
+      const decoded = jwt.verify(token, getJwtSecret()) as unknown as AuthTokenPayload;
       userId = decoded.userId;
     } catch (err) {
       // Capture detailed error info for debugging

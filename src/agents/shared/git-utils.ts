@@ -3,6 +3,10 @@
  *
  * Thin wrappers that delegate to the GitAdapter singleton.
  * This preserves the existing import API so no consumer changes are needed.
+ *
+ * The indirection through GitAdapter enables E2E tests to inject a
+ * MockGitAdapter (via setGitAdapter) without modifying consumer code.
+ * See git-adapter.ts for the full DI pattern explanation.
  */
 
 import { getGitAdapter } from './git-adapter';

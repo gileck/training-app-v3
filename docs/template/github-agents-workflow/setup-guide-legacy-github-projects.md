@@ -13,6 +13,10 @@ related_docs:
   - ../telegram-notifications.md
 ---
 
+> **DEPRECATED:** This guide is for the legacy GitHub Projects V2 integration.
+> For new setups, use [setup-guide.md](./setup-guide.md) which uses MongoDB workflow-items.
+> This file is kept for reference only.
+
 # GitHub Agents Workflow - Setup Guide
 
 Complete step-by-step setup instructions for the GitHub agents workflow.
@@ -386,7 +390,7 @@ export const agentConfig: AgentConfig = {
 };
 ```
 
-**Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/project-management/config.ts` and should NOT be modified.
+**Note:** The status values in `STATUSES` and `REVIEW_STATUSES` are constants defined in `src/server/template/project-management/config.ts` and should NOT be modified.
 
 ## Step 8: Verify Setup
 

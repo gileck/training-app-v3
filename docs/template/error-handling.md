@@ -2,6 +2,14 @@
 title: Error Handling
 description: Guidelines for handling and displaying errors across the application. Use this when implementing error states, catch blocks, or user-facing error messages.
 summary: Use `ErrorDisplay` for route/page errors, `errorToast`/`errorToastAuto` for mutation failures, and shared `errorUtils` for classification. Stack traces are admin-only. Never show raw error messages to users.
+guidelines:
+  - Use `ErrorDisplay` for route/page errors, `errorToast` for mutations
+  - "Never show raw `error.message` — use `cleanErrorMessage()` or `getUserFriendlyMessage()`"
+  - Stack traces are admin-only
+  - "Always pass error object to `errorToast` (enables copy)"
+  - "Use `errorToastAuto(error, fallback)` for automatic classification"
+  - "Validation errors use plain `toast.error()`, NOT `errorToast`"
+  - Import from specific files to avoid circular deps with bug-report/auth
 priority: 2
 related_docs:
   - logging-and-error-tracking.md

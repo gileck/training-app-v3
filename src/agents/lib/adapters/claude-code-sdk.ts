@@ -4,7 +4,7 @@
  * Adapter implementation for @anthropic-ai/claude-agent-sdk
  */
 
-import { query, type SDKAssistantMessage, type SDKResultMessage, type SDKToolProgressMessage } from '@anthropic-ai/claude-agent-sdk';
+import { query, type SDKAssistantMessage, type SDKResultMessage, type SDKToolProgressMessage, type HookCallbackMatcher } from '@anthropic-ai/claude-agent-sdk';
 import { agentConfig } from '../../shared/config';
 import type { AgentLibraryAdapter, AgentLibraryCapabilities, AgentRunOptions, AgentRunResult } from '../types';
 import { getModelForLibrary } from '../config';
@@ -90,6 +90,9 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
         let usage: AgentRunResult['usage'] = null;
         let structuredOutput: unknown = undefined;
 
+        // Track SDK-level errors (error_max_turns, error_max_structured_output_retries, etc.)
+        let sdkError: { subtype: string; errors: string[] } | null = null;
+
         // Timeout diagnostics tracking
         interface ToolCallRecord {
             name: string;
@@ -133,6 +136,9 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
             });
         }
 
+        // Build PreToolUse hook for path restriction (if configured)
+        const hooks = this.buildWritePathHooks(options.allowedWritePaths);
+
         try {
             for await (const message of query({
                 prompt,
@@ -147,6 +153,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     ...(useSlashCommands ? { settingSources: ['project'] as const } : {}),
                     ...(outputFormat ? { outputFormat } : {}),
                     ...(mcpServers ? { mcpServers } : {}),
+                    ...(hooks ? { hooks } : {}),
                 },
             })) {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -263,6 +270,13 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     const resultMsg = message as SDKResultMessage;
                     if (resultMsg.subtype === 'success' && resultMsg.result) {
                         lastResult = resultMsg.result;
+                    } else if (resultMsg.subtype !== 'success') {
+                        // SDK returned an error result (error_max_turns, error_max_structured_output_retries, etc.)
+                        // Store error information to return as failure after loop completes
+                        sdkError = {
+                            subtype: resultMsg.subtype,
+                            errors: 'errors' in resultMsg ? resultMsg.errors : [],
+                        };
                     }
                     // Extract usage stats
                     if (resultMsg.usage) {
@@ -280,10 +294,12 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                                 inputTokens: usage.inputTokens,
                                 outputTokens: usage.outputTokens,
                                 cost: usage.totalCostUSD,
+                                cacheReadInputTokens: usage.cacheReadInputTokens,
+                                cacheCreationInputTokens: usage.cacheCreationInputTokens,
                             });
                         }
                     }
-                    // Extract structured output
+                    // Extract structured output (only present on success results)
                     if ('structured_output' in resultMsg) {
                         structuredOutput = resultMsg.structured_output;
                     }
@@ -295,6 +311,22 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
             if (spinnerInterval) clearInterval(spinnerInterval);
 
             const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+            // Check if SDK returned an error result
+            if (sdkError) {
+                const errorDetails = sdkError.errors.length > 0 ? ` - ${sdkError.errors.join(', ')}` : '';
+                console.log(`\r  \x1b[31m✗ SDK error: ${sdkError.subtype}${errorDetails}\x1b[0m\x1b[K`);
+                return {
+                    success: false,
+                    content: null,
+                    error: `SDK error: ${sdkError.subtype}${errorDetails}`,
+                    filesExamined,
+                    usage,
+                    durationSeconds,
+                    structuredOutput,
+                    toolCallsCount: toolCallCount,
+                };
+            }
 
             // Format usage info for display
             let usageInfo = '';
@@ -311,6 +343,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 usage,
                 durationSeconds,
                 structuredOutput,
+                toolCallsCount: toolCallCount,
             };
         } catch (error) {
             // Cleanup
@@ -342,6 +375,7 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                     usage,
                     durationSeconds,
                     structuredOutput,
+                    toolCallsCount: toolCallCount,
                     timeoutDiagnostics: {
                         classification,
                         lastToolCalls: toolCallHistory.slice(-10),
@@ -362,8 +396,50 @@ class ClaudeCodeSDKAdapter implements AgentLibraryAdapter {
                 usage,
                 durationSeconds,
                 structuredOutput,
+                toolCallsCount: toolCallCount,
             };
         }
+    }
+
+    /**
+     * Build PreToolUse hooks to restrict Write/Edit to specific path prefixes.
+     * Returns undefined if no restrictions are configured.
+     */
+    private buildWritePathHooks(
+        allowedWritePaths?: string[]
+    ): Partial<Record<'PreToolUse', HookCallbackMatcher[]>> | undefined {
+        if (!allowedWritePaths || allowedWritePaths.length === 0) return undefined;
+
+        const writePathHook: HookCallbackMatcher = {
+            matcher: 'Write|Edit',
+            hooks: [
+                async (input) => {
+                    const hookInput = input as { tool_name: string; tool_input: { file_path?: string } };
+                    const filePath = hookInput.tool_input?.file_path;
+                    if (!filePath) return {};
+
+                    // Normalize to relative path for comparison
+                    const relativePath = filePath.startsWith(PROJECT_ROOT)
+                        ? filePath.slice(PROJECT_ROOT.length + 1)
+                        : filePath.startsWith('/')
+                            ? filePath // absolute path outside project — always deny
+                            : filePath;
+
+                    const isAllowed = allowedWritePaths.some(prefix => relativePath.startsWith(prefix));
+                    if (isAllowed) return {};
+
+                    return {
+                        hookSpecificOutput: {
+                            hookEventName: 'PreToolUse' as const,
+                            permissionDecision: 'deny' as const,
+                            permissionDecisionReason: `Write blocked: ${relativePath} is outside allowed paths (${allowedWritePaths.join(', ')}). Only write to the allowed directories.`,
+                        },
+                    };
+                },
+            ],
+        };
+
+        return { PreToolUse: [writePathHook] };
     }
 
     async dispose(): Promise<void> {

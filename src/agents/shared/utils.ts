@@ -9,8 +9,8 @@ import type {
     PerformanceEntryData,
     BugCategory,
 } from '@/server/database/collections/template/reports/types';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
-import type { ProjectManagementAdapter } from '@/server/project-management/types';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
+import type { ProjectManagementAdapter } from '@/server/template/project-management/types';
 import type { CommonCLIOptions } from './types';
 import { notifyAgentNeedsClarification } from './notifications';
 import { addAgentPrefix, type AgentName } from './agent-identity';
@@ -254,21 +254,13 @@ export async function handleClarificationRequest(
     await adapter.addIssueComment(issueNumber, prefixedComment);
     console.log('  Comment added with clarification request');
 
-    // Set review status
-    if (adapter.hasReviewStatusField()) {
-        // Verify "Waiting for Clarification" status exists
-        const availableStatuses = await adapter.getAvailableReviewStatuses();
-        if (!availableStatuses.includes(REVIEW_STATUSES.waitingForClarification)) {
-            console.error('  ❌ ERROR: "Waiting for Clarification" status not available in project');
-            console.error('  Add this status to your GitHub Project Review Status field to enable clarification flow');
-            console.error('  Item will be skipped to prevent re-processing loop');
-            console.error('  Run: yarn verify-setup');
-            return { success: false, needsClarification: true };
-        }
-
-        await adapter.updateItemReviewStatus(item.id, REVIEW_STATUSES.waitingForClarification);
-        console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForClarification}`);
-    }
+    // Set review status via workflow service (import from leaf module to avoid circular dep)
+    const { updateReviewStatus } = await import('@/server/template/workflow-service/review-status');
+    await updateReviewStatus(issueNumber, REVIEW_STATUSES.waitingForClarification, {
+        logAction: 'clarification_requested',
+        logDescription: `Agent requested clarification during ${phase}`,
+    });
+    console.log(`  Review Status updated to: ${REVIEW_STATUSES.waitingForClarification}`);
 
     // Send notification
     await notifyAgentNeedsClarification(phase, title, issueNumber, clarificationText, issueType);

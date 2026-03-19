@@ -948,9 +948,8 @@ yarn agent:implement --id <item-id>
 
 ## Related Documentation
 
-- **Overall workflow:** `docs/github-projects-integration.md`
-- **Multi-PR workflow:** `docs/github-projects-integration.md#multi-pr-workflow-lxl-features`
-- **Phase architecture:** `docs/github-projects-integration.md#phase-storage--retrieval`
-- **PR format:** `docs/github-projects-integration.md#pull-request-format-squash-merge-ready`
+- **Overall workflow:** `docs/template/github-agents-workflow/overview.md`
+- **Multi-phase features:** `docs/template/github-agents-workflow/workflow-e2e.md`
+- **Running agents:** `docs/template/github-agents-workflow/running-agents.md`
 - **Webhook handling:** `src/pages/api/webhooks/github-pr-merged.ts`
 - **Phase utilities:** `src/agents/lib/phases.ts`

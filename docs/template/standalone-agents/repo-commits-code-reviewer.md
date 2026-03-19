@@ -27,7 +27,7 @@ The agent runs every 4 hours, collects commits since its last run using a diff-b
 | **Schedule** | Every 4 hours (14400000 ms) |
 | **Diff Budget** | ~1500 lines per run |
 | **State File** | `agent-tasks/repo-commits-code-reviewer/state.json` |
-| **Issue Creation** | Via `yarn agent-workflow create` (requires admin approval) |
+| **Issue Creation** | Via `yarn agent-workflow create` with `--size`, `--complexity`, and `--created-by repo-commits-code-reviewer` flags (requires admin approval) |
 | **Tools Available** | Read-only: Read, Glob, Grep |
 
 ## How It Works
@@ -76,7 +76,7 @@ The agent uses commits as pointers to areas of recent change, but all findings a
 
 Before forming findings, Claude:
 
-1. **Reads project guidelines** — `CLAUDE.md`, relevant docs from `docs/`, skill rules from `.ai/skills/`
+1. **Reads project guidelines** — `CLAUDE.md`, relevant docs from `docs/`, commands from `.ai/commands/`
 2. **Reads full current source files** — The complete current version of every file mentioned in the commits
 3. **Reads related code** — Uses Grep/Glob to find callers, usages, consumers
 4. **Forms findings against current code** — Each finding must be verifiable in the current source, not in historical diffs
@@ -100,7 +100,6 @@ Each finding includes:
 | `description` | string | What, why, suggested fix |
 | `affectedFiles` | string[] | Files with line numbers |
 | `relatedCommit` | string | Commit hash that pointed to this area |
-| `shouldCreateIssue` | boolean | Whether to create an issue (false = informational only) |
 
 ### Size Guidelines
 

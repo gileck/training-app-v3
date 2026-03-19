@@ -703,7 +703,7 @@ yarn agent:tech-design --id <project-item-id>
 
 ## Related Documentation
 
-- **Overall workflow:** `docs/github-projects-integration.md`
+- **Overall workflow:** `docs/template/github-agents-workflow/overview.md`
 - **Bug Investigation workflow:** `docs/template/github-agents-workflow/bug-investigation.md`
 - **Multi-PR workflow:** `docs/template/github-agents-workflow/multi-phase-features.md`
 - **Setup guide:** `docs/template/github-agents-workflow/setup-guide.md`

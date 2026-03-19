@@ -8,7 +8,7 @@
 import { ObjectId } from 'mongodb';
 import { ApiHandlerContext } from '@/apis/types';
 import { featureRequests, reports } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 import type {
     GetDashboardAnalyticsRequest,
     GetDashboardAnalyticsResponse,

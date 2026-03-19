@@ -12,7 +12,7 @@ import {
     findDecisionItem,
     getDecisionFromDB,
 } from '../utils';
-import { getProjectManagementAdapter } from '@/server/project-management';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
 
 /**
  * Get decision data for an issue.
@@ -39,7 +39,7 @@ export async function getDecision(
         // Verify the issue is ready for decision selection
         const verification = await findDecisionItem(adapter, issueNumber);
         if (!verification.valid) {
-            return { error: verification.error };
+            return { error: 'This decision request has expired or already been submitted' };
         }
 
         // Get issue details

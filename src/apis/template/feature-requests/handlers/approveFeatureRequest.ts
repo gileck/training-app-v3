@@ -2,7 +2,7 @@ import { API_APPROVE_FEATURE_REQUEST } from '../index';
 import { ApproveFeatureRequestRequest, ApproveFeatureRequestResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClient } from './utils';
-import { approveWorkflowItem } from '@/server/workflow-service';
+import { approveWorkflowItem } from '@/server/template/workflow-service';
 import { featureRequests } from '@/server/database';
 
 export const approveFeatureRequest = async (
@@ -18,7 +18,10 @@ export const approveFeatureRequest = async (
             return { error: 'Request ID is required' };
         }
 
-        const result = await approveWorkflowItem({ id: request.requestId, type: 'feature' });
+        const result = await approveWorkflowItem(
+            { id: request.requestId, type: 'feature' },
+            request.toBacklog ? { initialRoute: 'backlog' } : undefined
+        );
 
         if (!result.success) {
             return { error: result.error || 'Failed to approve feature request' };

@@ -1,7 +1,7 @@
 ---
 title: MongoDB Usage
 description: Database layer patterns and schema evolution. Use this when working with MongoDB.
-summary: "All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**"
+summary: "All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/template/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**"
 priority: 3
 related_rules:
   - mongodb-usage
@@ -17,7 +17,7 @@ This document covers all MongoDB-related patterns, including database layer orga
 2. **No Direct MongoDB Imports**: Direct imports of `mongodb` outside the database layer are PROHIBITED
 3. **Clean API Layer**: The API layer (`src/apis`) must ONLY interact through the database layer
 4. **Type Safety**: All database operations should use TypeScript interfaces
-5. **Use ID Utilities**: Always use `@/server/utils` for ID conversion
+5. **Use ID Utilities**: Always use `@/server/template/utils` for ID conversion
 
 ## Required Structure
 
@@ -44,7 +44,7 @@ This app supports both MongoDB ObjectId (legacy) and UUID strings (client-genera
 ### Required: Use Server Utilities
 
 ```typescript
-import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
+import { toStringId, toQueryId, toDocumentId } from '@/server/template/utils';
 ```
 
 | Utility | Use Case | Example |
@@ -194,8 +194,8 @@ export type ExerciseUpdate = Partial<Omit<Exercise, '_id' | 'userId'>>;
 ```typescript
 // src/server/database/collections/exercises/exercises.ts
 import { Collection, ObjectId } from 'mongodb';
-import { getDb } from '@/server/database';
-import { toQueryId } from '@/server/utils';
+import { getDb } from '@/server/template/database';
+import { toQueryId } from '@/server/template/utils';
 import { Exercise } from './types';
 
 const getExercisesCollection = async (): Promise<Collection<Exercise>> => {
@@ -219,8 +219,8 @@ export const findExerciseById = async (
 
 ```typescript
 // src/apis/exercises/handlers/getExercise.ts
-import { exercises } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { exercises } from '@/server/template/database';
+import { toStringId } from '@/server/template/utils';
 
 export const getExercise = async (params, context) => {
   const exercise = await exercises.findExerciseById(params.id, context.userId);
@@ -253,7 +253,7 @@ const client = new MongoClient(process.env.MONGODB_URI!);
 
 ```typescript
 // WRONG
-import { getDb } from '@/server/database';
+import { getDb } from '@/server/template/database';
 const db = await getDb();
 const collection = db.collection('exercises');
 ```
@@ -272,6 +272,6 @@ const value = doc.newField?.toString() ?? 'default';
 
 ## Reference
 
-- **Server Utilities**: `src/server/utils/id.ts`
+- **Server Utilities**: `src/server/template/utils/id.ts`
 - **Database Layer**: `src/server/database/`
 - **Mutation Guidelines**: `docs/react-query-mutations.md`

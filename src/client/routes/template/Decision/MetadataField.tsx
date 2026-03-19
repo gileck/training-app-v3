@@ -67,6 +67,21 @@ export function MetadataField({ config, value }: MetadataFieldProps) {
         );
     }
 
+    if (config.type === 'preview-link') {
+        const url = typeof value === 'string' ? value : value[0];
+        if (!url) return null;
+        return (
+            <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+            >
+                {config.label} ↗
+            </a>
+        );
+    }
+
     // text type
     const strValue = typeof value === 'string' ? value : value.join(', ');
     return (

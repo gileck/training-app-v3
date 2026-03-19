@@ -4,7 +4,7 @@ import * as setLogs from '@/server/database/collections/project/setLogs';
 import * as planExercises from '@/server/database/collections/project/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/project/trainingPlans';
-import { toStringId, toQueryId, toDocumentId } from '@/server/utils';
+import { toStringId, toQueryId, toDocumentId } from '@/server/template/utils';
 
 export async function getActivity(
     request: GetActivityRequest,

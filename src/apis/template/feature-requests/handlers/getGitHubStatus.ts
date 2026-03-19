@@ -2,7 +2,7 @@ import { API_GET_GITHUB_STATUS } from '../index';
 import { GetGitHubStatusRequest, GetGitHubStatusResponse } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { getGitHubProjectStatus } from '@/server/github-status';
+import { getGitHubProjectStatus } from '@/server/template/github-status';
 
 export const getGitHubStatus = async (
     request: GetGitHubStatusRequest,

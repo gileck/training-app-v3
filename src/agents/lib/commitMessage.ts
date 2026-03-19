@@ -5,8 +5,8 @@
  * Used by PR Review Agent when approving PRs to store commit message for later merge.
  */
 
-import { COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
-import type { ProjectItemContent } from '@/server/project-management/types';
+import { COMMIT_MESSAGE_MARKER } from '@/server/template/project-management/config';
+import type { ProjectItemContent } from '@/server/template/project-management/types';
 
 // ============================================================
 // TYPES

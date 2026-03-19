@@ -1,6 +1,6 @@
 import { ApiHandlerContext, ListExercisesRequest, ListExercisesResponse } from '../types';
 import { exerciseDefinitions } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const listExercises = async (
     request: ListExercisesRequest,

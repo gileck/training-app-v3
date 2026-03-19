@@ -359,10 +359,10 @@ export function useCreateItem() {
 
 Your API handler must use the client-provided ID, not generate its own.
 
-**Use the server utilities** from `@/server/utils`:
+**Use the server utilities** from `@/server/template/utils`:
 
 ```typescript
-import { toDocumentId, toStringId, toQueryId } from '@/server/utils';
+import { toDocumentId, toStringId, toQueryId } from '@/server/template/utils';
 
 // ❌ WRONG - Server ignores client ID
 const newItem = await collection.insertOne({
@@ -385,7 +385,7 @@ return {
 };
 ```
 
-**Available server utilities** (`src/server/utils/id.ts`):
+**Available server utilities** (`src/server/template/utils/id.ts`):
 
 | Utility | Use Case |
 |---------|----------|
@@ -400,7 +400,7 @@ return {
 If the client retries with the same ID (network timeout, offline sync), the server must not create duplicates:
 
 ```typescript
-import { toQueryId, toDocumentId, toStringId } from '@/server/utils';
+import { toQueryId, toDocumentId, toStringId } from '@/server/template/utils';
 
 // Server handler
 async function createItem(data: CreateItemInput) {
@@ -423,7 +423,7 @@ This app uses **Option C (Recommended)**: Store UUID strings directly as `_id`.
 The server utilities handle both formats seamlessly:
 
 ```typescript
-import { toDocumentId, toQueryId, toStringId } from '@/server/utils';
+import { toDocumentId, toQueryId, toStringId } from '@/server/template/utils';
 
 // Insert - toDocumentId handles both formats
 await collection.insertOne({
@@ -461,7 +461,7 @@ TypeError: item._id.toHexString is not a function
 const clientId = item._id.toHexString(); // TypeError if _id is a UUID string!
 
 // ✅ CORRECT - Works for both ObjectId and string
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 const clientId = toStringId(item._id); // Always returns string
 ```
 
@@ -476,7 +476,7 @@ BSONError: input must be a 24 character hex string, 12 byte Uint8Array, or an in
 const docId = new ObjectId(clientProvidedId); // BSONError if it's a UUID!
 
 // ✅ CORRECT - Works for both formats
-import { toDocumentId } from '@/server/utils';
+import { toDocumentId } from '@/server/template/utils';
 const docId = toDocumentId(clientProvidedId); // ObjectId or string as appropriate
 ```
 
@@ -487,7 +487,7 @@ const docId = toDocumentId(clientProvidedId); // ObjectId or string as appropria
 const item = await collection.findOne({ _id: new ObjectId(id) });
 
 // ✅ CORRECT - Works for both formats
-import { toQueryId } from '@/server/utils';
+import { toQueryId } from '@/server/template/utils';
 const item = await collection.findOne({ _id: toQueryId(id) });
 ```
 
@@ -503,7 +503,7 @@ const item = await collection.findOne({ _id: toQueryId(id) });
 UUID v4 collision probability is ~1 in 2^122. You'll never see one. But if paranoid:
 
 ```typescript
-import { toQueryId } from '@/server/utils';
+import { toQueryId } from '@/server/template/utils';
 
 // Server can reject with specific error
 if (await collection.findOne({ _id: toQueryId(data._id) })) {

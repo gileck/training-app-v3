@@ -1,5 +1,6 @@
 import { Collection, ObjectId, Filter } from 'mongodb';
 import { getDb } from '../../../connection';
+import { normalizeDomain } from '@/server/template/project-management/domains';
 import type {
     WorkflowItemDocument,
     WorkflowItemCreate,
@@ -9,6 +10,7 @@ import type {
     CommitMessageRecord,
     DecisionArtifactRecord,
     ImplementationStatus,
+    HistoryEntry,
 } from './types';
 import type { DecisionSelection } from '@/apis/template/agent-decision/types';
 
@@ -66,17 +68,25 @@ export const findWorkflowItemBySourceRef = async (
  * Find all workflow items with optional filters
  */
 export const findAllWorkflowItems = async (
-    status?: string,
-    reviewStatus?: string
+    filters?: { status?: string; reviewStatus?: string; type?: string; domain?: string; domainMissing?: boolean }
 ): Promise<WorkflowItemDocument[]> => {
     const collection = await getWorkflowItemsCollection();
     const query: Filter<WorkflowItemDocument> = {};
 
-    if (status) {
-        query.status = status;
+    if (filters?.status) {
+        query.status = filters.status;
     }
-    if (reviewStatus) {
-        query.reviewStatus = reviewStatus;
+    if (filters?.reviewStatus) {
+        query.reviewStatus = filters.reviewStatus;
+    }
+    if (filters?.type) {
+        query.type = filters.type as WorkflowItemDocument['type'];
+    }
+    if (filters?.domain) {
+        query.domain = filters.domain;
+    }
+    if (filters?.domainMissing) {
+        query.$or = [{ domain: { $exists: false } }, { domain: '' }] as Filter<WorkflowItemDocument>[];
     }
 
     return collection.find(query).sort({ updatedAt: -1 }).toArray();
@@ -91,10 +101,21 @@ export const updateWorkflowFields = async (
         workflowStatus?: string | null;
         workflowReviewStatus?: string | null;
         implementationPhase?: string | null;
+        priority?: 'critical' | 'high' | 'medium' | 'low' | null;
+        size?: 'XS' | 'S' | 'M' | 'L' | 'XL' | null;
+        complexity?: 'High' | 'Medium' | 'Low' | null;
+        domain?: string | null;
+        description?: string | null;
+        createdBy?: string | null;
     }
 ): Promise<void> => {
     const collection = await getWorkflowItemsCollection();
     const idObj = typeof id === 'string' ? new ObjectId(id) : id;
+
+    // Normalize domain before saving
+    if (fields.domain && fields.domain !== null) {
+        fields = { ...fields, domain: normalizeDomain(fields.domain) };
+    }
 
     const $set: Record<string, unknown> = { updatedAt: new Date() };
     const $unset: Record<string, string> = {};
@@ -466,4 +487,44 @@ export const setDecisionSelection = async (
             },
         }
     );
+};
+
+/**
+ * Set workflow review data on a workflow item
+ */
+export const setWorkflowReviewData = async (
+    issueNumber: number,
+    reviewed: boolean,
+    reviewSummary?: string
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    const $set: Record<string, unknown> = { reviewed, updatedAt: new Date() };
+    if (reviewSummary !== undefined) $set.reviewSummary = reviewSummary;
+    await collection.updateOne({ githubIssueNumber: issueNumber }, { $set });
+};
+
+/**
+ * Append a history entry to a workflow item
+ */
+export const addHistoryEntry = async (
+    issueNumber: number,
+    entry: HistoryEntry
+): Promise<void> => {
+    const collection = await getWorkflowItemsCollection();
+    await collection.updateOne(
+        { githubIssueNumber: issueNumber },
+        {
+            $push: { history: entry },
+            $set: { updatedAt: new Date() },
+        }
+    );
+};
+
+/**
+ * Get all unique domain values across workflow items
+ */
+export const getUniqueDomains = async (): Promise<string[]> => {
+    const collection = await getWorkflowItemsCollection();
+    const domains = await collection.distinct('domain', { domain: { $exists: true, $ne: '' } });
+    return (domains as string[]).filter(Boolean).sort();
 };

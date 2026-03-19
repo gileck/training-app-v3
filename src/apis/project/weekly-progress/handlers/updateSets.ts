@@ -11,7 +11,7 @@ import {
     atomicDecrementSets,
     findOrCreateExerciseProgress,
 } from '@/server/database/collections/project/exerciseProgress';
-import { toStringId, toDocumentId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/template/utils';
 
 export const updateSets = async (
     request: UpdateSetsRequest,

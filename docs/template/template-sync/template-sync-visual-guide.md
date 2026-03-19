@@ -177,7 +177,7 @@ Migration: yarn sync-template --migrate
     │                                            │
     │  ✅ Applied successfully (13 files):       │
     │     • src/client/components/ui/button.tsx │
-    │     • src/server/middleware/auth.ts       │
+    │     • src/server/template/middleware/auth.ts       │
     │     • src/client/routes/Home/page.tsx     │
     │     • ... (10 more)                       │
     │                                            │

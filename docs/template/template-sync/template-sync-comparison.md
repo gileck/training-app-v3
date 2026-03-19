@@ -187,7 +187,7 @@ Total time: 15 minutes
 $ git merge upstream/main
 CONFLICT (content): Merge conflict in package.json
 CONFLICT (content): Merge conflict in README.md
-CONFLICT (content): Merge conflict in src/server/middleware/auth.ts
+CONFLICT (content): Merge conflict in src/server/template/middleware/auth.ts
 CONFLICT (content): Merge conflict in .env.example
 
 # Now manually resolve 4 files
@@ -199,7 +199,7 @@ Total time: 30 minutes
 $ yarn sync-template
 
 ✅ Auto-merged (1 file):
-   src/server/middleware/auth.ts
+   src/server/template/middleware/auth.ts
 
 Done!
 Total time: 30 seconds

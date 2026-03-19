@@ -35,7 +35,7 @@ module.exports = {
                 'api-guidelines/export-name-from-index': 'error',
                 'api-guidelines/no-export-process-from-index': 'error',
                 'api-guidelines/no-value-reexport-from-api-index': 'error',
-                // Warning only - suggests using @/server/utils for ID conversion
+                // Warning only - suggests using @/server/template/utils for ID conversion
                 'api-guidelines/prefer-id-utilities': 'warn',
             }
         }

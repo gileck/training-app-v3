@@ -91,6 +91,9 @@ export interface FeatureRequestDocument {
     // Approval token for Telegram quick-approve link
     approvalToken?: string;           // Secure token for one-click approval
 
+    // Agent attribution
+    createdBy?: string;               // Which agent created this (e.g., 'workflow-review', 'repo-commits-code-reviewer')
+
     // Timestamps
     createdAt: Date;
     updatedAt: Date;

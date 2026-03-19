@@ -15,7 +15,7 @@ import type {
     ExportExercise,
 } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions, planWorkouts, users } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 const EXPORT_VERSION = '1.0';
 

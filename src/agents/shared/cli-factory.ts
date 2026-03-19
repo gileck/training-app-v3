@@ -51,6 +51,8 @@ export function createCLI(config: CLIConfig): ParsedCLI {
     program
         .name(config.name)
         .description(config.description)
+        .allowUnknownOption()
+        .allowExcessArguments()
         .option('--id <itemId>', 'Process a specific project item by ID')
         .option('--limit <number>', 'Limit number of items to process', parseInt)
         .option('--timeout <seconds>', 'Timeout per item in seconds', parseInt)

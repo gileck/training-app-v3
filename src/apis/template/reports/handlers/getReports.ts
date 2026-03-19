@@ -2,7 +2,7 @@ import { API_GET_REPORTS } from '../index';
 import { GetReportsRequest, GetReportsResponse } from '../types';
 import { reports } from '@/server/database';
 import { ReportFilters } from '@/server/database/collections/template/reports/types';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const getReports = async (
     request: GetReportsRequest

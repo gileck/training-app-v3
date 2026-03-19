@@ -4,8 +4,8 @@ import { CreateFeatureRequestRequest, CreateFeatureRequestResponse } from '../ty
 import { featureRequests, users } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
-import { toDocumentId } from '@/server/utils';
-import { sendFeatureRequestNotification } from '@/server/telegram';
+import { toDocumentId } from '@/server/template/utils';
+import { sendFeatureRequestNotification } from '@/server/template/telegram';
 import type { ObjectId } from 'mongodb';
 
 /**

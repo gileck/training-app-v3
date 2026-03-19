@@ -21,7 +21,7 @@ import {
     weeklyProgress,
     exerciseProgress,
 } from '@/server/database';
-import { toQueryId, toStringId } from '@/server/utils';
+import { toQueryId, toStringId } from '@/server/template/utils';
 import { getDb } from '@/server/database';
 import { PlanExercise } from '@/server/database/collections/project/planExercises/types';
 

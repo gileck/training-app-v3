@@ -1,7 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { PlanExercise, PlanExerciseCreate, PlanExerciseUpdate } from './types';
-import { toQueryId } from '@/server/utils';
+import { toQueryId } from '@/server/template/utils';
 
 /**
  * Get a reference to the planExercises collection

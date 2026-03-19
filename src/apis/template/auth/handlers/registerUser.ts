@@ -12,11 +12,11 @@ import {
     COOKIE_NAME,
     COOKIE_OPTIONS,
     JWT_EXPIRES_IN,
-    JWT_SECRET,
+    getJwtSecret,
     SALT_ROUNDS,
     sanitizeUser,
 } from "../shared";
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 // Register endpoint
 export const registerUser = async (
@@ -53,7 +53,7 @@ export const registerUser = async (
         const userId = toStringId(newUser._id);
         const token = jwt.sign(
             { userId },
-            JWT_SECRET,
+            getJwtSecret(),
             { expiresIn: JWT_EXPIRES_IN }
         );
 

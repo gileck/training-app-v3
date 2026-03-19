@@ -73,14 +73,14 @@ export function useApproveItem() {
     const queryClient = useQueryClient();
 
     const approveFeatureMutation = useMutation({
-        mutationFn: async (requestId: string) => {
-            const response = await approveFeatureRequest({ requestId });
+        mutationFn: async ({ requestId, toBacklog }: { requestId: string; toBacklog?: boolean }) => {
+            const response = await approveFeatureRequest({ requestId, toBacklog });
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data;
         },
-        onMutate: async (requestId) => {
+        onMutate: async ({ requestId }) => {
             await queryClient.cancelQueries({ queryKey: ['item-detail-feature', requestId] });
             const previous = queryClient.getQueryData<FeatureRequestClient | null>(['item-detail-feature', requestId]);
             if (previous) {
@@ -101,17 +101,17 @@ export function useApproveItem() {
     });
 
     const approveBugMutation = useMutation({
-        mutationFn: async (reportId: string) => {
+        mutationFn: async ({ reportId, toBacklog }: { reportId: string; toBacklog?: boolean }) => {
             const response = await apiClient.post<ApproveBugReportResponse>(
                 API_APPROVE_BUG_REPORT,
-                { reportId }
+                { reportId, toBacklog }
             );
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
             return response.data;
         },
-        onMutate: async (reportId) => {
+        onMutate: async ({ reportId }) => {
             await queryClient.cancelQueries({ queryKey: ['item-detail-report', reportId] });
             const previous = queryClient.getQueryData<ReportClient | null>(['item-detail-report', reportId]);
             if (previous) {
@@ -132,8 +132,10 @@ export function useApproveItem() {
     });
 
     return {
-        approveFeature: approveFeatureMutation.mutateAsync,
-        approveBug: approveBugMutation.mutateAsync,
+        approveFeature: (requestId: string, toBacklog?: boolean) =>
+            approveFeatureMutation.mutateAsync({ requestId, toBacklog }),
+        approveBug: (reportId: string, toBacklog?: boolean) =>
+            approveBugMutation.mutateAsync({ reportId, toBacklog }),
         isPending: approveFeatureMutation.isPending || approveBugMutation.isPending,
     };
 }

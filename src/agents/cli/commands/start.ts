@@ -5,7 +5,7 @@
  */
 
 import { promptSelect, promptText } from '../utils/prompts';
-import { createFeatureWorkflow, createBugWorkflow, CreateOptions } from './create';
+import { handleCreate } from './create';
 
 /**
  * Handle the start command - interactive mode
@@ -44,48 +44,32 @@ export async function handleStart(): Promise<void> {
         ]);
     }
 
-    // 5. Ask about auto-approve
-    const autoApprove = await promptSelect('Approval:', [
-        { label: 'Auto-approve and sync to GitHub now (Recommended)', value: true },
-        { label: 'Send approval notification (wait for Telegram approval)', value: false },
-    ]);
+    // 5. Ask about routing
+    const routeOptions = type === 'feature'
+        ? [
+            { label: 'Backlog (default)', value: undefined },
+            { label: 'Product Development', value: 'product-dev' },
+            { label: 'Product Design', value: 'product-design' },
+            { label: 'Tech Design', value: 'tech-design' },
+            { label: 'Implementation', value: 'implementation' },
+        ]
+        : [
+            { label: 'Backlog (default)', value: undefined },
+            { label: 'Product Design', value: 'product-design' },
+            { label: 'Tech Design', value: 'tech-design' },
+            { label: 'Implementation', value: 'implementation' },
+        ];
 
-    // 6. If auto-approve, ask about routing
-    let workflowRoute: string | undefined;
-    if (autoApprove) {
-        const routeOptions = type === 'feature'
-            ? [
-                { label: 'Send to Telegram for routing (default)', value: undefined },
-                { label: 'Product Development', value: 'product-dev' },
-                { label: 'Product Design', value: 'product-design' },
-                { label: 'Tech Design', value: 'tech-design' },
-                { label: 'Implementation', value: 'implementation' },
-                { label: 'Backlog', value: 'backlog' },
-            ]
-            : [
-                { label: 'Send to Telegram for routing (default)', value: undefined },
-                { label: 'Product Design', value: 'product-design' },
-                { label: 'Tech Design', value: 'tech-design' },
-                { label: 'Implementation', value: 'implementation' },
-                { label: 'Backlog', value: 'backlog' },
-            ];
+    const workflowRoute = await promptSelect<string | undefined>('Route to phase:', routeOptions);
 
-        workflowRoute = await promptSelect<string | undefined>('Route to phase:', routeOptions);
-    }
+    // Build CLI args and delegate to handleCreate
+    const args: string[] = [
+        '--type', type as string,
+        '--title', title,
+        '--description', description,
+    ];
+    if (priority) args.push('--priority', priority);
+    if (workflowRoute) args.push('--workflow-route', workflowRoute);
 
-    // Build options
-    const options: CreateOptions = {
-        title,
-        description,
-        priority,
-        workflowRoute,
-        autoApprove,
-    };
-
-    // Execute workflow
-    if (type === 'feature') {
-        await createFeatureWorkflow(options);
-    } else {
-        await createBugWorkflow(options);
-    }
+    await handleCreate(args);
 }

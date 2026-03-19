@@ -177,7 +177,7 @@ Users can receive personal notifications by adding their chat ID to their Profil
 ### Send Notification to a User
 
 ```typescript
-import { sendTelegramNotificationToUser } from '@/server/telegram';
+import { sendTelegramNotificationToUser } from '@/server/template/telegram';
 
 // Send to a specific user (looks up their chat ID from database)
 await sendTelegramNotificationToUser(userId, 'Your message here');
@@ -191,7 +191,7 @@ await sendTelegramNotificationToUser(userId, '<b>Bold</b> message', {
 ### Send to a Specific Chat ID
 
 ```typescript
-import { sendTelegramNotification } from '@/server/telegram';
+import { sendTelegramNotification } from '@/server/template/telegram';
 
 // Send directly to a chat ID
 await sendTelegramNotification('123456789', 'Your message here');
@@ -245,7 +245,7 @@ interface User {
 
 | File | Description |
 |------|-------------|
-| `src/server/telegram/index.ts` | Notification service |
+| `src/server/template/telegram/index.ts` | Notification service |
 | `scripts/telegram-setup.ts` | CLI script to get chat ID |
 | `src/client/routes/Profile/` | UI for setting chat ID |
 

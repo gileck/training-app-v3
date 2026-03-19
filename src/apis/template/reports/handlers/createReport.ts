@@ -2,9 +2,9 @@ import { API_CREATE_REPORT } from '../index';
 import { CreateReportRequest, CreateReportResponse } from '../types';
 import { reports } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { fileStorageAPI } from '@/server/blob';
-import { toStringId } from '@/server/utils';
-import { sendBugReportNotification } from '@/server/telegram';
+import { fileStorageAPI } from '@/server/template/blob';
+import { toStringId } from '@/server/template/utils';
+import { sendBugReportNotification } from '@/server/template/telegram';
 import crypto from 'crypto';
 
 /**

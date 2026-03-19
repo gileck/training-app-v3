@@ -4,7 +4,7 @@
  * This app supports both MongoDB ObjectIds and client-generated UUIDs for _id fields.
  * Direct ObjectId methods like .toHexString() will fail on UUID strings.
  * 
- * Recommends using @/server/utils instead:
+ * Recommends using @/server/template/utils instead:
  * - toStringId() instead of .toHexString()
  * - toQueryId() instead of new ObjectId() in queries
  * - toDocumentId() instead of new ObjectId() for document insertion
@@ -22,9 +22,9 @@ module.exports = {
         schema: [],
         messages: {
             preferToStringId: 
-                'Avoid .toHexString() - it fails on UUID strings. Use toStringId() from @/server/utils instead.',
+                'Avoid .toHexString() - it fails on UUID strings. Use toStringId() from @/server/template/utils instead.',
             preferIdUtility: 
-                'new ObjectId(variable) may fail on UUID strings. Consider using toQueryId() or toDocumentId() from @/server/utils.',
+                'new ObjectId(variable) may fail on UUID strings. Consider using toQueryId() or toDocumentId() from @/server/template/utils.',
         },
     },
 

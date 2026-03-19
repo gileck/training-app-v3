@@ -7,7 +7,7 @@
 // Load environment variables from .env.local and .env files
 import './loadEnv';
 
-// Configuration - re-exports from @/server/project-management plus agent-specific config
+// Configuration - re-exports from @/server/template/project-management plus agent-specific config
 export {
     // Status constants
     STATUSES,
@@ -39,10 +39,10 @@ export type {
     ListItemsOptions,
     CreateIssueResult,
     CreatePRResult,
-} from '@/server/project-management';
+} from '@/server/template/project-management';
 
 // Re-export the adapter getter
-export { getProjectManagementAdapter } from '@/server/project-management';
+export { getProjectManagementAdapter } from '@/server/template/project-management';
 
 // Agent-specific types
 export type {
@@ -55,11 +55,13 @@ export type {
     ProcessingResult,
     BatchProcessingSummary,
 } from './types';
+export { calcTotalTokens } from './types';
 
 // Output schemas for structured outputs
 export type {
     ProductDevelopmentOutput,
     ProductDesignOutput,
+    MockOption,
     TechDesignOutput,
     ImplementationOutput,
     ImplementationPhase,
@@ -70,15 +72,22 @@ export type {
     FixOption,
     CodeReviewFinding,
     CodeReviewOutput,
+    WorkflowReviewFinding,
+    WorkflowReviewOutput,
+    TriageOutput,
 } from './output-schemas';
 export {
     PRODUCT_DEVELOPMENT_OUTPUT_FORMAT,
     PRODUCT_DESIGN_OUTPUT_FORMAT,
+    PRODUCT_DESIGN_PHASE1_OUTPUT_FORMAT,
+    PRODUCT_DESIGN_PHASE2_OUTPUT_FORMAT,
     TECH_DESIGN_OUTPUT_FORMAT,
     IMPLEMENTATION_OUTPUT_FORMAT,
     CLARIFICATION_SCHEMA_PROPERTIES,
     BUG_INVESTIGATION_OUTPUT_FORMAT,
     CODE_REVIEW_OUTPUT_FORMAT,
+    WORKFLOW_REVIEW_OUTPUT_FORMAT,
+    TRIAGE_OUTPUT_FORMAT,
 } from './output-schemas';
 
 // Agent library abstraction
@@ -121,6 +130,7 @@ export {
     notifyAgentStarted,
     notifyPhaseComplete,
     notifyDecisionNeeded,
+    notifyWorkflowReviewComplete,
 } from './notifications';
 
 // Prompts
@@ -131,6 +141,7 @@ export {
     buildProductDesignPrompt,
     buildProductDesignRevisionPrompt,
     buildProductDesignClarificationPrompt,
+    buildProductDesignPostSelectionPrompt,
     buildTechDesignPrompt,
     buildTechDesignRevisionPrompt,
     buildTechDesignClarificationPrompt,
@@ -141,6 +152,7 @@ export {
     buildBugInvestigationPrompt,
     buildBugInvestigationRevisionPrompt,
     buildBugInvestigationClarificationPrompt,
+    buildTriagePrompt,
 } from './prompts';
 
 // Utilities
@@ -209,6 +221,24 @@ export {
     getDefaultBranch,
 } from './git-utils';
 
-// Git Adapter (DI)
+// Git Adapter (DI for E2E test mockability — see git-adapter.ts)
 export { getGitAdapter, setGitAdapter, resetGitAdapter } from './git-adapter';
 export type { GitAdapter } from './git-adapter';
+
+// Shared error handler
+export { handleAgentError } from './error-handler';
+export type { AgentErrorContext } from './error-handler';
+
+// Main entry-point factory
+export { runAgentMain } from './main-factory';
+
+// Decision utilities
+export { toDecisionOptions } from './decision-utils';
+export type { DecisionOptionSource } from './decision-utils';
+
+// Phase resolution
+export { resolvePhaseDetails } from './phase-resolution';
+export type { ResolvedPhaseDetails } from './phase-resolution';
+
+// Console output helpers
+export { progress, warn } from './console';

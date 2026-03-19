@@ -83,6 +83,7 @@ async function migrate() {
                     githubIssueUrl: f.githubIssueUrl,
                     githubIssueTitle: f.githubIssueTitle,
                     labels: ['feature'],
+                    artifacts: {}, // Initialize empty artifacts object to ensure $push operations work correctly
                     createdAt: f.createdAt || now,
                     updatedAt: now,
                 });
@@ -146,6 +147,7 @@ async function migrate() {
                     githubIssueUrl: r.githubIssueUrl,
                     githubIssueTitle: r.githubIssueTitle,
                     labels: ['bug'],
+                    artifacts: {}, // Initialize empty artifacts object to ensure $push operations work correctly
                     createdAt: r.createdAt || now,
                     updatedAt: now,
                 });

@@ -5,7 +5,7 @@ import {
     PlanExerciseWithDefinition,
 } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export const listPlanExercises = async (
     request: ListPlanExercisesRequest,

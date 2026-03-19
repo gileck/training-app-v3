@@ -1,7 +1,7 @@
 import { createCache } from '@/common/cache';
 import { ClearCacheResponse } from './types';
 import { name } from "./index";
-import { fsCacheProvider, s3CacheProvider } from '@/server/cache/providers';
+import { fsCacheProvider, s3CacheProvider } from '@/server/template/cache/providers';
 import { appConfig } from '@/app.config';
 
 export * from "./index";

@@ -35,11 +35,11 @@ if git diff --cached --name-only | grep -q "^package-lock.json$"; then
     exit 1
 fi
 
-# Auto-regenerate CLAUDE.md when docs or skills change
-STAGED_DOCS=$(git diff --cached --name-only --diff-filter=ACMRD | grep -E '^(docs/|\.ai/skills/).*\.md$')
+# Auto-regenerate CLAUDE.md when docs change
+STAGED_DOCS=$(git diff --cached --name-only --diff-filter=ACMRD | grep -E '^docs/.*\.md$')
 
 if [ -n "$STAGED_DOCS" ]; then
-    echo "[pre-commit] Detected changes in docs/skills, regenerating CLAUDE.md..."
+    echo "[pre-commit] Detected changes in docs, regenerating CLAUDE.md..."
 
     # Run build:claude
     yarn build:claude 2>/dev/null

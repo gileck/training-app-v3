@@ -22,7 +22,7 @@ export interface MetadataFieldConfig {
     /** Display label */
     label: string;
     /** How to render this field */
-    type: 'badge' | 'text' | 'file-list' | 'tag';
+    type: 'badge' | 'text' | 'file-list' | 'tag' | 'preview-link';
     /**
      * Optional color map for badge type.
      * Maps values to Tailwind color classes.
@@ -52,6 +52,8 @@ export interface RoutingConfig {
     statusMap: Record<string, string>;
     /** Maps custom destination values to project status names (for custom solutions) */
     customDestinationStatusMap?: Record<string, string>;
+    /** When true, selection stays in the current phase (sets Decision Submitted) instead of routing to a new status */
+    continueAfterSelection?: boolean;
 }
 
 // ============================================================

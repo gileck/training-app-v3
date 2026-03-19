@@ -2,7 +2,7 @@ import { API_UPDATE_GITHUB_STATUS } from '../index';
 import { UpdateGitHubStatusRequest, UpdateGitHubStatusResponse } from '../types';
 import { featureRequests } from '@/server/database';
 import { ApiHandlerContext } from '@/apis/types';
-import { updateGitHubProjectStatus } from '@/server/github-status';
+import { updateGitHubProjectStatus } from '@/server/template/github-status';
 
 export const updateGitHubStatus = async (
     request: UpdateGitHubStatusRequest,
@@ -49,7 +49,7 @@ export const updateGitHubStatus = async (
 
         // Clear Review Status when manually changing status (admin is essentially approving/advancing)
         // This prevents "Waiting for Review" from being stuck when moving to the next phase
-        const { updateGitHubReviewStatus } = await import('@/server/github-status');
+        const { updateGitHubReviewStatus } = await import('@/server/template/github-status');
         await updateGitHubReviewStatus(featureRequest.githubProjectItemId, '');
 
         return { success: true };

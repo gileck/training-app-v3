@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { isS3LoggingEnabled, s3LogExists, s3WriteLog, s3AppendToLog } from './s3-writer';
+import { isS3LoggingEnabled, s3LogExists, s3ReadLog, s3WriteLog, s3AppendToLog } from './s3-writer';
 
 /**
  * Base directory for agent logs
@@ -128,9 +128,44 @@ export function readLog(issueNumber: number): string {
 }
 
 /**
+ * Read the entire log file content (async, S3-aware)
+ * When S3 logging is enabled, reads from S3; otherwise reads from local disk.
+ */
+export async function readLogAsync(issueNumber: number): Promise<string> {
+    if (isS3LoggingEnabled()) {
+        return await s3ReadLog(issueNumber);
+    }
+
+    const logPath = getLogPath(issueNumber);
+    if (!fs.existsSync(logPath)) {
+        return '';
+    }
+    return fs.readFileSync(logPath, 'utf-8');
+}
+
+/**
  * Write the entire log file content (overwrites existing)
  */
 export function writeLog(issueNumber: number, content: string): void {
+    try {
+        ensureLogDir();
+        const logPath = getLogPath(issueNumber);
+        fs.writeFileSync(logPath, content, 'utf-8');
+    } catch (err) {
+        console.warn(`Failed to write local log for issue #${issueNumber}:`, err instanceof Error ? err.message : err);
+    }
+}
+
+/**
+ * Write the entire log file content (async, S3-aware)
+ * When S3 logging is enabled, writes to S3; otherwise writes to local disk.
+ */
+export async function writeLogAsync(issueNumber: number, content: string): Promise<void> {
+    if (isS3LoggingEnabled()) {
+        await s3WriteLog(issueNumber, content);
+        return;
+    }
+
     try {
         ensureLogDir();
         const logPath = getLogPath(issueNumber);

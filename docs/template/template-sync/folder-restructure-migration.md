@@ -40,7 +40,7 @@ The template now organizes files into `template/` and `project/` subfolders for 
 | Before | After |
 |--------|-------|
 | `scripts/template-scripts/` | `scripts/template/` |
-| `.ai/skills/*` | `.ai/skills/template/*` |
+| `.ai/skills/*` | `.ai/commands/*` |
 | `docs/*.md` | `docs/template/*.md` |
 | `docs/template-sync/` | `docs/template/template-sync/` |
 | `docs/github-agents-workflow/` | `docs/template/github-agents-workflow/` |
@@ -61,11 +61,7 @@ scripts/
 │   └── ...
 └── project/           # Project-owned scripts (your custom scripts)
 
-.ai/skills/
-├── template/          # Template-owned skills (synced from template)
-│   ├── ai-models-api-usage/
-│   └── ...
-└── project/          # Project-owned skills (your custom skills)
+.ai/commands/            # Slash commands (synced from template)
 
 docs/
 ├── template/         # Template-owned docs (synced from template)
@@ -92,7 +88,7 @@ yarn sync-template --auto-safe-only
 ```
 
 This will:
-- Add all new files in `scripts/template/`, `.ai/skills/template/`, `docs/template/`
+- Add all new files in `scripts/template/`, `.ai/commands/`, `docs/template/`
 - Update `package.json` with new script paths
 - Run validation (`yarn checks`) automatically
 - **Auto-commit** the synced changes with message: `chore: sync template (abc123)`
@@ -123,7 +119,7 @@ yarn cleanup-old-folders
 
 This removes:
 - `scripts/template-scripts/` (replaced by `scripts/template/`)
-- `.ai/skills/*` root-level skills (replaced by `.ai/skills/template/*`)
+- `.ai/skills/*` root-level skills (replaced by `.ai/commands/*`)
 - `docs/*.md` root-level docs (replaced by `docs/template/*.md`)
 - `docs/template-sync/` (replaced by `docs/template/template-sync/`)
 - `docs/github-agents-workflow/` (replaced by `docs/template/github-agents-workflow/`)
@@ -184,7 +180,7 @@ To:
 {
   "templatePaths": [
     "scripts/template/**",
-    ".ai/skills/template/**",
+    ".ai/commands/**",
     "docs/template/**",
     ...
   ],
@@ -219,11 +215,11 @@ yarn cleanup-old-folders
 
 ### Skills not loading after cleanup
 
-Make sure you didn't delete `.ai/skills/template/` - only delete the root-level skill folders.
+Make sure you didn't delete `.ai/commands/` - only delete the root-level skill folders.
 
 ### Custom skills were deleted
 
-If you had custom skills in `.ai/skills/`, they should be moved to `.ai/skills/project/` before cleanup. The cleanup script only deletes known template skill folders.
+If you had custom skills in `.ai/skills/`, they have been consolidated into `.ai/commands/`. The cleanup script only deletes known template skill folders.
 
 ---
 

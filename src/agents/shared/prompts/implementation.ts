@@ -5,7 +5,7 @@
  * based on approved design documents.
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 import {
     AMBIGUITY_INSTRUCTIONS,
@@ -92,7 +92,7 @@ Implement the feature as specified in ${implementationSource}:
 
 If this is a multi-phase feature, the phase's \`files\` list contains TWO types of files:
 1. **Source files to create/modify** - Files in \`src/\` that you will implement
-2. **Relevant documentation** - Files in \`docs/\` and \`.ai/skills/\` that you should READ FIRST
+2. **Relevant documentation** - Files in \`docs/\` that you should READ FIRST
 
 **CRITICAL**: Before implementing, identify and READ all documentation files from the phase's file list. These were specifically selected by the tech design as relevant to this phase's implementation.
 
@@ -329,7 +329,7 @@ ${reviewComments || 'No PR review comments'}
 You have received feedback from two different reviewers with distinct roles:
 
 **1. PR Review Agent** (author: "Agent (PR Review)")
-- **Focus**: Project-specific guidelines compliance from \`.ai/skills/\`
+- **Focus**: Project-specific guidelines compliance from \`docs/template/project-guidelines/\`
 - **Checks**: TypeScript patterns, React patterns, state management, file organization, API structure
 - **Priority**: HIGH - These are project standards that MUST be followed
 - **Expertise**: This project's architecture and coding conventions
@@ -354,7 +354,7 @@ You have received feedback from two different reviewers with distinct roles:
 
 ### When Reviewer Feedback Conflicts with Project Rules
 
-**Project docs and rules are the source of truth.** Claude reviewers may not be fully aware of all project-specific patterns documented in \`docs/\` and \`.ai/skills/\`.
+**Project docs and rules are the source of truth.** Claude reviewers may not be fully aware of all project-specific patterns documented in \`docs/\` and \`docs/template/project-guidelines/\`.
 
 If a reviewer suggests a change that **contradicts** project documentation:
 1. **Follow the project docs/rules** - they take precedence
@@ -377,7 +377,7 @@ The reviewer will see your explanation and understand the project convention in 
 
 ## Guidelines
 
-**Follow project guidelines in \`.ai/skills/\`** (same as initial implementation)
+**Follow project guidelines in \`docs/template/project-guidelines/\`** (same as initial implementation)
 
 ${THEMING_INSTRUCTIONS}
 
@@ -386,7 +386,7 @@ Key principles:
 - Keep changes focused on the feedback
 - Don't add extra features or refactoring
 - Test your changes make sense in context
-- Follow TypeScript, React, and state management patterns from \`.ai/skills/\`
+- Follow TypeScript, React, and state management patterns from \`docs/template/project-guidelines/\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 

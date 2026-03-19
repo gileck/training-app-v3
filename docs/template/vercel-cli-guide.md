@@ -90,7 +90,7 @@ Use `--cloud-proxy` when running in Claude Code cloud environment.
 
 ## Related Rules
 
-[.ai/skills/vercel-cli-usage/SKILL.md](../.ai/skills/vercel-cli-usage/SKILL.md)
+[docs/template/project-guidelines/vercel-cli-usage.md](project-guidelines/vercel-cli-usage.md)
 
 ---
 

@@ -8,7 +8,7 @@
  *
  * Old structure:
  *   - scripts/template-scripts/  → scripts/template/
- *   - .ai/skills/*               → .ai/skills/template/*
+ *   - .ai/skills/*               → .ai/commands/*
  *   - docs/*.md                  → docs/template/*.md
  *
  * Usage:
@@ -31,7 +31,7 @@ const OLD_FOLDERS = [
   'scripts/template-scripts',
 ];
 
-// Old skill folders (at .ai/skills/ root, not in template/ or project/)
+// Old skill folders (at .ai/skills/ root, legacy locations)
 const OLD_SKILL_FOLDERS = [
   'ai-models-api-usage',
   'app-guidelines-checklist',

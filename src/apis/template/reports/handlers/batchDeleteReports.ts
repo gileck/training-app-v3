@@ -1,7 +1,7 @@
 import { BatchDeleteReportsRequest, BatchDeleteReportsResponse } from '../types';
 import { ApiHandlerContext } from '@/apis/types';
 import { reports } from '@/server/database';
-import { fileStorageAPI } from '@/server/blob';
+import { fileStorageAPI } from '@/server/template/blob';
 
 export const batchDeleteReports = async (
     request: BatchDeleteReportsRequest,

@@ -593,7 +593,7 @@ To enable unified logging from all sources, set up S3 logging as described above
 - `src/agents/lib/logging/types.ts` - TypeScript types
 - `src/apis/agent-log/` - External logging API endpoint
 - `src/pages/api/telegram-webhook.ts` - Telegram webhook (uses logging)
-- `.claude/commands/workflow-review.md` - Workflow reviewer skill
+- `.ai/commands/workflow-review.md` - Workflow reviewer skill
 
 ---
 

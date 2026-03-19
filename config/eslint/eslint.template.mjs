@@ -69,12 +69,12 @@ const eslintTemplateConfig = [
       "api-guidelines/api-names-from-index": ["warn", {
         // Type imports from server are fine
         allowedPaths: [
-          '@/server/cache/types'
+          '@/server/template/cache/types'
         ]
       }],
       "api-guidelines/server-reexport-from-index": "warn",
-      "api-guidelines/client-returns-cache-result": "warn",
-      "api-guidelines/no-duplicate-api-types": "warn",
+      "api-guidelines/client-returns-cache-result": "off",
+      "api-guidelines/no-duplicate-api-types": "off",
       "api-guidelines/no-direct-api-client-call": "warn",
       "api-guidelines/export-name-from-index": "warn",
       "api-guidelines/no-export-process-from-index": ["warn", {
@@ -117,6 +117,19 @@ const eslintTemplateConfig = [
     ],
     rules: {
       "state-management/prefer-state-architecture": "warn"
+    }
+  },
+  // Scope API-specific lint rules to where they actually apply
+  {
+    files: ["src/apis/**/client.ts", "src/apis/**/client.tsx"],
+    rules: {
+      "api-guidelines/client-returns-cache-result": "warn"
+    }
+  },
+  {
+    files: ["src/client/**/*.ts", "src/client/**/*.tsx", "src/agents/**/*.ts"],
+    rules: {
+      "api-guidelines/no-duplicate-api-types": "warn"
     }
   },
   // Allow direct zustand imports in the stores factory folder

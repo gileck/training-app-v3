@@ -5,9 +5,9 @@
  * single-operation API. See index.ts for architecture notes.
  */
 
-import { AIModelAdapter } from '../../../server/ai/baseModelAdapter';
-import { AIModelAdapterResponse } from '../../../server/ai/types';
-import { getModelById } from '../../../server/ai/models';
+import { AIModelAdapter } from '@/server/template/ai/baseModelAdapter';
+import { AIModelAdapterResponse } from '@/server/template/ai/types';
+import { getModelById } from '@/server/template/ai/models';
 import { GenerateWarmupRequest, GenerateWarmupResponse, WarmupExerciseData } from './types';
 import { GENERATE_WARMUP } from './index';
 

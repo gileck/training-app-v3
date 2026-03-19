@@ -7,7 +7,7 @@
 
 import type { ExerciseDefinition } from '@/server/database/collections/project/exerciseDefinitions/types';
 import type { SuggestedMatch, ExerciseMatchStatus } from '../types';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 export interface MatchResult {
     status: ExerciseMatchStatus;

@@ -344,6 +344,8 @@ IMPORTANT:
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -363,6 +365,7 @@ IMPORTANT:
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -375,6 +378,7 @@ IMPORTANT:
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -390,6 +394,7 @@ IMPORTANT:
                     usage,
                     durationSeconds,
                     structuredOutput,
+                    toolCallsCount: toolCallCount,
                 };
             } else {
                 // Non-streaming execution
@@ -420,6 +425,8 @@ IMPORTANT:
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -439,6 +446,7 @@ IMPORTANT:
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -451,6 +459,7 @@ IMPORTANT:
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -466,6 +475,7 @@ IMPORTANT:
                     usage,
                     durationSeconds,
                     structuredOutput,
+                    toolCallsCount: toolCallCount,
                 };
             }
         } catch (error) {
@@ -484,6 +494,7 @@ IMPORTANT:
                 filesExamined,
                 usage: null,
                 durationSeconds,
+                toolCallsCount: toolCallCount,
             };
         }
     }

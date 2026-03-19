@@ -523,8 +523,8 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     if (token) {
         try {
             // Use dynamic import to avoid loading server code at script load time
-            const { getProjectManagementAdapter } = await import('../../src/server/project-management/index.js');
-            const { STATUSES } = await import('../../src/server/project-management/config.js');
+            const { getProjectManagementAdapter } = await import('../../src/server/template/project-management/index.js');
+            const { STATUSES } = await import('../../src/server/template/project-management/config.js');
 
             const adapter = getProjectManagementAdapter();
             await adapter.init();
@@ -578,8 +578,8 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     if (token) {
         try {
             // Use dynamic import to avoid loading server code at script load time
-            const { getProjectManagementAdapter } = await import('../../src/server/project-management/index.js');
-            const { REVIEW_STATUSES } = await import('../../src/server/project-management/config.js');
+            const { getProjectManagementAdapter } = await import('../../src/server/template/project-management/index.js');
+            const { REVIEW_STATUSES } = await import('../../src/server/template/project-management/config.js');
 
             const adapter = getProjectManagementAdapter();
             await adapter.init();
@@ -626,7 +626,7 @@ async function checkGitHubProject(): Promise<CategoryResults> {
     // Verify Implementation Phase field (optional - for multi-PR workflow)
     if (token) {
         try {
-            const { getProjectManagementAdapter } = await import('../../src/server/project-management/index.js');
+            const { getProjectManagementAdapter } = await import('../../src/server/template/project-management/index.js');
             const adapter = getProjectManagementAdapter();
             await adapter.init();
 

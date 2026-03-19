@@ -3,7 +3,7 @@ import type { BulkAddPlanExercisesRequest, BulkAddPlanExercisesResponse, BulkAdd
 import * as planExercises from '@/server/database/collections/project/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/project/trainingPlans';
-import { toStringId, toDocumentId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/template/utils';
 
 export async function bulkAddPlanExercises(
     request: BulkAddPlanExercisesRequest,

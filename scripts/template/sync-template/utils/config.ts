@@ -160,6 +160,43 @@ export function hasSplitConfig(projectRoot: string): boolean {
 }
 
 /**
+ * Sync the template config file from the cloned template into the project.
+ * This ensures the project has the latest templatePaths and templateIgnoredFiles.
+ */
+export function syncTemplateConfig(projectRoot: string, templateDir: string, dryRun: boolean, quiet: boolean = false): void {
+  const templateConfigSrc = path.join(projectRoot, templateDir, TEMPLATE_CONFIG_FILE);
+
+  // Check if template has a split config
+  if (!fs.existsSync(templateConfigSrc)) {
+    return;  // Template doesn't use split config yet
+  }
+
+  const templateConfigDst = path.join(projectRoot, TEMPLATE_CONFIG_FILE);
+  const templateConfigContent = fs.readFileSync(templateConfigSrc, 'utf-8');
+
+  // Check if it's different from current
+  let isDifferent = true;
+  if (fs.existsSync(templateConfigDst)) {
+    const currentContent = fs.readFileSync(templateConfigDst, 'utf-8');
+    isDifferent = currentContent !== templateConfigContent;
+  }
+
+  if (isDifferent) {
+    if (!quiet) {
+      console.log(`\n📋 Syncing template config (${TEMPLATE_CONFIG_FILE})...`);
+    }
+    if (!dryRun) {
+      fs.writeFileSync(templateConfigDst, templateConfigContent);
+      if (!quiet) {
+        console.log('   ✅ Template config updated');
+      }
+    } else if (!quiet) {
+      console.log('   🔍 Would update template config (dry-run)');
+    }
+  }
+}
+
+/**
  * Load template's config and merge templateIgnoredFiles into project config.
  * This allows the template to specify files that should never be synced to children.
  */

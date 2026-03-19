@@ -313,6 +313,8 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -335,6 +337,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -347,6 +350,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -358,6 +362,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                     filesExamined,
                     usage,
                     durationSeconds,
+                    toolCallsCount: toolCallCount,
                 };
             } else {
                 // Non-streaming execution
@@ -388,6 +393,8 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         inputTokens: usage.inputTokens,
                         outputTokens: usage.outputTokens,
                         cost: usage.totalCostUSD,
+                        cacheReadInputTokens: usage.cacheReadInputTokens,
+                        cacheCreationInputTokens: usage.cacheCreationInputTokens,
                     });
                 }
 
@@ -410,6 +417,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -422,6 +430,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                         filesExamined,
                         usage,
                         durationSeconds,
+                        toolCallsCount: toolCallCount,
                     };
                 }
 
@@ -433,6 +442,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                     filesExamined,
                     usage,
                     durationSeconds,
+                    toolCallsCount: toolCallCount,
                 };
             }
         } catch (error) {
@@ -451,6 +461,7 @@ class GeminiAdapter implements AgentLibraryAdapter {
                 filesExamined,
                 usage: null,
                 durationSeconds,
+                toolCallsCount: toolCallCount,
             };
         }
     }

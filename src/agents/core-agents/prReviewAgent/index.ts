@@ -37,7 +37,6 @@ import {
     // Notifications
     notifyPRReviewComplete,
     notifyPRReadyToMerge,
-    notifyAgentError,
     notifyAgentStarted,
     // Types
     type CommonCLIOptions,
@@ -53,6 +52,12 @@ import {
     getCurrentBranch,
     // CLI
     createCLI,
+    // Error handler
+    handleAgentError,
+    // Main factory
+    runAgentMain,
+    // Token calculation
+    calcTotalTokens,
 } from '../../shared';
 import {
     createLogContext,
@@ -63,11 +68,7 @@ import {
 } from '../../lib/logging';
 import {
     parsePhaseString,
-    extractPhasesFromTechDesign,
 } from '../../lib/parsing';
-import {
-    parsePhasesFromComment,
-} from '../../lib/phases';
 import {
     extractTechDesign,
     generateCommitMessage,
@@ -75,11 +76,12 @@ import {
     getTechDesignPath,
     updateImplementationPhaseArtifact,
 } from '../../lib';
-import { getArtifactsFromIssue, getPhasesFromDB, saveCommitMessage, savePhaseStatusToDB } from '../../lib/workflow-db';
+import { getArtifactsFromIssue, saveCommitMessage, savePhaseStatusToDB } from '../../lib/workflow-db';
+import { resolvePhaseDetails } from '../../shared/phase-resolution';
 import {
     readDesignDoc,
 } from '../../lib/design-files';
-import { COMMIT_MESSAGE_MARKER } from '@/server/project-management/config';
+import { COMMIT_MESSAGE_MARKER } from '@/server/template/project-management/config';
 import {
     createPrReviewerAgentPrompt,
     type PromptContext,
@@ -346,7 +348,7 @@ export async function processItem(
                     : REVIEW_STATUSES.requestChanges;
 
                 // Update review status via workflow service
-                const { completeAgentRun } = await import('@/server/workflow-service');
+                const { completeAgentRun } = await import('@/server/template/workflow-service');
                 await completeAgentRun(issueNumber, 'pr-review', {
                     reviewStatus: newReviewStatus,
                 });
@@ -381,7 +383,9 @@ export async function processItem(
                         }
                         console.log('  Updated artifact comment - PR approved');
                     } catch (error) {
-                        console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+                        const warnMsg = `Failed to update artifact comment: ${error instanceof Error ? error.message : String(error)}`;
+                        console.warn(`  Warning: ${warnMsg}`);
+                        logError(logCtx, warnMsg, false);
                     }
 
                     // 2. Get PR info for commit message
@@ -451,7 +455,9 @@ export async function processItem(
                         }
                         console.log('  Updated artifact comment - changes requested');
                     } catch (error) {
-                        console.warn('  Warning: Failed to update artifact comment:', error instanceof Error ? error.message : String(error));
+                        const warnMsg = `Failed to update artifact comment: ${error instanceof Error ? error.message : String(error)}`;
+                        console.warn(`  Warning: ${warnMsg}`);
+                        logError(logCtx, warnMsg, false);
                     }
 
                     await notifyPRReviewComplete(content.title, issueNumber, prNumber, decision, summary, issueType);
@@ -459,10 +465,10 @@ export async function processItem(
             }
 
             // Log execution end
-            logExecutionEnd(logCtx, {
+            await logExecutionEnd(logCtx, {
                 success: true,
-                toolCallsCount: 0, // Not tracked in UsageStats
-                totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+                toolCallsCount: result.toolCallsCount ?? 0,
+                totalTokens: calcTotalTokens(result.usage),
                 totalCost: result.usage?.totalCostUSD ?? 0,
             });
 
@@ -475,23 +481,14 @@ export async function processItem(
             }
         }
     } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error(`  Error: ${errorMsg}`);
-
-        // Log error
-        logError(logCtx, error instanceof Error ? error : errorMsg, true);
-        logExecutionEnd(logCtx, {
-            success: false,
-            toolCallsCount: 0,
-            totalTokens: 0,
-            totalCost: 0,
+        return handleAgentError({
+            error,
+            logCtx,
+            phaseName: 'PR Review',
+            issueTitle: content.title,
+            issueNumber,
+            dryRun: !!options.dryRun,
         });
-
-        if (!options.dryRun) {
-            await notifyAgentError('PR Review', content.title, issueNumber, errorMsg);
-        }
-
-        return { success: false, error: errorMsg };
     }
     });
 }
@@ -559,7 +556,7 @@ async function run(options: PRReviewOptions): Promise<void> {
                 updatedAt: c.updatedAt,
             }));
 
-            // Try to get phases from DB first, then comments, then markdown
+            // Get tech design for fallback phase resolution
             let techDesign: string | null = null;
 
             // Try DB-first artifact read for tech design path
@@ -574,21 +571,18 @@ async function run(options: PRReviewOptions): Promise<void> {
                 techDesign = extractTechDesign(item.content.body);
             }
 
-            const phases = await getPhasesFromDB(issueNumber) ||
-                          parsePhasesFromComment(commentsList) ||
-                          (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
-
-            const currentPhaseDetails = phases?.find(p => p.order === parsed.current);
+            // Resolve phase details from DB/comments/markdown
+            const resolved = await resolvePhaseDetails(issueNumber, commentsList, techDesign, parsed.current);
 
             phaseInfo = {
                 current: parsed.current,
                 total: parsed.total,
-                phaseName: currentPhaseDetails?.name,
-                phaseDescription: currentPhaseDetails?.description,
-                phaseFiles: currentPhaseDetails?.files,
+                phaseName: resolved?.currentPhaseDetails?.name,
+                phaseDescription: resolved?.currentPhaseDetails?.description,
+                phaseFiles: resolved?.currentPhaseDetails?.files,
             };
 
-            console.log(`  📋 Phase ${parsed.current}/${parsed.total}: ${currentPhaseDetails?.name || 'Unknown'}`);
+            console.log(`  📋 Phase ${parsed.current}/${parsed.total}: ${resolved?.currentPhaseDetails?.name || 'Unknown'}`);
         }
 
         processableItems.push({ item, prNumber, branchName, phaseInfo });
@@ -670,13 +664,4 @@ async function main(): Promise<void> {
 }
 
 // Run (skip when imported as a module in tests)
-if (!process.env.VITEST) {
-    main()
-        .then(() => {
-            process.exit(0);
-        })
-        .catch((error) => {
-            console.error('Fatal error:', error);
-            process.exit(1);
-        });
-}
+runAgentMain(main, { skipInTest: true });

@@ -1,13 +1,21 @@
 import { createStore } from '@/client/stores';
 
 export type TypeFilter = 'all' | 'feature' | 'bug';
-export type ViewFilter = 'all' | 'pending' | 'active' | 'done';
+export type PriorityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
+export type SizeFilter = 'all' | 'XS' | 'S' | 'M' | 'L' | 'XL';
+export type DomainFilter = 'all' | string;
+export type SortBy = 'date' | 'priority' | 'size';
+export type LayoutMode = 'list' | 'board' | 'activity';
 export type SelectableItem = { type: 'feature' | 'bug'; mongoId: string };
 
 interface WorkflowPageState {
     // Persisted (survives navigation + page refresh)
     typeFilter: TypeFilter;
-    viewFilter: ViewFilter;
+    priorityFilter: PriorityFilter;
+    sizeFilter: SizeFilter;
+    domainFilter: DomainFilter;
+    sortBy: SortBy;
+    layoutMode: LayoutMode;
     collapsedSections: string[];
 
     // Non-persisted (survives navigation only, resets on page refresh)
@@ -20,7 +28,11 @@ interface WorkflowPageState {
 
     // Actions
     setTypeFilter: (filter: TypeFilter) => void;
-    setViewFilter: (filter: ViewFilter) => void;
+    setPriorityFilter: (filter: PriorityFilter) => void;
+    setSizeFilter: (filter: SizeFilter) => void;
+    setDomainFilter: (filter: DomainFilter) => void;
+    setSortBy: (sort: SortBy) => void;
+    setLayoutMode: (mode: LayoutMode) => void;
     toggleSection: (section: string) => void;
     toggleAllSections: (allKeys: readonly string[]) => void;
     setSelectedItemId: (id: string | null) => void;
@@ -37,7 +49,11 @@ export const useWorkflowPageStore = createStore<WorkflowPageState>({
     label: 'Workflow Page',
     creator: (set) => ({
         typeFilter: 'all',
-        viewFilter: 'all',
+        priorityFilter: 'all',
+        sizeFilter: 'all',
+        domainFilter: 'all',
+        sortBy: 'date',
+        layoutMode: 'list',
         collapsedSections: [],
         selectedItemId: null,
         selectMode: false,
@@ -47,7 +63,11 @@ export const useWorkflowPageStore = createStore<WorkflowPageState>({
         isBulkApproving: false,
 
         setTypeFilter: (filter) => set({ typeFilter: filter }),
-        setViewFilter: (filter) => set({ viewFilter: filter }),
+        setPriorityFilter: (filter) => set({ priorityFilter: filter }),
+        setSizeFilter: (filter) => set({ sizeFilter: filter }),
+        setDomainFilter: (filter) => set({ domainFilter: filter }),
+        setSortBy: (sort) => set({ sortBy: sort }),
+        setLayoutMode: (mode) => set({ layoutMode: mode }),
 
         toggleSection: (section) =>
             set((state) => {
@@ -98,7 +118,11 @@ export const useWorkflowPageStore = createStore<WorkflowPageState>({
     persistOptions: {
         partialize: (state) => ({
             typeFilter: state.typeFilter,
-            viewFilter: state.viewFilter,
+            priorityFilter: state.priorityFilter,
+            sizeFilter: state.sizeFilter,
+            domainFilter: state.domainFilter,
+            sortBy: state.sortBy,
+            layoutMode: state.layoutMode,
             collapsedSections: state.collapsedSections,
         }),
     },

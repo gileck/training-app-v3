@@ -39,6 +39,42 @@ export interface WorkflowItemPRData {
     revertPrNumber?: number;
 }
 
+export const WORKFLOW_HISTORY_ACTIONS = {
+    feature_approved: 'Feature approved',
+    bug_approved: 'Bug approved',
+    status_advanced: 'Status advanced',
+    marked_done: 'Marked done',
+    routed: 'Routed',
+    pr_merged: 'PR merged',
+    design_pr_merged: 'Design PR merged',
+    final_pr_merged: 'Final PR merged',
+    design_approved: 'Design approved',
+    design_changes: 'Design changes requested',
+    design_rejected: 'Design rejected',
+    pr_changes_requested: 'PR changes requested',
+    design_pr_changes_requested: 'Design PR changes requested',
+    agent_completed: 'Agent completed',
+    agent_started: 'Agent started',
+    clarification_received: 'Clarification received',
+    choose_recommended: 'Recommended option chosen',
+    status_changed: 'Status changed',
+    undo: 'Action undone',
+    revert_initiated: 'Revert initiated',
+    revert_merged: 'Revert merged',
+    decision_routed: 'Decision routed',
+    created: 'Item created',
+} as const;
+
+export type WorkflowHistoryAction = keyof typeof WORKFLOW_HISTORY_ACTIONS;
+
+export interface WorkflowHistoryEntry {
+    action: WorkflowHistoryAction | (string & {});
+    description: string;
+    timestamp: string;
+    actor?: string;
+    metadata?: Record<string, unknown>;
+}
+
 export interface WorkflowItem {
     id: string;
     /** Composite ID for navigation to detail page (e.g., "feature:mongoId" or "report:mongoId") */
@@ -47,9 +83,18 @@ export interface WorkflowItem {
     type: 'feature' | 'bug' | 'task';
     status: string | null;
     reviewStatus: string | null;
+    priority?: 'critical' | 'high' | 'medium' | 'low';
+    size?: 'XS' | 'S' | 'M' | 'L' | 'XL';
+    complexity?: 'High' | 'Medium' | 'Low';
+    domain?: string;
+    description?: string;
     content: WorkflowItemContent | null;
     implementationPhase?: string | null;
     prData?: WorkflowItemPRData;
+    history?: WorkflowHistoryEntry[];
+    reviewed?: boolean;
+    reviewSummary?: string;
+    createdBy?: string;
     createdAt: string | null;
 }
 
@@ -91,11 +136,13 @@ export type WorkflowActionType =
     | 'clarification-received'
     | 'choose-recommended'
     | 'mark-done'
+    | 'approve-design'
     | 'merge-design-pr'
     | 'merge-pr'
     | 'merge-final-pr'
     | 'revert-pr'
     | 'merge-revert-pr'
+    | 'request-changes-design-pr'
     | 'undo-action';
 
 export interface WorkflowActionRequest {
@@ -112,4 +159,23 @@ export interface WorkflowActionResponse {
     success?: boolean;
     error?: string;
     message?: string;
+}
+
+// ============================================================================
+// Update Fields API
+// ============================================================================
+
+export interface UpdateWorkflowFieldsRequest {
+    itemId: string;
+    fields: {
+        priority?: 'critical' | 'high' | 'medium' | 'low' | null;
+        size?: 'XS' | 'S' | 'M' | 'L' | 'XL' | null;
+        complexity?: 'High' | 'Medium' | 'Low' | null;
+        domain?: string | null;
+    };
+}
+
+export interface UpdateWorkflowFieldsResponse {
+    success?: boolean;
+    error?: string;
 }

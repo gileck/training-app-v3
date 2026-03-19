@@ -7,10 +7,11 @@ priority: 5
 
 # Additional Rules Reference
 
-| Topic | Rule File |
-|-------|-----------|
-| App Guidelines Checklist | [.ai/skills/template/app-guidelines-checklist/SKILL.md](.ai/skills/template/app-guidelines-checklist/SKILL.md) |
-| Feature Planning | [.ai/skills/template/feature-planning/SKILL.md](.ai/skills/template/feature-planning/SKILL.md) |
-| Vercel Composition Patterns | [.ai/skills/template/vercel-composition-patterns/SKILL.md](.ai/skills/template/vercel-composition-patterns/SKILL.md) |
-| Vercel React Best Practices | [.ai/skills/template/vercel-react-best-practices/SKILL.md](.ai/skills/template/vercel-react-best-practices/SKILL.md) |
-| Web Design Guidelines | [.ai/skills/template/web-design-guidelines/SKILL.md](.ai/skills/template/web-design-guidelines/SKILL.md) |
+| Topic | File |
+|-------|------|
+| App Guidelines Checklist | [docs/template/app-guidelines-checklist.md](docs/template/app-guidelines-checklist.md) |
+| Feature Planning | [docs/template/feature-planning.md](docs/template/feature-planning.md) |
+| UI Design Guidelines | [docs/template/ui-design-guidelines.md](docs/template/ui-design-guidelines.md) |
+| Vercel Composition Patterns | [docs/template/vercel-composition-patterns.md](docs/template/vercel-composition-patterns.md) |
+| Vercel React Best Practices | [docs/template/vercel-react-best-practices.md](docs/template/vercel-react-best-practices.md) |
+| Web Design Guidelines | [docs/template/web-design-guidelines.md](docs/template/web-design-guidelines.md) |

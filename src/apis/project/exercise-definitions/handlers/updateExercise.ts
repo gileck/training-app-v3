@@ -1,8 +1,8 @@
 import type { ApiHandlerContext } from '@/apis/types';
 import type { UpdateExerciseRequest, UpdateExerciseResponse } from '../types';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
-import { fileStorageAPI, isBase64Data } from '@/server/blob';
-import { toStringId } from '@/server/utils';
+import { fileStorageAPI, isBase64Data } from '@/server/template/blob';
+import { toStringId } from '@/server/template/utils';
 
 export async function updateExercise(
     request: UpdateExerciseRequest,

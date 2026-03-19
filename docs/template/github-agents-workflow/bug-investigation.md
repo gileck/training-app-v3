@@ -7,7 +7,7 @@ key_points:
   - "Bugs auto-route to Bug Investigation on approval (no routing message)"
   - "Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)"
   - "Investigation posted as GitHub issue comment with fix options"
-  - "Obvious fixes (high confidence, S complexity) auto-submit without admin selection"
+  - "Obvious fixes auto-submit when all conditions met: autoSubmit=true, high confidence, S complexity, destination=implement, and a recommended option exists"
   - "Admin selects fix approach via /decision/:issueNumber web UI (when not auto-submitted)"
   - "Routes to Tech Design (complex fixes) or Implementation (simple fixes)"
   - "Telegram notifications sent for auto-submits and manual submissions"
@@ -27,7 +27,7 @@ When a bug report is approved, it is **automatically routed** to the "Bug Invest
 
 1. Investigates the bug using **read-only** tools (no code changes)
 2. Saves investigation results to MongoDB `artifacts.decision` and posts a comment on the GitHub issue with root cause analysis and fix options
-3. **If obvious fix** (`autoSubmit=true`): Auto-submits the recommended option, routes directly to Implementation, and sends a Telegram confirmation
+3. **If obvious fix** (all conditions met: `autoSubmit=true`, `confidence=high`, recommended option has `complexity=S` and `destination=implement`): Auto-submits the recommended option, routes directly to "Ready for development", and sends a Telegram confirmation
 4. **Otherwise**: Sends a Telegram notification with links to view the investigation and select a fix approach
 5. Admin selects a fix option via the `/decision/:issueNumber` web UI
 6. The bug is routed to **Technical Design** or **Implementation** based on the selected option
@@ -40,7 +40,7 @@ Unlike feature requests (which show a routing message), bug reports are automati
 - **Feature requests**: Approval creates GitHub issue in "Backlog" + shows routing buttons
 - **Bug reports**: Approval creates GitHub issue directly in "Bug Investigation" (no routing buttons)
 
-This is configured via `initialStatus: STATUSES.bugInvestigation` in the bug report sync config (`src/server/github-sync/index.ts`).
+This is configured via `initialStatus: STATUSES.bugInvestigation` in the bug report sync config (`src/server/template/github-sync/index.ts`).
 
 ## Bug Investigator Agent
 
@@ -98,6 +98,32 @@ interface BugInvestigationOutput {
   autoSubmit?: boolean;        // Skip admin selection for obvious fixes
 }
 ```
+
+### Auto-Submit Conditions
+
+The agent can skip admin selection and auto-submit the recommended fix when **all five** of the following conditions are true:
+
+1. `output.autoSubmit === true` — the agent explicitly flagged this as an obvious fix
+2. A recommended option exists — at least one fix option has `isRecommended: true`
+3. `output.confidence === 'high'` — the agent is highly confident in its root cause analysis
+4. `recommendedOption.complexity === 'S'` — the recommended fix is small
+5. `recommendedOption.destination === 'implement'` — the recommended fix routes directly to implementation (not tech design)
+
+When auto-submit triggers, the agent:
+- Posts a selection comment on the GitHub issue (same format as manual selection)
+- Calls `completeAgentRun()` to route the item to "Ready for development" and clear Review Status
+- Sends a `notifyDecisionAutoSubmitted` Telegram notification
+
+If any condition is not met, the normal flow applies: Review Status is set to "Waiting for Review" and a Telegram notification is sent with the `/decision/:issueNumber` link for admin selection.
+
+### Decision Flow Connection
+
+After the agent posts its investigation, the decision lifecycle works as follows:
+
+1. **Decision saved to MongoDB**: The agent calls `saveDecisionToDB()` with the fix options, metadata schema, and routing config. This persists the decision at `artifacts.decision` on the workflow item.
+2. **Admin opens `/decision/:issueNumber`**: The web UI loads decision data from MongoDB (with GitHub comment fallback). The token in the URL is validated against the issue number.
+3. **Admin submits selection**: The `submitDecision` API handler reads the `routing` config from the saved decision, resolves the target status from the selected option's metadata, updates the item status, and clears Review Status so the next agent picks it up.
+4. **Workflow advances**: The item moves to either "Technical Design" or "Ready for development" depending on the selected option's destination metadata.
 
 ### Investigation Comment
 
@@ -208,10 +234,11 @@ Options: 3
 Summary:
 [investigation summary]
 
-[Choose Option] [View Issue] [Request Changes]
+[Choose Recommended] [Choose Option] [View Issue] [Request Changes]
 ```
 
-- **Choose Option**: Opens `/decision/:issueNumber` web UI
+- **Choose Recommended**: One-click shortcut that selects the agent's recommended option via `chooseRecommendedOption()` -- available in both Telegram and UI
+- **Choose Option**: Opens `/decision/:issueNumber` web UI for manual selection
 - **View Issue**: Opens the GitHub issue
 - **Request Changes**: Sets Review Status to "Request Changes" (triggers feedback mode)
 
@@ -256,7 +283,7 @@ The next agent will pick this up automatically.
    |- Investigates codebase (read-only)
    |- Posts investigation comment on GitHub issue (Agent Decision format)
    |
-   +--> [Auto-Submit Path] (autoSubmit=true, high confidence, S complexity)
+   +--> [Auto-Submit Path] (all 5 conditions met — see below)
    |    |- Posts selection comment on issue
    |    |- Routes directly to "Ready for development"
    |    '- Sends Telegram: "Auto-Submitted" confirmation
@@ -300,12 +327,13 @@ The next agent will pick this up automatically.
 | `src/agents/core-agents/bugInvestigatorAgent/index.ts` | Main agent |
 | `src/agents/shared/prompts/bug-investigation.ts` | Prompt builders |
 | `src/agents/shared/output-schemas.ts` | `BUG_INVESTIGATION_OUTPUT_FORMAT` |
-| `src/agents/shared/notifications.ts` | `notifyDecisionNeeded()`, `notifyDecisionAutoSubmitted()`, `notifyDecisionSubmitted()` |
+| `src/agents/shared/notifications/` | `notifyDecisionNeeded()`, `notifyDecisionAutoSubmitted()`, `notifyDecisionSubmitted()` |
 | `src/client/routes/template/Decision/` | Decision selection UI (generic) |
 | `src/client/routes/template/BugFix/` | Legacy redirect to `/decision/` |
 | `src/apis/template/agent-decision/` | Agent decision API handlers |
-| `src/server/github-sync/index.ts` | `bugReportSyncConfig` with `initialStatus` |
-| `src/server/project-management/config.ts` | `STATUSES.bugInvestigation` |
+| `src/server/template/workflow-service/choose-recommended.ts` | `chooseRecommendedOption()` -- one-click recommended selection |
+| `src/server/template/github-sync/index.ts` | `bugReportSyncConfig` with `initialStatus` |
+| `src/server/template/project-management/config.ts` | `STATUSES.bugInvestigation` |
 
 ## Related Documentation
 

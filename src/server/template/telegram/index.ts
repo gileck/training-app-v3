@@ -85,6 +85,15 @@ export interface SendMessageResult {
 }
 
 /**
+ * Get priority emoji for a given priority level
+ */
+function getPriorityEmoji(priority?: string): string {
+    if (priority === 'critical') return '🔴';
+    if (priority === 'high') return '🟠';
+    return '🟡';
+}
+
+/**
  * Parse a chat ID string that may include a topic thread ID.
  *
  * Supports two formats:
@@ -311,7 +320,7 @@ function getBaseUrl(): string {
  * Includes "Approve" button for admin to approve and sync to GitHub
  */
 export async function sendFeatureRequestNotification(request: FeatureRequestDocument): Promise<SendMessageResult> {
-    const priorityEmoji = request.priority === 'critical' ? '🔴' : request.priority === 'high' ? '🟠' : '🟡';
+    const priorityEmoji = getPriorityEmoji(request.priority);
     const rawDescription = request.description?.slice(0, 200) || 'No description';
     const truncated = (request.description?.length || 0) > 200 ? '...' : '';
     const description = markdownToTelegramHtml(rawDescription);
@@ -474,7 +483,7 @@ export async function sendFeatureRoutingNotification(
     request: FeatureRequestDocument,
     issueResult: { number: number; url: string }
 ): Promise<SendMessageResult> {
-    const priorityEmoji = request.priority === 'critical' ? '🔴' : request.priority === 'high' ? '🟠' : '🟡';
+    const priorityEmoji = getPriorityEmoji(request.priority);
 
     const message = [
         '✨ <b>Feature Request Synced to GitHub!</b>',
@@ -554,6 +563,71 @@ export async function sendBugRoutingNotification(
     ];
 
     return sendNotificationToOwner(message, {
+        parseMode: 'HTML',
+        inlineKeyboard,
+    });
+}
+
+/**
+ * Send notification when an item is created directly (bypassing approval flow)
+ * Used by CLI and automated agents. Provides buttons to route to implementation or delete.
+ */
+export async function sendItemCreatedNotification(
+    itemId: string,
+    type: 'feature' | 'bug',
+    title: string,
+    issueResult: { number: number; url: string },
+    options?: {
+        priority?: string;
+        createdBy?: string;
+    }
+): Promise<SendMessageResult> {
+    const typeEmoji = type === 'feature' ? '✨' : '🐛';
+    const typeLabel = type === 'feature' ? 'Feature' : 'Bug';
+    const priorityEmoji = getPriorityEmoji(options?.priority);
+
+    const message = [
+        `${typeEmoji} <b>${typeLabel} Created</b>`,
+        '',
+        `📋 ${title}`,
+        options?.priority ? `${priorityEmoji} Priority: ${options.priority}` : '',
+        options?.createdBy ? `👤 Created by: ${options.createdBy}` : '',
+        `🔗 Issue #${issueResult.number}`,
+        '',
+        '<b>Actions:</b>',
+        type === 'bug' ? '• Move to Bug Investigation to analyze' : '• Move to Implementation to start development',
+        '• Keep in Backlog for later',
+        '• Delete if not needed',
+    ].filter(Boolean).join('\n');
+
+    const baseUrl = getBaseUrl();
+
+    const primaryAction = type === 'bug'
+        ? { text: '🔍 Move to Bug Investigation', callback_data: `route_${type}:${itemId}:bug-investigation` }
+        : { text: '⚡ Move to Implementation', callback_data: `route_${type}:${itemId}:implementation` };
+
+    const inlineKeyboard: InlineKeyboardButton[][] = [
+        [
+            primaryAction,
+        ],
+        [
+            { text: '📋 Keep in Backlog', callback_data: `route_${type}:${itemId}:backlog` },
+            { text: '🗑 Delete', callback_data: `delete_${type}:${itemId}` },
+        ],
+        [
+            { text: '🔗 View Issue', url: issueResult.url },
+        ],
+    ];
+
+    // Add "View Full Details" button only if not localhost (Telegram doesn't allow localhost URLs)
+    if (!baseUrl.includes('localhost')) {
+        inlineKeyboard[2].unshift({
+            text: '🔍 View Full Details',
+            url: `${baseUrl}/admin/item/workflow-items:${itemId}`
+        });
+    }
+
+    return sendNotificationToAgent(message, {
         parseMode: 'HTML',
         inlineKeyboard,
     });

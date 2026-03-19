@@ -1,7 +1,7 @@
 import { API_UPDATE_INVESTIGATION } from '../index';
 import { UpdateInvestigationRequest, UpdateInvestigationResponse } from '../types';
 import { reports } from '@/server/database';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 import { Investigation } from '@/server/database/collections/template/reports/types';
 
 const validStatuses = ['needs_info', 'root_cause_found', 'complex_fix', 'not_a_bug', 'inconclusive'];

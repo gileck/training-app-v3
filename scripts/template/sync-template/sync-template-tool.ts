@@ -2,11 +2,10 @@
  * Template Sync Tool - Main orchestration class
  */
 
-import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
-import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, TEMPLATE_CONFIG_FILE, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
-import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, hasSplitConfig } from './utils/config';
+import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
+import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, hasSplitConfig, syncTemplateConfig } from './utils/config';
 import { log, logError } from './utils/logging';
 import { exec } from './utils';
 import { confirm, isInteractive } from '../cli-utils';
@@ -85,35 +84,10 @@ export class TemplateSyncTool {
 
   /**
    * Sync the template config file from the template.
-   * This ensures the project has the latest templatePaths and templateIgnoredFiles.
+   * Delegates to the shared syncTemplateConfig utility.
    */
-  private syncTemplateConfig(templateDir: string, dryRun: boolean): void {
-    const templateConfigSrc = path.join(templateDir, TEMPLATE_CONFIG_FILE);
-
-    // Check if template has a split config
-    if (!fs.existsSync(templateConfigSrc)) {
-      return;  // Template doesn't use split config yet
-    }
-
-    const templateConfigDst = path.join(this.projectRoot, TEMPLATE_CONFIG_FILE);
-    const templateConfigContent = fs.readFileSync(templateConfigSrc, 'utf-8');
-
-    // Check if it's different from current
-    let isDifferent = true;
-    if (fs.existsSync(templateConfigDst)) {
-      const currentContent = fs.readFileSync(templateConfigDst, 'utf-8');
-      isDifferent = currentContent !== templateConfigContent;
-    }
-
-    if (isDifferent) {
-      console.log(`\n📋 Syncing template config (${TEMPLATE_CONFIG_FILE})...`);
-      if (!dryRun) {
-        fs.writeFileSync(templateConfigDst, templateConfigContent);
-        console.log('   ✅ Template config updated');
-      } else {
-        console.log('   🔍 Would update template config (dry-run)');
-      }
-    }
+  private syncTemplateConfigFromTemplate(dryRun: boolean): void {
+    syncTemplateConfig(this.projectRoot, TEMPLATE_DIR, dryRun);
   }
 
   /**
@@ -136,7 +110,7 @@ export class TemplateSyncTool {
     await cloneTemplate(this.context);
 
     // Step 1.5: Sync template config first
-    this.syncTemplateConfig(templateDir, dryRun);
+    this.syncTemplateConfigFromTemplate(dryRun);
 
     // Step 1.6: Reload config after syncing template config
     const reloadedConfig = loadConfig(this.projectRoot);

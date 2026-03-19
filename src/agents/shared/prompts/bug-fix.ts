@@ -6,7 +6,7 @@
  * the Bug Investigator agent, which uses prompts from bug-investigation.ts
  */
 
-import type { ProjectItemContent } from '@/server/project-management';
+import type { ProjectItemContent } from '@/server/template/project-management';
 import type { GitHubComment } from '../types';
 import type { BugDiagnostics } from '../utils';
 import {
@@ -100,7 +100,7 @@ Implement the bug fix as specified in ${implementationSource}:
 
 ## Implementation Guidelines
 
-**Follow project guidelines in \`.ai/skills/\`** (TypeScript, React, state management patterns)
+**Follow project guidelines in \`docs/template/project-guidelines/\`** (TypeScript, React, state management patterns)
 
 Key principles for bug fixes:
 - **Be minimal**: Bug fixes should change as little code as possible
@@ -230,7 +230,7 @@ ${reviewComments || 'No PR review comments'}
 
 ## Guidelines
 
-**Follow project guidelines in \`.ai/skills/\`** (same as initial implementation)
+**Follow project guidelines in \`docs/template/project-guidelines/\`** (same as initial implementation)
 
 ${THEMING_INSTRUCTIONS}
 
@@ -239,7 +239,7 @@ Key principles:
 - Keep changes focused on the feedback
 - Don't expand the fix scope beyond what's necessary
 - Bug fixes should change as little code as possible
-- Follow TypeScript, React, and state management patterns from \`.ai/skills/\`
+- Follow TypeScript, React, and state management patterns from \`docs/template/project-guidelines/\`
 
 ${MARKDOWN_FORMATTING_INSTRUCTIONS}
 
@@ -258,7 +258,7 @@ After making changes, provide your response as structured JSON with these fields
 Here's how I addressed the feedback:
 1. [Missing null check in error path] → Added null guard before accessing \`error.message\` in handler
 2. [Defensive check too broad] → Narrowed the check to only cover the specific NaN case
-3. [Import should use @/ alias] → Changed relative import to @/server/utils
+3. [Import should use @/ alias] → Changed relative import to @/server/template/utils
 \`\`\`
 
 **BAD comment format (too vague, avoid this):**

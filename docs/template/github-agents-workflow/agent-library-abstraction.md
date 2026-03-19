@@ -42,7 +42,7 @@ src/agents/
 │   │   ├── implementation.ts     # Implementation prompts
 │   │   ├── bug-fix.ts            # Bug fix prompts
 │   │   └── plan-subagent.ts      # Plan subagent prompt
-│   ├── notifications.ts          # Library-agnostic
+│   ├── notifications/             # Telegram notifications (split module)
 │   └── index.ts                  # Re-exports from lib/
 └── core-agents/                  # Agent workflows
     ├── productDesignAgent/       # Product design workflow

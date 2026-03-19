@@ -60,6 +60,14 @@ import {
     runBatch,
     type ProcessableItem,
     type CommonCLIOptions,
+    // Error handler
+    handleAgentError,
+    // Main factory
+    runAgentMain,
+    // Decision utils
+    toDecisionOptions,
+    // Token calculation
+    calcTotalTokens,
 } from '../../shared';
 import {
     createLogContext,
@@ -67,7 +75,6 @@ import {
     logExecutionStart,
     logExecutionEnd,
     logGitHubAction,
-    logError,
 } from '../../lib/logging';
 import { notifyDecisionNeeded, notifyDecisionAutoSubmitted } from '../../shared/notifications';
 import { formatDecisionComment, isDecisionComment as isGenericDecisionComment, saveDecisionToDB, formatDecisionSelectionComment, saveSelectionToDB } from '@/apis/template/agent-decision/utils';
@@ -109,18 +116,12 @@ const BUG_FIX_ROUTING: RoutingConfig = {
 /**
  * Convert bug investigation output to generic decision options
  */
-function toDecisionOptions(output: BugInvestigationOutput): DecisionOption[] {
-    return output.fixOptions.map(opt => ({
-        id: opt.id,
-        title: opt.title,
-        description: opt.description,
-        isRecommended: opt.isRecommended,
-        metadata: {
-            complexity: opt.complexity,
-            destination: opt.destination === 'implement' ? 'Direct Implementation' : 'Technical Design',
-            filesAffected: opt.filesAffected.length > 0 ? opt.filesAffected : [],
-            ...(opt.tradeoffs ? { tradeoffs: opt.tradeoffs } : {}),
-        },
+function toBugFixDecisionOptions(output: BugInvestigationOutput): DecisionOption[] {
+    return toDecisionOptions(output.fixOptions, opt => ({
+        complexity: opt.complexity,
+        destination: opt.destination === 'implement' ? 'Direct Implementation' : 'Technical Design',
+        filesAffected: opt.filesAffected.length > 0 ? opt.filesAffected : [],
+        ...(opt.tradeoffs ? { tradeoffs: opt.tradeoffs } : {}),
     }));
 }
 
@@ -153,7 +154,7 @@ ${output.rootCauseAnalysis}`;
  * Format investigation output as a generic agent decision comment
  */
 function formatInvestigationComment(output: BugInvestigationOutput): string {
-    const options = toDecisionOptions(output);
+    const options = toBugFixDecisionOptions(output);
     const context = buildDecisionContext(output);
 
     return formatDecisionComment(
@@ -390,7 +391,7 @@ export async function processItem(
             logGitHubAction(logCtx, 'comment', 'Posted bug investigation comment');
 
             // Save decision to DB
-            const decisionOptions = toDecisionOptions(output);
+            const decisionOptions = toBugFixDecisionOptions(output);
             const decisionContext = buildDecisionContext(output);
             await saveDecisionToDB(
                 issueNumber,
@@ -422,7 +423,7 @@ export async function processItem(
 
                 // Route directly to implementation via workflow service
                 const targetStatus = 'Ready for development';
-                const { completeAgentRun } = await import('@/server/workflow-service');
+                const { completeAgentRun } = await import('@/server/template/workflow-service');
                 await completeAgentRun(issueNumber, 'bug-investigation', {
                     status: targetStatus,
                     clearReviewStatus: true,
@@ -446,7 +447,7 @@ export async function processItem(
                 // Normal flow: wait for admin to select an option
 
                 // Update review status via workflow service
-                const { completeAgentRun: completeRun } = await import('@/server/workflow-service');
+                const { completeAgentRun: completeRun } = await import('@/server/template/workflow-service');
                 await completeRun(issueNumber, 'bug-investigation', {
                     reviewStatus: REVIEW_STATUSES.waitingForReview,
                 });
@@ -466,31 +467,23 @@ export async function processItem(
             }
 
             // Log execution end
-            logExecutionEnd(logCtx, {
+            await logExecutionEnd(logCtx, {
                 success: true,
-                toolCallsCount: 0,
-                totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+                toolCallsCount: result.toolCallsCount ?? 0,
+                totalTokens: calcTotalTokens(result.usage),
                 totalCost: result.usage?.totalCostUSD ?? 0,
             });
 
             return { success: true };
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            console.error(`  Error: ${errorMsg}`);
-
-            // Log error
-            logError(logCtx, error instanceof Error ? error : errorMsg, true);
-            logExecutionEnd(logCtx, {
-                success: false,
-                toolCallsCount: 0,
-                totalTokens: 0,
-                totalCost: 0,
+            return handleAgentError({
+                error,
+                logCtx,
+                phaseName: 'Bug Investigation',
+                issueTitle: content.title,
+                issueNumber,
+                dryRun: !!options.dryRun,
             });
-
-            if (!options.dryRun) {
-                await notifyAgentError('Bug Investigation', content.title, issueNumber, errorMsg);
-            }
-            return { success: false, error: errorMsg };
         }
     });
 }
@@ -514,13 +507,4 @@ async function main(): Promise<void> {
 }
 
 // Run (skip when imported as a module in tests)
-if (!process.env.VITEST) {
-    main()
-        .then(() => {
-            process.exit(0);
-        })
-        .catch((error) => {
-            console.error('Fatal error:', error);
-            process.exit(1);
-        });
-}
+runAgentMain(main, { skipInTest: true });

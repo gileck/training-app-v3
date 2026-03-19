@@ -15,8 +15,8 @@ import type {
     ParsedDecision,
     DecisionSelection,
 } from './types';
-import type { ProjectManagementAdapter } from '@/server/project-management';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
+import type { ProjectManagementAdapter } from '@/server/template/project-management';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
 import {
     getArtifacts as getArtifactsFromDB,
     setDecision as setDecisionInDB,
@@ -28,13 +28,20 @@ import type { DecisionArtifactRecord } from '@/server/database/collections/templ
 // TOKEN UTILITIES
 // ============================================================
 
+function getClarificationSecret(): string {
+    const secret = process.env.CLARIFICATION_SECRET;
+    if (!secret) {
+        throw new Error('CLARIFICATION_SECRET environment variable is required');
+    }
+    return secret;
+}
+
 /**
  * Generate a security token for a decision page.
  * Uses HMAC-SHA256 with a secret key, returns first 8 chars.
  */
 export function generateDecisionToken(issueNumber: number): string {
-    const secret = process.env.CLARIFICATION_SECRET || 'default-secret-change-me';
-    const hmac = crypto.createHmac('sha256', secret);
+    const hmac = crypto.createHmac('sha256', getClarificationSecret());
     hmac.update(`decision:${issueNumber}`);
     return hmac.digest('hex').substring(0, 8);
 }
@@ -53,7 +60,7 @@ export function validateDecisionToken(issueNumber: number, token: string): boole
 
 /**
  * Find a project item by issue number and verify it's in a state
- * that has Waiting for Review (any status that uses agent decisions).
+ * that accepts agent decisions (Waiting for Review or Waiting for Decision).
  */
 export async function findDecisionItem(
     adapter: ProjectManagementAdapter,
@@ -68,10 +75,15 @@ export async function findDecisionItem(
         return { valid: false, error: `Issue #${issueNumber} not found in project` };
     }
 
-    if (item.reviewStatus !== REVIEW_STATUSES.waitingForReview) {
+    const validDecisionStatuses: string[] = [
+        REVIEW_STATUSES.waitingForReview,
+        REVIEW_STATUSES.waitingForDecision,
+    ];
+
+    if (!item.reviewStatus || !validDecisionStatuses.includes(item.reviewStatus)) {
         return {
             valid: false,
-            error: `Issue is not waiting for review (current: ${item.reviewStatus || 'empty'})`,
+            error: `Issue is not waiting for review or decision (current: ${item.reviewStatus || 'empty'})`,
         };
     }
 

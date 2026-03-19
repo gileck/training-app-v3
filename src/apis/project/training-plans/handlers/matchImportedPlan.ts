@@ -19,7 +19,7 @@ import type {
 } from '../types';
 import { exerciseDefinitions } from '@/server/database';
 import { matchExercise } from './exerciseMatcher';
-import { toStringId } from '@/server/utils';
+import { toStringId } from '@/server/template/utils';
 
 // Validation limits
 const MAX_PLAN_NAME_LENGTH = 100;

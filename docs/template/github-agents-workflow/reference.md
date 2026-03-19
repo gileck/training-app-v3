@@ -1,5 +1,7 @@
 # GitHub Agents Workflow - Technical Reference
 
+> **Note:** Some sections of this document (particularly File Structure and Environment Variables) may be outdated. The file structure has been significantly refactored — agents now live in `src/agents/core-agents/` with shared code in `src/agents/shared/` and `src/agents/lib/`. The project management layer uses `src/server/template/project-management/` with DI-based adapters. For up-to-date architecture information, see [overview.md](./overview.md) and individual agent AGENTS.md files.
+
 This document provides technical details about the architecture, file structure, and implementation details of the GitHub agents workflow.
 
 ## Status Constants
@@ -43,7 +45,7 @@ Custom field values for tracking review state within each phase.
 ### Import in Code
 
 ```typescript
-import { STATUSES, REVIEW_STATUSES } from '@/server/project-management';
+import { STATUSES, REVIEW_STATUSES } from '@/server/template/project-management';
 
 // Usage
 if (item.status === STATUSES.prReview) {

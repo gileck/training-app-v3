@@ -68,9 +68,9 @@ This file is **synced from the template** and defines what the template owns:
     "CLAUDE.md",
     "docs/template/**",
     "scripts/template/**",
-    ".ai/skills/template/**",
+    ".ai/commands/**",
     "src/client/components/ui/**",
-    "src/server/middleware/**",
+    "src/server/template/middleware/**",
     ".template-sync.template.json"
   ],
   "templateIgnoredFiles": [
@@ -129,9 +129,9 @@ For backwards compatibility, the sync tool also supports a single `.template-syn
     "CLAUDE.md",
     "docs/template/**",
     "scripts/template/**",
-    ".ai/skills/template/**",
+    ".ai/commands/**",
     "src/client/components/ui/**",
-    "src/server/middleware/**"
+    "src/server/template/middleware/**"
   ],
 
   "projectOverrides": [
@@ -178,7 +178,7 @@ For each file matching `templatePaths`:
   ⚠️  Conflicts:  1 file (override changed in template)
 
 🔄 Applying changes...
-  ✨ src/server/middleware/auth.ts
+  ✨ src/server/template/middleware/auth.ts
   📝 src/client/components/ui/button.tsx
   🗑️  src/old-deprecated-file.ts
   🔀 package.json - merged
@@ -224,12 +224,12 @@ This creates a `.template-sync.json` configuration file.
     "CLAUDE.md",
     "docs/template/**",
     "scripts/template/**",
-    ".ai/skills/template/**",
+    ".ai/commands/**",
     "src/client/components/ui/**",
     "src/client/query/**",
     "src/client/stores/**",
-    "src/server/middleware/**",
-    "src/server/utils/**",
+    "src/server/template/middleware/**",
+    "src/server/template/utils/**",
     "src/pages/api/process/**"
   ],
 
@@ -334,7 +334,7 @@ The script will:
 ✅ Safe changes (12 files):
    Only changed in template, no conflicts:
    • src/client/components/ui/button.tsx
-   • src/server/middleware/auth.ts
+   • src/server/template/middleware/auth.ts
    ...
 
 ⚠️  Potential conflicts (2 files):
@@ -686,7 +686,7 @@ The results reflect your conflict resolution choices:
 ────────────────────────────────────────────────────────────
 📤 Files marked for contribution to template:
    • src/client/features/auth/store.ts
-   • src/server/middleware/custom-auth.ts
+   • src/server/template/middleware/custom-auth.ts
 
 To contribute these files, use:
   yarn sync-template --project-diffs

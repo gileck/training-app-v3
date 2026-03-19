@@ -14,9 +14,11 @@ import { planWorkoutsApiHandlers } from "./project/plan-workouts/server";
 import { trainingPlansApiHandlers } from "./project/training-plans/server";
 import { weeklyProgressApiHandlers } from "./project/weekly-progress/server";
 import { workoutWarmupApiHandlers } from "./project/workout-warmup/server";
+import { chatApiHandlers } from "./project/chat/server";
 
 export const projectApiHandlers = mergeApiHandlers(
   activityLogsApiHandlers,
+  chatApiHandlers,
   exerciseDefinitionsApiHandlers,
   planDataApiHandlers,
   planExercisesApiHandlers,

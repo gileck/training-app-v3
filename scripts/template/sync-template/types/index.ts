@@ -171,6 +171,8 @@ export interface SyncJsonResult {
   filesConflicted: string[];
   projectOnlyChanges: string[];
   errors: string[];
+  filesDeleted?: string[];
+  filesDiverged?: string[];
   templateCommit?: string;
   projectCommit?: string;
   checksResult?: {

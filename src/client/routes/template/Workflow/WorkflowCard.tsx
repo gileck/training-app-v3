@@ -64,15 +64,15 @@ export function WorkflowCard({ item, onSelect, selectMode, selected, onToggleSel
                                 )}
                             </div>
                         </div>
+                        {item.createdBy && (
+                            <span className="text-xs text-muted-foreground">
+                                opened by {item.createdBy}
+                            </span>
+                        )}
                         <div className="flex flex-wrap items-center gap-1.5">
                             <StatusBadge label={typeLabel} colorKey={item.type} />
-                            <StatusBadge label={item.status || 'No status'} />
-                            {item.reviewStatus && (
-                                <StatusBadge label={item.reviewStatus} />
-                            )}
                             {item.priority && <StatusBadge label={item.priority} colorKey={item.priority} />}
                             {item.domain && <StatusBadge label={item.domain} colorKey="domain" />}
-                            {item.createdBy && <StatusBadge label={item.createdBy} />}
                         </div>
                     </div>
                 </div>

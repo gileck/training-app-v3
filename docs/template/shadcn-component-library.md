@@ -8,7 +8,6 @@ related_docs:
 related_rules:
   - shadcn-usage
   - theming-guidelines
-  - ui-design-guidelines
 ---
 
 # shadcn/ui Component Library Guide
@@ -919,7 +918,7 @@ function SettingsList() {
 
 ### Related Guidelines
 
-- Mobile-first UI: `.ai/skills/ui-mobile-first-shadcn/SKILL.md`
-- UI Design: `.ai/skills/ui-design-guidelines/SKILL.md`
-- Component Organization: `.ai/skills/react-component-organization/SKILL.md`
+- Mobile-first UI: `docs/template/project-guidelines/ui-mobile-first-shadcn.md`
+- UI Design: `docs/template/project-guidelines/ui-design-guidelines.md`
+- Component Organization: `docs/template/project-guidelines/react-component-organization.md`
 

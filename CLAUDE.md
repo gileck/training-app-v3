@@ -23,9 +23,9 @@ Next.js PWA with offline-first capabilities. Use this to understand the project 
 
 ## Build CLAUDE.md
 
-Auto-generate CLAUDE.md from docs and skills. Run this after creating or updating docs.
+Auto-generate CLAUDE.md from docs. Run this after creating or updating docs.
 
-**Summary:** Run `yarn build:claude` to regenerate CLAUDE.md from all docs and skills with frontmatter. **IMPORTANT: Run this after adding new docs or updating title/summary/description in existing docs.**
+**Summary:** Run `yarn build:claude` to regenerate CLAUDE.md from all docs with frontmatter. **IMPORTANT: Run this after adding new docs or updating title/summary/description in existing docs.**
 
 **Docs:** [build-claude-md.md](docs/template/build-claude-md.md)
 
@@ -78,7 +78,7 @@ Single API endpoint pattern with React Query. Use this when creating/calling API
 **Summary:** All APIs route through `/api/process/{api_name}`. Components use React Query hooks, never call API client functions directly. All domain types in `apis/<domain>/types.ts`.
 
 **Docs:** [api-endpoint-format.md](docs/template/api-endpoint-format.md)
-**Rules:** [client-server-communications](.ai/skills/template/client-server-communications/SKILL.md)
+**Rules:** [client-server-communications](docs/template/project-guidelines/client-server-communications.md)
 
 ---
 
@@ -86,19 +86,16 @@ Single API endpoint pattern with React Query. Use this when creating/calling API
 
 Guidelines for handling and displaying errors across the application. Use this when implementing error states, catch blocks, or user-facing error messages.
 
-**Summary:** Use `ErrorDisplay` for route/page errors, `errorToast`/`errorToastAuto` for mutation failures, and shared `errorUtils` for classification. Stack traces are admin-only. Never show raw error messages to users.
+**Guidelines:**
+- Use `ErrorDisplay` for route/page errors, `errorToast` for mutations
+- Never show raw `error.message` — use `cleanErrorMessage()` or `getUserFriendlyMessage()`
+- Stack traces are admin-only
+- Always pass error object to `errorToast` (enables copy)
+- Use `errorToastAuto(error, fallback)` for automatic classification
+- Validation errors use plain `toast.error()`, NOT `errorToast`
+- Import from specific files to avoid circular deps with bug-report/auth
 
-**Docs:** [error-handling.md](docs/template/error-handling.md), [logging-and-error-tracking.md](docs/template/logging-and-error-tracking.md), [react-query-mutations.md](docs/template/react-query-mutations.md)
-
----
-
-## Mobile-First Philosophy
-
-All UI must be designed for mobile screens first (~400px width). Use this when implementing any UI.
-
-**Summary:** Design for 400px width first, then enhance with `sm:`, `md:`, `lg:` modifiers. Touch targets minimum 44px.
-
-**Rules:** [ui-mobile-first-shadcn](.ai/skills/template/ui-mobile-first-shadcn/SKILL.md)
+**Full docs:** [error-handling.md](docs/template/error-handling.md), [logging-and-error-tracking.md](docs/template/logging-and-error-tracking.md), [react-query-mutations.md](docs/template/react-query-mutations.md)
 
 ---
 
@@ -106,9 +103,14 @@ All UI must be designed for mobile screens first (~400px width). Use this when i
 
 Full offline support with optimistic updates. Use this when implementing mutations.
 
-**Summary:** GET requests serve cached data, POST requests queue in localStorage and batch-sync when online. **CRITICAL: Never update UI from server response** - use optimistic updates in `onMutate`, keep `onSuccess`/`onSettled` empty.
+**Guidelines:**
+- CRITICAL: Never update UI from server response — only optimistic updates in `onMutate`
+- Keep `onSuccess` empty
+- Keep `onSettled` empty
+- Only rollback in `onError`
+- Mutations must handle empty `{}` responses (offline queue)
 
-**Docs:** [offline-pwa-support.md](docs/template/offline-pwa-support.md)
+**Full docs:** [offline-pwa-support.md](docs/template/offline-pwa-support.md)
 
 ---
 
@@ -116,10 +118,15 @@ Full offline support with optimistic updates. Use this when implementing mutatio
 
 Dual-store architecture for PWA with offline support. Use this when managing application state.
 
-**Summary:** React Query for server/API data, Zustand for client state, useState for ephemeral UI. All Zustand stores MUST use `createStore` factory from `@/client/stores`.
+**Guidelines:**
+- React Query for server data, Zustand for client state, useState for 4 ephemeral cases only
+- Valid useState: text input, dialog open, in-flight submission, confirm dialog
+- Everything else MUST use Zustand
+- All Zustand stores MUST use `createStore` factory
+- NEVER update UI from server response — optimistic-only pattern
 
-**Docs:** [state-management.md](docs/template/state-management.md), [react-query-mutations.md](docs/template/react-query-mutations.md), [zustand-stores.md](docs/template/zustand-stores.md)
-**Rules:** [state-management-guidelines](.ai/skills/template/state-management-guidelines/SKILL.md)
+**Full docs:** [state-management.md](docs/template/state-management.md), [react-query-mutations.md](docs/template/react-query-mutations.md), [zustand-stores.md](docs/template/zustand-stores.md)
+**Rules:** [state-management-guidelines](docs/template/project-guidelines/state-management-guidelines.md)
 
 ---
 
@@ -148,22 +155,6 @@ Config files use a split pattern for template updates without losing project cus
 
 ---
 
-## Feature-Based Structure
-
-Feature-based folder structure for client code. Use this when organizing client-side code.
-
-**Summary:** All code related to a feature lives together in `src/client/features/{name}/`. Features contain stores, hooks, components, and types. All stores MUST use `createStore` factory.
-
-**Key Points:**
-- `features/` - Cross-route features (auth, settings, theme)
-- `routes/` - Route-specific code (only used by that route)
-- `components/` - Shared UI primitives only (shadcn components)
-- Import from feature index, not internal files
-
-**Rules:** [feature-based-structure](.ai/skills/template/feature-based-structure/SKILL.md)
-
----
-
 ## iOS PWA Fixes
 
 iOS-specific keyboard and viewport issues. Use this when fixing iOS PWA bugs.
@@ -188,35 +179,10 @@ Session logging with bug reporting. Use this when adding logging or debugging.
 
 Database layer patterns and schema evolution. Use this when working with MongoDB.
 
-**Summary:** All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**
+**Summary:** All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/template/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**
 
 **Docs:** [mongodb-usage.md](docs/template/mongodb-usage.md)
-**Rules:** [mongodb-usage](.ai/skills/template/mongodb-usage/SKILL.md)
-
----
-
-## React Components
-
-Component organization and patterns. Use this when creating/organizing components.
-
-**Summary:** Feature-based organization with small, focused components (<150 lines). Route-specific code in route folder, shared features in `features/`. **CRITICAL: Always check Loading → Error → Empty → Data order.**
-
-**Rules:** [react-component-organization](.ai/skills/template/react-component-organization/SKILL.md)
-
----
-
-## React Hook Organization
-
-React Query hooks and Zustand integration patterns. Use this when creating data fetching hooks.
-
-**Summary:** React Query for server state, Zustand for client state. Colocate hooks in `hooks.ts` within route or feature folder. All mutations must handle empty `{}` responses (offline mode).
-
-**Key Points:**
-- Query hooks: use `useQueryDefaults()` for centralized cache config
-- Mutation hooks: optimistic updates in `onMutate`, rollback on error, empty `onSuccess`/`onSettled`
-- **CRITICAL:** Check `data === undefined` alongside `isLoading` - only show empty state when data is defined AND empty
-
-**Rules:** [react-hook-organization](.ai/skills/template/react-hook-organization/SKILL.md)
+**Rules:** [mongodb-usage](docs/template/project-guidelines/mongodb-usage.md)
 
 ---
 
@@ -230,32 +196,6 @@ Common pitfalls causing infinite re-renders. Use this when debugging render loop
 
 ---
 
-## Routes & Navigation
-
-Adding routes and keeping navigation menus in sync. Use this when adding client routes.
-
-**Summary:** Routes defined in `src/client/routes/index.ts`. Add to `navItems`/`menuItems` in `NavLinks.tsx` if user-accessible. Options: `public`, `fullScreen`, `adminOnly`.
-
-**Rules:** [pages-and-routing-guidelines](.ai/skills/template/pages-and-routing-guidelines/SKILL.md)
-
----
-
-## Settings Usage
-
-User preferences and configuration patterns. Use this when implementing persistent user settings.
-
-**Summary:** Use `useSettingsStore` from `@/client/features/settings` for all user preferences. Settings automatically persist to localStorage via Zustand.
-
-**Key Points:**
-- Subscribe to specific slices: `useSettingsStore((state) => state.settings.theme)`
-- Update with: `updateSettings({ fieldName: value })`
-- Use `useEffectiveOffline()` for combined offline detection (user toggle OR device offline)
-- Add new fields in `types.ts` with defaults
-
-**Rules:** [settings-usage-guidelines](.ai/skills/template/settings-usage-guidelines/SKILL.md)
-
----
-
 ## Theming System
 
 Application theming with semantic color tokens. Use this when customizing colors and themes.
@@ -266,16 +206,6 @@ Application theming with semantic color tokens. Use this when customizing colors
 
 ---
 
-## TypeScript
-
-Strict TypeScript guidelines. Use this when writing TypeScript code.
-
-**Summary:** Strict mode enabled, no `any` types allowed. Prefer union types over enums. All domain types in `apis/<domain>/types.ts`.
-
-**Rules:** [typescript-guidelines](.ai/skills/template/typescript-guidelines/SKILL.md)
-
----
-
 ## UI & Styling
 
 shadcn/ui components with semantic theming. Use this when adding/editing UI components.
@@ -283,38 +213,7 @@ shadcn/ui components with semantic theming. Use this when adding/editing UI comp
 **Summary:** Use shadcn/ui as the ONLY component library. All colors must use semantic tokens (`bg-background`, `text-foreground`), never hardcode colors (`bg-white`, `text-black`).
 
 **Docs:** [shadcn-component-library.md](docs/template/shadcn-component-library.md), [theming.md](docs/template/theming.md)
-**Rules:** [shadcn-usage](.ai/skills/template/shadcn-usage/SKILL.md), [theming-guidelines](.ai/skills/template/theming-guidelines/SKILL.md), [ui-design-guidelines](.ai/skills/template/ui-design-guidelines/SKILL.md)
-
----
-
-## User Access
-
-Accessing authenticated user in client and server code. Use this when implementing user-specific features.
-
-**Summary:** Client: use `useAuth()` hook to get `user` object. Server: use `context.userId` from `ApiHandlerContext` (derived from JWT token).
-
-**Key Points:**
-- Client: `const { user } = useAuth(); const userId = user?.id;`
-- Server: `const userId = context.userId;` - always check if undefined
-- Server `userId` is `undefined` if token is invalid or missing
-
-**Rules:** [user-access](.ai/skills/template/user-access/SKILL.md)
-
----
-
-## AI Model API Usage
-
-Server-side AI model integration patterns. Use this when calling AI APIs.
-
-**Summary:** Never call AI APIs directly - always use `AIModelAdapter` from `src/server/ai/baseModelAdapter.ts`. Server-side only, include caching and cost tracking.
-
-**Key Points:**
-- All AI calls must be server-side only
-- Validate model IDs using `isModelExists()` before adapter initialization
-- Always return 200 status codes with error fields, never throw uncaught errors
-- Track and return cost of each AI call
-
-**Rules:** [ai-models-api-usage](.ai/skills/template/ai-models-api-usage/SKILL.md)
+**Rules:** [shadcn-usage](docs/template/project-guidelines/shadcn-usage.md), [theming-guidelines](docs/template/project-guidelines/theming-guidelines.md)
 
 ---
 
@@ -325,21 +224,6 @@ Common deployment pitfalls. Use this before deploying to production.
 **Summary:** Always run `vercel link` first. Verify env vars match with `yarn verify-production`. Use `src/pages/` not `pages/`.
 
 **Docs:** [critical-deployment-issues.md](docs/template/critical-deployment-issues.md)
-
----
-
-## ESLint Custom Rules
-
-Custom ESLint rules and when to use disable comments. Use this when fixing lint issues.
-
-**Summary:** Never use ESLint disable comments unless specifically instructed. Exception - `state-management/prefer-state-architecture` - add disable comment WITH explanation for valid `useState` usage.
-
-**Key Points:**
-- Valid `useState` justifications: ephemeral modal state, form input before submission, local loading indicator
-- If warning triggers and none apply: use React Query (API data) or Zustand (preferences, auth, persistent UI)
-- Always run `yarn checks` after fixing lint issues
-
-**Rules:** [eslint-custom-guidelines](.ai/skills/template/eslint-custom-guidelines/SKILL.md)
 
 ---
 
@@ -363,6 +247,16 @@ CLI for managing GitHub pull requests. Use this when creating/managing PRs progr
 
 ---
 
+## iOS-Inspired UI Design Guidelines
+
+Design philosophy and iOS-inspired principles for UI components. Use this for understanding design patterns, advanced concepts (RTL, haptics, animations), and QA checklists.
+
+**Summary:** iOS-inspired design reference with semantic color tokens, 8px spacing grid, 44px touch targets, spring animations, dark mode handling, accessibility standards, and comprehensive QA checklists. Code examples use raw CSS/HTML — adapt to shadcn + Tailwind patterns when implementing.
+
+**Docs:** [ui-design-guidelines.md](docs/template/ui-design-guidelines.md)
+
+---
+
 ## Telegram Notifications (App Runtime)
 
 Application feature for sending notifications via Telegram. Use this when adding app notifications.
@@ -380,7 +274,24 @@ CLI for managing Vercel deployments and env vars. Use this for deployment operat
 **Summary:** Run `vercel link` first. **CRITICAL: Never use `npx vercel env add` with piped input** - use `yarn vercel-cli env:sync` instead. Commands - `yarn vercel-cli list`, `yarn vercel-cli env:sync`, `yarn vercel-cli logs`.
 
 **Docs:** [vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
-**Rules:** [vercel-cli-usage](.ai/skills/template/vercel-cli-usage/SKILL.md)
+**Rules:** [vercel-cli-usage](docs/template/project-guidelines/vercel-cli-usage.md)
+
+---
+
+## RPC-over-MongoDB Architecture
+
+Generic remote function execution system for running server code on a local machine via MongoDB. Use this when working with the RPC daemon or adding new remote handlers.
+
+**Summary:** Vercel inserts jobs into MongoDB, a local daemon polls and executes them, returns results via MongoDB. Used to bypass datacenter IP blocks.
+
+**Key Points:**
+- `src/server/template/rpc/` - Generic RPC system (zero project-specific code)
+- Start daemon: `yarn daemon` or `yarn daemon --verbose`
+- Handlers are modules with a default export async function
+- Security: shared secret (RPC_SECRET env var) + path validation + file existence check
+- task-cli config: `agent-tasks/rpc-daemon/config.json`
+
+**Docs:** [rpc-architecture.md](docs/template/rpc-architecture.md)
 
 ---
 
@@ -404,7 +315,7 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 
 **Key Points:**
 - Entry points: UI feature request, UI bug report, or CLI
-- Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review
+- Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review, Workflow Review, Triage (standalone)
 - Status tracking: Source collections (high-level) + workflow-items collection (pipeline)
 - All actions logged to agent-logs/issue-N.md
 
@@ -414,15 +325,16 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 
 ## Agent Workflow CLI
 
-CLI for managing feature requests and bug reports. Use this when working with `yarn agent-workflow` commands.
+CLI for managing workflow items. Use this when working with `yarn agent-workflow` commands.
 
-**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority). Supports `--auto-approve` and `--route` for automated workflows.
+**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority/size/complexity/domain). Supports `--auto-approve`, `--route`, and `--created-by` for automated workflows.
 
 **Key Points:**
-- list command: filter by --type, --status, --source
-- get command: shows live pipeline status
-- update command: change status/priority with --dry-run
-- ID prefix matching supported (first 8 chars of ObjectId)
+- list command: filter by --type, --status, --domain
+- get command: shows workflow item details (artifacts, history, createdBy, description)
+- update command: change status/priority/size/complexity/domain with --dry-run
+- ID lookup: workflow-item ObjectId, ID prefix (first 8 chars), or GitHub issue number
+- create command: creates GitHub issue + workflow-item directly (no source docs)
 
 **Docs:** [cli.md](docs/template/github-agents-workflow/cli.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md)
 
@@ -472,7 +384,7 @@ Complete setup instructions for the GitHub agents workflow. Use this when settin
 
 ## Unified Workflow Service Layer
 
-**Summary:** Architecture of the unified workflow service that centralizes all business logic for workflow lifecycle operations (approve, route, delete, advance, review status, phase management, undo, agent completion) across transports.
+**Summary:** Architecture of the unified workflow service that centralizes all business logic for workflow lifecycle operations (approve, route, delete, advance, review, merge, revert, undo, decision, agent completion) across transports.
 
 **Docs:** [workflow-service.md](docs/template/github-agents-workflow/workflow-service.md)
 
@@ -512,12 +424,272 @@ Complete documentation for the Bug Investigator agent and bug fix selection flow
 - Bugs auto-route to Bug Investigation on approval (no routing message)
 - Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)
 - Investigation posted as GitHub issue comment with fix options
-- Obvious fixes (high confidence, S complexity) auto-submit without admin selection
+- Obvious fixes auto-submit when all conditions met: autoSubmit=true, high confidence, S complexity, destination=implement, and a recommended option exists
 - Admin selects fix approach via /decision/:issueNumber web UI (when not auto-submitted)
 - Routes to Tech Design (complex fixes) or Implementation (simple fixes)
 - Telegram notifications sent for auto-submits and manual submissions
 
 **Docs:** [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md)
+
+---
+
+## Workflow Review Agent
+
+Pipeline agent that reviews completed workflow items and creates improvement issues.
+
+**Summary:** Runs as the last step in the pipeline (after pr-review). Picks up Done items where reviewed !== true, analyzes their agent execution logs via LLM, appends [LOG:REVIEW] section to the log file, stores summary on the workflow item, sends Telegram notification, and creates improvement issues via agent-workflow create.
+
+**Key Points:**
+- Part of the pipeline — added to ALL_ORDER after pr-review, runs every cycle via --all
+- No local state — review state lives on the workflow item in MongoDB (reviewed, reviewSummary)
+- Skips items without local log files (agent-logs/issue-N.md)
+- Uses read-only tools (Read, Grep, Glob) to incrementally analyze logs
+- Creates workflow items for findings via yarn agent-workflow create (requires admin approval)
+- Appends [LOG:REVIEW] section to log file following .ai/commands/workflow-review.md format
+- Cross-references task runner logs (agent-tasks/all/runs/) for process-level debugging
+
+**Docs:** [workflow-review.md](docs/template/github-agents-workflow/workflow-review.md), [overview.md](docs/template/github-agents-workflow/overview.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md)
+
+---
+
+# project-guidelines
+
+## Mobile-First Philosophy
+
+All UI must be designed for mobile screens first (~400px width). Use this when implementing any UI.
+
+**Guidelines:**
+- Design for ~400px width FIRST, then enhance with `sm:`, `md:`, `lg:` modifiers
+- Touch targets MUST be minimum 44px — use `min-h-11` or invisible extension pattern
+- No horizontal scroll — content must fit within mobile viewport
+- Use `pb-20` on mobile main to clear fixed bottom navigation
+- Always use semantic color tokens — never hex values or raw Tailwind colors
+
+**Full docs:** [ui-mobile-first-shadcn.md](docs/template/project-guidelines/ui-mobile-first-shadcn.md)
+
+---
+
+## State Management Rules
+
+when managing state in the application (client state, server state, offline support)
+
+**Guidelines:**
+- React Query for API data, Zustand for client state, useState ONLY for 4 ephemeral cases
+- Valid useState: text input, dialog open, in-flight submission, confirm dialog — everything else MUST use Zustand
+- All Zustand stores MUST use `createStore` from `@/client/stores` — direct zustand imports blocked by ESLint
+- NEVER update UI from server response — optimistic-only pattern: update in `onMutate`, rollback in `onError`, empty `onSuccess`/`onSettled`
+- Default to Zustand persisted — use `inMemoryOnly: true` only for truly transient state
+
+**Full docs:** [state-management-guidelines.md](docs/template/project-guidelines/state-management-guidelines.md)
+
+---
+
+## Client-Server Communications
+
+Client-Server Communication Guidelines
+
+**Guidelines:**
+- Single API endpoint: all requests route through `/api/process/{api_name}`
+- ALL domain types MUST be in `apis/<domain>/types.ts` — never duplicate in components
+- Components use React Query hooks — never call API client functions directly
+- API names defined in `<domain>/index.ts`, handlers in `<domain>/handlers/`, coordinator in `<domain>/server.ts`
+- No client code in server files, no server code in client files
+- Mutations return `{}` when offline — always guard against empty data
+
+**Full docs:** [client-server-communications.md](docs/template/project-guidelines/client-server-communications.md)
+
+---
+
+## Feature-Based Structure
+
+Feature-based folder structure for client code. Use this when organizing client-side code.
+
+**Guidelines:**
+- All feature code lives together in `src/client/features/{name}/` (stores, hooks, components, types)
+- `features/` for cross-route features, `routes/` for route-specific code, `components/` for shared UI primitives only
+- All Zustand stores MUST use `createStore` factory from `@/client/stores`
+- Import from feature index (`@/client/features/auth`), NOT internal files (`auth/store`)
+- Feature-specific components go in `features/`, NOT `components/`
+
+**Full docs:** [feature-based-structure.md](docs/template/project-guidelines/feature-based-structure.md)
+
+---
+
+## MongoDB Usage
+
+when accessing the database or a collection in the db
+
+**Guidelines:**
+- All MongoDB operations MUST be in `src/server/database/collections/` — never import `mongodb` directly in API handlers
+- Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/template/utils` — never use `ObjectId` methods directly
+- CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility (`doc.field?.toISOString() ?? fallback`)
+- New fields must be optional (`?`) with nullish coalescing (`??`) defaults
+
+**Full docs:** [mongodb-usage.md](docs/template/project-guidelines/mongodb-usage.md)
+
+---
+
+## React Components
+
+Component organization and patterns. Use this when creating/organizing components.
+
+**Guidelines:**
+- CRITICAL: Always check states in order — Loading → Error → Empty → Data
+- Check `isLoading || data === undefined` before showing empty state
+- Components under 150 lines — split at 200+
+- Route-specific code in `routes/{Name}/`, shared features in `features/`
+- Feature-specific components go in `features/`, NOT `components/`
+- Use React Query hooks for data fetching — never useState/useEffect
+
+**Full docs:** [react-component-organization.md](docs/template/project-guidelines/react-component-organization.md), [react-hook-organization.md](docs/template/project-guidelines/react-hook-organization.md), [feature-based-structure.md](docs/template/project-guidelines/feature-based-structure.md)
+
+---
+
+## React Hook Organization
+
+React Query hooks and Zustand integration patterns. Use this when creating data fetching hooks.
+
+**Guidelines:**
+- Colocate hooks in `hooks.ts` within route or feature folder
+- Query hooks: always use `useQueryDefaults()` for centralized cache config
+- Mutation hooks: optimistic updates in `onMutate`, rollback in `onError`, empty `onSuccess`/`onSettled`
+- CRITICAL: Check `data === undefined` alongside `isLoading` — only show empty state when data is defined AND empty
+- Mutations must handle empty `{}` responses (offline mode)
+
+**Full docs:** [react-hook-organization.md](docs/template/project-guidelines/react-hook-organization.md)
+
+---
+
+## Routes & Navigation
+
+Adding routes and keeping navigation menus in sync. Use this when adding client routes.
+
+**Guidelines:**
+- Routes defined in `src/client/routes/index.ts` — add to `navItems` in `NavLinks.tsx` if user-accessible
+- Use kebab-case paths (`/new-route`), PascalCase folders/components
+- Data fetching via React Query hooks in `hooks.ts` — never direct API calls in components
+- Always use `navigate()` from `useRouter()` — never `window.location.href`
+- Route options: `public` (no auth), `adminOnly`, `fullScreen`
+
+**Full docs:** [pages-and-routing-guidelines.md](docs/template/project-guidelines/pages-and-routing-guidelines.md)
+
+---
+
+## Settings Usage
+
+User preferences and configuration patterns. Use this when implementing persistent user settings.
+
+**Guidelines:**
+- Use `useSettingsStore` from `@/client/features/settings` for all user preferences
+- Subscribe to specific slices: `useSettingsStore((state) => state.settings.theme)`
+- Update with: `updateSettings({ fieldName: value })`
+- Use `useEffectiveOffline()` for combined offline detection (user toggle OR device offline)
+- Add new fields in `types.ts` with defaults in `defaultSettings`
+
+**Full docs:** [settings-usage-guidelines.md](docs/template/project-guidelines/settings-usage-guidelines.md)
+
+---
+
+## shadcn/ui Usage
+
+when building UI components - MUST use shadcn/ui
+
+**Guidelines:**
+- shadcn/ui is the ONLY component library — never use Material-UI, Ant Design, Chakra, etc.
+- NEVER hardcode colors (`bg-white`, `text-black`, `bg-blue-500`) — always use semantic tokens (`bg-background`, `text-foreground`)
+- Use built-in variants (`variant="outline"`, `size="sm"`) instead of custom styling
+- Use `asChild` for proper component composition (e.g., `DialogTrigger asChild`)
+- Icons from `lucide-react` only — no other icon libraries
+- Always provide `Label` with `htmlFor`/`id` for form inputs
+
+**Full docs:** [shadcn-usage.md](docs/template/project-guidelines/shadcn-usage.md)
+
+---
+
+## Theming Guidelines
+
+Theming and styling guidelines for components
+
+**Guidelines:**
+- ALWAYS use semantic CSS variables — never hardcode colors like `bg-white`, `text-black`, `bg-blue-500`, or hex values
+- Exception: dialog/modal overlays may use `bg-black/60` (standard shadcn pattern)
+- Use `bg-background`, `text-foreground`, `border-border`, `bg-card`, `text-muted-foreground`, etc.
+- Status colors: `text-success`, `text-warning`, `text-info`, `text-destructive`
+- Test components with 2+ theme presets in both light and dark modes
+
+**Full docs:** [theming-guidelines.md](docs/template/project-guidelines/theming-guidelines.md)
+
+---
+
+## TypeScript
+
+Strict TypeScript guidelines. Use this when writing TypeScript code.
+
+**Guidelines:**
+- No `any` types — use `unknown` and narrow with type guards
+- Never cast to `any` (`as any`) — use proper type narrowing
+- Prefer union types (`'pending' | 'approved'`) over enums
+- All domain types MUST be defined in `apis/<domain>/types.ts` — never duplicate in components
+- Do NOT create complex types — prefer simple, self-explanatory types
+
+**Full docs:** [typescript-guidelines.md](docs/template/project-guidelines/typescript-guidelines.md)
+
+---
+
+## User Access
+
+Accessing authenticated user in client and server code. Use this when implementing user-specific features.
+
+**Guidelines:**
+- Client: `const { user } = useAuth(); const userId = user?.id;`
+- Server: `const userId = context.userId;` from `ApiHandlerContext` — always check if undefined
+- Server `userId` is `undefined` if token is invalid or missing — always guard
+
+**Full docs:** [user-access.md](docs/template/project-guidelines/user-access.md)
+
+---
+
+## AI Model API Usage
+
+Server-side AI model integration patterns. Use this when calling AI APIs.
+
+**Guidelines:**
+- NEVER call AI APIs directly — always use `AIModelAdapter` from `src/server/template/ai/baseModelAdapter.ts`
+- All AI calls MUST be server-side only — never expose API keys client-side
+- Validate model IDs using `isModelExists()` before adapter initialization
+- Always return 200 status codes with error fields, never throw uncaught errors
+- Track and return cost of each AI call
+
+**Full docs:** [ai-models-api-usage.md](docs/template/project-guidelines/ai-models-api-usage.md)
+
+---
+
+## ESLint Custom Rules
+
+Custom ESLint rules and when to use disable comments. Use this when fixing lint issues.
+
+**Guidelines:**
+- Never use ESLint disable comments unless specifically instructed
+- Exception: `state-management/prefer-state-architecture` — add disable comment WITH explanation
+- Only 4 valid useState cases: text input, dialog open, in-flight submission, confirm dialog
+- All other UI state (filters, view mode, sort, tabs, collapsed sections) MUST use Zustand
+- Always run `yarn checks` after fixing lint issues
+
+**Full docs:** [eslint-custom-guidelines.md](docs/template/project-guidelines/eslint-custom-guidelines.md)
+
+---
+
+## Vercel CLI Usage
+
+when using Vercel CLI tool or managing Vercel deployments
+
+**Guidelines:**
+- Run `vercel link` first to auto-detect project ID
+- NEVER use `npx vercel env add` with piped input — use `yarn vercel-cli env:push` instead
+- Use `--cloud-proxy` when running in Claude Code cloud environment
+- Check build logs first when deployments fail: `yarn vercel-cli logs --deployment dpl_xxx`
+
+**Full docs:** [vercel-cli-usage.md](docs/template/project-guidelines/vercel-cli-usage.md)
 
 ---
 
@@ -575,7 +747,7 @@ Reference table for additional skill rules not covered in main sections.
 
 Reference table for command-based skills (slash commands).
 
-**Summary:** See the linked skill files for command usage and details.
+**Summary:** See the linked command files for command usage and details.
 
 **Docs:** [command-skills-reference.md](docs/template/_custom/command-skills-reference.md)
 

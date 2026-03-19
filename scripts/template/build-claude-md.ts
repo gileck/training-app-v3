@@ -14,14 +14,14 @@ import matter from 'gray-matter';
 interface Config {
   header: string;
   docs_paths: string[];
-  skills_paths: string[];
   default_priority: number;
 }
 
 interface DocFrontmatter {
   title: string;
   description?: string; // What this doc is about and when to use it
-  summary: string; // Key information/content summary
+  summary?: string; // Key information/content summary
+  guidelines?: string[]; // Prescriptive rules rendered as bullets in CLAUDE.md
   priority?: number;
   key_points?: string[];
   related_docs?: string[];
@@ -31,7 +31,6 @@ interface DocFrontmatter {
 interface DocEntry extends DocFrontmatter {
   file_path: string;
   source: 'template' | 'project';
-  type: 'doc' | 'skill'; // Whether this is a doc or a skill-only entry
   folder?: string; // Nested folder name (e.g., 'github-agents-workflow'), undefined for root docs
 }
 
@@ -77,7 +76,8 @@ function scanDocs(basePath: string, currentPath: string, source: 'template' | 'p
       const { data } = matter(content);
 
       // Skip files without required frontmatter (silent - they're not meant for CLAUDE.md)
-      if (!data.title || !data.summary) {
+      // Need title + either summary or non-empty guidelines
+      if (!data.title || (!data.summary && (!data.guidelines || data.guidelines.length === 0))) {
         continue;
       }
 
@@ -93,63 +93,18 @@ function scanDocs(basePath: string, currentPath: string, source: 'template' | 'p
         title: data.title,
         description: data.description,
         summary: data.summary,
+        guidelines: data.guidelines,
         priority: data.priority,
         key_points: data.key_points,
         related_docs: data.related_docs,
         related_rules: data.related_rules,
         file_path: itemPath,
         source,
-        type: 'doc',
         folder,
       });
     } catch (err) {
       // Skip files with parse errors
       console.warn(`Skipping ${itemPath}: parse error`);
-    }
-  }
-
-  return entries;
-}
-
-// Scan skills directory for SKILL.md files with title/summary
-function scanSkills(dirPath: string, source: 'template' | 'project'): DocEntry[] {
-  const entries: DocEntry[] = [];
-
-  if (!fs.existsSync(dirPath)) {
-    return entries;
-  }
-
-  const skillDirs = fs.readdirSync(dirPath);
-
-  for (const skillDir of skillDirs) {
-    const skillPath = path.join(dirPath, skillDir, 'SKILL.md');
-
-    if (!fs.existsSync(skillPath)) continue;
-
-    try {
-      const content = fs.readFileSync(skillPath, 'utf-8');
-      const { data } = matter(content);
-
-      // Skip skills without title/summary (not meant for CLAUDE.md)
-      if (!data.title || !data.summary) {
-        continue;
-      }
-
-      entries.push({
-        title: data.title,
-        description: data.description,
-        summary: data.summary,
-        priority: data.priority,
-        key_points: data.key_points,
-        related_docs: data.related_docs,
-        related_rules: data.related_rules,
-        file_path: skillPath,
-        source,
-        type: 'skill',
-      });
-    } catch (err) {
-      // Skip files with YAML parse errors
-      console.warn(`Skipping ${skillPath}: YAML parse error`);
     }
   }
 
@@ -170,6 +125,7 @@ function resolveDocPath(relativePath: string, currentDocPath: string): string {
 // Generate a single section
 function generateSection(entry: DocEntry): string {
   const lines: string[] = [];
+  const hasGuidelines = entry.guidelines && entry.guidelines.length > 0;
 
   // Section header
   lines.push(`## ${entry.title}`);
@@ -181,44 +137,48 @@ function generateSection(entry: DocEntry): string {
     lines.push('');
   }
 
-  // Summary (key information)
-  lines.push(`**Summary:** ${entry.summary}`);
-  lines.push('');
-
-  // Key points (if any)
-  if (entry.key_points && entry.key_points.length > 0) {
-    lines.push('**Key Points:**');
-    for (const point of entry.key_points) {
-      lines.push(`- ${point}`);
+  if (hasGuidelines) {
+    // Guidelines mode: render prescriptive rules as bullets
+    lines.push('**Guidelines:**');
+    for (const guideline of entry.guidelines!) {
+      lines.push(`- ${guideline}`);
     }
     lines.push('');
+  } else {
+    // Standard mode: summary + key points
+    if (entry.summary) {
+      lines.push(`**Summary:** ${entry.summary}`);
+      lines.push('');
+    }
+
+    if (entry.key_points && entry.key_points.length > 0) {
+      lines.push('**Key Points:**');
+      for (const point of entry.key_points) {
+        lines.push(`- ${point}`);
+      }
+      lines.push('');
+    }
   }
 
   // Links section
   const linkParts: string[] = [];
+  const docsLabel = hasGuidelines ? '**Full docs:**' : '**Docs:**';
 
-  if (entry.type === 'doc') {
-    // For docs: show Docs link + related docs
-    const docLinks = [relLink(entry.file_path)];
-    if (entry.related_docs) {
-      for (const relDoc of entry.related_docs) {
-        const resolved = resolveDocPath(relDoc, entry.file_path);
-        docLinks.push(relLink(resolved));
-      }
+  const docLinks = [relLink(entry.file_path)];
+  if (entry.related_docs) {
+    for (const relDoc of entry.related_docs) {
+      const resolved = resolveDocPath(relDoc, entry.file_path);
+      docLinks.push(relLink(resolved));
     }
-    linkParts.push(`**Docs:** ${docLinks.join(', ')}`);
+  }
+  linkParts.push(`${docsLabel} ${docLinks.join(', ')}`);
 
-    // Rules (resolve from skills folder)
-    if (entry.related_rules && entry.related_rules.length > 0) {
-      const ruleLinks = entry.related_rules.map(rule => {
-        const skillPath = `.ai/skills/${entry.source}/${rule}/SKILL.md`;
-        return `[${rule}](${skillPath})`;
-      });
-      linkParts.push(`**Rules:** ${ruleLinks.join(', ')}`);
-    }
-  } else {
-    // For skills: show Rules link only
-    linkParts.push(`**Rules:** [${path.basename(path.dirname(entry.file_path))}](${entry.file_path})`);
+  if (entry.related_rules && entry.related_rules.length > 0) {
+    const ruleLinks = entry.related_rules.map(rule => {
+      const rulePath = `docs/${entry.source}/project-guidelines/${rule}.md`;
+      return `[${rule}](${rulePath})`;
+    });
+    linkParts.push(`**Rules:** ${ruleLinks.join(', ')}`);
   }
 
   lines.push(linkParts.join('\n'));
@@ -237,13 +197,6 @@ function buildClaudeMd(config: Config): string {
   for (const docsPath of config.docs_paths) {
     const source = docsPath.includes('project') ? 'project' : 'template';
     const entries = scanDocs(docsPath, docsPath, source as 'template' | 'project');
-    allEntries.push(...entries);
-  }
-
-  // Scan skills
-  for (const skillsPath of config.skills_paths) {
-    const source = skillsPath.includes('project') ? 'project' : 'template';
-    const entries = scanSkills(skillsPath, source as 'template' | 'project');
     allEntries.push(...entries);
   }
 

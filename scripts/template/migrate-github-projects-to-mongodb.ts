@@ -26,8 +26,8 @@ interface MigrationStats {
 
 async function migrate() {
     // Dynamic imports so dotenv.config() runs first
-    const { GitHubProjectsAdapter } = await import('../../src/server/project-management/adapters/github');
-    const { IMPLEMENTATION_PHASE_FIELD } = await import('../../src/server/project-management/config');
+    const { GitHubProjectsAdapter } = await import('../../src/server/template/project-management/adapters/github');
+    const { IMPLEMENTATION_PHASE_FIELD } = await import('../../src/server/template/project-management/config');
     const featureRequests = await import('../../src/server/database/collections/template/feature-requests/feature-requests');
     const reports = await import('../../src/server/database/collections/template/reports/reports');
 

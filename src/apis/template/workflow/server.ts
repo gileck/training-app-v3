@@ -2,16 +2,18 @@
 export * from './index';
 
 // Import API name constants from index.ts
-import { API_LIST_WORKFLOW_ITEMS, API_UPDATE_WORKFLOW_STATUS, API_WORKFLOW_ACTION } from './index';
+import { API_LIST_WORKFLOW_ITEMS, API_UPDATE_WORKFLOW_STATUS, API_WORKFLOW_ACTION, API_UPDATE_WORKFLOW_FIELDS } from './index';
 
 // Import handlers
 import { listItems } from './handlers/listItems';
 import { updateStatus } from './handlers/updateStatus';
 import { workflowAction } from './handlers/workflowAction';
+import { updateFields } from './handlers/updateFields';
 
 // Export consolidated handlers object
 export const workflowApiHandlers = {
     [API_LIST_WORKFLOW_ITEMS]: { process: listItems },
     [API_UPDATE_WORKFLOW_STATUS]: { process: updateStatus },
     [API_WORKFLOW_ACTION]: { process: workflowAction },
+    [API_UPDATE_WORKFLOW_FIELDS]: { process: updateFields },
 };

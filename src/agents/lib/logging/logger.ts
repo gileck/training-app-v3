@@ -5,7 +5,7 @@ import type {
     ExternalLogSource,
     ExternalLogEvent,
 } from './types';
-import { appendToLog, writeLogHeader, logExists, getLogPath } from './writer';
+import { appendToLog, writeLogHeader, logExists, getLogPath, flushPendingLogs } from './writer';
 import { updateCostSummary } from './cost-summary';
 
 /**
@@ -108,6 +108,8 @@ export function logPrompt(
 \`\`\`
 ${escapeCodeBlock(prompt)}
 \`\`\`
+
+### [LOG:PROMPT_END] End of Prompt
 
 ### [LOG:EXECUTION_START] Agent Execution
 
@@ -304,16 +306,45 @@ ${stack ? `\n\nStack trace:\n${stack}` : ''}
 
 /**
  * Log token usage
+ *
+ * Includes cached tokens in the total when available. Total input tokens
+ * is calculated as: inputTokens + cacheReadInputTokens + cacheCreationInputTokens
+ *
+ * @param ctx - Log context
+ * @param usage - Token usage stats including optional cache tokens
  */
 export function logTokenUsage(
     ctx: LogContext,
-    usage: { inputTokens: number; outputTokens: number; cost?: number }
+    usage: {
+        inputTokens: number;
+        outputTokens: number;
+        cost?: number;
+        cacheReadInputTokens?: number;
+        cacheCreationInputTokens?: number;
+    }
 ): void {
     const timestamp = formatTime(new Date());
-    const total = usage.inputTokens + usage.outputTokens;
+
+    // Calculate total input tokens including cache tokens
+    // According to Anthropic SDK: total input = input_tokens + cache_read_input_tokens + cache_creation_input_tokens
+    const cacheRead = usage.cacheReadInputTokens ?? 0;
+    const cacheCreation = usage.cacheCreationInputTokens ?? 0;
+    const totalInputTokens = usage.inputTokens + cacheRead + cacheCreation;
+    const totalTokens = totalInputTokens + usage.outputTokens;
     const costStr = usage.cost ? ` | **Cost:** ${formatCost(usage.cost)}` : '';
 
-    const content = `**[${timestamp}]** [LOG:TOKENS] 📊 Tokens: ${usage.inputTokens} in / ${usage.outputTokens} out (${total} total)${costStr}
+    // Show cache breakdown if cache tokens are present
+    const hasCacheTokens = cacheRead > 0 || cacheCreation > 0;
+    let inputDisplay: string;
+    if (hasCacheTokens) {
+        // Show: "150 in (50 new + 100 cached)" format
+        const cachedTotal = cacheRead + cacheCreation;
+        inputDisplay = `${totalInputTokens} in (${usage.inputTokens} new + ${cachedTotal} cached)`;
+    } else {
+        inputDisplay = `${usage.inputTokens} in`;
+    }
+
+    const content = `**[${timestamp}]** [LOG:TOKENS] 📊 Tokens: ${inputDisplay} / ${usage.outputTokens} out (${totalTokens} total)${costStr}
 
 `;
 
@@ -323,10 +354,10 @@ export function logTokenUsage(
 /**
  * Log execution end with summary
  */
-export function logExecutionEnd(
+export async function logExecutionEnd(
     ctx: LogContext,
     summary: Partial<ExecutionSummary>
-): void {
+): Promise<void> {
     const duration = Date.now() - ctx.startTime.getTime();
     const durationStr = formatDuration(duration);
 
@@ -346,16 +377,24 @@ export function logExecutionEnd(
 
     appendToLog(ctx.issueNumber, content);
 
-    // Update cumulative cost summary
-    updateCostSummary(ctx, {
-        name: ctx.phase,
-        duration,
-        toolCallsCount: summary.toolCallsCount || 0,
-        totalTokens: summary.totalTokens || 0,
-        totalCost: summary.totalCost || 0,
-    }).catch((error) => {
+    // Flush pending S3 writes so cost summary reads the latest content
+    await flushPendingLogs();
+
+    // Update cumulative cost summary (awaited so S3 writes complete before exit)
+    try {
+        await updateCostSummary(ctx, {
+            name: ctx.phase,
+            duration,
+            toolCallsCount: summary.toolCallsCount || 0,
+            totalTokens: summary.totalTokens || 0,
+            totalCost: summary.totalCost || 0,
+        });
+    } catch (error) {
         console.error('Failed to update cost summary:', error);
-    });
+    }
+
+    // Flush any remaining S3 writes from cost summary
+    await flushPendingLogs();
 
     // Print log file location
     const logPath = getLogPath(ctx.issueNumber);

@@ -44,6 +44,7 @@ export {
     buildProductDesignPrompt,
     buildProductDesignRevisionPrompt,
     buildProductDesignClarificationPrompt,
+    buildProductDesignPostSelectionPrompt,
 } from './product-design';
 
 // Technical Design prompts
@@ -76,3 +77,6 @@ export {
 
 // Plan Subagent prompt
 export { buildPlanSubagentPrompt } from './plan-subagent';
+
+// Triage prompts
+export { buildTriagePrompt } from './triage';

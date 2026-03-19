@@ -12,9 +12,9 @@ import {
     isClarificationComment,
     extractClarificationFromComment,
 } from '../utils';
-import { getProjectManagementAdapter } from '@/server/project-management';
-import type { ProjectManagementAdapter } from '@/server/project-management';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
+import type { ProjectManagementAdapter } from '@/server/template/project-management';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
 
 /**
  * Get clarification data for an issue.
@@ -36,6 +36,12 @@ export async function getClarification(
         // Initialize adapter
         const adapter = getProjectManagementAdapter();
         await adapter.init();
+
+        // Verify the issue is still waiting for clarification
+        const verification = await verifyWaitingForClarification(adapter, issueNumber);
+        if (!verification.valid) {
+            return { error: 'This clarification request has expired or already been answered' };
+        }
 
         // Get issue details
         const issueDetails = await adapter.getIssueDetails(issueNumber);

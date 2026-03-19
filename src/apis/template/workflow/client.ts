@@ -1,6 +1,6 @@
 import apiClient from '@/client/utils/apiClient';
 import { CacheResult } from '@/common/cache/types';
-import { API_LIST_WORKFLOW_ITEMS, API_UPDATE_WORKFLOW_STATUS, API_WORKFLOW_ACTION } from './index';
+import { API_LIST_WORKFLOW_ITEMS, API_UPDATE_WORKFLOW_STATUS, API_WORKFLOW_ACTION, API_UPDATE_WORKFLOW_FIELDS } from './index';
 import type {
     ListWorkflowItemsRequest,
     ListWorkflowItemsResponse,
@@ -8,6 +8,8 @@ import type {
     UpdateWorkflowStatusResponse,
     WorkflowActionRequest,
     WorkflowActionResponse,
+    UpdateWorkflowFieldsRequest,
+    UpdateWorkflowFieldsResponse,
 } from './types';
 
 /**
@@ -35,4 +37,13 @@ export const executeWorkflowAction = async (
     params: WorkflowActionRequest
 ): Promise<CacheResult<WorkflowActionResponse>> => {
     return apiClient.call(API_WORKFLOW_ACTION, params);
+};
+
+/**
+ * Update priority, size, and complexity fields on a workflow item
+ */
+export const updateWorkflowFields = async (
+    params: UpdateWorkflowFieldsRequest
+): Promise<CacheResult<UpdateWorkflowFieldsResponse>> => {
+    return apiClient.call(API_UPDATE_WORKFLOW_FIELDS, params);
 };

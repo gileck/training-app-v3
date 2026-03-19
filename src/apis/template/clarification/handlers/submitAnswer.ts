@@ -13,9 +13,9 @@ import {
     extractClarificationFromComment,
     formatAnswerForGitHub,
 } from '../utils';
-import { getProjectManagementAdapter } from '@/server/project-management';
-import { REVIEW_STATUSES } from '@/server/project-management/config';
-import { updateReviewStatus } from '@/server/workflow-service';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
+import { updateReviewStatus } from '@/server/template/workflow-service';
 import { verifyWaitingForClarification } from './getClarification';
 
 /**
@@ -49,7 +49,7 @@ export async function submitAnswer(
         // Verify the issue is waiting for clarification
         const verification = await verifyWaitingForClarification(adapter, issueNumber);
         if (!verification.valid) {
-            return { error: verification.error };
+            return { error: 'This clarification request has expired or already been answered' };
         }
 
         // Get the original clarification to include question context

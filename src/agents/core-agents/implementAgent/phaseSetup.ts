@@ -4,22 +4,19 @@ import {
     type GitHubComment,
 } from '../../shared';
 import {
-    extractPhasesFromTechDesign,
     parsePhaseString,
 } from '../../lib/parsing';
-import {
-    parsePhasesFromComment,
-} from '../../lib/phases';
 import {
     getTaskBranch,
     generateTaskBranchName,
     setTaskBranch,
     type ArtifactComment,
 } from '../../lib/artifacts';
-import { getPhasesFromDB, saveTaskBranchToDB } from '../../lib/workflow-db';
+import { saveTaskBranchToDB } from '../../lib/workflow-db';
 import {
     logFeatureBranch,
 } from '../../lib/logging';
+import { resolvePhaseDetails } from '../../shared/phase-resolution';
 import type { ProcessableItem, ImplementOptions } from './types';
 import { ensureFeatureBranch } from './gitUtils';
 
@@ -68,16 +65,14 @@ export async function resolvePhaseInfo(
         console.log(`  🌿 ${multiPhaseMsg}`);
         logFeatureBranch(issueNumber, multiPhaseMsg);
 
-        // Try to get phase details from DB first, then comments, then markdown
-        const parsedPhases = await getPhasesFromDB(issueNumber) ||
-                             parsePhasesFromComment(issueComments) ||
-                             (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
-        if (parsedPhases) {
-            currentPhaseDetails = parsedPhases.find(p => p.order === currentPhase);
+        // Resolve phase details from DB/comments/markdown
+        const resolved = await resolvePhaseDetails(issueNumber, issueComments, techDesign, currentPhase);
+        if (resolved) {
+            currentPhaseDetails = resolved.currentPhaseDetails;
             phaseInfo = {
                 current: currentPhase,
                 total: totalPhases,
-                phases: parsedPhases,
+                phases: resolved.phases,
             };
             console.log('  Phases loaded');
         }
@@ -102,15 +97,12 @@ export async function resolvePhaseInfo(
         }
     } else if (mode === 'new' && !phaseInfo) {
         // No existing phase - check if we should start multi-phase (only for new implementations)
-        // Try DB first, then comment, then markdown
-        const parsedPhases = await getPhasesFromDB(issueNumber) ||
-                             parsePhasesFromComment(issueComments) ||
-                             (techDesign ? extractPhasesFromTechDesign(techDesign) : null);
+        const resolved = await resolvePhaseDetails(issueNumber, issueComments, techDesign, 1);
 
-        if (parsedPhases && parsedPhases.length >= 2) {
+        if (resolved && resolved.phases.length >= 2) {
             // Start new multi-phase implementation
             currentPhase = 1;
-            totalPhases = parsedPhases.length;
+            totalPhases = resolved.phases.length;
             const detectedMsg = `Detected multi-phase feature: ${totalPhases} phases`;
             console.log(`  🌿 ${detectedMsg}`);
             logFeatureBranch(issueNumber, detectedMsg);
@@ -134,11 +126,11 @@ export async function resolvePhaseInfo(
             }
 
             // Get current phase details
-            currentPhaseDetails = parsedPhases.find(p => p.order === currentPhase);
+            currentPhaseDetails = resolved.currentPhaseDetails;
             phaseInfo = {
                 current: currentPhase,
                 total: totalPhases,
-                phases: parsedPhases,
+                phases: resolved.phases,
             };
         }
     } else if (phaseInfo) {

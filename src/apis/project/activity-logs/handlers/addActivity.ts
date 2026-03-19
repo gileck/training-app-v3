@@ -4,7 +4,7 @@ import * as planExercises from '@/server/database/collections/project/planExerci
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/project/trainingPlans';
 import type { ApiHandlerContext } from '@/apis/types';
-import { toStringId, toDocumentId } from '@/server/utils';
+import { toStringId, toDocumentId } from '@/server/template/utils';
 
 export async function addActivity(
     request: AddActivityRequest,
