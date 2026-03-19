@@ -54,8 +54,8 @@ export function getAvailableActions(item: WorkflowItem): AvailableAction[] {
             confirmMessage: 'Reject this item? This will stop further progress.',
         });
 
-        // Choose Recommended (only for Bug Investigation with pending decision)
-        if (status === 'Bug Investigation' && prData?.hasPendingDecision) {
+        // Choose Recommended (for Bug Investigation and Product Design with pending decision)
+        if ((status === 'Bug Investigation' || status === 'Product Design') && prData?.hasPendingDecision) {
             actions.push({
                 action: 'choose-recommended',
                 label: 'Choose Recommended',
@@ -86,11 +86,19 @@ export function getAvailableActions(item: WorkflowItem): AvailableAction[] {
         };
         const designType = designTypeMap[designPr.type] || designPr.type;
         actions.push({
-            action: 'merge-design-pr',
-            label: 'Merge Design PR',
+            action: 'approve-design',
+            label: 'Approve Design',
             variant: 'default',
             needsConfirmation: true,
-            confirmMessage: `Merge design PR #${designPr.prNumber}? This will advance to the next phase.`,
+            confirmMessage: `Approve design and advance to the next phase?`,
+            meta: { prNumber: designPr.prNumber, designType },
+        });
+        actions.push({
+            action: 'request-changes-design-pr',
+            label: 'Request Changes on Design PR',
+            variant: 'outline',
+            needsConfirmation: true,
+            confirmMessage: `Request changes on design PR #${designPr.prNumber}? The agent will revise.`,
             meta: { prNumber: designPr.prNumber, designType },
         });
     }

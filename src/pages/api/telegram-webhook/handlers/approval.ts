@@ -7,7 +7,7 @@
  */
 
 import { featureRequests, reports } from '@/server/database';
-import { approveWorkflowItem, deleteWorkflowItem } from '@/server/workflow-service';
+import { approveWorkflowItem, deleteWorkflowItem } from '@/server/template/workflow-service';
 import { editMessageText, editMessageWithResult } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';

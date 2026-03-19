@@ -14,7 +14,7 @@ dateAdded: 2026-01-27
 
 ## Files to Modify
 
-- `src/server/project-management/types.ts` - Add interface method
-- `src/server/project-management/adapters/github.ts` - Implement method
+- `src/server/template/project-management/types.ts` - Add interface method
+- `src/server/template/project-management/adapters/github.ts` - Implement method
 - `scripts/on-pr-merged.ts` - Call after successful merge
 - --

@@ -5,7 +5,7 @@
  * to the repository via GitHub API and deletes the S3 file.
  */
 
-import { getProjectManagementAdapter } from '@/server/project-management';
+import { getProjectManagementAdapter } from '@/server/template/project-management';
 import { isS3LoggingEnabled, s3ReadLog, s3DeleteLog, getS3LogKey } from './s3-writer';
 
 /**

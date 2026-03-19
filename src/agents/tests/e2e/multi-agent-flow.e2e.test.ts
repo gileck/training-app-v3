@@ -76,7 +76,7 @@ vi.mock('@/agents/shared/config', async (importOriginal) => {
 // IMPORTS — after mocks
 // ============================================================
 
-import { STATUSES, REVIEW_STATUSES } from '@/server/project-management/config';
+import { STATUSES, REVIEW_STATUSES } from '@/server/template/project-management/config';
 import { resetNotifications } from './mocks/mock-notifications';
 import { resetDesignFiles } from './mocks/mock-design-files';
 import { setupBoundaries, teardownBoundaries, type TestBoundaries } from './testkit/setup-boundaries';
@@ -138,7 +138,7 @@ describe('Multi-Agent Auto-Advance Flow', () => {
         await adapter.updateItemReviewStatus(item1!.id, REVIEW_STATUSES.approved);
 
         // 4. Call autoAdvanceApproved() → item advances to Tech Design
-        const { autoAdvanceApproved } = await import('@/server/workflow-service');
+        const { autoAdvanceApproved } = await import('@/server/template/workflow-service');
         await autoAdvanceApproved();
 
         const item2 = adapter.findItemByIssueNumber(issueNumber);
@@ -183,7 +183,7 @@ describe('Multi-Agent Auto-Advance Flow', () => {
         expect(item6!.reviewStatus).toBe(REVIEW_STATUSES.approved);
 
         // 10. Mark done
-        const { markDone } = await import('@/server/workflow-service');
+        const { markDone } = await import('@/server/template/workflow-service');
         await markDone(issueNumber);
 
         const finalItem = adapter.findItemByIssueNumber(issueNumber);

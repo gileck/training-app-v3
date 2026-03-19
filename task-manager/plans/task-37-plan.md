@@ -39,7 +39,7 @@ main <--- Phase 3 PR (merged)
    - Submits GitHub PR reviews (APPROVE or REQUEST_CHANGES)
    - Generates commit messages for merge
 
-3. **GitHub Adapter** (`src/server/project-management/adapters/github.ts`)
+3. **GitHub Adapter** (`src/server/template/project-management/adapters/github.ts`)
    - `createPullRequest(head, base, title, body, reviewers)` - base branch is configurable
    - `findOpenPRForIssue()` - finds open PRs referencing an issue
    - `mergePullRequest()` - squash merges PRs
@@ -197,7 +197,7 @@ All new feature branch operations MUST be logged to the issue logger for debuggi
 
 ### Sub-task 1: Add "Final Review" Status to GitHub Projects
 - [ ] Add `Final Review` status/column to GitHub Projects (manually in GitHub UI)
-- [ ] Update `STATUSES` constant in `src/server/project-management/config.ts`
+- [ ] Update `STATUSES` constant in `src/server/template/project-management/config.ts`
 - [ ] Position between "PR Review" and "Done"
 - [ ] Update `docs/template/init-github-projects-workflow.md`:
   - Add "Final Review" to Status column table
@@ -305,7 +305,7 @@ All new feature branch operations MUST be logged to the issue logger for debuggi
   - Link to relevant log entries
 
 ### Sub-task 14: Update /workflow-review Command for Feature Branch Validation
-- [ ] Add new log markers to `.claude/commands/workflow-review.md`:
+- [ ] Add new log markers to `.ai/commands/workflow-review.md`:
   - `[LOG:FEATURE_BRANCH]` - Feature branch operations
   - `[LOG:FINAL_REVIEW]` - Final review status transitions
 - [ ] Add Feature Branch Flow validation checklist:
@@ -351,9 +351,9 @@ All new feature branch operations MUST be logged to the issue logger for debuggi
 - `src/agents/core-agents/prReviewAgent/index.ts` - Minor updates for feature branch PRs (if needed)
 
 ### Infrastructure Files
-- `src/server/project-management/config.ts` - Add "Final Review" status
-- `src/server/project-management/adapters/github.ts` - May need minor updates for branch operations
-- `src/server/project-management/types.ts` - Update status types if needed
+- `src/server/template/project-management/config.ts` - Add "Final Review" status
+- `src/server/template/project-management/adapters/github.ts` - May need minor updates for branch operations
+- `src/server/template/project-management/types.ts` - Update status types if needed
 
 ### Merge/Webhook Handling
 - `src/pages/api/telegram-webhook.ts` - Handle phase merges, final PR creation, Final Review merge
@@ -370,7 +370,7 @@ All new feature branch operations MUST be logged to the issue logger for debuggi
 - `docs/template/github-agents-workflow/feature-branch-workflow.md` - New comprehensive doc
 
 ### Workflow Review Command
-- `.claude/commands/workflow-review.md` - Add feature branch flow validation
+- `.ai/commands/workflow-review.md` - Add feature branch flow validation
 
 ## Files NOT Modified (No Change)
 
@@ -559,7 +559,7 @@ The 6 most critical files for implementing this plan:
 
 1. `src/agents/core-agents/implementAgent/index.ts` - Feature branch creation and PR targeting for multi-phase
 2. `src/pages/api/telegram-webhook.ts` - Handle phase merges to feature branch, final PR creation, Final Review merge
-3. `src/server/project-management/config.ts` - Add "Final Review" status
+3. `src/server/template/project-management/config.ts` - Add "Final Review" status
 4. `src/agents/lib/artifacts.ts` - Track task branch in artifact comment
 5. `src/agents/shared/notifications.ts` - Final Review notification with preview URL
-6. `.claude/commands/workflow-review.md` - Add feature branch flow validation and new log markers
+6. `.ai/commands/workflow-review.md` - Add feature branch flow validation and new log markers

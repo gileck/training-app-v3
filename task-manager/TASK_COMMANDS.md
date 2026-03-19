@@ -270,8 +270,8 @@ Mark a task as complete with commit hash and completion date.
 For detailed usage, examples, and workflows, see:
 - [task-manager/task-management-cli.md](task-manager/task-management-cli.md)
 - Slash command docs:
-  - `.claude/commands/add-task.md`
-  - `.claude/commands/task-list.md`
-  - `.claude/commands/start-task.md`
-  - `.claude/commands/start-task-worktree.md`
-  - `.claude/commands/mark-task-as-done.md`
+  - `.ai/commands/add-task.md`
+  - `.ai/commands/task-list.md`
+  - `.ai/commands/start-task.md`
+  - `.ai/commands/start-task-worktree.md`
+  - `.ai/commands/mark-task-as-done.md`

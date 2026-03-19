@@ -103,6 +103,27 @@ export const PR_REVIEW_REQUEST_CHANGES_OUTPUT = {
     reviewText: '## Review\n\nPlease add error handling for edge cases.',
 };
 
+/** Product design with mock options (design selection decision) */
+export const PRODUCT_DESIGN_MOCK_OPTIONS_OUTPUT = {
+    design: '# Product Design\n\nSearch feature with two design approaches.',
+    comment: 'Design options: 1. Card layout 2. List layout with filters',
+    needsClarification: false,
+    mockOptions: [
+        {
+            id: 'optA',
+            title: 'Card Grid Layout',
+            description: 'Clean card-based grid with search results displayed as cards. Optimized for visual browsing.',
+            isRecommended: true,
+        },
+        {
+            id: 'optB',
+            title: 'List with Filters',
+            description: 'Compact list view with a filter sidebar. Optimized for quick scanning and filtering.',
+            isRecommended: false,
+        },
+    ],
+};
+
 /** Tech design with 3 phases (multi-phase feature) */
 export const MULTI_PHASE_TECH_DESIGN_OUTPUT = {
     design: '# Technical Design\n\n## Implementation Phases\n\n### Phase 1: Database Layer (S)\nCreate schema and migrations.\n\n### Phase 2: API Layer (M)\nAdd REST endpoints.\n\n### Phase 3: UI Components (S)\nBuild frontend components.',

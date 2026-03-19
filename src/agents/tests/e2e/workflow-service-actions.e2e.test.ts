@@ -76,22 +76,36 @@ vi.mock('@/agents/shared/config', async (importOriginal) => {
 // IMPORTS — after mocks
 // ============================================================
 
-import { STATUSES, REVIEW_STATUSES } from '@/server/project-management/config';
+import { STATUSES, REVIEW_STATUSES } from '@/server/template/project-management/config';
 import { resetNotifications } from './mocks/mock-notifications';
 import { resetDesignFiles } from './mocks/mock-design-files';
 import { setupBoundaries, teardownBoundaries, type TestBoundaries } from './testkit/setup-boundaries';
 import {
     reviewDesign,
     requestChangesOnPR,
+    requestChangesOnDesignPR,
     mergeImplementationPR,
+    mergeDesignPR,
+    mergeFinalPR,
+    mergeRevertPR,
     revertMerge,
     undoStatusChange,
-} from '@/server/workflow-service';
+    approveWorkflowItem,
+    routeWorkflowItem,
+    deleteWorkflowItem,
+    advanceStatus,
+    setWorkflowStatus,
+    markClarificationReceived,
+    submitDecisionRouting,
+    routeWorkflowItemByWorkflowId,
+} from '@/server/template/workflow-service';
 import {
     createWorkflowItem,
     setCommitMessage,
+    setRevertPrNumber,
     findWorkflowItemByIssueNumber,
 } from '@/server/database/collections/template/workflow-items';
+import { featureRequests } from '@/server/database';
 import type { MockProjectAdapter } from './mocks/mock-project-adapter';
 
 // ============================================================
@@ -380,6 +394,641 @@ describe('Workflow Service Actions', () => {
             const item = adapter.findItemByIssueNumber(issueNumber);
             expect(item!.status).toBe(STATUSES.productDesign);
             expect(item!.reviewStatus).toBeNull();
+        });
+    });
+
+    // ============================================================
+    // requestChangesOnDesignPR
+    // ============================================================
+
+    describe('requestChangesOnDesignPR', () => {
+        it('sets review status to Request Changes', async () => {
+            const issueNumber = 150;
+            await seedWorkflowItem(issueNumber, 'Design PR feature', STATUSES.productDesign, REVIEW_STATUSES.waitingForReview);
+
+            const result = await requestChangesOnDesignPR(issueNumber, 42, 'Product Design');
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.reviewStatus).toBe(REVIEW_STATUSES.requestChanges);
+            // Status should remain unchanged
+            expect(item!.status).toBe(STATUSES.productDesign);
+        });
+
+        it('returns error for missing issue', async () => {
+            const result = await requestChangesOnDesignPR(99999, 42, 'Product Design');
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // mergeDesignPR
+    // ============================================================
+
+    describe('mergeDesignPR', () => {
+        it('merges design PR and advances to next phase', async () => {
+            const issueNumber = 160;
+            await seedWorkflowItem(issueNumber, 'Design merge feature', STATUSES.productDesign, REVIEW_STATUSES.approved);
+
+            // Create a design PR
+            const pr = await adapter.createPullRequest(
+                `design/issue-${issueNumber}`,
+                'main',
+                `docs: product design for #${issueNumber}`,
+                `Product design document`
+            );
+
+            const result = await mergeDesignPR(issueNumber, pr.number, 'product');
+            expect(result.success).toBe(true);
+            expect(result.advancedTo).toBe('Tech Design');
+
+            // Verify PR was merged
+            const prDetails = await adapter.getPRDetails(pr.number);
+            expect(prDetails!.merged).toBe(true);
+
+            // Verify status advanced to Technical Design
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.techDesign);
+            // Review status should be cleared after advance
+            expect(item!.reviewStatus).toBeNull();
+        });
+
+        it('returns success even without item in adapter', async () => {
+            // This tests the edge case where the item is not found in the adapter
+            // mergeDesignPR still merges the PR but skips advance
+            const issueNumber = 161;
+            // Only seed the issue (no project item) so findItemByIssueNumber returns null
+            adapter.seedIssue(issueNumber, 'No item feature', 'Description', ['feature']);
+
+            const pr = await adapter.createPullRequest(
+                `design/issue-${issueNumber}`,
+                'main',
+                `docs: product design for #${issueNumber}`,
+                `Product design document`
+            );
+
+            const result = await mergeDesignPR(issueNumber, pr.number, 'product');
+            expect(result.success).toBe(true);
+            // advancedTo is undefined because item was not found
+            expect(result.advancedTo).toBeUndefined();
+        });
+    });
+
+    // ============================================================
+    // mergeFinalPR
+    // ============================================================
+
+    describe('mergeFinalPR', () => {
+        it('merges final PR and marks item Done', async () => {
+            const issueNumber = 170;
+            await seedWorkflowItem(issueNumber, 'Final merge feature', STATUSES.finalReview);
+
+            // Create and seed a final PR
+            const pr = await adapter.createPullRequest(
+                `feature/task-${issueNumber}`,
+                'main',
+                `feat: final merge for #${issueNumber}`,
+                `Closes #${issueNumber}`
+            );
+
+            const result = await mergeFinalPR(issueNumber, pr.number);
+            expect(result.success).toBe(true);
+
+            // Verify PR was merged
+            const prDetails = await adapter.getPRDetails(pr.number);
+            expect(prDetails!.merged).toBe(true);
+
+            // Verify status is Done in adapter
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.done);
+        });
+
+        it('returns error when PR not found', async () => {
+            const issueNumber = 171;
+            await seedWorkflowItem(issueNumber, 'Final merge missing PR', STATUSES.finalReview);
+
+            const result = await mergeFinalPR(issueNumber, 99999);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Could not fetch PR info');
+        });
+    });
+
+    // ============================================================
+    // mergeRevertPR
+    // ============================================================
+
+    describe('mergeRevertPR', () => {
+        it('merges revert PR and clears revert tracking', async () => {
+            const issueNumber = 180;
+            await seedWorkflowItem(issueNumber, 'Revert merge feature', STATUSES.implementation, REVIEW_STATUSES.requestChanges);
+
+            // Create a revert PR
+            const revertPR = await adapter.createPullRequest(
+                `revert-merge-sha-123`,
+                'main',
+                `Revert "feat: some feature #${issueNumber}"`,
+                `Part of #${issueNumber}`
+            );
+
+            // Set the revert PR number in DB
+            await setRevertPrNumber(issueNumber, revertPR.number);
+
+            const result = await mergeRevertPR(issueNumber, revertPR.number);
+            expect(result.success).toBe(true);
+
+            // Verify revert PR was merged
+            const prDetails = await adapter.getPRDetails(revertPR.number);
+            expect(prDetails!.merged).toBe(true);
+
+            // Verify revertPrNumber was cleared from DB
+            const dbItem = await findWorkflowItemByIssueNumber(issueNumber);
+            expect(dbItem?.artifacts?.revertPrNumber).toBeUndefined();
+        });
+
+        it('returns error for non-existent revert PR', async () => {
+            const issueNumber = 181;
+            await seedWorkflowItem(issueNumber, 'Missing revert PR', STATUSES.implementation);
+
+            const result = await mergeRevertPR(issueNumber, 99999);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // approveWorkflowItem
+    // ============================================================
+
+    describe('approveWorkflowItem', () => {
+        it('creates GitHub issue and returns needsRouting for features', async () => {
+            // Create a feature request in MongoDB (status: 'new')
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'New feature to approve',
+                description: 'A test feature description',
+                status: 'new',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await approveWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(result.success).toBe(true);
+            expect(result.issueNumber).toBeTruthy();
+            expect(result.needsRouting).toBe(true);
+        });
+
+        it('prevents double approval', async () => {
+            // Create a feature request that is already synced
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Already approved feature',
+                description: 'Already synced',
+                status: 'in_progress',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                githubIssueUrl: 'https://github.com/test/repo/issues/999',
+                githubIssueNumber: 999,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await approveWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Already approved');
+        });
+
+        it('routes to backlog when initialRoute is backlog', async () => {
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Backlog feature',
+                description: 'Should go to backlog',
+                status: 'new',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await approveWorkflowItem(
+                { id: fr._id.toString(), type: 'feature' },
+                { initialRoute: 'backlog' }
+            );
+            expect(result.success).toBe(true);
+            expect(result.needsRouting).toBe(false);
+
+            // Verify item status is Backlog in adapter (set via initialStatusOverride)
+            if (result.issueNumber) {
+                const item = adapter.findItemByIssueNumber(result.issueNumber);
+                expect(item!.status).toBe(STATUSES.backlog);
+            }
+        });
+    });
+
+    // ============================================================
+    // routeWorkflowItem
+    // ============================================================
+
+    describe('routeWorkflowItem', () => {
+        it('routes feature to product-design', async () => {
+            // Create a feature request in MongoDB, approve it so it has a githubProjectItemId
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Route test feature',
+                description: 'Feature to route',
+                status: 'new',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            // Approve to get GitHub issue + project item
+            const approveResult = await approveWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(approveResult.success).toBe(true);
+
+            // Route to product-design
+            const result = await routeWorkflowItem({ id: fr._id.toString(), type: 'feature' }, 'product-design');
+            expect(result.success).toBe(true);
+            expect(result.targetStatus).toBe(STATUSES.productDesign);
+
+            // Verify adapter status
+            if (approveResult.issueNumber) {
+                const item = adapter.findItemByIssueNumber(approveResult.issueNumber);
+                expect(item!.status).toBe(STATUSES.productDesign);
+                // Review status should be cleared
+                expect(item!.reviewStatus).toBeNull();
+            }
+        });
+
+        it('returns error for invalid destination', async () => {
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Invalid route feature',
+                description: 'Feature with invalid route',
+                status: 'new',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const approveResult = await approveWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(approveResult.success).toBe(true);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await routeWorkflowItem({ id: fr._id.toString(), type: 'feature' }, 'invalid' as any);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid routing destination');
+        });
+    });
+
+    // ============================================================
+    // deleteWorkflowItem
+    // ============================================================
+
+    describe('deleteWorkflowItem', () => {
+        it('deletes feature request and cleans up workflow item', async () => {
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Feature to delete',
+                description: 'Should be deletable',
+                status: 'new',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            // Create matching workflow-item
+            await createWorkflowItem({
+                type: 'feature',
+                title: 'Feature to delete',
+                status: STATUSES.backlog,
+                githubIssueNumber: 200,
+                githubIssueUrl: 'https://github.com/test/repo/issues/200',
+                githubIssueTitle: 'Feature to delete',
+                labels: ['feature'],
+                sourceRef: { collection: 'feature-requests', id: fr._id },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await deleteWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(result.success).toBe(true);
+            expect(result.title).toBe('Feature to delete');
+
+            // Assert feature request deleted from DB
+            const deletedFr = await featureRequests.findFeatureRequestById(fr._id.toString());
+            expect(deletedFr).toBeNull();
+        });
+
+        it('blocks deletion of GitHub-synced item without force flag', async () => {
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Synced feature',
+                description: 'Already synced to GitHub',
+                status: 'in_progress',
+                needsUserInput: false,
+                requestedBy: new (await import('mongodb')).ObjectId(),
+                comments: [],
+                githubIssueUrl: 'https://github.com/test/repo/issues/201',
+                githubIssueNumber: 201,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await deleteWorkflowItem({ id: fr._id.toString(), type: 'feature' });
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('synced to GitHub');
+        });
+
+        it('cleans up orphaned workflow-item when source doc already deleted', async () => {
+            const { ObjectId: OId } = await import('mongodb');
+            const orphanId = new OId();
+
+            // Create workflow-item pointing to non-existent feature request
+            await createWorkflowItem({
+                type: 'feature',
+                title: 'Orphaned item',
+                status: STATUSES.backlog,
+                githubIssueNumber: 202,
+                githubIssueUrl: 'https://github.com/test/repo/issues/202',
+                githubIssueTitle: 'Orphaned item',
+                labels: ['feature'],
+                sourceRef: { collection: 'feature-requests', id: orphanId },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await deleteWorkflowItem({ id: orphanId.toString(), type: 'feature' });
+            expect(result.success).toBe(true);
+        });
+    });
+
+    // ============================================================
+    // advanceStatus
+    // ============================================================
+
+    describe('advanceStatus', () => {
+        it('advances status and clears review status by default', async () => {
+            const issueNumber = 300;
+            await seedWorkflowItem(issueNumber, 'Advance feature', STATUSES.productDesign, REVIEW_STATUSES.waitingForReview);
+
+            const result = await advanceStatus(issueNumber, STATUSES.techDesign);
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.techDesign);
+            expect(item!.reviewStatus).toBeNull();
+        });
+
+        it('preserves review status when clearReview is false', async () => {
+            const issueNumber = 301;
+            await seedWorkflowItem(issueNumber, 'Advance preserve review', STATUSES.productDesign, REVIEW_STATUSES.approved);
+
+            const result = await advanceStatus(issueNumber, STATUSES.techDesign, { clearReview: false });
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.techDesign);
+            expect(item!.reviewStatus).toBe(REVIEW_STATUSES.approved);
+        });
+
+        it('returns error when issue not found', async () => {
+            const result = await advanceStatus(999, STATUSES.techDesign);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // setWorkflowStatus
+    // ============================================================
+
+    describe('setWorkflowStatus', () => {
+        it('sets non-routable status directly', async () => {
+            const issueNumber = 310;
+            const { ObjectId: OId } = await import('mongodb');
+
+            // Seed adapter item
+            adapter.seedIssue(issueNumber, 'Set status feature', 'Description', ['feature']);
+            const adapterItemId = adapter.seedItem(issueNumber, STATUSES.implementation, null, ['feature']);
+
+            // Create feature request with githubProjectItemId pointing to the adapter item
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Set status feature',
+                description: 'Feature for set-status test',
+                status: 'in_progress',
+                needsUserInput: false,
+                requestedBy: new OId(),
+                comments: [],
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueNumber: issueNumber,
+                githubProjectItemId: adapterItemId,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            } as Parameters<typeof featureRequests.createFeatureRequest>[0]);
+
+            // Create workflow-item with sourceRef pointing to the feature request
+            const wfItem = await createWorkflowItem({
+                type: 'feature',
+                title: 'Set status feature',
+                status: STATUSES.implementation,
+                githubIssueNumber: issueNumber,
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueTitle: 'Set status feature',
+                labels: ['feature'],
+                sourceRef: { collection: 'feature-requests', id: fr._id },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await setWorkflowStatus(wfItem._id.toString(), STATUSES.done);
+            expect(result.success).toBe(true);
+
+            // Verify adapter status updated
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.done);
+        });
+
+        it('returns error for non-existent workflow item', async () => {
+            const result = await setWorkflowStatus('000000000000000000000000', STATUSES.done);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // markClarificationReceived
+    // ============================================================
+
+    describe('markClarificationReceived', () => {
+        it('updates review status to Clarification Received', async () => {
+            const issueNumber = 320;
+            await seedWorkflowItem(issueNumber, 'Clarification feature', STATUSES.techDesign, REVIEW_STATUSES.waitingForClarification);
+
+            const result = await markClarificationReceived(issueNumber);
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.reviewStatus).toBe(REVIEW_STATUSES.clarificationReceived);
+        });
+
+        it('returns error when item is not waiting for clarification', async () => {
+            const issueNumber = 321;
+            await seedWorkflowItem(issueNumber, 'Not waiting feature', STATUSES.techDesign, REVIEW_STATUSES.waitingForReview);
+
+            const result = await markClarificationReceived(issueNumber);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not waiting for clarification');
+        });
+
+        it('returns error when issue not found', async () => {
+            const result = await markClarificationReceived(999);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // submitDecisionRouting
+    // ============================================================
+
+    describe('submitDecisionRouting', () => {
+        it('routes to target status and clears review', async () => {
+            const issueNumber = 330;
+            await seedWorkflowItem(issueNumber, 'Decision route feature', STATUSES.bugInvestigation, REVIEW_STATUSES.waitingForReview);
+
+            const result = await submitDecisionRouting(issueNumber, STATUSES.techDesign, { logAction: 'decision_routed' });
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.techDesign);
+            // Review status should be cleared when routing
+            expect(item!.reviewStatus).toBeNull();
+        });
+
+        it('sets review status when no target status (approval-only)', async () => {
+            const issueNumber = 331;
+            await seedWorkflowItem(issueNumber, 'Decision approve feature', STATUSES.bugInvestigation);
+
+            const result = await submitDecisionRouting(issueNumber, undefined, { reviewStatus: REVIEW_STATUSES.approved });
+            expect(result.success).toBe(true);
+
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            // Status should not change
+            expect(item!.status).toBe(STATUSES.bugInvestigation);
+            expect(item!.reviewStatus).toBe(REVIEW_STATUSES.approved);
+        });
+
+        it('returns error when issue not found', async () => {
+            const result = await submitDecisionRouting(999, STATUSES.techDesign);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
+        });
+    });
+
+    // ============================================================
+    // routeWorkflowItemByWorkflowId
+    // ============================================================
+
+    describe('routeWorkflowItemByWorkflowId', () => {
+        it('routes feature via workflow item ID', async () => {
+            const issueNumber = 340;
+            const { ObjectId: OId } = await import('mongodb');
+
+            // Seed adapter item
+            adapter.seedIssue(issueNumber, 'Route by workflow ID', 'Description', ['feature']);
+            adapter.seedItem(issueNumber, STATUSES.backlog, null, ['feature']);
+
+            // Create feature request with githubProjectItemId
+            const adapterItem = adapter.findItemByIssueNumber(issueNumber);
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Route by workflow ID',
+                description: 'Feature to route by workflow ID',
+                status: 'in_progress',
+                needsUserInput: false,
+                requestedBy: new OId(),
+                comments: [],
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueNumber: issueNumber,
+                githubProjectItemId: adapterItem!.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            } as Parameters<typeof featureRequests.createFeatureRequest>[0]);
+
+            // Create workflow-item with sourceRef
+            const wfItem = await createWorkflowItem({
+                type: 'feature',
+                title: 'Route by workflow ID',
+                status: STATUSES.backlog,
+                githubIssueNumber: issueNumber,
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueTitle: 'Route by workflow ID',
+                labels: ['feature'],
+                sourceRef: { collection: 'feature-requests', id: fr._id },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await routeWorkflowItemByWorkflowId(wfItem._id.toString(), STATUSES.productDesign);
+            expect(result.success).toBe(true);
+            expect(result.targetStatus).toBe(STATUSES.productDesign);
+
+            // Verify adapter status
+            const item = adapter.findItemByIssueNumber(issueNumber);
+            expect(item!.status).toBe(STATUSES.productDesign);
+        });
+
+        it('returns error for non-routable status', async () => {
+            const issueNumber = 341;
+            const { ObjectId: OId } = await import('mongodb');
+
+            // Seed adapter item
+            adapter.seedIssue(issueNumber, 'Non-routable feature', 'Description', ['feature']);
+            adapter.seedItem(issueNumber, STATUSES.backlog, null, ['feature']);
+
+            // Create feature request
+            const adapterItem = adapter.findItemByIssueNumber(issueNumber);
+            const fr = await featureRequests.createFeatureRequest({
+                title: 'Non-routable feature',
+                description: 'Feature for non-routable test',
+                status: 'in_progress',
+                needsUserInput: false,
+                requestedBy: new OId(),
+                comments: [],
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueNumber: issueNumber,
+                githubProjectItemId: adapterItem!.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            } as Parameters<typeof featureRequests.createFeatureRequest>[0]);
+
+            // Create workflow-item with sourceRef
+            const wfItem = await createWorkflowItem({
+                type: 'feature',
+                title: 'Non-routable feature',
+                status: STATUSES.backlog,
+                githubIssueNumber: issueNumber,
+                githubIssueUrl: `https://github.com/test/repo/issues/${issueNumber}`,
+                githubIssueTitle: 'Non-routable feature',
+                labels: ['feature'],
+                sourceRef: { collection: 'feature-requests', id: fr._id },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            const result = await routeWorkflowItemByWorkflowId(wfItem._id.toString(), STATUSES.prReview);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not a valid routing destination');
+        });
+
+        it('returns error for non-existent workflow item', async () => {
+            const result = await routeWorkflowItemByWorkflowId('000000000000000000000000', STATUSES.productDesign);
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('not found');
         });
     });
 });

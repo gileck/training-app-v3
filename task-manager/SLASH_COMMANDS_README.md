@@ -331,10 +331,10 @@ Claude: [Implements after you reviewed requirements]
 
 ### Where Are Slash Commands Defined?
 
-Slash commands are markdown files in `.claude/commands/`:
+Slash commands are markdown files in `.ai/commands/`:
 
 ```
-.claude/commands/
+.ai/commands/
 ├── add-task.md            (/add-task)
 ├── task-list.md           (/task-list)
 ├── plan-task.md           (/plan-task)

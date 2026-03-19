@@ -3,7 +3,7 @@
  * Constants for Telegram Webhook
  */
 
-import { REVIEW_STATUSES } from '@/server/project-management/config';
+import { REVIEW_STATUSES } from '@/server/template/project-management/config';
 import type { ReviewAction } from './types';
 
 /**
@@ -48,4 +48,4 @@ export {
     FEATURE_ROUTING_STATUS_MAP,
     BUG_ROUTING_STATUS_MAP,
     ROUTING_DESTINATION_LABELS,
-} from '@/server/workflow-service';
+} from '@/server/template/workflow-service';

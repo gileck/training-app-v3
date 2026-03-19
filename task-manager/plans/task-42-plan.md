@@ -102,7 +102,7 @@ The Bug Investigator Agent will follow the established patterns from existing ag
 
 ### Phase 5: Configuration
 
-- [ ] **5.1** Update `src/server/project-management/config.ts`:
+- [ ] **5.1** Update `src/server/template/project-management/config.ts`:
   - Add `bugInvestigation: 'Bug Investigation'` to STATUSES
 
 - [ ] **5.2** Update `src/agents/shared/index.ts`:
@@ -177,7 +177,7 @@ The Bug Investigator Agent will follow the established patterns from existing ag
 - `src/agents/shared/notifications.ts` - Add notifyBugInvestigationReady()
 - `src/agents/auto-advance.ts` - Add Bug Investigation status transitions
 - `src/agents/index.ts` - Register bug-investigator in SCRIPTS
-- `src/server/project-management/config.ts` - Add bugInvestigation status
+- `src/server/template/project-management/config.ts` - Add bugInvestigation status
 - `src/server/webhooks/telegram-webhook.ts` - Add Request Changes handler for bug investigation
 - `src/client/routes/index.ts` - Add /bug-fix/:issueNumber route
 

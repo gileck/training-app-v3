@@ -8,21 +8,14 @@
 
 import type { TelegramCallbackQuery } from '../types';
 import { editMessageWithResult } from '../telegram-api';
-import { generateDecisionToken } from '@/apis/template/agent-decision/utils';
-import { submitDecision } from '@/apis/template/agent-decision/handlers/submitDecision';
+import { chooseRecommendedOption } from '@/server/template/workflow-service';
 
 export async function handleChooseRecommended(
     botToken: string,
     callback_query: TelegramCallbackQuery,
     issueNumber: number,
 ): Promise<void> {
-    const token = generateDecisionToken(issueNumber);
-
-    const result = await submitDecision({
-        issueNumber,
-        token,
-        selection: { chooseRecommended: true },
-    });
+    const result = await chooseRecommendedOption(issueNumber);
 
     if (!callback_query.message) return;
 

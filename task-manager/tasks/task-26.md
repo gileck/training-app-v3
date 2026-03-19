@@ -16,7 +16,7 @@ dateCompleted: 2026-01-28
 
 ## Files to Modify
 
-- `src/server/telegram.ts` - Add message formatting helpers
+- `src/server/template/telegram.ts` - Add message formatting helpers
 - `src/agents/core-agents/*/` - Update each agent to use standard formats
 - `src/agents/shared/` - Create shared formatting utilities
 - PR Review Agent - Ensure generated commit messages follow format

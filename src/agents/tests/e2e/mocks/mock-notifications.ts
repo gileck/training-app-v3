@@ -40,6 +40,7 @@ export const notifyPhaseMergedToFeatureBranch = capture('notifyPhaseMergedToFeat
 export const notifyFinalMergeComplete = capture('notifyFinalMergeComplete');
 export const notifyDecisionSubmitted = capture('notifyDecisionSubmitted');
 export const notifyDecisionNeeded = capture('notifyDecisionNeeded');
+export const notifyWorkflowReviewComplete = capture('notifyWorkflowReviewComplete');
 
 export function resetNotifications(): void {
     capturedNotifications.length = 0;

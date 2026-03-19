@@ -74,6 +74,7 @@
     "src/client/routes/project/Todos/**",
     "src/client/routes/project/SingleTodo/**",
     "src/server/database/collections/project/**",
-    "src/client/styles/todos.css"
+    "src/client/styles/todos.css",
+    ".ai/commands/sync-children.md"
   ]
 }

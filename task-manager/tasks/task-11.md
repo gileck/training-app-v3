@@ -17,6 +17,6 @@ dateAdded: 2026-01-27
 - `src/agents/core-agents/productDesignAgent/index.ts` - Add PR workflow
 - `src/agents/core-agents/techDesignAgent/index.ts` - Add PR workflow
 - `src/agents/core-agents/implementAgent/index.ts` - Read from files via artifact
-- `src/server/project-management/types.ts` - Add new status values
+- `src/server/template/project-management/types.ts` - Add new status values
 - `.github/workflows/on-pr-merged.yml` - Add design PR merge handler
 - --

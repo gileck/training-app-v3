@@ -1,0 +1,515 @@
+{
+  // BUG PIPELINE — Investigation-first flow with decision routing.
+  // Bugs are auto-routed to Bug Investigation on approval (no admin routing step).
+  // After investigation, admin selects a fix approach or the agent auto-submits.
+
+  "id": "bug",
+  "label": "Bug Pipeline",
+  "entryStatus": "Bug Investigation",  // Bugs skip Backlog — auto-route on approval
+  "terminalStatuses": ["Done"],
+
+  "statuses": [
+    { "id": "Backlog", "label": "Backlog" },
+
+    // Bug Investigation — the Bug Investigator agent performs read-only analysis
+    // and posts root cause + fix options. requiresDecision: true enables the
+    // decision UI for admin to select a fix approach.
+    {
+      "id": "Bug Investigation",
+      "label": "Bug Investigation",
+      "agentPhase": "bug-investigation",
+      "isDesignPhase": true,
+      "requiresDecision": true
+    },
+
+    // Bugs can route to design phases if the fix is complex
+    { "id": "Product Design", "label": "Product Design", "agentPhase": "product-design", "isDesignPhase": true },
+    { "id": "Technical Design", "label": "Technical Design", "agentPhase": "tech-design", "isDesignPhase": true },
+
+    { "id": "Ready for development", "label": "Ready for Development", "agentPhase": "implementation" },
+    { "id": "PR Review", "label": "PR Review", "agentPhase": "pr-review" },
+    { "id": "Final Review", "label": "Final Review" },
+    { "id": "Done", "label": "Done" }
+  ],
+
+  "transitions": [
+    // ─── ENTRY (auto-route to Bug Investigation) ─────────────────────────
+
+    {
+      "id": "approve-and-route-to-investigation",
+      "from": "Backlog",
+      "to": "Bug Investigation",
+      "trigger": "system_approve",
+      "guards": [
+        { "id": "guard:not-double-approved" }
+      ],
+      "hooks": [
+        { "id": "hook:create-github-issue", "phase": "before" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+        // Note: no notify-approved hook — bugs are auto-routed, no routing needed
+      ],
+      "description": "Approve bug and auto-route to Bug Investigation (no routing message)"
+    },
+
+    // ─── INVESTIGATION DECISION FLOW ─────────────────────────────────────
+    // Two agent_complete transitions from Bug Investigation. The engine uses
+    // multi-match resolution: evaluates guards in order, picks first pass.
+    // Auto-submit is listed FIRST so its guard is evaluated before the fallback.
+
+    // Auto-submit: agent auto-routes when conditions are met
+    // (autoSubmit=true, high confidence, S complexity, destination=implement)
+    {
+      "id": "agent-auto-submit-investigation",
+      "from": "Bug Investigation",
+      "to": "Ready for development",
+      "trigger": "agent_complete",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:auto-submit-conditions-met" }
+      ],
+      "hooks": [
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:notify-auto-advance", "phase": "after", "optional": true }
+      ],
+      "description": "Bug Investigator auto-submits obvious fix — skip to Implementation"
+    },
+
+    // Normal flow (fallback): agent completes investigation, waits for admin decision.
+    // This is evaluated AFTER auto-submit — if auto-submit guard fails, this fires.
+    {
+      "id": "agent-complete-investigation",
+      "from": "Bug Investigation",
+      "to": "Bug Investigation",  // Status unchanged — review status changes
+      "trigger": "agent_complete",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ],
+      "description": "Bug Investigator completes — sets review status for admin decision"
+    },
+
+    // Admin decision routing — select which phase to route to
+    {
+      "id": "bug-decision-to-implementation",
+      "from": "Bug Investigation",
+      "to": "Ready for development",
+      "trigger": "admin_decision",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:save-decision-selection", "phase": "after" },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:notify-decision-submitted", "phase": "after", "optional": true }
+      ],
+      "description": "Admin routes bug fix to Implementation"
+    },
+
+    {
+      "id": "bug-decision-to-tech-design",
+      "from": "Bug Investigation",
+      "to": "Technical Design",
+      "trigger": "admin_decision",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:save-decision-selection", "phase": "after" },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:notify-decision-submitted", "phase": "after", "optional": true }
+      ],
+      "description": "Admin routes bug fix to Technical Design"
+    },
+
+    {
+      "id": "bug-decision-to-product-design",
+      "from": "Bug Investigation",
+      "to": "Product Design",
+      "trigger": "admin_decision",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:save-decision-selection", "phase": "after" },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:notify-decision-submitted", "phase": "after", "optional": true }
+      ],
+      "description": "Admin routes bug fix to Product Design"
+    },
+
+    // Choose recommended — auto-selects the recommended option
+    {
+      "id": "choose-recommended",
+      "from": "Bug Investigation",
+      "to": "*",  // Target resolved from recommended option's routing config
+      "trigger": "admin_choose_recommended",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:decision-exists" }
+      ],
+      "hooks": [
+        { "id": "hook:save-decision-selection", "phase": "after" },
+        { "id": "hook:post-decision-comment", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:notify-decision-submitted", "phase": "after", "optional": true },
+        { "id": "hook:history-log", "phase": "after" }
+      ],
+      "description": "Select recommended fix option — routes per recommendation config"
+    },
+
+    // ─── SHARED DESIGN PHASE FLOW ────────────────────────────────────────
+    // Same transitions as feature pipeline for Product Design and Tech Design
+
+    {
+      "id": "approve-design-product",
+      "from": "Product Design",
+      "to": "Technical Design",
+      "trigger": "admin_review_approve",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:read-design-from-s3", "phase": "before" },
+        { "id": "hook:save-design-artifact", "phase": "after" },
+        { "id": "hook:add-issue-comment", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "approve-design-tech",
+      "from": "Technical Design",
+      "to": "Ready for development",
+      "trigger": "admin_review_approve",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:read-design-from-s3", "phase": "before" },
+        { "id": "hook:save-design-artifact", "phase": "after" },
+        { "id": "hook:add-issue-comment", "phase": "after" },
+        { "id": "hook:initialize-phases", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "design-pr-request-changes",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_request_changes_design_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:in-design-phase" }
+      ],
+      "hooks": [
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    // ─── SHARED IMPLEMENTATION + REVIEW + MERGE + REVERT ─────────────────
+    // Same transitions as feature pipeline
+
+    {
+      "id": "agent-complete-implementation",
+      "from": "Ready for development",
+      "to": "PR Review",
+      "trigger": "agent_complete",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "pr-request-changes",
+      "from": "PR Review",
+      "to": "Ready for development",
+      "trigger": "admin_request_changes_pr",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    // Merge transitions — same structure as feature pipeline.
+    // Multi-match resolution via phase guards.
+    {
+      "id": "merge-impl-pr",
+      "from": "PR Review",
+      "to": "Done",
+      "trigger": "admin_merge_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:pr-exists" },
+        { "id": "guard:commit-message-exists" },
+        { "id": "guard:is-single-phase" }
+      ],
+      "hooks": [
+        { "id": "hook:merge-pr", "phase": "before" },
+        { "id": "hook:save-phase-artifact", "phase": "after" },
+        { "id": "hook:set-last-merged-pr", "phase": "after" },
+        { "id": "hook:delete-pr-branch", "phase": "after", "optional": true },
+        { "id": "hook:add-issue-comment", "phase": "after", "optional": true },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:clear-implementation-phase", "phase": "after" },
+        { "id": "hook:update-source-doc-status", "phase": "after" },
+        { "id": "hook:close-design-prs", "phase": "after", "optional": true },
+        { "id": "hook:delete-s3-design-files", "phase": "after", "optional": true },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:sync-log-to-repo", "phase": "after", "optional": true }
+      ]
+    },
+
+    // Multi-phase transitions (same as feature, with phase guards)
+    {
+      "id": "merge-impl-pr-next-phase",
+      "from": "PR Review",
+      "to": "Ready for development",
+      "trigger": "admin_merge_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:pr-exists" },
+        { "id": "guard:commit-message-exists" },
+        { "id": "guard:is-middle-phase" }
+      ],
+      "hooks": [
+        { "id": "hook:merge-pr", "phase": "before" },
+        { "id": "hook:save-phase-artifact", "phase": "after" },
+        { "id": "hook:set-last-merged-pr", "phase": "after" },
+        { "id": "hook:delete-pr-branch", "phase": "after", "optional": true },
+        { "id": "hook:add-issue-comment", "phase": "after", "optional": true },
+        { "id": "hook:advance-implementation-phase", "phase": "after" },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "merge-impl-pr-final",
+      "from": "PR Review",
+      "to": "Final Review",
+      "trigger": "admin_merge_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:pr-exists" },
+        { "id": "guard:commit-message-exists" },
+        { "id": "guard:is-final-phase" }
+      ],
+      "hooks": [
+        { "id": "hook:merge-pr", "phase": "before" },
+        { "id": "hook:save-phase-artifact", "phase": "after" },
+        { "id": "hook:set-last-merged-pr", "phase": "after" },
+        { "id": "hook:delete-pr-branch", "phase": "after", "optional": true },
+        { "id": "hook:add-issue-comment", "phase": "after", "optional": true },
+        { "id": "hook:create-final-pr", "phase": "after" },
+        { "id": "hook:set-final-pr-number", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "merge-final-pr",
+      "from": "Final Review",
+      "to": "Done",
+      "trigger": "admin_merge_final_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:pr-exists" }
+      ],
+      "hooks": [
+        { "id": "hook:merge-final-pr", "phase": "before" },
+        { "id": "hook:clean-up-task-branch", "phase": "after", "optional": true },
+        { "id": "hook:add-issue-comment", "phase": "after", "optional": true },
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:clear-implementation-phase", "phase": "after" },
+        { "id": "hook:update-source-doc-status", "phase": "after" },
+        { "id": "hook:close-design-prs", "phase": "after", "optional": true },
+        { "id": "hook:delete-s3-design-files", "phase": "after", "optional": true },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:sync-log-to-repo", "phase": "after", "optional": true }
+      ]
+    },
+
+    // Revert transitions
+    {
+      "id": "revert-merge",
+      "from": "*",
+      "to": "Ready for development",
+      "trigger": "admin_revert",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:merge-commit-sha-valid" }
+      ],
+      "hooks": [
+        { "id": "hook:create-revert-pr", "phase": "before" },
+        { "id": "hook:set-revert-pr-number", "phase": "after" },
+        { "id": "hook:revert-source-doc-status", "phase": "after" },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "merge-revert-pr",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_merge_revert_pr",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:pr-open-and-not-merged" }
+      ],
+      "hooks": [
+        { "id": "hook:merge-revert-pr", "phase": "before" },
+        { "id": "hook:clear-revert-pr-number", "phase": "after" },
+        { "id": "hook:delete-pr-branch", "phase": "after", "optional": true },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    // ─── GLOBAL TRANSITIONS ──────────────────────────────────────────────
+
+    {
+      "id": "manual-mark-done",
+      "from": "*",
+      "to": "Done",
+      "trigger": "admin_mark_done",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:clear-review-status-db", "phase": "after" },
+        { "id": "hook:clear-implementation-phase", "phase": "after" },
+        { "id": "hook:update-source-doc-status", "phase": "after" },
+        { "id": "hook:close-design-prs", "phase": "after", "optional": true },
+        { "id": "hook:delete-s3-design-files", "phase": "after", "optional": true },
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" },
+        { "id": "hook:sync-log-to-repo", "phase": "after", "optional": true }
+      ]
+    },
+
+    {
+      "id": "manual-status-set",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_route",
+      "guards": [{ "id": "guard:item-exists" }],
+      "hooks": [
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ],
+      "description": "Set arbitrary status via UI — fallback for items without routing destination mapping"
+    },
+
+    {
+      "id": "undo-action",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_undo",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:undo-window-valid" }
+      ],
+      "hooks": [
+        { "id": "hook:sync-workflow-status", "phase": "after" },
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ]
+    },
+
+    {
+      "id": "clarification-received",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_clarification_received",
+      "guards": [
+        { "id": "guard:item-exists" },
+        { "id": "guard:waiting-for-clarification" }
+      ],
+      "hooks": [
+        { "id": "hook:agent-log", "phase": "after" },
+        { "id": "hook:history-log", "phase": "after" }
+      ],
+      "description": "Admin marks clarification received — logs action (review status cleared separately via engine.updateReviewStatus)"
+    },
+
+    {
+      "id": "delete",
+      "from": "*",
+      "to": "*",
+      "trigger": "admin_delete",
+      "guards": [{ "id": "guard:not-github-synced" }],
+      "hooks": [
+        { "id": "hook:delete-source-doc", "phase": "before" },
+        { "id": "hook:delete-workflow-item", "phase": "after" },
+        { "id": "hook:close-github-issue", "phase": "after", "optional": true },
+        { "id": "hook:notify-deleted", "phase": "after", "optional": true }
+      ]
+    }
+  ],
+
+  "reviewFlows": [
+    {
+      "statusId": "Bug Investigation",
+      "onAgentComplete": { "reviewStatus": "Waiting for Review" },
+      "reviewActions": [
+        // Note: Bug Investigation can also set "Waiting for Decision" when the agent
+        // posts fix options. The choose_recommended action handles that case.
+        { "action": "approve", "reviewStatus": "Approved" },
+        { "action": "changes", "reviewStatus": "Request Changes" },
+        { "action": "choose_recommended", "triggersTransition": "choose-recommended" }
+      ]
+    },
+    {
+      "statusId": "Product Design",
+      "onAgentComplete": { "reviewStatus": "Waiting for Review" },
+      "reviewActions": [
+        { "action": "approve", "reviewStatus": "Approved", "triggersTransition": "approve-design-product" },
+        { "action": "changes", "reviewStatus": "Request Changes" },
+        { "action": "reject", "reviewStatus": "Rejected" }
+      ]
+    },
+    {
+      "statusId": "Technical Design",
+      "onAgentComplete": { "reviewStatus": "Waiting for Review" },
+      "reviewActions": [
+        { "action": "approve", "reviewStatus": "Approved", "triggersTransition": "approve-design-tech" },
+        { "action": "changes", "reviewStatus": "Request Changes" },
+        { "action": "reject", "reviewStatus": "Rejected" }
+      ]
+    },
+    {
+      "statusId": "PR Review",
+      "onAgentComplete": { "reviewStatus": "Waiting for Review" },
+      "reviewActions": [
+        { "action": "approve", "reviewStatus": "Approved" },
+        { "action": "changes", "reviewStatus": "Request Changes", "triggersTransition": "pr-request-changes" }
+      ]
+    }
+  ]
+}

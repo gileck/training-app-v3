@@ -12,8 +12,8 @@ Key architectural principles guiding the fixes:
 - **Optimistic-only mutation pattern**: `onMutate` for immediate UI, `onError` for rollback, empty `onSuccess`/`onSettled`
 - **Client-generated stable IDs**: `generateId()` from `@/client/utils/id` instead of `temp-${Date.now()}`
 - **Centralized cache config**: `useQueryDefaults()` instead of hardcoded `staleTime` values
-- **Database abstraction**: Use collection functions via `@/server/database`, not direct `getDb()` calls
-- **ID utilities**: `toQueryId()`/`toDocumentId()`/`toStringId()` from `@/server/utils`
+- **Database abstraction**: Use collection functions via `@/server/template/database`, not direct `getDb()` calls
+- **ID utilities**: `toQueryId()`/`toDocumentId()`/`toStringId()` from `@/server/template/utils`
 
 ## Sub-tasks
 
@@ -73,7 +73,7 @@ Key architectural principles guiding the fixes:
 
 ### Phase 6: Database ID Utilities (2 collection files)
 
-- [ ] **6.1** In `src/server/database/collections/template/feature-requests/feature-requests.ts`, replace all instances of the pattern `typeof id === 'string' ? new ObjectId(id) : id` with `toQueryId(id)`. Add `import { toQueryId } from '@/server/utils';`. This affects approximately 12 instances across functions: `findFeatureRequestsByUser`, `findFeatureRequestById`, `updateFeatureRequestStatus`, `addComment`, `updateAdminNotes`, `updatePriority`, `setNeedsUserInput`, `deleteFeatureRequest`, `updateGitHubFields`, `updateApprovalToken`, `updateWorkflowFields`. Also handle `findFeatureRequests` line 42 where `filters.requestedBy` uses the same pattern.
+- [ ] **6.1** In `src/server/database/collections/template/feature-requests/feature-requests.ts`, replace all instances of the pattern `typeof id === 'string' ? new ObjectId(id) : id` with `toQueryId(id)`. Add `import { toQueryId } from '@/server/template/utils';`. This affects approximately 12 instances across functions: `findFeatureRequestsByUser`, `findFeatureRequestById`, `updateFeatureRequestStatus`, `addComment`, `updateAdminNotes`, `updatePriority`, `setNeedsUserInput`, `deleteFeatureRequest`, `updateGitHubFields`, `updateApprovalToken`, `updateWorkflowFields`. Also handle `findFeatureRequests` line 42 where `filters.requestedBy` uses the same pattern.
 
 - [ ] **6.2** In `src/server/database/collections/template/reports/reports.ts`, replace all instances of `typeof id === 'string' ? new ObjectId(id) : id` with `toQueryId(id)`. Add the import. This affects approximately 9 instances across: `findReportById`, `updateReportStatus`, `updateReport`, `updateReportInvestigation`, `deleteReport`, `updateApprovalToken`, `incrementReportOccurrence`, `markReportAsDuplicate` (2 calls), `updateWorkflowFields`. Also `findReportsInTimeRange` at line 274-275 uses `typeof id === 'string' ? new ObjectId(id) : id` in a map.
 

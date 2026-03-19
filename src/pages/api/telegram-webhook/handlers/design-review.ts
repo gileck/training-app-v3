@@ -10,7 +10,7 @@ import {
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
-import { reviewDesign } from '@/server/workflow-service';
+import { reviewDesign } from '@/server/template/workflow-service';
 import { editMessageText, editMessageWithUndoButton } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import {

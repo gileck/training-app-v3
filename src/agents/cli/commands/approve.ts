@@ -6,8 +6,8 @@
  */
 
 import { featureRequests, reports } from '@/server/database';
-import { approveWorkflowItem } from '@/server/workflow-service';
-import type { RoutingDestination } from '@/server/workflow-service';
+import { approveWorkflowItem } from '@/server/template/workflow-service';
+import type { RoutingDestination } from '@/server/template/workflow-service';
 import { parseArgs } from '../utils/parse-args';
 
 const VALID_ROUTES = ['product-dev', 'product-design', 'tech-design', 'implementation', 'backlog'];

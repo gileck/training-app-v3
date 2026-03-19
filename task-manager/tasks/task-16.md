@@ -26,7 +26,7 @@ Currently, features go from "Backlog" directly to "Product Design" or "Tech Desi
 
 ## Files to Modify
 
-- `src/server/project-management/types.ts` - Add "Product Development" status
+- `src/server/template/project-management/types.ts` - Add "Product Development" status
 - `src/agents/core-agents/productDesignAgent/index.ts` - Read PDD if exists
 - `scripts/github-workflows-agent.ts` - Add product development agent execution
 - `docs/github-agents-workflow/workflow-guide.md` - Document new phase

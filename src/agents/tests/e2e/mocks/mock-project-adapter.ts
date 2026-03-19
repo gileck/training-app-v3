@@ -13,8 +13,8 @@ import type {
     ProjectField,
     ListItemsOptions,
     GitHubIssueDetails,
-} from '@/server/project-management';
-import { STATUSES, REVIEW_STATUSES } from '@/server/project-management/config';
+} from '@/server/template/project-management';
+import { STATUSES, REVIEW_STATUSES } from '@/server/template/project-management/config';
 
 interface StoredIssue {
     number: number;

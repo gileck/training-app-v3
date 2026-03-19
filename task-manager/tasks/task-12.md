@@ -16,8 +16,8 @@ completionCommit: fd4af46
 
 ## Files to Modify
 
-- `src/server/telegram/index.ts` - Add filtering logic
-- `src/server/telegram/types.ts` - Add NotificationLevel enum
+- `src/server/template/telegram/index.ts` - Add filtering logic
+- `src/server/template/telegram/types.ts` - Add NotificationLevel enum
 - `src/agents/shared/config.ts` - Add notification preferences
 - `src/agents/lib/logging/index.ts` - Tag notifications with severity
 - --

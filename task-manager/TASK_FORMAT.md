@@ -366,4 +366,4 @@ yarn task migrate
 
 - `task-manager/lib/README.md` - Library documentation
 - `task-manager/README.md` - Task management overview
-- `.claude/commands/add-task.md` - Interactive task creation
+- `.ai/commands/add-task.md` - Interactive task creation

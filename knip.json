@@ -6,6 +6,7 @@
     "src/client/routes/index.ts",
     "src/apis/index.ts",
     "src/agents/index.ts",
+    "src/server/template/rpc/daemon.ts",
     "scripts/**/*.{ts,js}",
     "config/**/*.{ts,mjs,js}",
     "eslint.config.mjs"
@@ -22,7 +23,7 @@
     "src/pages/api/**",
     "node_modules/**",
     "src/agents/lib/**",
-    "src/server/s3/example.ts"
+    "src/server/template/s3/example.ts"
   ],
   "ignoreDependencies": [
     "@types/*",

@@ -7,7 +7,7 @@ Two related changes to the Telegram approval workflow:
 1. **Task #43 (S):** Add a "Delete" button alongside "Approve" on Telegram approval messages. Clicking Delete removes the item from MongoDB and confirms in the message.
 2. **Task #44 (M):** Create a new `/admin/item/:id` page showing full item details (markdown-rendered description) with Approve/Delete action buttons. Update the Telegram "View Details" link to point to this page.
 
-Both tasks modify `src/server/telegram/index.ts`, so they are combined to avoid conflicts.
+Both tasks modify `src/server/template/telegram/index.ts`, so they are combined to avoid conflicts.
 
 ## Approach
 
@@ -35,7 +35,7 @@ These are done in a single pass over the file.
 
 ### Phase 1: Telegram Delete Button (Task #43)
 
-- [ ] **1.1 Add Delete button to feature request notification** -- In `src/server/telegram/index.ts`, `sendFeatureRequestNotification`: add Delete callback button on same row as Approve. Shorten Approve text to fit both buttons. Callback data: `delete_request:<request._id>`.
+- [ ] **1.1 Add Delete button to feature request notification** -- In `src/server/template/telegram/index.ts`, `sendFeatureRequestNotification`: add Delete callback button on same row as Approve. Shorten Approve text to fit both buttons. Callback data: `delete_request:<request._id>`.
 
 - [ ] **1.2 Add Delete button to bug report notification** -- Same in `sendBugReportNotification`. Callback data: `delete_bug:<report._id>`.
 
@@ -57,7 +57,7 @@ These are done in a single pass over the file.
 
 - [ ] **2.2 Register the route** -- Add `/admin/item/:id` to `src/client/routes/index.template.ts`.
 
-- [ ] **2.3 Update Telegram "View Details" URLs** -- In `src/server/telegram/index.ts`:
+- [ ] **2.3 Update Telegram "View Details" URLs** -- In `src/server/template/telegram/index.ts`:
   - Feature requests: change from `/admin/feature-requests/${request._id}` to `/admin/item/${request._id}`
   - Bug reports: change from `/admin/reports` to `/admin/item/${report._id}`
 
@@ -74,7 +74,7 @@ These are done in a single pass over the file.
 
 ## Files to Modify
 
-- `src/server/telegram/index.ts` - Add Delete buttons + update View Details URLs (Tasks #43 & #44)
+- `src/server/template/telegram/index.ts` - Add Delete buttons + update View Details URLs (Tasks #43 & #44)
 - `src/pages/api/telegram-webhook/handlers/approval.ts` - Add delete handler functions (Task #43)
 - `src/pages/api/telegram-webhook/handlers/index.ts` - Export new handlers (Task #43)
 - `src/pages/api/telegram-webhook/index.ts` - Route delete callbacks (Task #43)

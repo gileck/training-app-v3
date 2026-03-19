@@ -11,7 +11,42 @@ import {
     deleteFile,
     fileExists,
     getS3Client,
-} from '@/server/s3/sdk';
+} from '@/server/template/s3/sdk';
+
+/**
+ * Retry wrapper for S3 operations with linear backoff.
+ * Retries transient S3 errors (network timeouts, throttling, 5xx) before giving up.
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, delayMs = 1000): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            // Don't retry 404/NoSuchKey errors - these are definitive, not transient
+            if (isNotFoundError(error)) throw error;
+            if (attempt === maxRetries) throw error;
+            console.warn(`  [LOG:S3] Retry ${attempt}/${maxRetries} after error: ${error instanceof Error ? error.message : String(error)}`);
+            await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        }
+    }
+    throw new Error('Unreachable');
+}
+
+/**
+ * Check if an error is a 404/NoSuchKey error (not worth retrying)
+ */
+function isNotFoundError(error: unknown): boolean {
+    if (error instanceof Error && error.message.includes('NoSuchKey')) {
+        return true;
+    }
+    if (error && typeof error === 'object' && '$metadata' in error) {
+        const metadata = (error as { $metadata?: { httpStatusCode?: number } }).$metadata;
+        if (metadata?.httpStatusCode === 404) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * Environment variable for S3 log bucket
@@ -67,7 +102,9 @@ export async function s3ReadLog(issueNumber: number): Promise<string> {
 
     try {
         const key = getS3LogKey(issueNumber);
-        const { content } = await getFileWithETag(key, getS3Client(), getLogBucketName());
+        const { content } = await withRetry(() =>
+            getFileWithETag(key, getS3Client(), getLogBucketName())
+        );
         return content;
     } catch (error: unknown) {
         // Return empty string if file doesn't exist
@@ -94,14 +131,16 @@ export async function s3WriteLog(issueNumber: number, content: string): Promise<
     }
 
     const key = getS3LogKey(issueNumber);
-    await uploadFile(
-        {
-            fileName: key,
-            content,
-            contentType: 'text/markdown',
-        },
-        getS3Client(),
-        getLogBucketName()
+    await withRetry(() =>
+        uploadFile(
+            {
+                fileName: key,
+                content,
+                contentType: 'text/markdown',
+            },
+            getS3Client(),
+            getLogBucketName()
+        )
     );
 }
 
@@ -198,7 +237,7 @@ export async function s3DeleteLog(issueNumber: number): Promise<void> {
 
     try {
         const key = getS3LogKey(issueNumber);
-        await deleteFile(key, getS3Client(), getLogBucketName());
+        await withRetry(() => deleteFile(key, getS3Client(), getLogBucketName()));
     } catch (error: unknown) {
         // Ignore if file doesn't exist
         if (error instanceof Error && error.message.includes('NoSuchKey')) {

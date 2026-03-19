@@ -1,39 +1,60 @@
 /**
  * Delete Command
  *
- * Deletes a feature request or bug report.
+ * Deletes a workflow item and optionally closes the linked GitHub issue.
  * Usage: yarn agent-workflow delete <id> [--force]
  */
 
-import { featureRequests, reports } from '@/server/database';
-import { deleteWorkflowItem } from '@/server/workflow-service';
+import {
+    findWorkflowItemById,
+    findWorkflowItemByIssueNumber,
+    findAllWorkflowItems,
+    deleteWorkflowItem as deleteWorkflowItemFromDB,
+} from '@/server/database/collections/template/workflow-items/workflow-items';
+import { GitHubClient } from '@/server/template/project-management/github-client';
 import { parseArgs } from '../utils/parse-args';
 
 /**
- * Try to find an item by ID or ID prefix, searching both collections
+ * Find a workflow item by exact ID, ID prefix, or GitHub issue number
  */
-async function findItem(id: string): Promise<{ type: 'feature' | 'bug'; id: string; title: string } | null> {
-    // Try exact match in features
+async function findItem(id: string): Promise<{ workflowItemId: string; title: string; githubIssueNumber?: number; githubIssueUrl?: string } | null> {
+    // Try exact ObjectId match
     try {
-        const feature = await featureRequests.findFeatureRequestById(id);
-        if (feature) return { type: 'feature', id: feature._id.toString(), title: feature.title };
-    } catch { /* invalid ObjectId, try prefix */ }
-
-    // Try exact match in reports
-    try {
-        const report = await reports.findReportById(id);
-        if (report) return { type: 'bug', id: report._id.toString(), title: report.description?.slice(0, 80) || 'Bug Report' };
-    } catch { /* invalid ObjectId, try prefix */ }
+        if (id.length === 24) {
+            const exact = await findWorkflowItemById(id);
+            if (exact) return {
+                workflowItemId: exact._id.toString(),
+                title: exact.title,
+                githubIssueNumber: exact.githubIssueNumber,
+                githubIssueUrl: exact.githubIssueUrl,
+            };
+        }
+    } catch {
+        // Invalid ObjectId format
+    }
 
     // Try prefix match
     if (id.length >= 6 && id.length < 24) {
-        const allFeatures = await featureRequests.findFeatureRequests();
-        const featureMatch = allFeatures.find(f => f._id.toString().startsWith(id));
-        if (featureMatch) return { type: 'feature', id: featureMatch._id.toString(), title: featureMatch.title };
+        const all = await findAllWorkflowItems();
+        const match = all.find(item => item._id.toString().startsWith(id));
+        if (match) return {
+            workflowItemId: match._id.toString(),
+            title: match.title,
+            githubIssueNumber: match.githubIssueNumber,
+            githubIssueUrl: match.githubIssueUrl,
+        };
+    }
 
-        const allReports = await reports.findReports();
-        const reportMatch = allReports.find(r => r._id.toString().startsWith(id));
-        if (reportMatch) return { type: 'bug', id: reportMatch._id.toString(), title: reportMatch.description?.slice(0, 80) || 'Bug Report' };
+    // Try by GitHub issue number
+    const issueNum = parseInt(id, 10);
+    if (!isNaN(issueNum)) {
+        const item = await findWorkflowItemByIssueNumber(issueNum);
+        if (item) return {
+            workflowItemId: item._id.toString(),
+            title: item.title,
+            githubIssueNumber: item.githubIssueNumber,
+            githubIssueUrl: item.githubIssueUrl,
+        };
     }
 
     return null;
@@ -64,21 +85,36 @@ export async function handleDelete(args: string[]): Promise<void> {
         process.exit(1);
     }
 
-    console.log(`  Found ${item.type}: "${item.title}" (${item.id})`);
+    console.log(`  Found: "${item.title}" (${item.workflowItemId})`);
 
-    const result = await deleteWorkflowItem(
-        { id: item.id, type: item.type },
-        force ? { force: true } : undefined
-    );
-
-    if (!result.success) {
-        console.error(`  Error: ${result.error}`);
-        if (result.error?.includes('synced to GitHub')) {
-            console.error(`  Use --force to delete anyway.`);
-        }
+    // Check GitHub sync status (block unless force)
+    if (item.githubIssueUrl && !force) {
+        console.error(`  Error: Cannot delete: already synced to GitHub (issue #${item.githubIssueNumber})`);
+        console.error(`  Use --force to delete anyway.`);
         process.exit(1);
     }
 
-    console.log(`  Deleted: "${result.title}"`);
-    console.log('\nDeleted successfully!');
+    // Delete workflow item from DB
+    const deleted = await deleteWorkflowItemFromDB(item.workflowItemId);
+    if (!deleted) {
+        console.error(`  Error: Failed to delete workflow item`);
+        process.exit(1);
+    }
+
+    console.log(`  Deleted workflow item from DB`);
+
+    // Close GitHub issue if exists (fire-and-forget)
+    if (item.githubIssueNumber) {
+        try {
+            const gh = new GitHubClient();
+            await gh.init();
+            await gh.addIssueComment(item.githubIssueNumber, 'This item was deleted from the workflow.');
+            await gh.closeIssue(item.githubIssueNumber);
+            console.log(`  Closed GitHub issue #${item.githubIssueNumber}`);
+        } catch (error) {
+            console.warn(`  Warning: Failed to close GitHub issue: ${error}`);
+        }
+    }
+
+    console.log(`\nDeleted "${item.title}" successfully!`);
 }

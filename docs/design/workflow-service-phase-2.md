@@ -2,7 +2,7 @@
 
 ## Context
 
-Phase 1 created `src/server/workflow-service/` with three operations: `approveWorkflowItem()`, `routeWorkflowItem()`, `deleteWorkflowItem()`. These handle the **entry** of items into the workflow pipeline.
+Phase 1 created `src/server/template/workflow-service/` with three operations: `approveWorkflowItem()`, `routeWorkflowItem()`, `deleteWorkflowItem()`. These handle the **entry** of items into the workflow pipeline.
 
 However, 12 files still contain direct adapter calls, logging, and notifications for **mid-pipeline** operations: design review, PR merge, phase transitions, undo, agent completion, and decision routing. These operations are scattered across Telegram handlers, API endpoints, and agent code with the same category of bugs Phase 1 fixed: inconsistent logging, missing DB syncs, duplicated logic.
 
@@ -377,7 +377,7 @@ Used by: `undo.ts` (all 3 handlers)
 Currently lives in `src/pages/api/telegram-webhook/utils.ts`. Multiple service functions need to resolve an issue number to a project item ID. This should move into the workflow-service as a shared utility.
 
 ```typescript
-// src/server/workflow-service/utils.ts
+// src/server/template/workflow-service/utils.ts
 export async function findItemByIssueNumber(
     issueNumber: number
 ): Promise<ProjectItem | null>
@@ -405,7 +405,7 @@ For the service layer, we should either:
 
 ### Step 1: Create shared utilities
 
-Create `src/server/workflow-service/utils.ts`:
+Create `src/server/template/workflow-service/utils.ts`:
 - `findItemByIssueNumber(issueNumber)` — moved from telegram-webhook utils
 - `findSourceDocByIssueNumber(issueNumber)` — looks up feature request or bug report by github issue number
 - `getInitializedAdapter()` — convenience wrapper for `getProjectManagementAdapter() + init()`
@@ -413,45 +413,45 @@ Create `src/server/workflow-service/utils.ts`:
 
 ### Step 2: Create review status service
 
-Create `src/server/workflow-service/review-status.ts`:
+Create `src/server/template/workflow-service/review-status.ts`:
 - `updateReviewStatus(issueNumber, reviewStatus, options?)`
 - `clearReviewStatus(issueNumber, options?)`
 
 ### Step 3: Create status transition service
 
-Create `src/server/workflow-service/advance.ts`:
+Create `src/server/template/workflow-service/advance.ts`:
 - `advanceStatus(issueNumber, toStatus, options?)`
 - `markDone(issueNumber, options?)`
 
 ### Step 4: Create phase management service
 
-Create `src/server/workflow-service/phase.ts`:
+Create `src/server/template/workflow-service/phase.ts`:
 - `advanceImplementationPhase(issueNumber, nextPhase, options?)`
 - `clearImplementationPhase(issueNumber, options?)`
 
 ### Step 5: Create agent completion service
 
-Create `src/server/workflow-service/agent-complete.ts`:
+Create `src/server/template/workflow-service/agent-complete.ts`:
 - `completeAgentRun(issueNumber, agentType, result, options?)`
 
 ### Step 6: Create decision routing service
 
-Create `src/server/workflow-service/decision.ts`:
+Create `src/server/template/workflow-service/decision.ts`:
 - `submitDecisionRouting(issueNumber, targetStatus, options?)`
 
 ### Step 7: Create undo service
 
-Create `src/server/workflow-service/undo.ts`:
+Create `src/server/template/workflow-service/undo.ts`:
 - `undoStatusChange(issueNumber, restoreStatus, restoreReviewStatus?, options?)`
 
 ### Step 8: Create auto-advance service
 
-Create `src/server/workflow-service/auto-advance.ts`:
+Create `src/server/template/workflow-service/auto-advance.ts`:
 - `autoAdvanceApproved(options?)`
 
 ### Step 9: Update index.ts exports
 
-Add all new functions to `src/server/workflow-service/index.ts`.
+Add all new functions to `src/server/template/workflow-service/index.ts`.
 
 ### Step 10: Migrate Telegram handlers
 
@@ -557,20 +557,20 @@ Add all new functions to `src/server/workflow-service/index.ts`.
 
 | File | Description |
 |------|-------------|
-| `src/server/workflow-service/utils.ts` | Shared utilities: findItemByIssueNumber, getInitializedAdapter, syncWorkflowStatus |
-| `src/server/workflow-service/review-status.ts` | Review status management |
-| `src/server/workflow-service/advance.ts` | Status transitions + markDone |
-| `src/server/workflow-service/phase.ts` | Implementation phase management |
-| `src/server/workflow-service/agent-complete.ts` | Agent completion status updates |
-| `src/server/workflow-service/decision.ts` | Decision routing |
-| `src/server/workflow-service/undo.ts` | Undo with time window |
-| `src/server/workflow-service/auto-advance.ts` | Batch auto-advance for approved items |
+| `src/server/template/workflow-service/utils.ts` | Shared utilities: findItemByIssueNumber, getInitializedAdapter, syncWorkflowStatus |
+| `src/server/template/workflow-service/review-status.ts` | Review status management |
+| `src/server/template/workflow-service/advance.ts` | Status transitions + markDone |
+| `src/server/template/workflow-service/phase.ts` | Implementation phase management |
+| `src/server/template/workflow-service/agent-complete.ts` | Agent completion status updates |
+| `src/server/template/workflow-service/decision.ts` | Decision routing |
+| `src/server/template/workflow-service/undo.ts` | Undo with time window |
+| `src/server/template/workflow-service/auto-advance.ts` | Batch auto-advance for approved items |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
-| `src/server/workflow-service/index.ts` | Add all new exports |
+| `src/server/template/workflow-service/index.ts` | Add all new exports |
 | `src/pages/api/telegram-webhook/handlers/design-review.ts` | Replace adapter calls with service |
 | `src/pages/api/telegram-webhook/handlers/design-pr.ts` | Replace status/review adapter calls with service |
 | `src/pages/api/telegram-webhook/handlers/merge.ts` | Replace status/review/phase adapter calls with service |
@@ -608,7 +608,7 @@ TRANSPORT / AGENT LAYER
        ▼               ▼                ▼                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   WORKFLOW SERVICE LAYER                         │
-│  src/server/workflow-service/                                    │
+│  src/server/template/workflow-service/                                    │
 │                                                                  │
 │  ENTRY:                                                          │
 │    approveWorkflowItem()   routeWorkflowItem()                  │

@@ -75,7 +75,7 @@ vi.mock('@/agents/shared/config', async (importOriginal) => {
 // IMPORTS — after mocks
 // ============================================================
 
-import { STATUSES } from '@/server/project-management/config';
+import { STATUSES } from '@/server/template/project-management/config';
 import { resetNotifications } from './mocks/mock-notifications';
 import { resetDesignFiles } from './mocks/mock-design-files';
 import { setupBoundaries, teardownBoundaries, type TestBoundaries } from './testkit/setup-boundaries';
@@ -165,7 +165,7 @@ describe('Multi-Phase Feature', () => {
         expect(featureBranchExists).toBe(true);
 
         // 4. Simulate Phase 1 merge and advance to Phase 2
-        const { advanceImplementationPhase } = await import('@/server/workflow-service');
+        const { advanceImplementationPhase } = await import('@/server/template/workflow-service');
         await advanceImplementationPhase(issueNumber, '2/3', STATUSES.implementation);
 
         const phase2Check = await adapter.getImplementationPhase(item1!.id);

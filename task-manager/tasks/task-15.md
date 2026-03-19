@@ -18,6 +18,6 @@ dateAdded: 2026-01-27
 
 ## Files to Modify
 
-- `src/server/telegram/index.ts` - Update callback handlers for loading states
-- `src/server/telegram/bot.ts` - Ensure View buttons persist after actions
+- `src/server/template/telegram/index.ts` - Update callback handlers for loading states
+- `src/server/template/telegram/bot.ts` - Ensure View buttons persist after actions
 - `src/agents/shared/notifications.ts` - Update message templates if needed

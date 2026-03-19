@@ -7,8 +7,8 @@
  * and handles only Telegram-specific message editing.
  */
 
-import { getIssueUrl, getPrUrl } from '@/server/project-management/config';
-import { sendNotificationToOwner } from '@/server/telegram';
+import { getIssueUrl, getPrUrl } from '@/server/template/project-management/config';
+import { sendNotificationToOwner } from '@/server/template/telegram';
 import { appConfig } from '@/app.config';
 import {
     logExternalError,
@@ -20,7 +20,7 @@ import {
     revertMerge,
     mergeRevertPR,
     getInitializedAdapter,
-} from '@/server/workflow-service';
+} from '@/server/template/workflow-service';
 import { editMessageText } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';

@@ -68,8 +68,8 @@ The implementation follows existing patterns in the codebase for Telegram callba
 
 ## Files to Modify
 
-- `src/server/project-management/types.ts` - Add interface methods for `getMergeCommitSha` and `createRevertPR`
-- `src/server/project-management/adapters/github.ts` - Implement the new adapter methods
+- `src/server/template/project-management/types.ts` - Add interface methods for `getMergeCommitSha` and `createRevertPR`
+- `src/server/template/project-management/adapters/github.ts` - Implement the new adapter methods
 - `src/pages/api/telegram-webhook.ts` - Add merge success notification in `handleMergeCallback`, add new `handleRevertMerge` handler, add callback routing for `rv:` prefix
 - `docs/template/github-agents-workflow/telegram-integration.md` - Document new Revert quick action
 
@@ -106,7 +106,7 @@ rv:45:124:abc1234:impl:2/3
 ### Critical Files for Implementation
 
 - `src/pages/api/telegram-webhook.ts` - Core file containing `handleMergeCallback` to modify and new `handleRevertMerge` to add
-- `src/server/project-management/adapters/github.ts` - GitHub API implementation for merge commit SHA and revert PR creation
-- `src/server/project-management/types.ts` - Interface definitions for new adapter methods
-- `src/server/project-management/config.ts` - STATUSES constants for status restoration logic
+- `src/server/template/project-management/adapters/github.ts` - GitHub API implementation for merge commit SHA and revert PR creation
+- `src/server/template/project-management/types.ts` - Interface definitions for new adapter methods
+- `src/server/template/project-management/config.ts` - STATUSES constants for status restoration logic
 - `src/agents/shared/notifications.ts` - Pattern reference for notification message formatting

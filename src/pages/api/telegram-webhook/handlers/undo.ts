@@ -3,10 +3,10 @@
  * Handlers for undo operations
  */
 
-import { STATUSES, COMMIT_MESSAGE_MARKER, getIssueUrl } from '@/server/project-management/config';
+import { STATUSES, COMMIT_MESSAGE_MARKER, getIssueUrl } from '@/server/template/project-management/config';
 import { parseCommitMessageComment } from '@/agents/lib/commitMessage';
 import { getCommitMessage } from '@/agents/lib/workflow-db';
-import { sendNotificationToOwner } from '@/server/telegram';
+import { sendNotificationToOwner } from '@/server/template/telegram';
 import {
     logExternalError,
     logExists,
@@ -14,7 +14,7 @@ import {
 import {
     undoStatusChange,
     findItemByIssueNumber,
-} from '@/server/workflow-service';
+} from '@/server/template/workflow-service';
 import { editMessageText } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, DesignType, HandlerResult } from '../types';
@@ -87,7 +87,7 @@ export async function handleUndoRequestChanges(
         // Re-send the PR Ready notification
         const { Octokit } = await import('@octokit/rest');
         const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-        const { getProjectConfig } = await import('@/server/project-management/config');
+        const { getProjectConfig } = await import('@/server/template/project-management/config');
         const projectConfig = getProjectConfig();
         const { owner, repo } = projectConfig.github;
 

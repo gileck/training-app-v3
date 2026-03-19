@@ -38,7 +38,7 @@ The `productDesign` and `techDesign` fields in MongoDB's `FeatureRequestDocument
 
 The following use `productDesign`/`techDesign` as **local variables** (not MongoDB fields) and should NOT be removed:
 - `src/agents/*` - Local variables for design content read from files
-- `src/server/project-management/config.ts` - GitHub Projects status names
+- `src/server/template/project-management/config.ts` - GitHub Projects status names
 - `STATUSES.productDesign`/`STATUSES.techDesign` - GitHub Projects statuses
 
 ## Implementation Notes

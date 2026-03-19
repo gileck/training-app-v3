@@ -20,7 +20,7 @@ This separation allows agent notifications to be routed to a specific Telegram f
 
 ## Implementation Notes
 
-1. **Add new function in `src/server/telegram/index.ts`:**
+1. **Add new function in `src/server/template/telegram/index.ts`:**
 
 ```typescript
 /**
@@ -66,9 +66,9 @@ export async function sendAgentNotification(
    Keep sendNotificationToOwner() for generic owner alerts in:
    - `src/apis/reports/handlers/createReport.ts` - bug report alerts
    - `src/apis/feature-requests/handlers/createFeatureRequest.ts` - feature request alerts
-   - `src/server/telegram/index.ts` - sendBugReportNotification, sendFeatureRoutingNotification, sendBugRoutingNotification
+   - `src/server/template/telegram/index.ts` - sendBugReportNotification, sendFeatureRoutingNotification, sendBugRoutingNotification
 
-4. **Export the new function** from `src/server/telegram/index.ts`.
+4. **Export the new function** from `src/server/template/telegram/index.ts`.
 
 5. **Update documentation** in `docs/telegram-notifications.md`.
 
@@ -81,7 +81,7 @@ export async function sendAgentNotification(
 
 ## Files to Modify
 
-- `src/server/telegram/index.ts` - Add sendAgentNotification() function
+- `src/server/template/telegram/index.ts` - Add sendAgentNotification() function
 - `app.config.js` - Remove AGENT_TELEGRAM_CHAT_ID check if present
 - `src/agents/shared/notifications.ts` - Use sendAgentNotification()
 - `src/agents/lib/logging/cost-summary.ts` - Use sendAgentNotification()

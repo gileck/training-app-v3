@@ -6,8 +6,8 @@
  * All business logic (adapter, review status, logging) lives in workflow-service.
  */
 
-import { routeWorkflowItem } from '@/server/workflow-service';
-import type { RoutingDestination } from '@/server/workflow-service';
+import { routeWorkflowItem } from '@/server/template/workflow-service';
+import type { RoutingDestination } from '@/server/template/workflow-service';
 import { editMessageWithRouting } from '../telegram-api';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';
 

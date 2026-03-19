@@ -10,7 +10,7 @@ The implementation will follow the existing patterns established by `start.ts` a
 
 1. **Command Structure**: Each command gets its own file in `src/agents/cli/commands/`
 2. **Argument Parsing**: Extend `parse-args.ts` to handle new command-specific arguments
-3. **Database Access**: Use existing database functions from `@/server/database` (specifically `featureRequests` and `reports` namespaces)
+3. **Database Access**: Use existing database functions from `@/server/template/database` (specifically `featureRequests` and `reports` namespaces)
 4. **Output Formatting**: Implement consistent table/detail output formats for CLI display
 
 **Key Design Decisions:**

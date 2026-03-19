@@ -9,7 +9,7 @@
 
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { setMongoUri, resetDbConnection } from '@/server/database/connection';
-import { setProjectManagementAdapter, resetProjectManagementAdapter } from '@/server/project-management';
+import { setProjectManagementAdapter, resetProjectManagementAdapter } from '@/server/template/project-management';
 import { setGitAdapter, resetGitAdapter } from '@/agents/shared/git-adapter';
 import { MockProjectAdapter } from '../mocks/mock-project-adapter';
 import { MockGitAdapter } from '../mocks/mock-git-adapter';
@@ -27,6 +27,7 @@ export async function setupBoundaries(): Promise<TestBoundaries> {
     process.env.GITHUB_OWNER = 'test';
     process.env.GITHUB_REPO = 'repo';
     process.env.GITHUB_PROJECT_NUMBER = '1';
+    process.env.CLARIFICATION_SECRET = 'test-secret-for-e2e';
 
     // 1. Start in-memory MongoDB
     mongoServer = await MongoMemoryServer.create();

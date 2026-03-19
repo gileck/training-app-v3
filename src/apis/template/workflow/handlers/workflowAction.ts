@@ -11,17 +11,17 @@ import {
     reviewDesign,
     markClarificationReceived,
     requestChangesOnPR,
+    requestChangesOnDesignPR,
     markDone,
-    mergeDesignPR,
+    approveDesign,
     mergeImplementationPR,
     mergeFinalPR,
     revertMerge,
     mergeRevertPR,
     undoStatusChange,
-} from '@/server/workflow-service';
-import type { DesignType } from '@/server/workflow-service/merge-design-pr';
-import { generateDecisionToken } from '@/apis/template/agent-decision/utils';
-import { submitDecision } from '@/apis/template/agent-decision/handlers/submitDecision';
+    chooseRecommendedOption,
+} from '@/server/template/workflow-service';
+import type { DesignType } from '@/server/template/workflow-service/approve-design';
 import type { WorkflowActionRequest, WorkflowActionResponse } from '../types';
 
 export async function workflowAction(
@@ -71,12 +71,7 @@ export async function workflowAction(
                 return { success: true, message: 'Clarification received' };
             }
             case 'choose-recommended': {
-                const token = generateDecisionToken(issueNumber);
-                const result = await submitDecision({
-                    issueNumber,
-                    token,
-                    selection: { chooseRecommended: true },
-                });
+                const result = await chooseRecommendedOption(issueNumber);
                 if (!result.success) return { error: result.error };
                 const detail = result.routedTo ? ` — routed to ${result.routedTo}` : '';
                 return { success: true, message: `Recommended option selected${detail}` };
@@ -89,11 +84,12 @@ export async function workflowAction(
                 if (!result.success) return { error: result.error };
                 return { success: true, message: 'Marked as Done' };
             }
+            case 'approve-design':
             case 'merge-design-pr': {
                 if (!params.prNumber || !params.designType) return { error: 'Missing prNumber or designType' };
-                const result = await mergeDesignPR(issueNumber, params.prNumber, params.designType as DesignType);
+                const result = await approveDesign(issueNumber, params.prNumber, params.designType as DesignType);
                 if (!result.success) return { error: result.error };
-                return { success: true, message: result.advancedTo ? `Merged — advanced to ${result.advancedTo}` : 'Design PR merged' };
+                return { success: true, message: result.advancedTo ? `Approved — advanced to ${result.advancedTo}` : 'Design approved' };
             }
             case 'merge-pr': {
                 const result = await mergeImplementationPR(issueNumber);
@@ -122,6 +118,12 @@ export async function workflowAction(
                 const result = await mergeRevertPR(issueNumber, params.prNumber);
                 if (!result.success) return { error: result.error };
                 return { success: true, message: 'Revert PR merged — changes reverted' };
+            }
+            case 'request-changes-design-pr': {
+                if (!params.prNumber || !params.designType) return { error: 'Missing prNumber or designType' };
+                const result = await requestChangesOnDesignPR(issueNumber, params.prNumber, params.designType);
+                if (!result.success) return { error: result.error };
+                return { success: true, message: 'Changes requested on design PR' };
             }
             case 'undo-action': {
                 if (!params.originalAction || !params.timestamp) {

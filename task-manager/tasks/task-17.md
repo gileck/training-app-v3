@@ -27,7 +27,7 @@ Currently, there's no automated verification that merged features actually work 
 
 ## Files to Modify
 
-- `src/server/project-management/types.ts` - Add "QA Failed" status if needed
+- `src/server/template/project-management/types.ts` - Add "QA Failed" status if needed
 - `scripts/github-workflows-agent.ts` - Add QA agent execution
 - `docs/github-agents-workflow/workflow-guide.md` - Document QA phase
 

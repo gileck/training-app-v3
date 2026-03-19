@@ -46,10 +46,10 @@ However, the **biggest gaps** are:
 | S2 | `src/pages/api/process/[name].ts:14` | Route catch-all | `error.message` or "Unknown error" | No | Partially - raw error message | GAP |
 | S3 | `src/apis/processApiCall.ts:28` | Unknown API | "Unknown API: {name}" | No | No - technical message | GAP |
 | S4 | `src/apis/processApiCall.ts:35` | Admin gate | "Forbidden" | No | Partially | GAP |
-| S5 | `src/server/ai/adapters/gemini.ts:18` | Missing API key | "Gemini API key not found..." | No | No - technical | GAP |
-| S6 | `src/server/ai/adapters/anthropic.ts:17` | Missing API key | "Anthropic API key not found..." | No | No - technical | GAP |
-| S7 | `src/server/ai/adapters/openai.ts:17` | Missing API key | "OpenAI API key not found..." | No | No - technical | GAP |
-| S8 | `src/server/ai/adapters/gemini.ts:80` | JSON parse fail | "Failed to parse JSON response..." | No | No - technical | GAP |
+| S5 | `src/server/template/ai/adapters/gemini.ts:18` | Missing API key | "Gemini API key not found..." | No | No - technical | GAP |
+| S6 | `src/server/template/ai/adapters/anthropic.ts:17` | Missing API key | "Anthropic API key not found..." | No | No - technical | GAP |
+| S7 | `src/server/template/ai/adapters/openai.ts:17` | Missing API key | "OpenAI API key not found..." | No | No - technical | GAP |
+| S8 | `src/server/template/ai/adapters/gemini.ts:80` | JSON parse fail | "Failed to parse JSON response..." | No | No - technical | GAP |
 | S9 | `src/server/database/connection.ts:20` | Missing env var | "MONGO_URI environment variable is not set" | No | No - technical | GAP |
 | S10 | `src/server/database/collections/template/users/users.ts:63-117` | Duplicate user | "User with username/email already exists" | No | Yes | OK |
 | S11 | `src/server/database/collections/template/feature-requests/feature-requests.ts:114` | Create failure | "Failed to create feature request" | No | Partially | GAP |

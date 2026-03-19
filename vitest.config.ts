@@ -12,5 +12,6 @@ export default defineConfig({
     testTimeout: 30_000,
     include: ['src/agents/tests/e2e/**/*.e2e.test.ts'],
     environment: 'node',
+    setupFiles: ['src/agents/tests/e2e/testkit/vitest-setup.ts'],
   },
 });

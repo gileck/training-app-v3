@@ -1,7 +1,9 @@
 /**
  * DefaultGitAdapter — real implementation wrapping execSync.
  *
+ * This is the production implementation of the GitAdapter interface.
  * All logic moved from git-utils.ts into class methods.
+ * For testing, see MockGitAdapter in src/agents/tests/e2e/mocks/.
  */
 
 import { execSync } from 'child_process';

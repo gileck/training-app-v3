@@ -3,16 +3,15 @@
  * Handlers for design PR operations (approve/request changes)
  */
 
-import { STATUSES, REVIEW_STATUSES, getPrUrl } from '@/server/project-management/config';
+import { STATUSES, REVIEW_STATUSES, getPrUrl } from '@/server/template/project-management/config';
 import {
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
 import {
-    updateReviewStatus,
-    findItemByIssueNumber,
-    mergeDesignPR,
-} from '@/server/workflow-service';
+    approveDesign,
+    requestChangesOnDesignPR,
+} from '@/server/template/workflow-service';
 import { editMessageText, editMessageWithUndoButton } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, DesignType, HandlerResult } from '../types';
@@ -43,7 +42,7 @@ export async function handleDesignPRApproval(
     designType: DesignType
 ): Promise<HandlerResult> {
     try {
-        const result = await mergeDesignPR(issueNumber, prNumber, designType);
+        const result = await approveDesign(issueNumber, prNumber, designType);
         if (!result.success) {
             return { success: false, error: result.error };
         }
@@ -56,8 +55,8 @@ export async function handleDesignPRApproval(
             const statusUpdate = [
                 '',
                 '━━━━━━━━━━━━━━━━━━━━',
-                '✅ <b>Merged Successfully!</b>',
-                `${designLabel} PR #${prNumber} merged.`,
+                '✅ <b>Approved Successfully!</b>',
+                `${designLabel} design approved.`,
                 `📊 Status: ${nextPhaseLabel}`,
             ].join('\n');
 
@@ -95,17 +94,10 @@ export async function handleDesignPRRequestChanges(
     designType: DesignType
 ): Promise<HandlerResult> {
     try {
-        const item = await findItemByIssueNumber(issueNumber);
-        if (!item) {
-            console.warn(`[LOG:DESIGN_PR] Issue #${issueNumber} not found in project for request changes`);
-            return { success: false, error: `Issue #${issueNumber} not found in project.` };
+        const result = await requestChangesOnDesignPR(issueNumber, prNumber, DESIGN_TYPE_LABELS[designType]);
+        if (!result.success) {
+            return { success: false, error: result.error };
         }
-
-        await updateReviewStatus(issueNumber, REVIEW_STATUSES.requestChanges, {
-            logAction: 'design_changes_requested',
-            logDescription: `Changes requested on ${DESIGN_TYPE_LABELS[designType]} PR #${prNumber}`,
-            logMetadata: { prNumber, designType, reviewStatus: REVIEW_STATUSES.requestChanges },
-        });
 
         const designLabel = DESIGN_TYPE_LABELS[designType];
 
@@ -118,7 +110,6 @@ export async function handleDesignPRRequestChanges(
                 '━━━━━━━━━━━━━━━━━━━━',
                 '🔄 <b>Changes Requested</b>',
                 '',
-                `📊 Status: ${item.status}`,
                 `📋 Review Status: ${REVIEW_STATUSES.requestChanges}`,
                 '',
                 `<b>Next:</b> <a href="${prUrl}">Comment on the ${designLabel} PR</a> explaining what needs to change.`,
@@ -165,7 +156,7 @@ export async function handleRequestChangesCallback(
     prNumber: number
 ): Promise<HandlerResult> {
     try {
-        const { requestChangesOnPR } = await import('@/server/workflow-service');
+        const { requestChangesOnPR } = await import('@/server/template/workflow-service');
         const result = await requestChangesOnPR(issueNumber);
 
         if (!result.success) {

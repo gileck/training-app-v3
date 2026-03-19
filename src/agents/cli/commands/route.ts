@@ -5,38 +5,54 @@
  * Usage: yarn agent-workflow route <id> --destination <destination>
  */
 
-import { featureRequests, reports } from '@/server/database';
-import { routeWorkflowItem } from '@/server/workflow-service';
-import type { RoutingDestination } from '@/server/workflow-service';
+import {
+    findWorkflowItemById,
+    findWorkflowItemByIssueNumber,
+    findAllWorkflowItems,
+} from '@/server/database/collections/template/workflow-items/workflow-items';
+import { routeWorkflowItemByWorkflowId } from '@/server/template/workflow-service';
+import { STATUSES } from '@/server/template/project-management/config';
 import { parseArgs } from '../utils/parse-args';
 
 const VALID_DESTINATIONS = ['product-dev', 'product-design', 'tech-design', 'implementation', 'backlog'];
 
 /**
- * Try to find an item by ID or ID prefix, searching both collections
+ * Map routing destination names to their status values
  */
-async function findItem(id: string): Promise<{ type: 'feature' | 'bug'; id: string } | null> {
-    // Try exact match in features
-    try {
-        const feature = await featureRequests.findFeatureRequestById(id);
-        if (feature) return { type: 'feature', id: feature._id.toString() };
-    } catch { /* invalid ObjectId, try prefix */ }
+const DESTINATION_TO_STATUS: Record<string, string> = {
+    'product-dev': STATUSES.productDevelopment,
+    'product-design': STATUSES.productDesign,
+    'tech-design': STATUSES.techDesign,
+    'implementation': STATUSES.implementation,
+    'backlog': STATUSES.backlog,
+};
 
-    // Try exact match in reports
+/**
+ * Find a workflow item by exact ID, ID prefix, or GitHub issue number
+ */
+async function findItem(id: string): Promise<{ workflowItemId: string; title: string } | null> {
+    // Try exact ObjectId match
     try {
-        const report = await reports.findReportById(id);
-        if (report) return { type: 'bug', id: report._id.toString() };
-    } catch { /* invalid ObjectId, try prefix */ }
+        if (id.length === 24) {
+            const exact = await findWorkflowItemById(id);
+            if (exact) return { workflowItemId: exact._id.toString(), title: exact.title };
+        }
+    } catch {
+        // Invalid ObjectId format
+    }
 
     // Try prefix match
     if (id.length >= 6 && id.length < 24) {
-        const allFeatures = await featureRequests.findFeatureRequests();
-        const featureMatch = allFeatures.find(f => f._id.toString().startsWith(id));
-        if (featureMatch) return { type: 'feature', id: featureMatch._id.toString() };
+        const all = await findAllWorkflowItems();
+        const match = all.find(item => item._id.toString().startsWith(id));
+        if (match) return { workflowItemId: match._id.toString(), title: match.title };
+    }
 
-        const allReports = await reports.findReports();
-        const reportMatch = allReports.find(r => r._id.toString().startsWith(id));
-        if (reportMatch) return { type: 'bug', id: reportMatch._id.toString() };
+    // Try by GitHub issue number
+    const issueNum = parseInt(id, 10);
+    if (!isNaN(issueNum)) {
+        const item = await findWorkflowItemByIssueNumber(issueNum);
+        if (item) return { workflowItemId: item._id.toString(), title: item.title };
     }
 
     return null;
@@ -77,12 +93,11 @@ export async function handleRoute(args: string[]): Promise<void> {
         process.exit(1);
     }
 
-    console.log(`  Found ${item.type}: ${item.id}`);
+    console.log(`  Found: "${item.title}" (${item.workflowItemId})`);
 
-    const result = await routeWorkflowItem(
-        { id: item.id, type: item.type },
-        destination as RoutingDestination
-    );
+    // Convert destination to status string and route via workflow-service
+    const targetStatus = DESTINATION_TO_STATUS[destination];
+    const result = await routeWorkflowItemByWorkflowId(item.workflowItemId, targetStatus);
 
     if (!result.success) {
         console.error(`  Error: ${result.error}`);

@@ -1,8 +1,14 @@
 /**
  * GitAdapter — interface + singleton for dependency injection.
  *
+ * Abstraction kept for E2E test mockability. The MockGitAdapter (in
+ * src/agents/tests/e2e/mocks/mock-git-adapter.ts) is injected via
+ * setGitAdapter() during test setup, allowing E2E tests to run without
+ * real git operations. All 7+ E2E test suites depend on this pattern.
+ *
  * Production code uses the DefaultGitAdapter (wraps execSync).
- * Tests inject a MockGitAdapter via setGitAdapter().
+ * Consumer code should import from git-utils.ts (thin wrappers) rather
+ * than using getGitAdapter() directly.
  */
 
 export interface GitAdapter {

@@ -370,9 +370,9 @@ async function processCallbackQuery(
             await answerCallbackQuery(botToken, callback_query.id, 'Invalid callback data');
             return;
         }
-        await answerCallbackQuery(botToken, callback_query.id, '⏳ Merging design PR...');
+        await answerCallbackQuery(botToken, callback_query.id, '⏳ Approving design...');
         if (callback_query.message) {
-            await editMessageText(botToken, callback_query.message.chat.id, callback_query.message.message_id, escapeHtml(callback_query.message.text || '') + '\n\n⏳ <b>Merging design PR...</b>', 'HTML');
+            await editMessageText(botToken, callback_query.message.chat.id, callback_query.message.message_id, escapeHtml(callback_query.message.text || '') + '\n\n⏳ <b>Approving design...</b>', 'HTML');
         }
         const result = await handleDesignPRApproval(botToken, callback_query, prNumber, issueNumber, designType);
         if (!result.success && callback_query.message) {

@@ -28,7 +28,7 @@ The workflow CLI currently only supports `start` and `create` commands. Add addi
 
 Follow the existing CLI patterns in `src/agents/cli/`:
 - Add new command handlers in `src/agents/cli/commands/`
-- Use the existing database functions from `@/server/database`
+- Use the existing database functions from `@/server/template/database`
 - Support filtering by type (feature/bug), status, source (ui/cli/auto)
 
 ### Command Examples

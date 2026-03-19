@@ -7,7 +7,7 @@
  */
 
 import type { MockProjectAdapter } from '../mocks/mock-project-adapter';
-import { STATUSES } from '@/server/project-management/config';
+import { STATUSES } from '@/server/template/project-management/config';
 
 /**
  * Run the Product Design agent via runBatch.
@@ -22,7 +22,7 @@ export async function runProductDesignAgent(_adapter: MockProjectAdapter): Promi
         buildProductDesignRevisionPrompt,
         buildProductDesignClarificationPrompt,
     } = await import('@/agents/shared/prompts');
-    const { readDesignDoc } = await import('@/agents/lib/design-files');
+    const { readDesignDocAsync } = await import('@/agents/lib/design-files');
 
     const processItem = createDesignProcessor({
         workflow: 'product-design',
@@ -46,7 +46,7 @@ export async function runProductDesignAgent(_adapter: MockProjectAdapter): Promi
                 clarification,
             ),
         loadAdditionalContext: async ({ issueNumber }) => {
-            const productDevelopmentDoc = readDesignDoc(issueNumber, 'product-dev');
+            const productDevelopmentDoc = await readDesignDocAsync(issueNumber, 'product-dev');
             return productDevelopmentDoc
                 ? { context: productDevelopmentDoc, label: 'Found PDD' }
                 : { context: null };

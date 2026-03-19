@@ -26,7 +26,7 @@ Implemented differently than originally proposed - instead of a new "Ready to Me
 
 ## Files to Modify
 
-- `src/server/project-management/types.ts` - Add new status
+- `src/server/template/project-management/types.ts` - Add new status
 - `src/agents/core-agents/implementAgent/index.ts` - Add merge validation flow
 - `.github/workflows/on-pr-merged.yml` - Update status transitions
 - `scripts/on-pr-merged.ts` - Handle new status

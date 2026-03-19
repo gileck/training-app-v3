@@ -40,7 +40,7 @@ The admin should also have the option to request changes WITHOUT a comment (for 
 - `src/pages/admin/pr-feedback.tsx` - New page for feedback form (create)
 - `src/client/routes/admin/pr-feedback/` - Route components and hooks (create)
 - `src/apis/admin/pr-feedback/` - API for posting comment and updating status (create)
-- `src/server/telegram/webhook/handlers/` - Update "Request Changes" button handler to redirect to form
+- `src/server/template/telegram/webhook/handlers/` - Update "Request Changes" button handler to redirect to form
 - `src/server/github/` - May need PR comment posting functionality
 
 ## Dependencies

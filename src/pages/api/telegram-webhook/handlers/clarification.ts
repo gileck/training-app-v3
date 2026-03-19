@@ -10,7 +10,7 @@ import {
     logExternalError,
     logExists,
 } from '@/agents/lib/logging';
-import { markClarificationReceived } from '@/server/workflow-service';
+import { markClarificationReceived } from '@/server/template/workflow-service';
 import { editMessageText } from '../telegram-api';
 import { escapeHtml } from '../utils';
 import type { TelegramCallbackQuery, HandlerResult } from '../types';

@@ -70,10 +70,10 @@ Or for final phase:
 
 ## Files to Modify
 
-- `src/server/telegram/handlers/` - Add merge success handler
-- `src/server/telegram/messages/` - Add merge success message template
+- `src/server/template/telegram/handlers/` - Add merge success handler
+- `src/server/template/telegram/messages/` - Add merge success message template
 - `src/server/github/` - Add revert PR functionality
-- `src/server/github-sync/` - Add status revert logic
+- `src/server/template/github-sync/` - Add status revert logic
 
 ## Dependencies
 
