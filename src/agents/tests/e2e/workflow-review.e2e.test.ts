@@ -48,8 +48,7 @@ vi.mock('@/agents/lib/devServer', () => ({
 vi.mock('@/agents/shared/loadEnv', () => ({}));
 
 // 5. Mock child_process — spawnSync used by workflowReviewAgent for `yarn agent-workflow create`
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockSpawnSync = vi.fn((..._args: any[]) => ({
+const mockSpawnSync = vi.fn(() => ({
     status: 0,
     stdout: 'Created workflow item',
     stderr: '',
@@ -59,7 +58,7 @@ const mockSpawnSync = vi.fn((..._args: any[]) => ({
 }));
 vi.mock('child_process', () => ({
     execSync: vi.fn(() => ''),
-    spawnSync: mockSpawnSync,
+    spawnSync: (...args: unknown[]) => mockSpawnSync(...args),
 }));
 
 // 6. Mock design files (filesystem boundary)
