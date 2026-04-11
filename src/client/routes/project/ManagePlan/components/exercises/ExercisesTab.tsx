@@ -26,7 +26,7 @@ interface ExercisesTabProps {
         isPending: boolean;
     };
     updateExerciseMutation: {
-        mutate: (params: { planExerciseId: string; sets: number; reps: number; weight: number; comments?: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+        mutate: (params: { planExerciseId: string; sets: number; reps: number; weight: number; durationSeconds?: number; comments?: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
         isPending: boolean;
     };
     updateOverridesMutation: {
@@ -190,7 +190,13 @@ export function ExercisesTab({
         setEditDialogOpen(true);
     };
 
-    const handleSaveEdit = (config: { sets: number; reps: number; weight: number; comments: string }) => {
+    const handleSaveEdit = (config: {
+        sets: number;
+        reps: number;
+        weight: number;
+        durationSeconds: number;
+        comments: string;
+    }) => {
         if (!exerciseToEdit) return;
         updateExerciseMutation.mutate(
             { planExerciseId: exerciseToEdit._id, ...config, comments: config.comments || undefined },

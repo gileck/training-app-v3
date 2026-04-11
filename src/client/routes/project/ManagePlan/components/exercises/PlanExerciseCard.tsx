@@ -79,8 +79,10 @@ export function PlanExerciseCard({
                             {exercise.exerciseDef.name}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                            {exercise.sets} sets × {exercise.reps} reps
-                            {exercise.weight > 0 && ` • ${exercise.weight}kg`}
+                            {exercise.sets} sets × {exercise.exerciseDef.isStatic
+                                ? `${exercise.durationSeconds} sec`
+                                : `${exercise.reps} reps`}
+                            {!exercise.exerciseDef.isBodyweight && exercise.weight > 0 && ` • ${exercise.weight}kg`}
                         </p>
                         <Badge
                             variant="outline"

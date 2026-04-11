@@ -14,7 +14,13 @@ interface EditExerciseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     exercise: PlanExerciseWithDefinition | null;
-    onSave: (config: { sets: number; reps: number; weight: number; comments: string }) => void;
+    onSave: (config: {
+        sets: number;
+        reps: number;
+        weight: number;
+        durationSeconds: number;
+        comments: string;
+    }) => void;
     /**
      * Optional callback for the "customize exercise" pencil button in the
      * header. When provided, the button is shown and firing it lets the
@@ -40,6 +46,8 @@ export function EditExerciseDialog({
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [weight, setWeight] = useState(0);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
+    const [durationSeconds, setDurationSeconds] = useState(0);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [comments, setComments] = useState('');
 
     // Reset form when exercise changes
@@ -48,22 +56,44 @@ export function EditExerciseDialog({
             setSets(exercise.sets);
             setReps(exercise.reps);
             setWeight(exercise.weight);
+            setDurationSeconds(exercise.durationSeconds || 0);
             setComments(exercise.comments || '');
         }
     }, [exercise]);
 
-    const handleSave = () => {
-        onSave({ sets, reps, weight, comments: comments.trim() });
-    };
-
     if (!exercise) return null;
+
+    const isStatic = exercise.exerciseDef.isStatic;
+    const isBodyweight = exercise.exerciseDef.isBodyweight;
+
+    const handleSave = () => {
+        onSave({
+            sets,
+            // For static exercises, reps is meaningless — keep whatever was
+            // already stored so we don't lose data if the exercise is ever
+            // flipped back to non-static.
+            reps: isStatic ? exercise.reps : reps,
+            // For bodyweight exercises, weight is always 0.
+            weight: isBodyweight ? 0 : weight,
+            // For non-static exercises, preserve whatever was stored.
+            durationSeconds: isStatic ? durationSeconds : exercise.durationSeconds,
+            comments: comments.trim(),
+        });
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="p-0 gap-0 overflow-hidden max-w-sm">
-                {/* Header with exercise info */}
-                <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
-                    <div className="flex items-center gap-4">
+            {/* grid-cols-[minmax(0,1fr)] forces the DialogContent's implicit
+                grid column to allow shrinking below min-content. Without it,
+                a wide inner child (e.g. the flex row with +/- buttons) would
+                balloon the implicit column and push content past the dialog
+                right edge. */}
+            <DialogContent className="p-0 gap-0 w-[calc(100vw-2rem)] max-w-sm grid-cols-[minmax(0,1fr)] overflow-hidden">
+                {/* Header with exercise info. pr-10 reserves space for the
+                    shadcn DialogContent built-in close (X) button which is
+                    absolutely positioned at right-4 top-4. */}
+                <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 pb-4 pr-10">
+                    <div className="flex items-center gap-3">
                         <div className="w-16 h-16 rounded-2xl bg-background shadow-md overflow-hidden flex-shrink-0 relative border border-border/50">
                             {exercise.exerciseDef.imageUrl ? (
                                 <Image
@@ -80,31 +110,33 @@ export function EditExerciseDialog({
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-lg font-bold truncate">{exercise.exerciseDef.name}</h2>
+                            <div className="flex items-center gap-1 min-w-0">
+                                <h2 className="text-lg font-bold truncate min-w-0">{exercise.exerciseDef.name}</h2>
+                                {onCustomize && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={onCustomize}
+                                        className="flex-shrink-0 h-7 w-7 rounded-full"
+                                        aria-label="Customize exercise definition"
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                                 {exercise.exerciseDef.primaryMuscle}
                             </p>
                         </div>
-                        {onCustomize && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={onCustomize}
-                                className="flex-shrink-0 h-10 w-10 rounded-full"
-                                aria-label="Customize exercise definition"
-                            >
-                                <Pencil className="h-4 w-4" />
-                            </Button>
-                        )}
                     </div>
                 </div>
 
                 {/* Configuration controls */}
-                <div className="p-6 pt-4 space-y-5">
-                    {/* Sets & Reps in a row */}
-                    <div className="grid grid-cols-2 gap-4">
+                <div className="p-5 pt-4 space-y-5">
+                    {/* Sets & (Reps or Duration) in a row */}
+                    <div className="grid grid-cols-2 gap-3">
                         {/* Sets */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Sets
                             </label>
@@ -113,7 +145,7 @@ export function EditExerciseDialog({
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setSets((s) => Math.max(1, s - 1))}
-                                    className="h-10 w-10 rounded-lg hover:bg-background"
+                                    className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
                                 >
                                     <span className="text-lg font-medium">−</span>
                                 </Button>
@@ -124,75 +156,107 @@ export function EditExerciseDialog({
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setSets((s) => Math.min(10, s + 1))}
-                                    className="h-10 w-10 rounded-lg hover:bg-background"
+                                    className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
                                 >
                                     <span className="text-lg font-medium">+</span>
                                 </Button>
                             </div>
                         </div>
 
-                        {/* Reps */}
+                        {isStatic ? (
+                            /* Duration (static exercises) */
+                            <div className="space-y-2 min-w-0">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Seconds
+                                </label>
+                                <div className="flex items-center justify-between bg-muted/50 rounded-xl p-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setDurationSeconds((d) => Math.max(0, d - 5))}
+                                        className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
+                                    >
+                                        <span className="text-lg font-medium">−</span>
+                                    </Button>
+                                    <span className="text-2xl font-bold tabular-nums">
+                                        {durationSeconds}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setDurationSeconds((d) => d + 5)}
+                                        className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
+                                    >
+                                        <span className="text-lg font-medium">+</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Reps */
+                            <div className="space-y-2 min-w-0">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Reps
+                                </label>
+                                <div className="flex items-center justify-between bg-muted/50 rounded-xl p-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setReps((r) => Math.max(1, r - 1))}
+                                        className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
+                                    >
+                                        <span className="text-lg font-medium">−</span>
+                                    </Button>
+                                    <span className="text-2xl font-bold tabular-nums">
+                                        {reps}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setReps((r) => Math.min(50, r + 1))}
+                                        className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
+                                    >
+                                        <span className="text-lg font-medium">+</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Weight — hidden for bodyweight exercises */}
+                    {!isBodyweight && (
                         <div className="space-y-2">
                             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                Reps
+                                Weight
                             </label>
-                            <div className="flex items-center justify-between bg-muted/50 rounded-xl p-1">
+                            <div className="flex items-center bg-muted/50 rounded-xl p-1">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setReps((r) => Math.max(1, r - 1))}
-                                    className="h-10 w-10 rounded-lg hover:bg-background"
+                                    onClick={() => setWeight((w) => Math.max(0, w - 2.5))}
+                                    className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
                                 >
                                     <span className="text-lg font-medium">−</span>
                                 </Button>
-                                <span className="text-2xl font-bold tabular-nums">
-                                    {reps}
-                                </span>
+                                <div className="flex-1 min-w-0 text-center">
+                                    <Input
+                                        type="number"
+                                        value={weight}
+                                        onChange={(e) => setWeight(Number(e.target.value))}
+                                        className="h-10 text-center text-2xl font-bold border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                </div>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setReps((r) => Math.min(50, r + 1))}
-                                    className="h-10 w-10 rounded-lg hover:bg-background"
+                                    onClick={() => setWeight((w) => w + 2.5)}
+                                    className="h-10 w-10 rounded-lg hover:bg-background flex-shrink-0"
                                 >
                                     <span className="text-lg font-medium">+</span>
                                 </Button>
+                                <span className="pr-3 text-sm font-medium text-muted-foreground flex-shrink-0">kg</span>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Weight */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Weight
-                        </label>
-                        <div className="flex items-center bg-muted/50 rounded-xl p-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setWeight((w) => Math.max(0, w - 2.5))}
-                                className="h-10 w-10 rounded-lg hover:bg-background"
-                            >
-                                <span className="text-lg font-medium">−</span>
-                            </Button>
-                            <div className="flex-1 text-center">
-                                <Input
-                                    type="number"
-                                    value={weight}
-                                    onChange={(e) => setWeight(Number(e.target.value))}
-                                    className="h-10 text-center text-2xl font-bold border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setWeight((w) => w + 2.5)}
-                                className="h-10 w-10 rounded-lg hover:bg-background"
-                            >
-                                <span className="text-lg font-medium">+</span>
-                            </Button>
-                            <span className="pr-3 text-sm font-medium text-muted-foreground">kg</span>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Notes */}
                     <div className="space-y-2">
@@ -209,20 +273,20 @@ export function EditExerciseDialog({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 pt-0 flex gap-3">
+                <div className="px-5 pb-5 pt-0 flex gap-3">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
-                        className="flex-1 h-12 rounded-xl font-semibold"
+                        className="flex-1 min-w-0 h-12 rounded-xl font-semibold"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleSave}
                         disabled={isPending}
-                        className="flex-1 h-12 rounded-xl font-semibold"
+                        className="flex-1 min-w-0 h-12 rounded-xl font-semibold"
                     >
-                        {isPending ? 'Saving...' : 'Save Changes'}
+                        {isPending ? 'Saving...' : 'Save'}
                     </Button>
                 </div>
             </DialogContent>
