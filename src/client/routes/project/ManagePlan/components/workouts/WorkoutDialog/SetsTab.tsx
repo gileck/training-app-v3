@@ -70,8 +70,10 @@ export function SetsTab({
                                     {exercise.exerciseDef.name}
                                 </h4>
                                 <div className="text-sm text-muted-foreground">
-                                    {exercise.reps} reps
-                                    {exercise.weight > 0 && ` · ${exercise.weight}kg`}
+                                    {exercise.exerciseDef.isStatic
+                                        ? `${exercise.durationSeconds} sec`
+                                        : `${exercise.reps} reps`}
+                                    {!exercise.exerciseDef.isBodyweight && exercise.weight > 0 && ` · ${exercise.weight}kg`}
                                 </div>
                             </div>
                         </div>

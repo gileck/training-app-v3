@@ -72,7 +72,9 @@ export function SaveWorkoutDialog({
                                     </div>
                                     <span className="flex-1 truncate">{exercise.exerciseDef.name}</span>
                                     <span className="text-muted-foreground text-xs">
-                                        {exercise.targetSets}x{exercise.planExercise.reps}
+                                        {exercise.targetSets}x{exercise.exerciseDef.isStatic
+                                            ? `${exercise.planExercise.durationSeconds}s`
+                                            : exercise.planExercise.reps}
                                     </span>
                                 </div>
                             ))}

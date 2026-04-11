@@ -164,8 +164,10 @@ export function AllExercisesOverlay({
                                         {isComplete && <Check className="h-4 w-4 text-success flex-shrink-0" />}
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                        {exercise.planExercise.reps} reps
-                                        {exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
+                                        {exercise.exerciseDef.isStatic
+                                            ? `${exercise.planExercise.durationSeconds} sec`
+                                            : `${exercise.planExercise.reps} reps`}
+                                        {!exercise.exerciseDef.isBodyweight && exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
                                     </p>
                                 </div>
                                 <div className="flex flex-col items-end flex-shrink-0">
@@ -228,8 +230,10 @@ export function AllExercisesOverlay({
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold truncate">{exercise.exerciseDef.name}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                {exercise.targetSets} sets · {exercise.planExercise.reps} reps
-                                                {exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
+                                                {exercise.targetSets} sets · {exercise.exerciseDef.isStatic
+                                                    ? `${exercise.planExercise.durationSeconds} sec`
+                                                    : `${exercise.planExercise.reps} reps`}
+                                                {!exercise.exerciseDef.isBodyweight && exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
                                             </p>
                                         </div>
                                     </div>

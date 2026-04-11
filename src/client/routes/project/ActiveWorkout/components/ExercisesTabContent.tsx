@@ -93,8 +93,10 @@ function ExerciseCard({
                             </Button>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            {exercise.planExercise.reps} reps
-                            {exercise.planExercise.weight > 0 && ` • ${exercise.planExercise.weight}kg`}
+                            {exercise.exerciseDef.isStatic
+                                ? `${exercise.planExercise.durationSeconds} sec`
+                                : `${exercise.planExercise.reps} reps`}
+                            {!exercise.exerciseDef.isBodyweight && exercise.planExercise.weight > 0 && ` • ${exercise.planExercise.weight}kg`}
                         </p>
                         <p className={`text-base font-semibold mt-1 ${isComplete ? 'text-success' : ''}`}>
                             Sets: {exercise.setsCompleted}/{exercise.targetSets}

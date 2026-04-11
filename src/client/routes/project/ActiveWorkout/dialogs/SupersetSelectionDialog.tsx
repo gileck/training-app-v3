@@ -65,7 +65,9 @@ export function SupersetSelectionDialog({
                                                 selected ? 'text-primary-foreground/80' : 'text-muted-foreground'
                                             }`}
                                         >
-                                            {exercise.targetSets} sets · {exercise.planExercise.reps} reps
+                                            {exercise.targetSets} sets · {exercise.exerciseDef.isStatic
+                                                ? `${exercise.planExercise.durationSeconds} sec`
+                                                : `${exercise.planExercise.reps} reps`}
                                         </p>
                                     </div>
                                 </div>

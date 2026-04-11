@@ -89,8 +89,10 @@ export function ExercisesTab({
                         </h4>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>
-                                {exercise.reps} reps
-                                {exercise.weight > 0 && ` · ${exercise.weight}kg`}
+                                {exercise.exerciseDef.isStatic
+                                    ? `${exercise.durationSeconds} sec`
+                                    : `${exercise.reps} reps`}
+                                {!exercise.exerciseDef.isBodyweight && exercise.weight > 0 && ` · ${exercise.weight}kg`}
                             </span>
                             <span className="text-muted-foreground/50">·</span>
                             <span className={`${

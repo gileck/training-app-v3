@@ -76,10 +76,12 @@ export function ExerciseCard({
                     {currentExercise.exerciseDef.name}
                 </h2>
 
-                {/* Reps · Weight - increased contrast */}
+                {/* Reps (or Seconds, for static exercises) · Weight */}
                 <p className="text-sm mt-1 font-medium text-muted-foreground/80">
-                    {currentExercise.planExercise.reps} reps
-                    {currentExercise.planExercise.weight > 0 && ` · ${currentExercise.planExercise.weight}kg`}
+                    {currentExercise.exerciseDef.isStatic
+                        ? `${currentExercise.planExercise.durationSeconds} sec`
+                        : `${currentExercise.planExercise.reps} reps`}
+                    {!currentExercise.exerciseDef.isBodyweight && currentExercise.planExercise.weight > 0 && ` · ${currentExercise.planExercise.weight}kg`}
                 </p>
 
                 {/* Set Dots - state-aware: IN SET quiets glow, confirms don't celebrate */}

@@ -194,7 +194,9 @@ export function AddActivityDialog({
                                                         {exercise.exerciseDef.name}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {exercise.sets} sets × {exercise.reps} reps
+                                                        {exercise.sets} sets × {exercise.exerciseDef.isStatic
+                                                            ? `${exercise.durationSeconds} sec`
+                                                            : `${exercise.reps} reps`}
                                                     </div>
                                                 </div>
                                                 {selectedExerciseId === exercise._id && (

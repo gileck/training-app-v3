@@ -50,8 +50,10 @@ export function SupersetCard({
                                         {exercise.exerciseDef.name}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {exercise.planExercise.reps} reps
-                                        {exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
+                                        {exercise.exerciseDef.isStatic
+                                            ? `${exercise.planExercise.durationSeconds} sec`
+                                            : `${exercise.planExercise.reps} reps`}
+                                        {!exercise.exerciseDef.isBodyweight && exercise.planExercise.weight > 0 && ` · ${exercise.planExercise.weight}kg`}
                                     </p>
                                 </div>
                             </div>

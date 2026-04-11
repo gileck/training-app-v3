@@ -156,8 +156,10 @@ export function PlanWorkoutCard({
                                             {ex.exerciseDef.name}
                                         </h4>
                                         <p className="text-xs text-muted-foreground">
-                                            {ex.sets} sets × {ex.reps} reps
-                                            {ex.weight > 0 && ` • ${ex.weight}kg`}
+                                            {ex.sets} sets × {ex.exerciseDef.isStatic
+                                                ? `${ex.durationSeconds} sec`
+                                                : `${ex.reps} reps`}
+                                            {!ex.exerciseDef.isBodyweight && ex.weight > 0 && ` • ${ex.weight}kg`}
                                         </p>
                                     </div>
                                 </div>
