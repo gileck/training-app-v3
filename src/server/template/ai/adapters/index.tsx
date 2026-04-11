@@ -2,6 +2,7 @@ import { GeminiAdapter } from './gemini';
 import { OpenAIAdapter } from './openai';
 import { AnthropicAdapter } from './anthropic';
 import { ClaudeCodeAdapter } from './claude-code';
+import { CodexAdapter } from './codex';
 import { AIModel } from '../types';
 
 // Export adapter classes by provider
@@ -10,4 +11,5 @@ export const adapters: Record<string, () => AIModel> = {
     [OpenAIAdapter.provider]: () => new OpenAIAdapter(),
     [AnthropicAdapter.provider]: () => new AnthropicAdapter(),
     [ClaudeCodeAdapter.provider]: () => new ClaudeCodeAdapter(),
+    [CodexAdapter.provider]: () => new CodexAdapter(),
 }

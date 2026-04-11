@@ -37,8 +37,18 @@ export const getCurrentUser = async (
         };
     } catch (error: unknown) {
         console.error("Get current user error:", error);
+        const message = error instanceof Error ? error.message : "Failed to get current user";
+        const isConnectionError = error instanceof Error && (
+            error.name === 'MongoServerSelectionError' ||
+            error.name === 'MongoNetworkError' ||
+            error.message.includes('ENOTFOUND') ||
+            error.message.includes('ECONNREFUSED') ||
+            error.message.includes('timeout') ||
+            error.message.includes('connect')
+        );
         return {
-            error: error instanceof Error ? error.message : "Failed to get current user",
+            error: message,
+            connectionError: isConnectionError,
             authDebug: context.authDebug,
         };
     }

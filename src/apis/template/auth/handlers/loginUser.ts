@@ -15,6 +15,7 @@ import {
     sanitizeUser,
 } from "../shared";
 import { toStringId } from '@/server/template/utils';
+import { authOverrides } from '@/apis/auth-overrides';
 
 // Login endpoint
 export const loginUser = async (
@@ -37,6 +38,14 @@ export const loginUser = async (
         const isPasswordValid = await bcrypt.compare(request.password, user.password_hash);
         if (!isPasswordValid) {
             return { error: "Invalid username or password" };
+        }
+
+        // Run project-specific login validation
+        if (authOverrides.validateLogin) {
+            const overrideError = await authOverrides.validateLogin({ user, request, context });
+            if (overrideError) {
+                return { error: overrideError };
+            }
         }
 
         // Generate JWT token

@@ -11,6 +11,7 @@ export {
   OPENAI_MODELS,
   ANTHROPIC_MODELS,
   CLAUDE_CODE_MODELS,
+  CODEX_MODELS,
   getAllModels,
   getModelsByProvider,
   getModelById,

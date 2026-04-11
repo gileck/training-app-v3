@@ -10,7 +10,7 @@ export type ModelTier = 'Budget' | 'Pro' | 'Premium';
 export interface AIModelDefinition {
   id: string;
   name: string;
-  provider: 'gemini' | 'openai' | 'anthropic' | 'claude-code';
+  provider: 'gemini' | 'openai' | 'anthropic' | 'claude-code' | 'codex';
   tier: ModelTier;
   maxTokens: number;
   maxOutputTokens: number;
@@ -191,11 +191,37 @@ export const CLAUDE_CODE_MODELS: AIModelDefinition[] = [
   }
 ];
 
+// OpenAI Codex models (routed via RPC to local Codex CLI)
+export const CODEX_MODELS: AIModelDefinition[] = [
+  {
+    id: 'gpt-5-codex',
+    name: 'GPT-5 Codex',
+    provider: 'codex',
+    tier: 'Pro',
+    maxTokens: 400000,
+    maxOutputTokens: 128000,
+    inputPricePer1M: 1.25,
+    outputPricePer1M: 10.00,
+    capabilities: ['agentic-coding', 'reasoning', 'coding', 'analysis']
+  },
+  {
+    id: 'gpt-5.4',
+    name: 'GPT-5.4',
+    provider: 'codex',
+    tier: 'Pro',
+    maxTokens: 272000,
+    maxOutputTokens: 128000,
+    inputPricePer1M: 2.50,
+    outputPricePer1M: 15.00,
+    capabilities: ['reasoning', 'coding', 'analysis', 'agentic-workflows']
+  }
+];
+
 // Helper functions
 export const DEFAULT_MODEL_ID = 'gemini-2.5-flash-lite';
 
 export function getAllModels(): AIModelDefinition[] {
-  return [...GEMINI_MODELS, ...OPENAI_MODELS, ...ANTHROPIC_MODELS, ...CLAUDE_CODE_MODELS];
+  return [...GEMINI_MODELS, ...OPENAI_MODELS, ...ANTHROPIC_MODELS, ...CLAUDE_CODE_MODELS, ...CODEX_MODELS];
 }
 
 export function getModelsByProvider(provider: string): AIModelDefinition[] {

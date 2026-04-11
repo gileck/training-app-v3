@@ -17,6 +17,7 @@ import {
     sanitizeUser,
 } from "../shared";
 import { toStringId } from '@/server/template/utils';
+import { authOverrides } from '@/apis/auth-overrides';
 
 // Register endpoint
 export const registerUser = async (
@@ -27,6 +28,14 @@ export const registerUser = async (
         // Validate input
         if (!request.username || !request.password) {
             return { error: "Username and password are required" };
+        }
+
+        // Run project-specific registration validation
+        if (authOverrides.validateRegistration) {
+            const overrideError = await authOverrides.validateRegistration({ request, context });
+            if (overrideError) {
+                return { error: overrideError };
+            }
         }
 
         // Check for existing email if provided

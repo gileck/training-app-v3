@@ -57,9 +57,9 @@ export function countGeminiTokens(text: string): number {
  * @returns Number of tokens
  */
 export function countTokens(text: string, provider: string, modelId: string): number {
-  if (provider === 'openai') {
+  if (provider === 'openai' || provider === 'codex') {
     return countOpenAITokens(text, modelId);
-  } else if (provider === 'google') {
+  } else if (provider === 'gemini' || provider === 'google') {
     return countGeminiTokens(text);
   } 
   return countOpenAITokens(text);

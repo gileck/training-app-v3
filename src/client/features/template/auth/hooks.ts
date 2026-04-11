@@ -169,6 +169,15 @@ export function useAuthValidation() {
             });
             setValidatedUser(data.user);
             markEvent(BOOT_PHASES.APP_CONTENT_SHOWN_VALIDATED);
+        } else if (data?.connectionError) {
+            // Database connection error - trust hints, don't clear auth
+            markEvent(BOOT_PHASES.AUTH_VALIDATION_COMPLETE);
+            logStatus('Auth Decision (Connection Error)', {
+                decision: 'trust-hints',
+                isProbablyLoggedIn,
+                error: data.error,
+            });
+            setValidating(false);
         } else {
             // No valid session - clear any stale hints
             markEvent(BOOT_PHASES.AUTH_VALIDATION_COMPLETE);
@@ -198,7 +207,10 @@ export function useAuthValidation() {
             const response = await apiFetchCurrentUser();
             // Only throw for actual errors, not for { user: null }
             if (response.data?.error) {
-                throw new Error(response.data.error);
+                const err = new Error(response.data.error);
+                // Preserve connectionError flag from server
+                (err as Error & { connectionError?: boolean }).connectionError = response.data.connectionError;
+                throw err;
             }
             return response.data;
         },
@@ -236,14 +248,15 @@ export function useAuthValidation() {
 
         // Distinguish between network errors and actual "no session" responses
         if (isError) {
-            // Check if this is a network error vs actual auth error
+            // Check if this is a network/connection error vs actual auth error
             const isNetworkError = error instanceof Error && (
                 error.message.includes('fetch') ||
                 error.message.includes('network') ||
                 error.message.includes('Failed to fetch') ||
                 error.message.includes('NetworkError') ||
                 error.message.includes('ECONNREFUSED') ||
-                error.message.includes('timeout')
+                error.message.includes('timeout') ||
+                (error as Error & { connectionError?: boolean }).connectionError === true
             );
             
             if (isNetworkError) {

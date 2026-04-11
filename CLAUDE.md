@@ -55,7 +55,7 @@ Complete guide to code validation - what checks exist, how they run locally and 
 
 Instant-boot authentication pattern for PWA. Use this when working with auth flows.
 
-**Summary:** Uses `isProbablyLoggedIn` hint in localStorage for instant render, validates with server in background. JWT in HttpOnly cookie. Use `useUser()` for validated user, `useAuthStore(s => s.userPublicHint)` for instant-boot UI.
+**Summary:** Uses `isProbablyLoggedIn` hint in localStorage for instant render, validates with server in background. JWT in HttpOnly cookie. Use `useUser()` for validated user, `useAuthStore(s => s.userPublicHint)` for instant-boot UI. Child projects can override login/signup logic via `src/apis/auth-overrides.ts` and control UI via `src/client/auth-config.ts`.
 
 **Docs:** [authentication.md](docs/template/authentication.md)
 
@@ -379,6 +379,128 @@ Complete setup instructions for the GitHub agents workflow. Use this when settin
 - Optional: Claude GitHub App for automated PR reviews
 
 **Docs:** [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
+
+---
+
+## Guards and Hooks
+
+**Summary:** Complete catalog of guards (precondition checks) and hooks (side effects) extracted from current workflow-service functions, with registry design and function mapping table.
+
+**Docs:** [guards-and-hooks.md](docs/template/github-agents-workflow/new-pipeline-architecture/guards-and-hooks.md)
+
+---
+
+## Implementation Roadmap
+
+**Summary:** Phase dependency graph, progress tracking, and execution order for the 8-phase pipeline architecture migration.
+
+**Docs:** [overview.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/overview.md)
+
+---
+
+## Phase 1: Foundation
+
+**Summary:** Create type system, engine skeleton, guard/hook registries, and DB schema changes for the pipeline architecture.
+
+**Docs:** [phase-1-foundation.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-1-foundation.md)
+
+---
+
+## Phase 2: Guards and Hooks
+
+**Summary:** Extract all precondition checks and side effects from current workflow-service functions into standalone guard and hook modules.
+
+**Docs:** [phase-2-guards-and-hooks.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-2-guards-and-hooks.md)
+
+---
+
+## Phase 3: Pipeline Definitions
+
+**Summary:** Create the two pipeline definition const objects (feature, bug) with unit tests validating internal consistency.
+
+**Docs:** [phase-3-pipeline-definitions.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-3-pipeline-definitions.md)
+
+---
+
+## Phase 4: Engine Core
+
+**Summary:** Implement the pipeline engine with transition validation, guard execution, hook orchestration, dual-write, and concurrency control.
+
+**Docs:** [phase-4-engine-core.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-4-engine-core.md)
+
+---
+
+## Phase 5: Internal Migration
+
+**Summary:** Refactor each workflow-service function into a thin wrapper around the pipeline engine, one function at a time with E2E validation after each.
+
+**Docs:** [phase-5-internal-migration.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-5-internal-migration.md)
+
+---
+
+## Phase 6: External Migration
+
+**Summary:** Migrate all transport layer callers (Telegram handlers, API handlers, CLI, agents) from direct workflow-service function calls to engine-based calls.
+
+**Docs:** [phase-6-external-migration.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-6-external-migration.md)
+
+---
+
+## Phase 7: Cleanup
+
+**Summary:** Remove deprecated function bodies, old constants, and unused code after all callers have been migrated to the pipeline engine.
+
+**Docs:** [phase-7-cleanup.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-7-cleanup.md)
+
+---
+
+## Phase 8: Verification & Review
+
+**Summary:** Verify that all known concerns, edge cases, and awareness items from the design review are properly handled in the final implementation.
+
+**Docs:** [phase-8-verification.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-8-verification.md)
+
+---
+
+## Pipeline Architecture Overview
+
+Use this to understand the new pipeline architecture design, its motivation, and how it replaces the current workflow-service implementation.
+
+**Summary:** JSON-driven pipeline engine replacing unvalidated status transitions with declared state machines, validated by a generic engine with registered hooks and guards.
+
+**Docs:** [overview.md](docs/template/github-agents-workflow/new-pipeline-architecture/overview.md)
+
+---
+
+## Pipeline Definition Schema
+
+**Summary:** TypeScript interfaces and design decisions for declaring pipeline statuses, transitions, guards, hooks, and review flows as typed const objects.
+
+**Docs:** [pipeline-schema.md](docs/template/github-agents-workflow/new-pipeline-architecture/pipeline-schema.md)
+
+---
+
+## Pipeline Definitions
+
+**Summary:** Design notes for the two pipeline definitions (feature, bug) including status maps, transition overviews, multi-phase handling, and undo semantics.
+
+**Docs:** [pipeline-definitions.md](docs/template/github-agents-workflow/new-pipeline-architecture/pipeline-definitions.md)
+
+---
+
+## Pipeline Engine
+
+**Summary:** Pipeline engine interface, concurrency model, dual-write pattern, and agent integration for executing validated state transitions.
+
+**Docs:** [engine.md](docs/template/github-agents-workflow/new-pipeline-architecture/engine.md)
+
+---
+
+## Testing Strategy
+
+**Summary:** E2E test strategy using existing tests as regression validation, with no test changes needed during migration since exported function signatures are preserved.
+
+**Docs:** [testing.md](docs/template/github-agents-workflow/new-pipeline-architecture/testing.md)
 
 ---
 

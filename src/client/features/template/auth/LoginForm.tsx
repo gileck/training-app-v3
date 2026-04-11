@@ -6,6 +6,7 @@ import { useLoginFormValidator } from './useLoginFormValidator';
 import { isNetworkError, cleanErrorMessage as cleanApiErrorMessage } from '../error-tracking/errorUtils';
 import type { LoginFormState } from './types';
 import { cn } from '@/client/lib/utils';
+import { authConfig } from '@/client/auth-config';
 
 export const LoginForm = () => {
     const error = useAuthStore((state) => state.error);
@@ -18,6 +19,7 @@ export const LoginForm = () => {
 
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form mode toggle
     const [isRegistering, setIsRegistering] = useState(false);
+    const canRegister = authConfig.allowRegistration;
     // eslint-disable-next-line state-management/prefer-state-architecture -- form input before submission
     const [formData, setFormData] = useState<LoginFormState>({
         username: '',
@@ -45,7 +47,7 @@ export const LoginForm = () => {
         e.preventDefault();
         if (!validateForm()) return;
 
-        if (isRegistering) {
+        if (isRegistering && canRegister) {
             registerMutation.mutate({
                 username: formData.username,
                 password: formData.password,
@@ -180,11 +182,13 @@ export const LoginForm = () => {
             </form>
 
             {/* Toggle */}
-            <p className="text-center text-sm">
-                <button type="button" onClick={toggleMode} disabled={isLoading} className="text-primary hover:text-primary/80 font-medium disabled:opacity-50">
-                    {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-                </button>
-            </p>
+            {canRegister && (
+                <p className="text-center text-sm">
+                    <button type="button" onClick={toggleMode} disabled={isLoading} className="text-primary hover:text-primary/80 font-medium disabled:opacity-50">
+                        {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                    </button>
+                </p>
+            )}
         </div>
     );
 };

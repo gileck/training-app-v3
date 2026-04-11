@@ -26,6 +26,8 @@ export type RegisterResponse = AuthResponse;
 export type CurrentUserResponse = {
     user?: UserResponse | null;
     error?: string;
+    /** True when the error is due to a database connection failure, not an auth issue */
+    connectionError?: boolean;
     /** Debug info about auth status - helps diagnose auth failures */
     authDebug?: AuthDebugInfo;
 };
