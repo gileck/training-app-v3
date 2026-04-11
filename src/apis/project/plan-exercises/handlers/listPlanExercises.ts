@@ -4,8 +4,10 @@ import {
     ListPlanExercisesResponse,
     PlanExerciseWithDefinition,
 } from '../types';
+import { mergeExerciseDef, stripEmptyOverrides } from '../mergeExerciseDef';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 export const listPlanExercises = async (
     request: ListPlanExercisesRequest,
@@ -36,11 +38,37 @@ export const listPlanExercises = async (
         // Create a map for quick lookup (handles both ObjectId and UUID string IDs)
         const exerciseDefMap = new Map(exerciseDefs.map((def) => [toStringId(def._id), def]));
 
-        // Combine plan exercises with their definitions
+        // Combine plan exercises with their definitions, applying any
+        // per-instance overrides so clients see the effective merged def.
         const exercisesWithDefs: PlanExerciseWithDefinition[] = [];
         for (const exercise of exerciseList) {
             const def = exerciseDefMap.get(toStringId(exercise.exerciseDefId));
             if (!def) continue;
+
+            const baseDef: ExerciseDefinitionClient = {
+                _id: toStringId(def._id),
+                name: def.name,
+                imageUrl: def.imageUrl,
+                primaryMuscle: def.primaryMuscle,
+                secondaryMuscles: def.secondaryMuscles,
+                type: def.type,
+                isBodyweight: def.isBodyweight,
+                isStatic: def.isStatic,
+                isSystem: def.isSystem,
+                userId: def.userId ? toStringId(def.userId) : undefined,
+                createdAt: def.createdAt.toISOString(),
+                updatedAt: def.updatedAt.toISOString(),
+            };
+
+            // Strip any stored override fields that now coincide with the
+            // base (e.g. because the base definition was updated after the
+            // override was saved). This keeps the "is customized?" check
+            // honest and prevents stale overrides from sticking around
+            // silently after a no-op.
+            const strippedOverrides = exercise.overrides
+                ? stripEmptyOverrides(exercise.overrides, baseDef)
+                : undefined;
+            const mergedDef = mergeExerciseDef(baseDef, strippedOverrides);
 
             exercisesWithDefs.push({
                 _id: toStringId(exercise._id),
@@ -52,22 +80,13 @@ export const listPlanExercises = async (
                 durationSeconds: exercise.durationSeconds,
                 comments: exercise.comments,
                 order: exercise.order,
+                overrides:
+                    strippedOverrides && Object.keys(strippedOverrides).length > 0
+                        ? strippedOverrides
+                        : undefined,
                 createdAt: exercise.createdAt.toISOString(),
                 updatedAt: exercise.updatedAt.toISOString(),
-                exerciseDef: {
-                    _id: toStringId(def._id),
-                    name: def.name,
-                    imageUrl: def.imageUrl,
-                    primaryMuscle: def.primaryMuscle,
-                    secondaryMuscles: def.secondaryMuscles,
-                    type: def.type,
-                    isBodyweight: def.isBodyweight,
-                    isStatic: def.isStatic,
-                    isSystem: def.isSystem,
-                    userId: def.userId ? toStringId(def.userId) : undefined,
-                    createdAt: def.createdAt.toISOString(),
-                    updatedAt: def.updatedAt.toISOString(),
-                },
+                exerciseDef: mergedDef,
             });
         }
 

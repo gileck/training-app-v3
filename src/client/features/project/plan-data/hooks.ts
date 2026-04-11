@@ -13,9 +13,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePlanDataStore } from './store';
 import { loadPlan, syncPlanToServer, syncFromCloud, loadWeekProgress } from './sync';
 import { addActivity, deleteActivity, getActivity } from '@/apis/project/activity-logs/client';
+import { uploadOverrideImage } from '@/apis/project/plan-exercises/client';
+import {
+    mergeExerciseDef,
+    stripEmptyOverrides,
+} from '@/apis/project/plan-exercises/mergeExerciseDef';
+import type { ExerciseDefinitionOverrides } from '@/apis/project/plan-exercises/types';
+import { useEffectiveOffline } from '@/client/features/template/settings';
 import { generateId } from '@/client/utils/id';
 import type { ExerciseUpdates, NewExercise, PlanExerciseWithDefinition, ExerciseProgress } from './types';
 import type { AddActivityRequest, GetActivityResponse } from '@/apis/project/activity-logs/types';
+import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 // ============================================================================
 // Stable Fallback References (CRITICAL for Zustand selectors)
@@ -243,6 +251,110 @@ export function useUpdatePlanExerciseAdapter(planId: string) {
             }
         },
         [planId, updateExercise]
+    );
+
+    return { mutate, isPending: false };
+}
+
+/**
+ * Adapter hook for updating per-plan-exercise definition overrides.
+ *
+ * Flow on `mutate`:
+ *   1. If a new imageBase64 is provided, upload it first via the dedicated
+ *      plan-exercises/upload-override-image endpoint and receive a Vercel
+ *      Blob URL. When offline this is refused so base64 never lands in the
+ *      sync queue.
+ *   2. Build a candidate overrides object from the form fields, honouring
+ *      the `imageCleared` flag to distinguish "user removed image" from
+ *      "user didn't touch image".
+ *   3. Strip fields equal to the base so the stored object only carries
+ *      real customizations.
+ *   4. Compute the merged effective def and hand both `overrides` and
+ *      `mergedDef` to the store in a single atomic update.
+ *   5. Kick off the debounced sync to persist the whole plan.
+ */
+export function useUpdatePlanExerciseOverridesAdapter(planId: string) {
+    const updateExerciseOverrides = usePlanDataStore((s) => s.updateExerciseOverrides);
+    const isOffline = useEffectiveOffline();
+
+    const mutate = useCallback(
+        async (
+            params: {
+                planExerciseId: string;
+                baseDef: ExerciseDefinitionClient;
+                form: {
+                    name: string;
+                    imageBase64?: string;
+                    imageCleared?: boolean;
+                    primaryMuscle: string;
+                    secondaryMuscles: string[];
+                    type: string;
+                    isBodyweight: boolean;
+                    isStatic: boolean;
+                };
+                /** Current effective imageUrl from the merged def (used when image is unchanged). */
+                currentImageUrl: string;
+            },
+            options?: {
+                onSuccess?: () => void;
+                onError?: (error: Error) => void;
+            }
+        ) => {
+            try {
+                // 1. Resolve the override imageUrl.
+                //
+                // - New base64 upload: upload now and use the returned Blob URL.
+                // - Image cleared: explicit empty string override.
+                // - Otherwise: keep whatever is currently effective; we pass
+                //   `currentImageUrl` as the candidate so stripEmptyOverrides
+                //   naturally removes the key when it matches the base.
+                let resolvedImageUrl = params.currentImageUrl;
+                if (params.form.imageBase64) {
+                    if (isOffline) {
+                        throw new Error('Image upload is not available while offline.');
+                    }
+                    const response = await uploadOverrideImage({
+                        imageBase64: params.form.imageBase64,
+                    });
+                    if (response.data?.error || !response.data?.imageUrl) {
+                        throw new Error(response.data?.error || 'Image upload failed');
+                    }
+                    resolvedImageUrl = response.data.imageUrl;
+                } else if (params.form.imageCleared) {
+                    resolvedImageUrl = '';
+                }
+
+                // 2. Build the candidate overrides from the full form state.
+                const candidate: ExerciseDefinitionOverrides = {
+                    name: params.form.name,
+                    imageUrl: resolvedImageUrl,
+                    primaryMuscle: params.form.primaryMuscle,
+                    secondaryMuscles: params.form.secondaryMuscles,
+                    type: params.form.type,
+                    isBodyweight: params.form.isBodyweight,
+                    isStatic: params.form.isStatic,
+                };
+
+                // 3. Strip fields that equal the base.
+                const stripped = stripEmptyOverrides(candidate, params.baseDef);
+
+                // 4. Compute the merged def and apply atomically.
+                const mergedDef = mergeExerciseDef(params.baseDef, stripped);
+                updateExerciseOverrides(planId, params.planExerciseId, {
+                    overrides: stripped,
+                    mergedDef,
+                });
+
+                // 5. Schedule sync.
+                syncPlanToServer(planId);
+                options?.onSuccess?.();
+            } catch (error) {
+                options?.onError?.(
+                    error instanceof Error ? error : new Error('Failed to update exercise overrides')
+                );
+            }
+        },
+        [planId, updateExerciseOverrides, isOffline]
     );
 
     return { mutate, isPending: false };

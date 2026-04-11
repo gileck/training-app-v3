@@ -1,6 +1,24 @@
 import { ObjectId } from 'mongodb';
 
 /**
+ * Sparse override of the base exercise definition, stored on the plan
+ * exercise. Only keys whose values differ from the base are kept. Applied
+ * via mergeExerciseDef(base, overrides) at display time.
+ *
+ * Kept as an inline type rather than importing the client-side type so the
+ * DB schema module does not depend on client code.
+ */
+export interface PlanExerciseOverrides {
+    name?: string;
+    imageUrl?: string;
+    primaryMuscle?: string;
+    secondaryMuscles?: string[];
+    type?: string;
+    isBodyweight?: boolean;
+    isStatic?: boolean;
+}
+
+/**
  * Represents an exercise configuration within a training plan
  */
 export interface PlanExercise {
@@ -13,6 +31,11 @@ export interface PlanExercise {
     durationSeconds: number; // for static/timed exercises
     comments: string;
     order: number;
+    /**
+     * Optional per-instance overrides of the base exercise definition.
+     * Empty/undefined means "no customization — use the base def as-is".
+     */
+    overrides?: PlanExerciseOverrides;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -45,6 +68,8 @@ export interface PlanExerciseClient {
     durationSeconds: number;
     comments: string;
     order: number;
+    /** Optional per-instance overrides of the base exercise definition. */
+    overrides?: PlanExerciseOverrides;
     createdAt: string;
     updatedAt: string;
 }

@@ -17,7 +17,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/client/components/template/ui/select';
-import { Dumbbell, Upload, X, Clipboard } from 'lucide-react';
+import { Dumbbell, Upload, X, Clipboard, WifiOff } from 'lucide-react';
+import { useEffectiveOffline } from '@/client/features/template/settings';
 
 // Common muscle groups
 const MUSCLE_GROUPS = [
@@ -40,12 +41,39 @@ const MUSCLE_GROUPS = [
 // Exercise types
 const EXERCISE_TYPES = ['Strength', 'Cardio', 'Flexibility', 'Balance', 'Plyometric'];
 
+/**
+ * Prepend any values present in `extras` that are missing from `base`.
+ * Used to ensure the Select dropdowns always contain the exercise's
+ * currently-stored value, even when that value isn't in the hardcoded
+ * default list (e.g. imported system exercises that use `Upper body`
+ * or `Thighs` which aren't in the defaults).
+ */
+function withMissingPrepended(base: readonly string[], extras: readonly string[]): string[] {
+    const seen = new Set(base);
+    const prepend: string[] = [];
+    for (const value of extras) {
+        if (value && !seen.has(value)) {
+            prepend.push(value);
+            seen.add(value);
+        }
+    }
+    return prepend.length > 0 ? [...prepend, ...base] : [...base];
+}
+
 interface CreateExerciseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSubmit: (data: {
         name: string;
         imageBase64?: string;
+        /**
+         * Only meaningful in edit/override mode: true when the user
+         * explicitly removed an image that was present in initialData
+         * and did not replace it with a new upload. Callers that don't
+         * support "clear image" (e.g. the createExercise flow) can
+         * safely ignore this field.
+         */
+        imageCleared?: boolean;
         primaryMuscle: string;
         secondaryMuscles: string[];
         type: string;
@@ -91,6 +119,27 @@ export function CreateExerciseDialog({
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
     const [imagePreview, setImagePreview] = useState<string | undefined>(initialData?.imageUrl);
 
+    // Image upload requires a network round-trip; when offline we hide
+    // the picker so base64 payloads never enter the offline sync queue.
+    const isOffline = useEffectiveOffline();
+
+    // Dropdown lists get the initial values prepended so pre-existing
+    // muscle / type values that aren't in the hardcoded defaults remain
+    // selectable (and visible) in edit mode.
+    const muscleOptions = withMissingPrepended(
+        MUSCLE_GROUPS,
+        [
+            initialData?.primaryMuscle ?? '',
+            ...(initialData?.secondaryMuscles ?? []),
+            primaryMuscle,
+            ...secondaryMuscles,
+        ].filter(Boolean)
+    );
+    const typeOptions = withMissingPrepended(
+        EXERCISE_TYPES,
+        [initialData?.type ?? '', type].filter(Boolean)
+    );
+
     const processImageFile = useCallback((file: File) => {
         // Validate file size (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
@@ -135,15 +184,23 @@ export function CreateExerciseDialog({
         }
     }, [processImageFile]);
 
-    // Listen for paste events when dialog is open
+    // Listen for paste events when dialog is open. Skip while offline so
+    // pasting an image doesn't sneak base64 into the offline sync queue.
     useEffect(() => {
-        if (open) {
+        if (open && !isOffline) {
             document.addEventListener('paste', handlePaste);
             return () => document.removeEventListener('paste', handlePaste);
         }
-    }, [open, handlePaste]);
+    }, [open, handlePaste, isOffline]);
 
-    // Reset form when dialog opens with new data
+    // Reset form when the dialog opens. We intentionally depend ONLY on
+    // `open` — not on `initialData` — because parents pass inline object
+    // literals (`initialData={exerciseToEdit ? { ... } : undefined}`) which
+    // produce a new reference on every render. Depending on that reference
+    // would cause the effect to re-fire on every parent re-render while
+    // the dialog is open and wipe in-progress image uploads and chip
+    // toggles. Capturing the initialData at open-transition is correct
+    // because the dialog is remounted/closed between edits anyway.
     useEffect(() => {
         if (open) {
             setName(initialData?.name || '');
@@ -155,7 +212,7 @@ export function CreateExerciseDialog({
             setImageBase64(undefined);
             setImagePreview(initialData?.imageUrl);
         }
-    }, [open, initialData]);
+    }, [open]);
 
     const removeImage = () => {
         setImageBase64(undefined);
@@ -172,9 +229,15 @@ export function CreateExerciseDialog({
     const handleSubmit = () => {
         if (!name.trim() || !primaryMuscle) return;
 
+        // In edit mode, detect "user removed the existing image" so override
+        // callers can distinguish "no image change" from "explicit clear".
+        const imageCleared =
+            editMode && !!initialData?.imageUrl && !imagePreview && !imageBase64;
+
         onSubmit({
             name: name.trim(),
             imageBase64,
+            imageCleared,
             primaryMuscle,
             secondaryMuscles: secondaryMuscles.filter((m) => m !== primaryMuscle),
             type,
@@ -230,14 +293,26 @@ export function CreateExerciseDialog({
                                     alt="Exercise preview"
                                     className="w-full h-full object-contain"
                                 />
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    onClick={removeImage}
-                                    className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
+                                {!isOffline && (
+                                    <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        onClick={removeImage}
+                                        className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ) : isOffline ? (
+                            <div className="flex flex-col items-center justify-center w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+                                <WifiOff className="h-6 w-6 text-muted-foreground mb-2" />
+                                <span className="text-sm text-muted-foreground">
+                                    Connect to change image
+                                </span>
+                                <span className="text-xs text-muted-foreground mt-1">
+                                    Other fields still work offline
+                                </span>
                             </div>
                         ) : (
                             <label className="flex flex-col items-center justify-center w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-muted-foreground/50 transition-colors">
@@ -272,7 +347,7 @@ export function CreateExerciseDialog({
                                 <SelectValue placeholder="Select primary muscle" />
                             </SelectTrigger>
                             <SelectContent>
-                                {MUSCLE_GROUPS.map((muscle) => (
+                                {muscleOptions.map((muscle) => (
                                     <SelectItem key={muscle} value={muscle}>
                                         {muscle}
                                     </SelectItem>
@@ -285,7 +360,7 @@ export function CreateExerciseDialog({
                     <div className="grid gap-2">
                         <Label>Secondary Muscles</Label>
                         <div className="flex flex-wrap gap-2">
-                            {MUSCLE_GROUPS.filter((m) => m !== primaryMuscle).map((muscle) => (
+                            {muscleOptions.filter((m) => m !== primaryMuscle).map((muscle) => (
                                 <Button
                                     key={muscle}
                                     variant={secondaryMuscles.includes(muscle) ? 'default' : 'outline'}
@@ -307,7 +382,7 @@ export function CreateExerciseDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {EXERCISE_TYPES.map((t) => (
+                                {typeOptions.map((t) => (
                                     <SelectItem key={t} value={t}>
                                         {t}
                                     </SelectItem>

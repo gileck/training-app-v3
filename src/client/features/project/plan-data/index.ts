@@ -51,6 +51,7 @@ export {
     useAddPlanExerciseAdapter,
     useBulkAddPlanExercisesAdapter,
     useUpdatePlanExerciseAdapter,
+    useUpdatePlanExerciseOverridesAdapter,
     useDeletePlanExerciseAdapter,
     useReorderPlanExercisesAdapter,
     useIncrementSetAdapter,
@@ -73,6 +74,7 @@ export type {
     PlanExerciseWithDefinition,
     ExerciseProgress,
     ExerciseUpdates,
+    ExerciseOverrideUpdate,
     NewExercise,
     PlanConflict,
 } from './types';

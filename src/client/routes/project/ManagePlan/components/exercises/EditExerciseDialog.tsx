@@ -7,7 +7,7 @@ import {
     Dialog,
     DialogContent,
 } from '@/client/components/template/ui/dialog';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, Pencil } from 'lucide-react';
 import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 
 interface EditExerciseDialogProps {
@@ -15,6 +15,13 @@ interface EditExerciseDialogProps {
     onOpenChange: (open: boolean) => void;
     exercise: PlanExerciseWithDefinition | null;
     onSave: (config: { sets: number; reps: number; weight: number; comments: string }) => void;
+    /**
+     * Optional callback for the "customize exercise" pencil button in the
+     * header. When provided, the button is shown and firing it lets the
+     * parent open a dialog to override the exercise definition for this
+     * plan exercise instance only.
+     */
+    onCustomize?: () => void;
     isPending: boolean;
 }
 
@@ -23,6 +30,7 @@ export function EditExerciseDialog({
     onOpenChange,
     exercise,
     onSave,
+    onCustomize,
     isPending,
 }: EditExerciseDialogProps) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form state
@@ -77,6 +85,17 @@ export function EditExerciseDialog({
                                 {exercise.exerciseDef.primaryMuscle}
                             </p>
                         </div>
+                        {onCustomize && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onCustomize}
+                                className="flex-shrink-0 h-10 w-10 rounded-full"
+                                aria-label="Customize exercise definition"
+                            >
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </div>
 

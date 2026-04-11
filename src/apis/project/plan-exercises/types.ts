@@ -1,4 +1,4 @@
-import { PlanExerciseClient } from '@/server/database/collections/project/planExercises/types';
+import { PlanExerciseClient, PlanExerciseOverrides } from '@/server/database/collections/project/planExercises/types';
 import { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
 
 // API Handler Context
@@ -6,9 +6,23 @@ export interface ApiHandlerContext {
     userId?: string;
 }
 
-// Extended plan exercise with exercise definition details
+/**
+ * Sparse per-plan-exercise override of the base exercise definition.
+ * Only keys whose values differ from the base are stored. Applied via
+ * mergeExerciseDef(base, overrides) at display time.
+ *
+ * This is the single source of truth for the override shape. Re-exported
+ * from the DB schema type so client/API code and DB code can't drift.
+ */
+export type ExerciseDefinitionOverrides = PlanExerciseOverrides;
+
+// Extended plan exercise with exercise definition details.
+// exerciseDef is the MERGED effective def (base merged with overrides);
+// overrides is the raw sparse override object for display-time checks
+// (e.g. rendering a "customized" badge).
 export interface PlanExerciseWithDefinition extends PlanExerciseClient {
     exerciseDef: ExerciseDefinitionClient;
+    overrides?: ExerciseDefinitionOverrides;
 }
 
 // List plan exercises
@@ -100,6 +114,19 @@ export interface BulkAddPlanExercisesResponse {
     results?: BulkAddResult[];
     addedCount?: number;
     failedCount?: number;
+    error?: string;
+}
+
+// Upload an image for a plan-exercise override.
+// Client picks an image, converts to base64, posts here, gets back the
+// Vercel Blob URL, then writes that URL into overrides.imageUrl on the
+// plan-exercise and lets the normal debounced sync persist it.
+export interface UploadOverrideImageRequest {
+    imageBase64: string;
+}
+
+export interface UploadOverrideImageResponse {
+    imageUrl?: string;
     error?: string;
 }
 

@@ -7,6 +7,7 @@ import {
     API_UPDATE_PLAN_EXERCISE,
     API_DELETE_PLAN_EXERCISE,
     API_REORDER_PLAN_EXERCISES,
+    API_UPLOAD_OVERRIDE_IMAGE,
 } from './index';
 import {
     ListPlanExercisesRequest,
@@ -21,6 +22,8 @@ import {
     DeletePlanExerciseResponse,
     ReorderPlanExercisesRequest,
     ReorderPlanExercisesResponse,
+    UploadOverrideImageRequest,
+    UploadOverrideImageResponse,
 } from './types';
 
 /**
@@ -75,5 +78,15 @@ export const reorderPlanExercises = async (
     params: ReorderPlanExercisesRequest
 ): Promise<CacheResult<ReorderPlanExercisesResponse>> => {
     return apiClient.post(API_REORDER_PLAN_EXERCISES, params);
+};
+
+/**
+ * Upload a new image for a plan-exercise override. Returns the public
+ * Vercel Blob URL which the caller writes into the override in the store.
+ */
+export const uploadOverrideImage = async (
+    params: UploadOverrideImageRequest
+): Promise<CacheResult<UploadOverrideImageResponse>> => {
+    return apiClient.post(API_UPLOAD_OVERRIDE_IMAGE, params);
 };
 

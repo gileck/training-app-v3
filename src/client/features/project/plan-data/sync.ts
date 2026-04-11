@@ -167,7 +167,13 @@ async function doSyncToServer(planId: string, forceSync: boolean = false): Promi
     syncInProgress[planId] = true;
     
     try {
-        // Prepare sync payload with conflict detection data
+        // Prepare sync payload with conflict detection data.
+        //
+        // `overrides` is ALWAYS included (as `{}` when the user has cleared
+        // their customizations) so that clearing round-trips correctly:
+        // the server uses `{}` as the signal to $unset the stored field.
+        // Stale clients that predate this feature simply omit the key and
+        // the server's `if ('overrides' in ex)` guard preserves their data.
         const payload = {
             planId,
             exercises: plan.exercises.map((ex) => ({
@@ -179,6 +185,7 @@ async function doSyncToServer(planId: string, forceSync: boolean = false): Promi
                 durationSeconds: ex.durationSeconds,
                 comments: ex.comments,
                 order: ex.order,
+                overrides: ex.overrides ?? {},
             })),
             weekProgress: plan.weekProgress,
             clientLastSyncedAt: plan.lastSyncedAt,

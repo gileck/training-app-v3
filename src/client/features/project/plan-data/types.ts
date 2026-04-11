@@ -6,9 +6,16 @@
 
 import type { PlanExerciseClient } from '@/server/database/collections/project/planExercises/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
+import type { ExerciseDefinitionOverrides } from '@/apis/project/plan-exercises/types';
 
 /**
- * Exercise with its definition, used for display
+ * Exercise with its definition, used for display.
+ *
+ * `exerciseDef` is the MERGED effective definition (base merged with any
+ * overrides) and is what all display components should read. The raw
+ * `overrides` field (inherited from PlanExerciseClient) is kept alongside
+ * so the UI can show a "customized" indicator and so the merge can be
+ * recomputed later if overrides change.
  */
 export interface PlanExerciseWithDefinition extends PlanExerciseClient {
     exerciseDef: ExerciseDefinitionClient;
@@ -57,6 +64,16 @@ export interface ExerciseUpdates {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+}
+
+/**
+ * Override update for an exercise. Carries the new sparse overrides object
+ * and the new merged exerciseDef (computed by the caller using the base def
+ * from the exercise library). The store applies both atomically.
+ */
+export interface ExerciseOverrideUpdate {
+    overrides: ExerciseDefinitionOverrides;
+    mergedDef: ExerciseDefinitionClient;
 }
 
 /**

@@ -1,8 +1,10 @@
 /**
  * Plan Data API Types
- * 
+ *
  * Types for bulk sync of plan exercises and weekly progress.
  */
+
+import type { ExerciseDefinitionOverrides } from '@/apis/project/plan-exercises/types';
 
 // API Handler Context
 export interface ApiHandlerContext {
@@ -22,6 +24,13 @@ export interface ExerciseSyncData {
     durationSeconds: number;
     comments: string;
     order: number;
+    /**
+     * Optional per-instance overrides of the base exercise definition.
+     * Only included in the payload when the client explicitly has overrides
+     * to sync; older clients that don't know about overrides simply omit
+     * the field and the server preserves whatever is already stored.
+     */
+    overrides?: ExerciseDefinitionOverrides;
 }
 
 // ============================================================================

@@ -29,6 +29,27 @@ interface ExercisesTabProps {
         mutate: (params: { planExerciseId: string; sets: number; reps: number; weight: number; comments?: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
         isPending: boolean;
     };
+    updateOverridesMutation: {
+        mutate: (
+            params: {
+                planExerciseId: string;
+                baseDef: ExerciseDefinitionClient;
+                form: {
+                    name: string;
+                    imageBase64?: string;
+                    imageCleared?: boolean;
+                    primaryMuscle: string;
+                    secondaryMuscles: string[];
+                    type: string;
+                    isBodyweight: boolean;
+                    isStatic: boolean;
+                };
+                currentImageUrl: string;
+            },
+            options?: { onSuccess?: () => void; onError?: (error: Error) => void }
+        ) => Promise<void> | void;
+        isPending: boolean;
+    };
     deleteExerciseMutation: {
         mutate: (params: { planExerciseId: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
         isPending: boolean;
@@ -60,6 +81,7 @@ export function ExercisesTab({
     addExerciseMutation,
     bulkAddMutation,
     updateExerciseMutation,
+    updateOverridesMutation,
     deleteExerciseMutation,
     reorderMutation,
     createExerciseMutation,
@@ -75,6 +97,10 @@ export function ExercisesTab({
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [exerciseToEdit, setExerciseToEdit] = useState<PlanExerciseWithDefinition | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [exerciseToCustomize, setExerciseToCustomize] = useState<PlanExerciseWithDefinition | null>(null);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
@@ -175,6 +201,58 @@ export function ExercisesTab({
                 },
                 onError: (error) => {
                     toast.error(`Failed to update exercise: ${error.message}`);
+                },
+            }
+        );
+    };
+
+    // "Customize" opens the generic exercise definition form pre-populated
+    // with the effective merged def. The submit handler writes the result
+    // as a per-plan-exercise override (stored on the plan exercise doc) —
+    // the base exercise definition is never mutated.
+    const handleCustomizeExercise = () => {
+        if (!exerciseToEdit) return;
+        setExerciseToCustomize(exerciseToEdit);
+        setCustomizeDialogOpen(true);
+    };
+
+    const handleCustomizeSubmit = (data: {
+        name: string;
+        imageBase64?: string;
+        imageCleared?: boolean;
+        primaryMuscle: string;
+        secondaryMuscles: string[];
+        type: string;
+        isBodyweight: boolean;
+        isStatic: boolean;
+    }) => {
+        if (!exerciseToCustomize) return;
+        // The base def is the un-overridden exercise from the library.
+        const baseDef = exerciseLibrary.find(
+            (e) => e._id === exerciseToCustomize.exerciseDefId
+        );
+        if (!baseDef) {
+            toast.error('Base exercise definition not found');
+            return;
+        }
+        void updateOverridesMutation.mutate(
+            {
+                planExerciseId: exerciseToCustomize._id,
+                baseDef,
+                form: data,
+                currentImageUrl: exerciseToCustomize.exerciseDef.imageUrl,
+            },
+            {
+                onSuccess: () => {
+                    setCustomizeDialogOpen(false);
+                    setExerciseToCustomize(null);
+                    // Close the parent edit dialog too — the user has finished
+                    // customising and the underlying edit form is stale.
+                    setEditDialogOpen(false);
+                    setExerciseToEdit(null);
+                },
+                onError: (error) => {
+                    toast.error(`Failed to customize exercise: ${error.message}`);
                 },
             }
         );
@@ -331,7 +409,28 @@ export function ExercisesTab({
                 onOpenChange={setEditDialogOpen}
                 exercise={exerciseToEdit}
                 onSave={handleSaveEdit}
+                onCustomize={handleCustomizeExercise}
                 isPending={updateExerciseMutation.isPending}
+            />
+
+            {/* Per-plan-exercise customization. Reuses the generic exercise
+                definition form in edit mode; onSubmit writes a sparse override
+                onto the plan exercise instead of mutating the base def. */}
+            <CreateExerciseDialog
+                open={customizeDialogOpen}
+                onOpenChange={setCustomizeDialogOpen}
+                onSubmit={handleCustomizeSubmit}
+                isPending={updateOverridesMutation.isPending}
+                editMode
+                initialData={exerciseToCustomize ? {
+                    name: exerciseToCustomize.exerciseDef.name,
+                    imageUrl: exerciseToCustomize.exerciseDef.imageUrl,
+                    primaryMuscle: exerciseToCustomize.exerciseDef.primaryMuscle,
+                    secondaryMuscles: exerciseToCustomize.exerciseDef.secondaryMuscles,
+                    type: exerciseToCustomize.exerciseDef.type,
+                    isBodyweight: exerciseToCustomize.exerciseDef.isBodyweight,
+                    isStatic: exerciseToCustomize.exerciseDef.isStatic,
+                } : undefined}
             />
 
             <DeleteExerciseDialog

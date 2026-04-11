@@ -9,6 +9,7 @@ import {
     API_UPDATE_PLAN_EXERCISE,
     API_DELETE_PLAN_EXERCISE,
     API_REORDER_PLAN_EXERCISES,
+    API_UPLOAD_OVERRIDE_IMAGE,
 } from './index';
 
 // Import handlers
@@ -18,6 +19,7 @@ import { bulkAddPlanExercises } from './handlers/bulkAddPlanExercises';
 import { updatePlanExercise } from './handlers/updatePlanExercise';
 import { deletePlanExercise } from './handlers/deletePlanExercise';
 import { reorderPlanExercises } from './handlers/reorderPlanExercises';
+import { uploadOverrideImage } from './handlers/uploadOverrideImage';
 
 // Export consolidated handlers object
 export const planExercisesApiHandlers = {
@@ -27,5 +29,6 @@ export const planExercisesApiHandlers = {
     [API_UPDATE_PLAN_EXERCISE]: { process: updatePlanExercise },
     [API_DELETE_PLAN_EXERCISE]: { process: deletePlanExercise },
     [API_REORDER_PLAN_EXERCISES]: { process: reorderPlanExercises },
+    [API_UPLOAD_OVERRIDE_IMAGE]: { process: uploadOverrideImage },
 };
 

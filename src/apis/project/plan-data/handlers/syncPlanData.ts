@@ -116,29 +116,48 @@ async function syncExercises(
     const existingIds = new Set(existingExercises.map((ex) => toStringId(ex._id)));
     const incomingIds = new Set(exercises.map((ex) => ex._id));
 
-    // Build bulk operations for upserts
-    const upsertOps = exercises.map((ex) => ({
-        updateOne: {
-            filter: { _id: toQueryId(ex._id) },
-            update: {
-                $set: {
-                    planId: planIdQuery,
-                    exerciseDefId: toQueryId(ex.exerciseDefId),
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    weight: ex.weight,
-                    durationSeconds: ex.durationSeconds,
-                    comments: ex.comments,
-                    order: ex.order,
-                    updatedAt: now,
-                },
-                $setOnInsert: {
-                    createdAt: now,
-                },
+    // Build bulk operations for upserts.
+    //
+    // Override handling:
+    //   - `overrides` key present with non-empty object → $set it.
+    //   - `overrides` key present but empty object ({}) → $unset to clear.
+    //   - `overrides` key absent (stale client that predates the feature)
+    //     → leave whatever is stored alone.
+    const upsertOps = exercises.map((ex) => {
+        const setFields: Record<string, unknown> = {
+            planId: planIdQuery,
+            exerciseDefId: toQueryId(ex.exerciseDefId),
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: ex.weight,
+            durationSeconds: ex.durationSeconds,
+            comments: ex.comments,
+            order: ex.order,
+            updatedAt: now,
+        };
+        const unsetFields: Record<string, ''> = {};
+        if ('overrides' in ex && ex.overrides) {
+            if (Object.keys(ex.overrides).length > 0) {
+                setFields.overrides = ex.overrides;
+            } else {
+                unsetFields.overrides = '';
+            }
+        }
+        const update: Record<string, unknown> = {
+            $set: setFields,
+            $setOnInsert: { createdAt: now },
+        };
+        if (Object.keys(unsetFields).length > 0) {
+            update.$unset = unsetFields;
+        }
+        return {
+            updateOne: {
+                filter: { _id: toQueryId(ex._id) },
+                update,
+                upsert: true,
             },
-            upsert: true,
-        },
-    }));
+        };
+    });
 
     // Build delete operations for exercises that no longer exist
     const deleteOps = [...existingIds]

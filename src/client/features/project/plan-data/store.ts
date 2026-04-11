@@ -9,10 +9,11 @@
 
 import { createStore } from '@/client/stores';
 import { generateId } from '@/client/utils/id';
-import type { 
-    PlanData, 
-    PlanExerciseWithDefinition, 
-    ExerciseUpdates, 
+import type {
+    PlanData,
+    PlanExerciseWithDefinition,
+    ExerciseUpdates,
+    ExerciseOverrideUpdate,
     NewExercise,
     ExerciseProgress,
     PlanConflict,
@@ -59,6 +60,18 @@ interface PlanDataState {
     
     /** Update an exercise's properties */
     updateExercise: (planId: string, exerciseId: string, updates: ExerciseUpdates) => void;
+    /**
+     * Update the exercise-definition overrides for a plan exercise.
+     * Caller provides both the sparse `overrides` object (already stripped
+     * of no-op fields against the base) and the freshly-computed
+     * `mergedDef` so the store keeps its stored `exerciseDef` in sync
+     * without needing access to the exercise library.
+     */
+    updateExerciseOverrides: (
+        planId: string,
+        exerciseId: string,
+        update: ExerciseOverrideUpdate
+    ) => void;
     /** Add a new exercise to the plan */
     addExercise: (planId: string, exercise: NewExercise) => void;
     /** Delete an exercise from the plan */
@@ -214,6 +227,38 @@ export const usePlanDataStore = createStore<PlanDataState>({
                             ...ex,
                             ...updates,
                             updatedAt: new Date().toISOString(),
+                        }
+                        : ex
+                );
+
+                return {
+                    plans: {
+                        ...state.plans,
+                        [planId]: { ...plan, exercises, isDirty: true },
+                    },
+                };
+            });
+        },
+
+        updateExerciseOverrides: (planId, exerciseId, update) => {
+            set((state) => {
+                const plan = state.plans[planId];
+                if (!plan) return state;
+
+                const now = new Date().toISOString();
+                const hasOverrides = Object.keys(update.overrides).length > 0;
+
+                const exercises = plan.exercises.map((ex) =>
+                    ex._id === exerciseId
+                        ? {
+                            ...ex,
+                            // Store as `undefined` when fully cleared so the
+                            // sync payload correctly distinguishes "no override"
+                            // from "clear to empty object" and the Customized
+                            // pill check stays simple.
+                            overrides: hasOverrides ? update.overrides : undefined,
+                            exerciseDef: update.mergedDef,
+                            updatedAt: now,
                         }
                         : ex
                 );

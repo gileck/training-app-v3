@@ -19,6 +19,7 @@ import {
     useAddPlanExerciseAdapter,
     useBulkAddPlanExercisesAdapter,
     useUpdatePlanExerciseAdapter,
+    useUpdatePlanExerciseOverridesAdapter,
     useDeletePlanExerciseAdapter,
     useReorderPlanExercisesAdapter,
     useSyncFromCloud,
@@ -73,6 +74,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
     const addExerciseMutation = useAddPlanExerciseAdapter(planId, exerciseLibrary);
     const bulkAddMutation = useBulkAddPlanExercisesAdapter(planId, exerciseLibrary);
     const updateExerciseMutation = useUpdatePlanExerciseAdapter(planId);
+    const updateOverridesMutation = useUpdatePlanExerciseOverridesAdapter(planId);
     const deleteExerciseMutation = useDeletePlanExerciseAdapter(planId);
     const reorderMutation = useReorderPlanExercisesAdapter(planId);
 
@@ -219,6 +221,7 @@ export function ManagePlan({ planId: propPlanId, onBack }: ManagePlanProps = {})
                         addExerciseMutation={addExerciseMutation}
                         bulkAddMutation={bulkAddMutation}
                         updateExerciseMutation={updateExerciseMutation}
+                        updateOverridesMutation={updateOverridesMutation}
                         deleteExerciseMutation={deleteExerciseMutation}
                         reorderMutation={reorderMutation}
                         createExerciseMutation={createExerciseMutation}
