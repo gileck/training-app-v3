@@ -18,11 +18,13 @@
  *   --all      Import all exercises, not just popular ones
  */
 
+const path = require('path');
 const { MongoClient } = require('mongodb');
-const { put } = require('@vercel/blob');
+const { put, list } = require('@vercel/blob');
 
-// Load environment variables
-require('dotenv').config();
+// Load environment variables from .env.local (same as Next.js). Do NOT fall back
+// to .env — that file contains a stale MONGO_URI pointing at an old cluster.
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
 
 const MONGO_URI = process.env.MONGO_URI;
 const BATCH_SIZE = 20;
@@ -161,10 +163,36 @@ function transformExercise(raw, bodyParts, newImageUrl) {
     };
 }
 
+// Build a lookup of existing Vercel Blob objects keyed by sanitized-name stem.
+// Filenames are `{stem}-{timestamp}.{ext}`. If multiple blobs share a stem we
+// keep the most recent one (by uploadedAt) so we prefer the latest upload.
+async function loadExistingBlobIndex() {
+    const index = new Map(); // stem -> { url, uploadedAt }
+    let cursor;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const res = await list({ prefix: 'exercises/', limit: 1000, cursor });
+        for (const b of res.blobs) {
+            const m = b.pathname.match(/^exercises\/(.+)-(\d{10,})\.(png|jpe?g|gif|webp)$/i);
+            if (!m) continue;
+            const stem = m[1];
+            const uploadedAt = new Date(b.uploadedAt).getTime();
+            const prev = index.get(stem);
+            if (!prev || uploadedAt > prev.uploadedAt) {
+                index.set(stem, { url: b.url, uploadedAt });
+            }
+        }
+        if (!res.hasMore) break;
+        cursor = res.cursor;
+    }
+    return index;
+}
+
 async function main() {
     const args = process.argv.slice(2);
     const dryRun = args.includes('--dry-run');
     const importAll = args.includes('--all');
+    const forceReupload = args.includes('--force-reupload');
     const limitArg = args.find(a => a.startsWith('--limit='));
     const startArg = args.find(a => a.startsWith('--start='));
     const limit = limitArg ? parseInt(limitArg.split('=')[1]) : Infinity;
@@ -173,6 +201,7 @@ async function main() {
     console.log('=== Exercise Migration Script ===');
     console.log(`Dry run: ${dryRun}`);
     console.log(`Import all: ${importAll} (${importAll ? 'all exercises' : 'only popular list'})`);
+    console.log(`Force re-upload: ${forceReupload} (${forceReupload ? 're-download & re-upload all images' : 'reuse existing Blob objects when a match is found'})`);
     console.log(`Limit: ${limit === Infinity ? 'none' : limit}`);
     console.log(`Start index: ${startIndex}`);
     console.log('');
@@ -182,6 +211,14 @@ async function main() {
     const { bodyParts, data: exercises } = sourceData;
     console.log(`Source exercises: ${exercises.length}`);
     console.log(`Popular exercises list: ${POPULAR_EXERCISES.length}`);
+
+    // Index existing Vercel Blob uploads so we can reuse them by sanitized name.
+    let blobIndex = new Map();
+    if (!forceReupload) {
+        console.log('Loading existing Vercel Blob index...');
+        blobIndex = await loadExistingBlobIndex();
+        console.log(`Existing blobs under exercises/: ${blobIndex.size} unique stems`);
+    }
 
     // Connect to MongoDB
     const client = new MongoClient(MONGO_URI);
@@ -214,9 +251,20 @@ async function main() {
 
     if (dryRun) {
         console.log('DRY RUN - No changes will be made');
+        let wouldReuse = 0;
+        let wouldUpload = 0;
+        for (const e of toProcess) {
+            const stem = sanitizeFilename(e.name);
+            if (!forceReupload && blobIndex.has(stem)) wouldReuse++;
+            else wouldUpload++;
+        }
+        console.log(`Would reuse existing Blob: ${wouldReuse}`);
+        console.log(`Would download + upload new: ${wouldUpload}`);
         console.log('First 5 exercises that would be processed:');
         toProcess.slice(0, 5).forEach(e => {
-            console.log(`  - ${e.name}`);
+            const stem = sanitizeFilename(e.name);
+            const tag = (!forceReupload && blobIndex.has(stem)) ? '[reuse]' : '[upload]';
+            console.log(`  ${tag} ${e.name}`);
         });
         await client.close();
         return;
@@ -225,6 +273,8 @@ async function main() {
     let processed = 0;
     let succeeded = 0;
     let failed = 0;
+    let reusedCount = 0;
+    let reuploadedCount = 0;
     const errors = [];
     const startTime = Date.now();
 
@@ -239,25 +289,32 @@ async function main() {
         const results = await Promise.allSettled(
             batch.map(async (exercise) => {
                 try {
-                    // Download image
-                    const imageUrl = exercise.image_name;
-                    if (!imageUrl || !imageUrl.startsWith('http')) {
-                        throw new Error(`Invalid image URL: ${imageUrl}`);
+                    const stem = sanitizeFilename(exercise.name);
+
+                    // Try to reuse an existing blob by sanitized-name match.
+                    let newImageUrl;
+                    let reused = false;
+                    if (!forceReupload && blobIndex.has(stem)) {
+                        newImageUrl = blobIndex.get(stem).url;
+                        reused = true;
+                    } else {
+                        // Download from source and upload a fresh blob.
+                        const imageUrl = exercise.image_name;
+                        if (!imageUrl || !imageUrl.startsWith('http')) {
+                            throw new Error(`Invalid image URL: ${imageUrl}`);
+                        }
+                        const imageBuffer = await downloadImage(imageUrl);
+                        const contentType = getContentType(imageUrl);
+                        const ext = contentType.split('/')[1];
+                        const filename = `${stem}-${Date.now()}.${ext}`;
+                        newImageUrl = await uploadToVercel(imageBuffer, filename, contentType);
                     }
-
-                    const imageBuffer = await downloadImage(imageUrl);
-                    const contentType = getContentType(imageUrl);
-                    const ext = contentType.split('/')[1];
-                    const filename = `${sanitizeFilename(exercise.name)}-${Date.now()}.${ext}`;
-
-                    // Upload to Vercel
-                    const newImageUrl = await uploadToVercel(imageBuffer, filename, contentType);
 
                     // Transform and insert
                     const transformed = transformExercise(exercise, bodyParts, newImageUrl);
                     await collection.insertOne(transformed);
 
-                    return { name: exercise.name, success: true };
+                    return { name: exercise.name, success: true, reused };
                 } catch (error) {
                     return { name: exercise.name, success: false, error: error.message };
                 }
@@ -269,6 +326,8 @@ async function main() {
             processed++;
             if (result.status === 'fulfilled' && result.value.success) {
                 succeeded++;
+                if (result.value.reused) reusedCount++;
+                else reuploadedCount++;
             } else {
                 failed++;
                 const errorInfo = result.status === 'fulfilled'
@@ -296,7 +355,7 @@ async function main() {
     console.log('=== Migration Complete ===');
     console.log(`Total time: ${totalTime}s`);
     console.log(`Total processed: ${processed}`);
-    console.log(`Succeeded: ${succeeded}`);
+    console.log(`Succeeded: ${succeeded} (reused existing blob: ${reusedCount}, freshly uploaded: ${reuploadedCount})`);
     console.log(`Failed: ${failed}`);
 
     if (errors.length > 0) {
