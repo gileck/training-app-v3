@@ -52,11 +52,30 @@ const server = new Server(
   { capabilities: { tools: {} } },
 );
 
+/**
+ * Augment every tool's inputSchema with an optional top-level `userId`. The
+ * dispatcher below extracts it and uses `client.asUser(userId)` for the call
+ * so each tool can target any user without the handler knowing or caring.
+ */
+function withUserIdProp(schema: { properties: Record<string, unknown>; required?: string[] }) {
+  return {
+    ...schema,
+    properties: {
+      ...schema.properties,
+      userId: {
+        type: 'string',
+        description:
+          'Optional — act on behalf of this user (MongoDB _id). Omit to use the MCP server default.',
+      },
+    },
+  };
+}
+
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: TOOLS.map((t) => ({
     name: t.name,
     description: t.description,
-    inputSchema: t.inputSchema,
+    inputSchema: withUserIdProp(t.inputSchema),
   })),
 }));
 
@@ -69,9 +88,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     };
   }
 
-  const args = (req.params.arguments ?? {}) as Record<string, unknown>;
+  const rawArgs = (req.params.arguments ?? {}) as Record<string, unknown> & {
+    userId?: string;
+  };
+  const { userId: actAs, ...args } = rawArgs;
+  const effectiveClient =
+    typeof actAs === 'string' && actAs.length > 0 ? client.asUser(actAs) : client;
+
   try {
-    const result = await tool.handler(client, args);
+    const result = await tool.handler(effectiveClient, args);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

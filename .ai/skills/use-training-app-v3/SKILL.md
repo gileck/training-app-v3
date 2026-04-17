@@ -104,6 +104,22 @@ const client = createClient({
 const { plans } = await client.plans.list();
 ```
 
+## Acting on behalf of a specific user
+
+Every MCP tool accepts an optional `userId` argument; the SDK exposes `client.asUser(userId)`. When the human message names a user id, pass/use it; otherwise fall back to the default.
+
+```ts
+// SDK
+const otherUserPlans = await client.asUser('65f0…').plans.list();
+```
+
+```jsonc
+// MCP tool call
+{ "name": "list_plans", "arguments": { "userId": "65f0…" } }
+```
+
+Never invent a userId — only use what the human provides.
+
 ## API surface
 
 Domains with typed wrappers (full reference in the package README):

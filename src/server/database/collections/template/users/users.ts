@@ -140,4 +140,12 @@ export const deleteUser = async (
 
   const result = await collection.deleteOne({ _id: idObj });
   return result.deletedCount === 1;
-}; 
+};
+
+/**
+ * List all users (admin-only surface). Sorted by username.
+ */
+export const listAllUsers = async (): Promise<User[]> => {
+  const collection = await getUsersCollection();
+  return collection.find({}).sort({ username: 1 }).toArray();
+};

@@ -31,8 +31,16 @@ export const processApiCall = async (
 
   const userContext = getUserContext(req, res);
 
-  // Centralized admin gating: any API under `admin/*` is admin-only.
-  if (String(name).startsWith("admin/") && !userContext.isAdmin) {
+  // Centralized admin gating: any API under `admin/*` requires either
+  //   - the on-behalf-of user to BE the admin, OR
+  //   - the caller to hold ADMIN_API_TOKEN (tokenAuth=true). The token is
+  //     the privilege boundary — SDK/MCP callers need this to resolve e.g.
+  //     usernames via admin/users/list.
+  if (
+    String(name).startsWith("admin/") &&
+    !userContext.isAdmin &&
+    !userContext.authDebug.tokenAuth
+  ) {
     return { data: { error: "Forbidden", errorCode: 'FORBIDDEN' }, isFromCache: false };
   }
 

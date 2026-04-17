@@ -37,6 +37,10 @@ const arr = (items: unknown, description?: string) => ({
 });
 
 // ----- typed arg helpers ---------------------------------------------------
+// Note: every tool's inputSchema is augmented with an optional top-level
+// `userId` in server.ts. Handlers here never see `userId` — the dispatcher
+// strips it and passes a `client` already scoped to the requested user via
+// `client.asUser(...)`. Do not add `userId` to individual schemas below.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pick = <T>(args: Record<string, unknown>, key: string): T => args[key] as T;
@@ -493,6 +497,15 @@ export const TOOLS: ToolDef[] = [
     description: 'Duplicate an existing activity entry.',
     inputSchema: { type: 'object', properties: { activityId: str() }, required: ['activityId'] },
     handler: (c, a) => c.activityLogs.duplicate(pick<string>(a, 'activityId')),
+  },
+
+  // ------ admin: users -----------------------------------------------------
+  {
+    name: 'list_users',
+    description:
+      "List every user in the system. Use this to resolve a username typed by the human into the MongoDB _id needed by other tools' `userId` argument.",
+    inputSchema: { type: 'object', properties: {}, required: [] },
+    handler: (c) => c.admin.users.list(),
   },
 
   // ------ escape hatch -----------------------------------------------------
