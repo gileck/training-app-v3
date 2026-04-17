@@ -123,11 +123,17 @@ cd ~/Projects/nanoclaw
 NPM_REGISTRY=https://npm.dev.wixpress.com/ ./container/build.sh
 # otherwise just:
 ./container/build.sh
+
+# CRITICAL: stop any running container from the previous image, otherwise
+# the orchestrator keeps reusing it (it only spawns a new container when
+# the old one is gone). This is the #1 cause of "I rebuilt but the bot
+# still can't see the new tool" confusion.
+docker ps --filter "name=nanoclaw-" -q | xargs -r docker stop
 ```
 
-No service restart is needed — NanoClaw spawns a fresh container from `nanoclaw-agent:latest` for each inbound message, so the next message picks up the new image.
+No orchestrator service restart is needed — once the stale container is stopped, the next inbound message spawns a fresh one from `nanoclaw-agent:latest`.
 
-A service restart (`launchctl kickstart -k "gui/$(id -u)/com.nanoclaw"`) is only needed when the orchestrator source (`nanoclaw/src/`) itself changed — e.g. the `container-runner.ts` env passthrough list or similar. The compiled orchestrator runs from `nanoclaw/dist/index.js`, so after editing orchestrator source you must also `cd ~/Projects/nanoclaw && npm run build` before the restart.
+A full orchestrator restart (`launchctl kickstart -k "gui/$(id -u)/com.nanoclaw"`) is only needed when the orchestrator source (`nanoclaw/src/`) itself changed — e.g. the `container-runner.ts` env passthrough list or similar. The compiled orchestrator runs from `nanoclaw/dist/index.js`, so after editing orchestrator source you must also `cd ~/Projects/nanoclaw && npm run build` before the restart.
 
 **Claude Code** (the `.mcp.json` server config in the host repo):
 
@@ -146,5 +152,6 @@ If the bot says a tool doesn't exist, the consumer is still on the old bundle �
 
 - **Forgot to rebuild the SDK before bundling.** The MCP bundle pulls from `packages/training-app-mcp/node_modules/@training-app/sdk/dist/…`. If you edited the SDK but didn't `tsc` it, the stale dist is what ends up in the bundle. Always rebuild SDK → reinstall in MCP → bundle (step 2 → step 3).
 - **Copied the bundle but didn't rebuild the container.** The consumer image is cached; the bundle outside the image is ignored until the image is rebuilt (step 5).
+- **Rebuilt the image but left the old container running.** NanoClaw reuses a running container across messages for speed. Rebuilding `:latest` does NOT affect the running container — it pins its own image ID at spawn time. Symptom: bot says "tool doesn't exist" even though the image is up-to-date. Fix: `docker ps --filter "name=nanoclaw-" -q | xargs -r docker stop` after every rebuild.
 - **Pushed the server change but didn't wait for Vercel.** Prod still serves the old API for 1–3 min after push. If you test immediately you'll see stale errors.
 - **Env vars not set on the consumer.** The MCP server exits silently if `TRAINING_APP_URL`, `TRAINING_APP_TOKEN`, or `TRAINING_APP_USER_ID` is missing — the tool just appears as "disconnected" from the agent's view. In NanoClaw, check `~/Projects/nanoclaw/.env`.
