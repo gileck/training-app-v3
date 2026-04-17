@@ -1,0 +1,26 @@
+{
+  "name": "@training-app/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing the training-app SDK as tools for Claude Code and other MCP clients.",
+  "main": "dist/server.js",
+  "bin": {
+    "training-app-mcp": "dist/server.js"
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@training-app/sdk": "file:../training-app-sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

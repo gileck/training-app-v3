@@ -16,6 +16,7 @@
   "exclude": [
     "node_modules",
     "vitest.config.ts",
-    "src/agents/tests/e2e"
+    "src/agents/tests/e2e",
+    "packages"
   ]
 }
