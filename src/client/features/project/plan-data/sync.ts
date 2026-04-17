@@ -17,8 +17,16 @@
  */
 
 import { usePlanDataStore } from './store';
+import { useWorkoutStore } from '@/client/features/project/workout/store';
 import type { PlanData, PlanExerciseWithDefinition, ExerciseProgress } from './types';
-import type { SyncPlanDataResponse } from '@/apis/project/plan-data/types';
+import type {
+    SyncPlanDataResponse,
+    GetPlanVersionResponse,
+} from '@/apis/project/plan-data/types';
+import {
+    API_SYNC_PLAN_DATA,
+    API_GET_PLAN_VERSION,
+} from '@/apis/project/plan-data';
 import { listPlanExercises } from '@/apis/project/plan-exercises/client';
 import { getWeekProgress } from '@/apis/project/weekly-progress/client';
 import apiClient from '@/client/utils/apiClient';
@@ -28,7 +36,13 @@ import apiClient from '@/client/utils/apiClient';
 // ============================================================================
 
 const SYNC_DEBOUNCE_MS = 1000;
-const API_SYNC_PLAN_DATA = 'plan-data/sync';
+
+// Clock-skew grace window between client `Date.now()` and server `updatedAt`.
+const STALENESS_SKEW_MS = 2_000;
+// Minimum interval between staleness checks for a given plan. Stops
+// focus+visibilitychange double-fires (and other rapid re-triggers) from
+// pounding the server.
+const STALENESS_CHECK_COOLDOWN_MS = 5_000;
 
 // ============================================================================
 // Debounce tracking
@@ -52,16 +66,17 @@ const syncInProgress: Record<string, boolean> = {};
  */
 export async function loadPlan(planId: string, weekNumber: number): Promise<void> {
     const store = usePlanDataStore.getState();
-    
-    // Check if we already have data for this plan
+
     if (store.plans[planId]) {
-        // Data exists in localStorage, no need to fetch
+        // Local hit. Background-check whether external writers (other devices,
+        // the MCP on behalf of an agent) have newer data.
+        void checkServerStaleness(planId, weekNumber);
         return;
     }
-    
+
     // No local data, need to fetch from server
     store._setLoading(planId, true);
-    
+
     try {
         const planData = await fetchPlanFromServer(planId, weekNumber);
         store._setPlanData(planId, planData);
@@ -77,6 +92,59 @@ export async function loadPlan(planId: string, weekNumber: number): Promise<void
         });
     } finally {
         store._setLoading(planId, false);
+    }
+}
+
+// ============================================================================
+// Staleness check (picks up external writes like the MCP server)
+// ============================================================================
+
+/**
+ * Best-effort "has someone else changed this plan on the server?" check.
+ * Clean local → auto `syncFromCloud`. Dirty local → flip the existing
+ * conflict banner via `_setConflict`. Throttled per plan so rapid
+ * focus/visibilitychange/remount sequences can't hammer the server.
+ */
+const lastCheckedAt: Record<string, number> = {};
+
+async function checkServerStaleness(
+    planId: string,
+    weekNumber: number,
+): Promise<void> {
+    const store = usePlanDataStore.getState();
+    const plan = store.plans[planId];
+    if (!plan) return;
+    if (store.syncing[planId] || store.conflicts[planId]) return;
+
+    const now = Date.now();
+    if (now - (lastCheckedAt[planId] ?? 0) < STALENESS_CHECK_COOLDOWN_MS) return;
+    lastCheckedAt[planId] = now;
+
+    let serverLastModifiedAt: number | null;
+    try {
+        const result = await apiClient.post<GetPlanVersionResponse, { planId: string }>(
+            API_GET_PLAN_VERSION,
+            { planId },
+        );
+        serverLastModifiedAt = result.data?.lastModifiedAt ?? null;
+    } catch (error) {
+        console.warn('[plan-data] staleness check failed:', error);
+        return;
+    }
+    if (serverLastModifiedAt == null) return;
+
+    const local = plan.lastSyncedAt ?? 0;
+    if (serverLastModifiedAt <= local + STALENESS_SKEW_MS) return;
+
+    if (plan.isDirty) {
+        store._setConflict(planId, serverLastModifiedAt);
+        return;
+    }
+
+    try {
+        await syncFromCloud(planId, weekNumber);
+    } catch (error) {
+        console.warn('[plan-data] auto sync-from-cloud failed:', error);
     }
 }
 
@@ -394,7 +462,7 @@ export function initPlanDataSync(): () => void {
             for (const planId of Object.keys(plans)) {
                 const plan = plans[planId];
                 const prevPlan = prevPlans[planId];
-                
+
                 // If plan became dirty, trigger sync
                 if (plan?.isDirty && !prevPlan?.isDirty) {
                     syncPlanToServer(planId);
@@ -402,4 +470,34 @@ export function initPlanDataSync(): () => void {
             }
         }
     );
+}
+
+/**
+ * Re-runs the staleness check on tab focus / visibility-visible so plans
+ * already in memory catch up to external writes. Returns an unsubscribe.
+ */
+export function startPlanStalenessWatcher(): () => void {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+        return () => undefined;
+    }
+
+    const recheckAll = () => {
+        const { plans } = usePlanDataStore.getState();
+        const currentWeek = useWorkoutStore.getState().currentWeek;
+        for (const planId of Object.keys(plans)) {
+            void checkServerStaleness(planId, currentWeek);
+        }
+    };
+
+    const onVisibility = () => {
+        if (document.visibilityState === 'visible') recheckAll();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', recheckAll);
+
+    return () => {
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('focus', recheckAll);
+    };
 }

@@ -39,6 +39,7 @@ export {
     forceSyncToServer,
     loadWeekProgress,
     initPlanDataSync,
+    startPlanStalenessWatcher,
 } from './sync';
 
 // Hooks (adapters for gradual migration)

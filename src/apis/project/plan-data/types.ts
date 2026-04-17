@@ -68,3 +68,22 @@ export interface SyncPlanDataResponse {
     /** Server's last sync timestamp (when conflict detected) */
     serverLastSyncedAt?: number;
 }
+
+// ============================================================================
+// Plan Version (lightweight staleness check)
+// ============================================================================
+
+export interface GetPlanVersionRequest {
+    planId: string;
+}
+
+export interface GetPlanVersionResponse {
+    /**
+     * Max `updatedAt` across the plan's documents (plan itself + exercises +
+     * workouts + progress + notes), as unix ms. `null` if plan has no data.
+     * Callers compare against their last known sync time to decide whether
+     * the server has changes they haven't pulled yet.
+     */
+    lastModifiedAt?: number | null;
+    error?: string;
+}

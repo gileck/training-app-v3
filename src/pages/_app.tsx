@@ -15,6 +15,7 @@ import {
   BatchSyncAlert,
   useOfflineSyncInitializer
 } from '@/client/features';
+import { startPlanStalenessWatcher } from '@/client/features/project/plan-data';
 import { initializeApiClient } from '@/client/utils/apiClient';
 import { useAllPersistedStoresHydrated } from '@/client/stores';
 import { markEvent, BOOT_PHASES } from '@/client/features/template/boot-performance';
@@ -97,6 +98,8 @@ function AppInitializer() {
 
   // Initialize offline sync system (queue flushing, alerts, cache invalidation)
   useOfflineSyncInitializer();
+
+  useEffect(() => startPlanStalenessWatcher(), []);
 
   return null;
 }
