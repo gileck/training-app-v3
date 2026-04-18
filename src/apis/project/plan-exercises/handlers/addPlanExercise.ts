@@ -67,6 +67,7 @@ export const addPlanExercise = async (
         };
 
         const newExercise = await planExercises.createPlanExercise(exerciseData);
+        await trainingPlans.touchPlan(request.planId);
 
         // Return with exercise definition (handle both ObjectId and UUID string)
         const result = {

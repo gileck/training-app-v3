@@ -59,6 +59,7 @@ export const createPlanWorkout = async (
         };
 
         const newWorkout = await planWorkouts.createPlanWorkout(workoutData);
+        await trainingPlans.touchPlan(request.planId);
 
         // Convert to client format (handle both ObjectId and UUID string)
         const workoutClient = {

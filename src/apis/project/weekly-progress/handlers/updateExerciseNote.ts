@@ -39,6 +39,7 @@ export const updateExerciseNote = async (
                 request.exerciseDefId,
                 request.weekNumber
             );
+            await trainingPlans.touchPlan(request.planId);
             return { note: '' };
         }
 
@@ -51,6 +52,7 @@ export const updateExerciseNote = async (
             request.content.trim()
         );
 
+        await trainingPlans.touchPlan(request.planId);
         return { note: note.content };
     } catch (error) {
         console.error('Error updating exercise note:', error);

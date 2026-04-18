@@ -2,7 +2,6 @@ import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { PlanWorkout, PlanWorkoutCreate, PlanWorkoutUpdate } from './types';
 import { toQueryId } from '@/server/template/utils';
-import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from '@/server/database/collections/_helpers/latestUpdatedAt';
 
 /**
  * RECOMMENDED INDEXES (not enforced at runtime):
@@ -16,18 +15,6 @@ import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from
 const getCollection = async (): Promise<Collection<PlanWorkout>> => {
     const db = await getDb();
     return db.collection<PlanWorkout>('planWorkouts');
-};
-
-/**
- * Latest `updatedAt` across all workouts in this plan. See the planExercises
- * equivalent for details.
- */
-export const findLatestUpdatedAtByPlanId = async (
-    planId: ObjectId | string,
-): Promise<Date | null> => {
-    const collection = await getCollection();
-    const planIdQuery = typeof planId === 'string' ? (toQueryId(planId) as ObjectId) : planId;
-    return findLatestUpdatedAtByPlanIdShared(collection, planIdQuery);
 };
 
 /**

@@ -28,6 +28,7 @@ export async function reorderPlanExercises(
 
         // Reorder the exercises
         await planExercises.reorderExercises(request.planId, request.exerciseIds);
+        await trainingPlans.touchPlan(request.planId);
 
         return { success: true };
     } catch (error) {

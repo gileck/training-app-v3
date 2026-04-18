@@ -157,6 +157,10 @@ export async function bulkAddPlanExercises(
         const addedCount = results.filter(r => r.exercise).length;
         const failedCount = results.filter(r => r.error).length;
 
+        if (addedCount > 0) {
+            await trainingPlans.touchPlan(request.planId);
+        }
+
         return {
             results,
             addedCount,

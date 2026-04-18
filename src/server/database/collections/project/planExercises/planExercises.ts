@@ -2,7 +2,6 @@ import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { PlanExercise, PlanExerciseCreate, PlanExerciseUpdate } from './types';
 import { toQueryId } from '@/server/template/utils';
-import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from '@/server/database/collections/_helpers/latestUpdatedAt';
 
 /**
  * Get a reference to the planExercises collection
@@ -10,19 +9,6 @@ import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from
 const getCollection = async (): Promise<Collection<PlanExercise>> => {
     const db = await getDb();
     return db.collection<PlanExercise>('planExercises');
-};
-
-/**
- * Latest `updatedAt` across all plan exercises for a given plan. Used by the
- * plan-data staleness check; ensures a `{ planId, updatedAt }` compound
- * index on first call.
- */
-export const findLatestUpdatedAtByPlanId = async (
-    planId: ObjectId | string,
-): Promise<Date | null> => {
-    const collection = await getCollection();
-    const planIdQuery = typeof planId === 'string' ? (toQueryId(planId) as ObjectId) : planId;
-    return findLatestUpdatedAtByPlanIdShared(collection, planIdQuery);
 };
 
 /**

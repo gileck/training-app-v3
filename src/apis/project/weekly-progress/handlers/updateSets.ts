@@ -174,6 +174,7 @@ export const updateSets = async (
             );
         }
 
+        await trainingPlans.touchPlan(request.planId);
         return { setsCompleted, isDone };
     } catch (error: unknown) {
         console.error('Update sets error:', error);

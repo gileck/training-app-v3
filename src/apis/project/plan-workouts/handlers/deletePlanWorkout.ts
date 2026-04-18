@@ -43,6 +43,7 @@ export const deletePlanWorkout = async (
             return { error: 'Workout not found' };
         }
 
+        await trainingPlans.touchPlan(request.planId);
         return { success: true };
     } catch (error: unknown) {
         console.error('Delete plan workout error:', error);

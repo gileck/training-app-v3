@@ -44,6 +44,7 @@ export const deletePlanExercise = async (
             return { error: 'Failed to delete exercise' };
         }
 
+        await trainingPlans.touchPlan(exercise.planId);
         return { success: true };
     } catch (error: unknown) {
         console.error('Delete plan exercise error:', error);

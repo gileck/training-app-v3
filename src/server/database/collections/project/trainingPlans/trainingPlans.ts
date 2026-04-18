@@ -97,6 +97,26 @@ export const updatePlan = async (
 };
 
 /**
+ * Bump `plan.updatedAt` without any other change. Called by handlers that
+ * mutate data belonging to this plan (exercises, workouts, progress, notes)
+ * so the client's staleness check sees a single authoritative "something
+ * under this plan changed" timestamp.
+ *
+ * Callers are expected to have already verified the plan belongs to the
+ * acting user — this helper does not re-check.
+ */
+export const touchPlan = async (
+    planId: ObjectId | string,
+): Promise<void> => {
+    const collection = await getCollection();
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    await collection.updateOne(
+        { _id: planIdQuery as ObjectId },
+        { $set: { updatedAt: new Date() } },
+    );
+};
+
+/**
  * Set a plan as active (and deactivate others)
  */
 export const setActivePlan = async (

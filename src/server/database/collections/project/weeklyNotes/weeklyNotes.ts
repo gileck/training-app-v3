@@ -1,8 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { WeeklyNote, WeeklyNoteClient } from './types';
-import { toQueryId } from '@/server/template/utils';
-import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from '@/server/database/collections/_helpers/latestUpdatedAt';
 
 /**
  * Get a reference to the weeklyNotes collection
@@ -10,17 +8,6 @@ import { findLatestUpdatedAtByPlanId as findLatestUpdatedAtByPlanIdShared } from
 const getCollection = async (): Promise<Collection<WeeklyNote>> => {
     const db = await getDb();
     return db.collection<WeeklyNote>('weeklyNotes');
-};
-
-/**
- * Latest `updatedAt` across weekly notes for a given plan.
- */
-export const findLatestUpdatedAtByPlanId = async (
-    planId: ObjectId | string,
-): Promise<Date | null> => {
-    const collection = await getCollection();
-    const planIdQuery = typeof planId === 'string' ? (toQueryId(planId) as ObjectId) : planId;
-    return findLatestUpdatedAtByPlanIdShared(collection, planIdQuery);
 };
 
 /**

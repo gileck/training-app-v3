@@ -47,6 +47,7 @@ export const reorderPlanWorkouts = async (
             return { error: 'Failed to reorder workouts' };
         }
 
+        await trainingPlans.touchPlan(request.planId);
         return { success: true };
     } catch (error: unknown) {
         console.error('Reorder plan workouts error:', error);

@@ -101,6 +101,8 @@ export const updatePlanWorkout = async (
             return { error: 'Failed to update workout' };
         }
 
+        await trainingPlans.touchPlan(request.planId);
+
         // Convert to client format (handles both ObjectId and UUID string IDs)
         const workoutClient = {
             _id: toStringId(updatedWorkout._id),

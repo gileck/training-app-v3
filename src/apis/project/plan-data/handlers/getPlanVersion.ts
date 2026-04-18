@@ -1,12 +1,14 @@
 /**
- * Returns `max(updatedAt)` across the plan's tracked documents, used by the
- * client's local-first sync as a cheap staleness check to pick up writes
- * made by other sources (another device, the MCP server acting on behalf of
- * an agent). Each underlying read uses a `{ planId, updatedAt }` compound
- * index ensured on first call.
+ * Returns `plan.updatedAt` as a unix-ms timestamp. The client compares this
+ * against its cached `lastSyncedAt` to detect writes from other sources
+ * (other devices, the MCP server on behalf of an agent).
+ *
+ * Every handler that mutates data under a plan calls
+ * `trainingPlans.touchPlan(planId)` so this one field is the authoritative
+ * "something about this plan changed" marker.
  */
 
-import { trainingPlans, planExercises, planWorkouts, weeklyNotes } from '@/server/database';
+import { trainingPlans } from '@/server/database';
 import type {
     ApiHandlerContext,
     GetPlanVersionRequest,
@@ -20,18 +22,10 @@ export const getPlanVersion = async (
     if (!context.userId) return { error: 'Not authenticated' };
     if (!request.planId) return { error: 'Plan ID is required' };
 
-    const [plan, exercises, workouts, notes] = await Promise.all([
-        trainingPlans.findPlanById(request.planId, context.userId),
-        planExercises.findLatestUpdatedAtByPlanId(request.planId),
-        planWorkouts.findLatestUpdatedAtByPlanId(request.planId),
-        weeklyNotes.findLatestUpdatedAtByPlanId(request.planId),
-    ]);
-
+    const plan = await trainingPlans.findPlanById(request.planId, context.userId);
     if (!plan) return { error: 'Plan not found' };
 
-    const times = [plan.updatedAt, exercises, workouts, notes]
-        .filter((d): d is Date => d instanceof Date)
-        .map((d) => d.getTime());
-
-    return { lastModifiedAt: times.length ? Math.max(...times) : null };
+    return {
+        lastModifiedAt: plan.updatedAt instanceof Date ? plan.updatedAt.getTime() : null,
+    };
 };

@@ -88,6 +88,7 @@ export const syncPlanData = async (
         
         const syncedAt = Date.now();
         await trainingPlans.updateLastDataSyncedAt(request.planId, syncedAt);
+        await trainingPlans.touchPlan(request.planId);
 
         return {
             success: true,
