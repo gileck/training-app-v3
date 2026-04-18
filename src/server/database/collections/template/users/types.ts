@@ -1,6 +1,17 @@
 import type { ObjectId } from 'mongodb';
 
 /**
+ * Approval status for admin-gated signups.
+ * Missing field is treated as 'approved' for backward compatibility
+ * with users created before this feature existed.
+ *
+ * Controlled by `authOverrides.requireAdminApproval` — when enabled,
+ * new signups are created with 'pending' and cannot log in until an
+ * admin approves them via /admin/approvals.
+ */
+export type UserApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+/**
  * Represents a user in the system
  * Based on the schema defined in database-schema.md
  */
@@ -14,6 +25,12 @@ export interface User {
   profilePicture?: string;
   notificationsEnabled?: boolean;
   telegramChatId?: string;
+  /** Missing = 'approved' (legacy users) */
+  approvalStatus?: UserApprovalStatus;
+  /** When admin approved the user (if applicable) */
+  approvedAt?: Date;
+  /** When admin rejected the user (if applicable) */
+  rejectedAt?: Date;
 }
 
 /**

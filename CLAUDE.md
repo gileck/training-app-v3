@@ -51,6 +51,16 @@ Complete guide to code validation - what checks exist, how they run locally and 
 
 ---
 
+## Admin-Approved Signups
+
+Gate new signups behind admin approval. Use this when setting up or customizing the admin approval flow.
+
+**Summary:** Enabled by default. New signups land in 'pending' status until an admin approves via /admin/approvals. First-user-wins bootstrap auto-approves the first signup on a fresh deployment. Admin (ADMIN_USER_ID) always bypasses the gate. Disable with requireAdminApproval: false in src/apis/auth-overrides.ts.
+
+**Docs:** [admin-approved-signups.md](docs/template/admin-approved-signups.md)
+
+---
+
 ## Authentication
 
 Instant-boot authentication pattern for PWA. Use this when working with auth flows.

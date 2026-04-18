@@ -602,11 +602,18 @@ When `allowRegistration` is `false`, the "Don't have an account? Sign up" toggle
 | Use Case | Server Override | Client Config |
 |----------|----------------|---------------|
 | Disable signups | `validateRegistration` returns error | `allowRegistration: false` |
+| Admin-approved signups | `requireAdminApproval: true` | No change needed |
 | Admin-only login | `validateLogin` checks `ADMIN_USER_ID` | No change needed |
 | Email domain restriction | `validateRegistration` checks email domain | No change needed |
 | Invite-only registration | `validateRegistration` checks invite code | No change needed |
 
 > **Security note:** `allowRegistration: false` only hides the signup UI. Direct API calls to `auth/register` will still succeed unless you also add a `validateRegistration` server override. Always set **both** when disabling signups.
+
+### Admin-Approved Signups
+
+**Enabled by default.** New signups land in `pending` status until an admin approves via `/admin/approvals`. First-user-wins bootstrap auto-approves the first signup on a fresh deployment. Set `requireAdminApproval: false` in `src/apis/auth-overrides.ts` to allow open signups.
+
+See **[admin-approved-signups.md](./admin-approved-signups.md)** for the full reference: flow details, bootstrap setup, security caveats, schema, API endpoints, client hooks, and file map.
 
 ### File Ownership & Template Sync
 

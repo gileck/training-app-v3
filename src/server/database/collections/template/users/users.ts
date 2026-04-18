@@ -1,6 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '../../../connection';
-import { User, UserCreate, UserUpdate } from './types';
+import { User, UserCreate, UserUpdate, UserApprovalStatus } from './types';
 
 /**
  * Get a reference to the users collection
@@ -143,9 +143,55 @@ export const deleteUser = async (
 };
 
 /**
- * List all users (admin-only surface). Sorted by username.
+ * Find all users with `approvalStatus: 'pending'`, newest first.
+ * Used by the admin approvals page when `requireAdminApproval` is enabled.
  */
-export const listAllUsers = async (): Promise<User[]> => {
+export const findPendingUsers = async (): Promise<User[]> => {
   const collection = await getUsersCollection();
-  return collection.find({}).sort({ username: 1 }).toArray();
+  return collection
+    .find({ approvalStatus: 'pending' })
+    .sort({ createdAt: -1 })
+    .toArray();
+};
+
+/**
+ * Check whether the users collection has zero documents.
+ * Used by the first-user-wins bootstrap branch in registerUser.
+ *
+ * Uses `countDocuments({}, { limit: 1 })` so it short-circuits after
+ * finding any document — stays fast regardless of collection size.
+ */
+export const isUsersCollectionEmpty = async (): Promise<boolean> => {
+  const collection = await getUsersCollection();
+  const count = await collection.countDocuments({}, { limit: 1 });
+  return count === 0;
+};
+
+/**
+ * Update a user's approval status.
+ * Also stamps `approvedAt` / `rejectedAt` for audit trail.
+ * @returns The updated user, or null if not found.
+ */
+export const setUserApprovalStatus = async (
+  userId: ObjectId | string,
+  status: UserApprovalStatus
+): Promise<User | null> => {
+  const collection = await getUsersCollection();
+  const idObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+  const now = new Date();
+
+  const update: UserUpdate = {
+    approvalStatus: status,
+    updatedAt: now,
+    ...(status === 'approved' && { approvedAt: now }),
+    ...(status === 'rejected' && { rejectedAt: now }),
+  };
+
+  const result = await collection.findOneAndUpdate(
+    { _id: idObj },
+    { $set: update },
+    { returnDocument: 'after' }
+  );
+
+  return result || null;
 };

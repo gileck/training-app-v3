@@ -15,7 +15,20 @@ export interface AuthResponse {
 }
 
 export type LoginResponse = AuthResponse;
-export type RegisterResponse = AuthResponse;
+
+/**
+ * Registration response. Has one of three shapes:
+ * - { user: UserResponse } — success, user is logged in
+ * - { pendingApproval: true } — admin-approved signups is enabled; account
+ *   was created with 'pending' status and cannot log in until an admin
+ *   approves it via /admin/approvals
+ * - { error: string } — registration failed
+ */
+export interface RegisterResponse {
+    user?: UserResponse;
+    error?: string;
+    pendingApproval?: boolean;
+}
 
 /**
  * Response from /me endpoint.
@@ -77,8 +90,6 @@ export interface AuthDebugInfo {
     tokenError?: string;
     /** JWT error code (e.g., "TokenExpiredError", "JsonWebTokenError") */
     tokenErrorCode?: string;
-    /** True when request was authenticated via ADMIN_API_TOKEN bearer + X-On-Behalf-Of */
-    tokenAuth?: boolean;
 }
 
 export interface ApiHandlerContext {

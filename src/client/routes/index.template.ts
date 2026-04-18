@@ -20,6 +20,7 @@ import { Decision } from './template/Decision';
 import { DesignMocks } from './template/DesignMocks';
 import { ItemDetail } from './template/ItemDetail';
 import { WorkflowItems } from './template/Workflow';
+import { UserApprovals } from './template/UserApprovals';
 import { Routes } from '../features/template/router';
 
 /**
@@ -52,6 +53,7 @@ export const templateRoutes: Routes = {
   '/admin/feature-requests/:requestId': FeatureRequestDetail,
   '/admin/item/:id': ItemDetail,
   '/admin/workflow': WorkflowItems,
+  '/admin/approvals': UserApprovals,
 
   // Fallback
   '/not-found': NotFound,

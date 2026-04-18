@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Mail, Lock, ArrowRight, UserPlus, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, ArrowRight, UserPlus, AlertCircle, Clock } from 'lucide-react';
 import { useAuthStore } from './store';
 import { useLogin, useRegister } from './hooks';
 import { useLoginFormValidator } from './useLoginFormValidator';
@@ -73,8 +73,15 @@ export const LoginForm = () => {
     const rawError = error ||
         (loginMutation.error instanceof Error ? loginMutation.error.message : null) ||
         (registerMutation.error instanceof Error ? registerMutation.error.message : null);
-    
+
     const displayError = rawError ? cleanErrorMessage(rawError) : null;
+
+    // Admin-approved signups: show a dedicated waiting screen instead of
+    // the form once the mutation returns { kind: 'pending-approval' }.
+    // We don't set validated user state so AuthWrapper keeps the dialog up.
+    if (registerMutation.data?.kind === 'pending-approval') {
+        return <PendingApprovalScreen />;
+    }
 
     return (
         <div className="space-y-6">
@@ -192,6 +199,30 @@ export const LoginForm = () => {
         </div>
     );
 };
+
+// Pending approval screen — shown after successful signup when
+// `authOverrides.requireAdminApproval` is enabled on the server.
+// The user account exists in 'pending' status; they cannot log in
+// until an admin approves them via /admin/approvals.
+const PendingApprovalScreen: React.FC = () => (
+    <div className="space-y-6 text-center">
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+            <Clock className="w-7 h-7 text-primary-foreground" />
+        </div>
+        <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">
+                Waiting for approval
+            </h1>
+            <p className="text-sm text-muted-foreground">
+                Your account has been created and is pending admin approval.
+                You&apos;ll be notified once it&apos;s activated.
+            </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+            You can safely close this window.
+        </p>
+    </div>
+);
 
 // Simple input field component
 interface InputFieldProps {

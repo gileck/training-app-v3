@@ -11,7 +11,17 @@ import { userToHint } from './types';
 import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/template/auth/client';
 import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflight } from './preflight';
 import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
-import type { LoginRequest, RegisterRequest, CurrentUserResponse } from '@/apis/template/auth/types';
+import type { LoginRequest, RegisterRequest, CurrentUserResponse, UserResponse } from '@/apis/template/auth/types';
+
+/**
+ * Discriminated result returned by the register mutation.
+ * - { kind: 'authenticated', user } — normal signup, user is now logged in
+ * - { kind: 'pending-approval' }    — admin-approved signups is enabled;
+ *   account was created with 'pending' status and is waiting on the admin
+ */
+export type RegisterResult =
+    | { kind: 'authenticated'; user: UserResponse }
+    | { kind: 'pending-approval' };
 
 // Auth queries intentionally use longer cache times than useQueryDefaults()
 // because user identity rarely changes and auth must work regardless of the SWR toggle
@@ -342,21 +352,31 @@ export function useLogin() {
 export function useRegister() {
     const { setValidatedUser, setUserHint, setError } = useAuthStore();
 
-    return useMutation({
-        mutationFn: async (data: RegisterRequest) => {
+    return useMutation<RegisterResult, Error, RegisterRequest>({
+        mutationFn: async (data: RegisterRequest): Promise<RegisterResult> => {
             const response = await apiRegister(data);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
+            // Admin-approved signups: account created but not logged in.
+            // LoginForm inspects the mutation data to show a pending screen
+            // instead of closing the dialog.
+            if (response.data?.pendingApproval) {
+                return { kind: 'pending-approval' };
+            }
             if (!response.data?.user) {
                 throw new Error('Registration failed: No user returned');
             }
-            return response.data.user;
+            return { kind: 'authenticated', user: response.data.user };
         },
-        onSuccess: (user) => {
-            setValidatedUser(user);
-            setUserHint(userToHint(user));
-            // No need to invalidate /me query - user is already authenticated
+        onSuccess: (result) => {
+            if (result.kind === 'authenticated') {
+                setValidatedUser(result.user);
+                setUserHint(userToHint(result.user));
+                // No need to invalidate /me query - user is already authenticated
+            }
+            // For 'pending-approval' we intentionally do nothing:
+            // the form reads mutation.data and renders a waiting screen.
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Registration failed');
