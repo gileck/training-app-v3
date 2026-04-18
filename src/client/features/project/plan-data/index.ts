@@ -38,7 +38,6 @@ export {
     syncFromCloud,
     forceSyncToServer,
     loadWeekProgress,
-    initPlanDataSync,
     startPlanStalenessWatcher,
 } from './sync';
 

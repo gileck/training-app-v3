@@ -447,38 +447,6 @@ export async function loadWeekProgress(planId: string, weekNumber: number): Prom
 // ============================================================================
 
 /**
- * Subscribe to store changes and trigger sync on dirty state.
- * 
- * ALTERNATIVE PATTERN - Currently not used.
- * 
- * The current implementation uses direct `syncPlanToServer()` calls in adapter hooks.
- * This subscription-based approach is an alternative that would auto-trigger syncs
- * whenever `isDirty` becomes true, without needing to call sync after each action.
- * 
- * To use: Call once at app initialization (e.g., in _app.tsx or a provider).
- * Returns an unsubscribe function for cleanup.
- * 
- * @returns Unsubscribe function
- */
-export function initPlanDataSync(): () => void {
-    return usePlanDataStore.subscribe(
-        (state) => state.plans,
-        (plans, prevPlans) => {
-            // Check each plan for changes
-            for (const planId of Object.keys(plans)) {
-                const plan = plans[planId];
-                const prevPlan = prevPlans[planId];
-
-                // If plan became dirty, trigger sync
-                if (plan?.isDirty && !prevPlan?.isDirty) {
-                    syncPlanToServer(planId);
-                }
-            }
-        }
-    );
-}
-
-/**
  * Re-runs the staleness check on tab focus / visibility-visible so plans
  * already in memory catch up to external writes. Returns an unsubscribe.
  */
