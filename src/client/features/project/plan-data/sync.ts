@@ -447,31 +447,32 @@ export async function loadWeekProgress(planId: string, weekNumber: number): Prom
 // ============================================================================
 
 /**
- * Re-runs the staleness check on tab focus / visibility-visible so plans
- * already in memory catch up to external writes. Returns an unsubscribe.
+ * Re-runs the staleness check on tab focus / visibility-visible for the
+ * currently-active plan (only). Other cached plans — including ones deleted
+ * on the server — aren't checked, which prevents phantom localStorage entries
+ * from spamming the server on every focus event.
  */
 export function startPlanStalenessWatcher(): () => void {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
         return () => undefined;
     }
 
-    const recheckAll = () => {
+    const recheck = () => {
         const { plans } = usePlanDataStore.getState();
-        const currentWeek = useWorkoutStore.getState().currentWeek;
-        for (const planId of Object.keys(plans)) {
-            void checkServerStaleness(planId, currentWeek);
-        }
+        const { activePlanId, currentWeek } = useWorkoutStore.getState();
+        if (!activePlanId || !plans[activePlanId]) return;
+        void checkServerStaleness(activePlanId, currentWeek);
     };
 
     const onVisibility = () => {
-        if (document.visibilityState === 'visible') recheckAll();
+        if (document.visibilityState === 'visible') recheck();
     };
 
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('focus', recheckAll);
+    window.addEventListener('focus', recheck);
 
     return () => {
         document.removeEventListener('visibilitychange', onVisibility);
-        window.removeEventListener('focus', recheckAll);
+        window.removeEventListener('focus', recheck);
     };
 }
