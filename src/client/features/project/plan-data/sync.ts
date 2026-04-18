@@ -29,6 +29,7 @@ import {
 } from '@/apis/project/plan-data';
 import { listPlanExercises } from '@/apis/project/plan-exercises/client';
 import { getWeekProgress } from '@/apis/project/weekly-progress/client';
+import { getQueryClient } from '@/client/query';
 import apiClient from '@/client/utils/apiClient';
 
 // ============================================================================
@@ -376,6 +377,11 @@ export async function syncFromCloud(planId: string, weekNumber: number): Promise
             ...planData,
             weekProgress: mergedWeekProgress,
         });
+
+        // Notes live outside the Zustand store (React Query-owned). Mark them
+        // stale so any mounted ExerciseDetails refetches; unmounted keys
+        // refetch on next access per React Query's rules.
+        getQueryClient().invalidateQueries({ queryKey: ['exercise-notes', planId] });
     } catch (error) {
         console.error('Failed to sync from cloud:', error);
         throw error;
