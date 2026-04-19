@@ -25,6 +25,8 @@ This project uses a **template sync system** that automatically updates certain 
 | `*.project.ts` files | Project | ✅ Yes | Project-specific exports |
 | `src/client/components/template/**` | Template | ❌ No | UI, layout, and shared components |
 | `src/client/components/project/**` | Project | ✅ Yes | Your custom components |
+| `src/client/utils/**` | Template | ❌ No | Template client utilities (apiClient, caches, etc.) |
+| `src/client/utils/project/**` | Project | ✅ Yes | Your cross-feature client utilities |
 | `src/client/components/NavLinks.tsx` | Template | ❌ No | Combiner for navigation items |
 | `scripts/template/**` | Template | ❌ No | Synced from template |
 | `docs/template/**` | Template | ❌ No | Synced from template |
@@ -76,6 +78,7 @@ These paths are **yours** and never synced:
 src/client/features/project/**   # Your custom features
 src/client/routes/project/**     # Your custom routes
 src/client/components/project/** # Your custom components
+src/client/utils/project/**      # Your cross-feature client utilities
 src/apis/project/**              # Your API modules
 src/server/database/collections/project/** # Your DB collections
 docs/project/**                  # Your documentation

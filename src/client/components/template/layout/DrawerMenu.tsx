@@ -4,7 +4,7 @@ import { useRouter } from '@/client/features';
 import { NavItem } from './types';
 import { useOpenBugReportDialog } from '@/client/features';
 import { useOpenFeatureRequestDialog } from '@/client/features';
-import { Bug, Lightbulb } from 'lucide-react';
+import { Bug, Lightbulb, Shield } from 'lucide-react';
 import { Separator } from '@/client/components/template/ui/separator';
 
 interface DrawerMenuProps {
@@ -57,20 +57,6 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
         {navItems.map(renderNavItem)}
       </nav>
 
-      {/* Admin Section */}
-      {adminNavItems && adminNavItems.length > 0 && (
-        <>
-          <Separator className="my-2" />
-          <div className="px-4 py-1">
-            <span className="text-xs font-medium text-muted-foreground">Admin</span>
-          </div>
-          <nav className="grid gap-0.5 px-2 pb-2">
-            {adminNavItems.map(renderNavItem)}
-          </nav>
-        </>
-      )}
-
-      <Separator className="my-2" />
       <div className="grid gap-0.5 px-2">
         <button
           onClick={handleRequestFeature}
@@ -91,6 +77,16 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
           <span>Report a Bug</span>
         </button>
       </div>
+
+      {/* Admin Section — single entry point to the /admin hub, at bottom */}
+      {adminNavItems && adminNavItems.length > 0 && (
+        <>
+          <Separator className="my-2" />
+          <nav className="grid gap-0.5 px-2 pb-2">
+            {renderNavItem({ path: '/admin', label: 'Admin', icon: <Shield size={18} /> })}
+          </nav>
+        </>
+      )}
     </div>
   );
 

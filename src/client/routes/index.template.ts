@@ -21,6 +21,7 @@ import { DesignMocks } from './template/DesignMocks';
 import { ItemDetail } from './template/ItemDetail';
 import { WorkflowItems } from './template/Workflow';
 import { UserApprovals } from './template/UserApprovals';
+import { Admin } from './template/Admin';
 import { Routes } from '../features/template/router';
 
 /**
@@ -48,6 +49,7 @@ export const templateRoutes: Routes = {
   '/my-requests': MyFeatureRequests,
 
   // Admin routes
+  '/admin': Admin,
   '/admin/reports': Reports,
   '/admin/feature-requests': FeatureRequests,
   '/admin/feature-requests/:requestId': FeatureRequestDetail,

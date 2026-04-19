@@ -1,14 +1,8 @@
 ---
 title: Agent Workflow CLI
 description: CLI for managing workflow items. Use this when working with `yarn agent-workflow` commands.
-summary: "Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority/size/complexity/domain). Supports `--auto-approve`, `--route`, and `--created-by` for automated workflows."
+summary: "`yarn agent-workflow` commands: `start` (interactive), `create`, `list` (filter by --type/--status/--domain), `get` (details + live status), `update` (status/priority/size/complexity/domain, supports --dry-run). ID lookup accepts ObjectId, 8-char prefix, or GitHub issue number. Flags: `--auto-approve`, `--route`, `--created-by`."
 priority: 3
-key_points:
-  - "list command: filter by --type, --status, --domain"
-  - "get command: shows workflow item details (artifacts, history, createdBy, description)"
-  - "update command: change status/priority/size/complexity/domain with --dry-run"
-  - "ID lookup: workflow-item ObjectId, ID prefix (first 8 chars), or GitHub issue number"
-  - "create command: creates GitHub issue + workflow-item directly (no source docs)"
 related_docs:
   - overview.md
   - workflow-e2e.md

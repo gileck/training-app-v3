@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  Minimal interactive initializer for this template:
- 1) Copy .env from ../app-template-ai/ (or parent directory) if not exists
+ 1) Copy .env (and .env.local) from ../app-template-ai/ if not present
  2) Prompt for project name (default: folder name)
  3) Update src/app.config.js: appName and dbName
  4) Create src/config/pwa.config.ts with PWA metadata
@@ -9,6 +9,7 @@
  6) Write LOCAL_USER_ID in .env
  7) Initialize template tracking (run init-template.ts)
  8) Delete template example features (Todos, Chat, AIChat, Home)
+ 9) Install git hooks + mark yarn.lock skip-worktree (yarn setup-hooks)
 */
 
 const fs = require('fs');
@@ -90,7 +91,9 @@ async function createLocalUserAndWriteEnv() {
 
     const mongoUri = process.env.MONGO_URI;
     if (!mongoUri) {
-        throw new Error('MONGO_URI is not set. Please set it before running the initializer.');
+        throw new Error(
+            'MONGO_URI is not set. Add it to .env or .env.local in the project root, then re-run `yarn init-project`.'
+        );
     }
 
     const bcrypt = require('bcryptjs');
@@ -157,30 +160,41 @@ async function writeEnvLocalUserId(id) {
     fs.writeFileSync(envPath, envContent, 'utf8');
 }
 
-function ensureEnvFromParentOrEmpty() {
-    const cwdEnvPath = path.resolve(process.cwd(), '.env');
-    if (fs.existsSync(cwdEnvPath)) {
-        console.log('[.env] Already exists, skipping.');
+function copyEnvFileIfMissing(fileName) {
+    const cwdPath = path.resolve(process.cwd(), fileName);
+    if (fs.existsSync(cwdPath)) {
+        console.log(`[${fileName}] Already exists, skipping.`);
         return;
     }
 
-    // Try to copy from ../app-template-ai/.env (the template directory)
-    const templateEnvPath = path.resolve(process.cwd(), '..', 'app-template-ai', '.env');
-    if (fs.existsSync(templateEnvPath)) {
-        fs.copyFileSync(templateEnvPath, cwdEnvPath);
-        console.log('[.env] Copied from ../app-template-ai/');
+    // Try to copy from ../app-template-ai/<fileName> (the template directory)
+    const templatePath = path.resolve(process.cwd(), '..', 'app-template-ai', fileName);
+    if (fs.existsSync(templatePath)) {
+        fs.copyFileSync(templatePath, cwdPath);
+        console.log(`[${fileName}] Copied from ../app-template-ai/`);
         return;
     }
 
     // Fallback: try parent directory
-    const parentEnvPath = path.resolve(process.cwd(), '..', '.env');
-    if (fs.existsSync(parentEnvPath)) {
-        fs.copyFileSync(parentEnvPath, cwdEnvPath);
-        console.log('[.env] Copied from parent directory.');
-    } else {
-        fs.writeFileSync(cwdEnvPath, '', 'utf8');
-        console.log('[.env] Created empty file.');
+    const parentPath = path.resolve(process.cwd(), '..', fileName);
+    if (fs.existsSync(parentPath)) {
+        fs.copyFileSync(parentPath, cwdPath);
+        console.log(`[${fileName}] Copied from parent directory.`);
+        return;
     }
+
+    // Only create an empty .env when no source is found. Never fabricate a .env.local.
+    if (fileName === '.env') {
+        fs.writeFileSync(cwdPath, '', 'utf8');
+        console.log(`[${fileName}] Created empty file.`);
+    } else {
+        console.log(`[${fileName}] No source found, skipping.`);
+    }
+}
+
+function ensureEnvFromParentOrEmpty() {
+    copyEnvFileIfMissing('.env');
+    copyEnvFileIfMissing('.env.local');
 }
 
 function createPwaConfig(projectName, description, themeColor) {
@@ -278,33 +292,33 @@ function createManifest(projectName, description, themeColor) {
     return true;
 }
 
-function getGitRemoteUrl() {
-    try {
-        return execSync('git remote get-url origin', { encoding: 'utf8', stdio: 'pipe' }).trim();
-    } catch {
-        return null;
-    }
-}
-
 function runInitTemplate() {
-    // Check if .template-sync.json already exists
+    // Check if .template-sync.json already exists and is populated.
+    // An empty `templateRepo` means the config was bootstrapped but never initialized
+    // (e.g. copied from the template repo itself, which keeps it empty).
     const configPath = path.resolve(process.cwd(), '.template-sync.json');
     if (fs.existsSync(configPath)) {
-        console.log('[Template Tracking] Already initialized, skipping.');
-        return true;
+        try {
+            const existing = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            if (existing.templateRepo) {
+                console.log('[Template Tracking] Already initialized, skipping.');
+                return true;
+            }
+            console.log('[Template Tracking] Existing config has empty templateRepo, reinitializing...');
+            fs.rmSync(configPath, { force: true });
+        } catch {
+            console.log('[Template Tracking] Existing config unreadable, reinitializing...');
+            fs.rmSync(configPath, { force: true });
+        }
     }
 
-    // Get template repo URL from git remote origin
-    const remoteUrl = getGitRemoteUrl();
-    if (!remoteUrl) {
-        console.log('[Template Tracking] No git remote origin found, skipping.');
-        return false;
-    }
-
+    // Invoke init-template without a URL — it defaults to the canonical template
+    // (git@github.com:gileck/app-template-ai.git) and sets templateLocalPath to
+    // ../app-template-ai, matching every other child project.
     console.log('[Template Tracking] Initializing...');
     try {
         const initTemplateScript = path.resolve(__dirname, 'init-template.ts');
-        execSync(`npx tsx "${initTemplateScript}" "${remoteUrl}"`, {
+        execSync(`npx tsx "${initTemplateScript}"`, {
             encoding: 'utf8',
             stdio: 'inherit',
             cwd: process.cwd(),
@@ -362,13 +376,41 @@ function deleteTemplateExampleFeatures() {
     console.log(`[Example Features] Removed ${deletedCount} item(s).`);
 }
 
+function runSetupHooks() {
+    // Idempotent: installs pre-commit hook (auto-resets yarn.lock to HEAD) and
+    // marks yarn.lock as skip-worktree so local installs against a private
+    // registry (e.g. npm.dev.wixpress.com) never contaminate commits — which
+    // would otherwise break Vercel builds that can only reach public npm.
+    const hooksScript = path.resolve(__dirname, 'hooks', 'setup-hooks.sh');
+    if (!fs.existsSync(hooksScript)) {
+        console.log('[setup-hooks] Script not found, skipping.');
+        return;
+    }
+    console.log('[setup-hooks] Installing git hooks and yarn.lock protection...');
+    try {
+        execSync(`bash "${hooksScript}"`, {
+            encoding: 'utf8',
+            stdio: 'inherit',
+            cwd: process.cwd(),
+        });
+    } catch (err) {
+        console.log('[setup-hooks] Warning: Failed:', err.message || err);
+    }
+}
+
 async function main() {
     console.log('=== Project Initialization ===\n');
 
     // Step 1: Ensure .env exists (copy from parent if needed)
     ensureEnvFromParentOrEmpty();
 
-    // Now load dotenv so MONGO_URI is available for DB operations
+    // Now load dotenv so MONGO_URI is available for DB operations.
+    // Follow Next.js precedence: .env.local overrides .env. Load .env.local first so
+    // its values take priority (dotenv does not overwrite existing env vars by default).
+    const envLocalPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envLocalPath)) {
+        require('dotenv').config({ path: envLocalPath });
+    }
     require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 
     // Step 2-4: Project config, PWA config, manifest
@@ -402,6 +444,9 @@ async function main() {
 
     // Step 8: Delete template example features (Todos, Chat, AIChat, Home)
     deleteTemplateExampleFeatures();
+
+    // Step 9: Install git hooks + protect yarn.lock from wixpress URL contamination
+    runSetupHooks();
 
     console.log('\n=== Initialization complete ===');
 

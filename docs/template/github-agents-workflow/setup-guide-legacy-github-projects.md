@@ -1,13 +1,8 @@
 ---
-title: GitHub Agents Workflow Setup
-description: Complete setup instructions for GitHub Projects and AI agents. Use this when setting up the workflow for the first time.
-summary: "Setup requires: GitHub Project with 6-column Status field and Review Status field, two GitHub tokens (admin + bot), optional Telegram integration. Run `yarn verify-setup` to check configuration."
-priority: 3
-key_points:
-  - "Create GitHub Project with 6-column Status field"
-  - "Create Review Status field (Waiting for Review, Approved, Request Changes, Rejected)"
-  - "Two tokens: GITHUB_TOKEN (admin/projects) + GITHUB_BOT_TOKEN (PRs/issues)"
-  - "Optional: Telegram topics for organized notifications"
+title: GitHub Agents Workflow Setup (Legacy — GitHub Projects)
+description: Legacy setup using GitHub Projects for pipeline status. Prefer the MongoDB-based setup in setup-guide.md.
+summary: "Legacy flow backed by a GitHub Project (6-column Status field + Review Status field). Requires admin + bot tokens. Prefer setup-guide.md (MongoDB-based) for new installs."
+priority: 5
 related_docs:
   - overview.md
   - ../telegram-notifications.md

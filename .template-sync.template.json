@@ -67,6 +67,7 @@
     "scripts/template/sync-child-projects.ts",
     "scripts/template/push-and-sync.sh",
     "src/apis/project/**",
+    "src/client/utils/project/**",
     "src/client/routes/project/Todos/**",
     "src/client/routes/project/SingleTodo/**",
     "src/server/database/collections/project/**",

@@ -1,24 +1,13 @@
 ---
 title: GitHub Agents Workflow Overview
 description: Architecture and flow of the AI-powered feature/bug pipeline. Use this to understand the agent workflow system.
-summary: "9-status workflow (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically."
+summary: "9-status pipeline (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done). Items enter via UI or CLI, approve via Telegram, then flow through Product Design / Bug Investigator / Tech Design / Implementor / PR Review / Workflow Review agents. Dual-tracked in source collections + workflow-items; all actions log to `agent-logs/issue-N.md`."
 priority: 2
-key_points:
-  - "Entry points: UI feature request, UI bug report, or CLI"
-  - "Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review, Workflow Review, Triage (standalone)"
-  - "Status tracking: Source collections (high-level) + workflow-items collection (pipeline)"
-  - "All actions logged to agent-logs/issue-N.md"
 related_docs:
   - setup-guide.md
   - cli.md
   - workflow-e2e.md
-  - bug-investigation.md
   - workflow-items-architecture.md
-  - agent-logging.md
-  - telegram-integration.md
-  - running-agents.md
-  - directory-locking.md
-  - workflow-service.md
 ---
 
 # GitHub Agents Workflow - Overview

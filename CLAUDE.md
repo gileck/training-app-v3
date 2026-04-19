@@ -267,6 +267,16 @@ Design philosophy and iOS-inspired principles for UI components. Use this for un
 
 ---
 
+## MCP / SDK Programmatic Access
+
+Give agents and scripts typed, authenticated access to every app endpoint via a bearer-token + X-On-Behalf-Of pattern.
+
+**Summary:** Bake programmatic access into any child project: `ADMIN_API_TOKEN` + `X-On-Behalf-Of` lets a Node SDK or MCP server act as any user. Run `yarn init:mcp` to scaffold `packages/<name>-sdk/` and `packages/<name>-mcp/`.
+
+**Docs:** [mcp-sdk-access.md](docs/template/mcp-sdk-access.md), [admin.md](docs/template/admin.md), [authentication.md](docs/template/authentication.md)
+
+---
+
 ## Telegram Notifications (App Runtime)
 
 Application feature for sending notifications via Telegram. Use this when adding app notifications.
@@ -321,15 +331,9 @@ Handling npm package issues in Wix corporate network. Use this if experiencing l
 
 Architecture and flow of the AI-powered feature/bug pipeline. Use this to understand the agent workflow system.
 
-**Summary:** 9-status workflow (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done) with AI agents at each stage. Items enter via UI or CLI, get approved via Telegram, and progress through design and implementation phases automatically.
+**Summary:** 9-status pipeline (Backlog → Product Development → Product Design → Bug Investigation → Tech Design → Ready for development → PR Review → Final Review → Done). Items enter via UI or CLI, approve via Telegram, then flow through Product Design / Bug Investigator / Tech Design / Implementor / PR Review / Workflow Review agents. Dual-tracked in source collections + workflow-items; all actions log to `agent-logs/issue-N.md`.
 
-**Key Points:**
-- Entry points: UI feature request, UI bug report, or CLI
-- Agents: Product Design, Bug Investigator, Tech Design, Implementor, PR Review, Workflow Review, Triage (standalone)
-- Status tracking: Source collections (high-level) + workflow-items collection (pipeline)
-- All actions logged to agent-logs/issue-N.md
-
-**Docs:** [overview.md](docs/template/github-agents-workflow/overview.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [cli.md](docs/template/github-agents-workflow/cli.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md), [telegram-integration.md](docs/template/github-agents-workflow/telegram-integration.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md), [directory-locking.md](docs/template/github-agents-workflow/directory-locking.md), [workflow-service.md](docs/template/github-agents-workflow/workflow-service.md)
+**Docs:** [overview.md](docs/template/github-agents-workflow/overview.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [cli.md](docs/template/github-agents-workflow/cli.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md)
 
 ---
 
@@ -337,14 +341,7 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 
 CLI for managing workflow items. Use this when working with `yarn agent-workflow` commands.
 
-**Summary:** Commands: `start` (interactive), `create` (new item), `list` (filter items), `get` (details + live pipeline status), `update` (change status/priority/size/complexity/domain). Supports `--auto-approve`, `--route`, and `--created-by` for automated workflows.
-
-**Key Points:**
-- list command: filter by --type, --status, --domain
-- get command: shows workflow item details (artifacts, history, createdBy, description)
-- update command: change status/priority/size/complexity/domain with --dry-run
-- ID lookup: workflow-item ObjectId, ID prefix (first 8 chars), or GitHub issue number
-- create command: creates GitHub issue + workflow-item directly (no source docs)
+**Summary:** `yarn agent-workflow` commands: `start` (interactive), `create`, `list` (filter by --type/--status/--domain), `get` (details + live status), `update` (status/priority/size/complexity/domain, supports --dry-run). ID lookup accepts ObjectId, 8-char prefix, or GitHub issue number. Flags: `--auto-approve`, `--route`, `--created-by`.
 
 **Docs:** [cli.md](docs/template/github-agents-workflow/cli.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md)
 
@@ -357,22 +354,6 @@ Directory-level lock for preventing concurrent agent runs on same working direct
 **Summary:** Master script acquires per-directory lock using PID-based ownership and stale detection. Prevents concurrent git operations and file modifications.
 
 **Docs:** [directory-locking.md](docs/template/github-agents-workflow/directory-locking.md)
-
----
-
-## GitHub Agents Workflow Setup
-
-Complete setup instructions for GitHub Projects and AI agents. Use this when setting up the workflow for the first time.
-
-**Summary:** Setup requires: GitHub Project with 6-column Status field and Review Status field, two GitHub tokens (admin + bot), optional Telegram integration. Run `yarn verify-setup` to check configuration.
-
-**Key Points:**
-- Create GitHub Project with 6-column Status field
-- Create Review Status field (Waiting for Review, Approved, Request Changes, Rejected)
-- Two tokens: GITHUB_TOKEN (admin/projects) + GITHUB_BOT_TOKEN (PRs/issues)
-- Optional: Telegram topics for organized notifications
-
-**Docs:** [setup-guide-legacy-github-projects.md](docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
 
 ---
 
@@ -550,18 +531,19 @@ Visual workflows for all workflow scenarios. Use this to understand specific flo
 
 Complete documentation for the Bug Investigator agent and bug fix selection flow.
 
-**Summary:** Bugs are auto-routed to Bug Investigation on approval. The Bug Investigator agent performs read-only investigation, posts root cause analysis with fix options. For obvious simple fixes (high confidence, S complexity), the agent auto-submits the fix. Otherwise, admin selects a fix approach via web UI to route to Tech Design or Implementation. Telegram notifications are sent for both auto-submitted and manually selected decisions.
-
-**Key Points:**
-- Bugs auto-route to Bug Investigation on approval (no routing message)
-- Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)
-- Investigation posted as GitHub issue comment with fix options
-- Obvious fixes auto-submit when all conditions met: autoSubmit=true, high confidence, S complexity, destination=implement, and a recommended option exists
-- Admin selects fix approach via /decision/:issueNumber web UI (when not auto-submitted)
-- Routes to Tech Design (complex fixes) or Implementation (simple fixes)
-- Telegram notifications sent for auto-submits and manual submissions
+**Summary:** On approval, bugs auto-route to Bug Investigation. The agent runs read-only analysis and posts a GitHub comment with root cause + fix options. Obvious fixes (high confidence + S complexity + destination=implement) auto-submit; otherwise admin picks an option at /decision/:issueNumber, routing to Tech Design or Implementation. Telegram notifications fire either way.
 
 **Docs:** [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md)
+
+---
+
+## GitHub Agents Workflow Setup (Legacy — GitHub Projects)
+
+Legacy setup using GitHub Projects for pipeline status. Prefer the MongoDB-based setup in setup-guide.md.
+
+**Summary:** Legacy flow backed by a GitHub Project (6-column Status field + Review Status field). Requires admin + bot tokens. Prefer setup-guide.md (MongoDB-based) for new installs.
+
+**Docs:** [setup-guide-legacy-github-projects.md](docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
 
 ---
 
@@ -569,16 +551,7 @@ Complete documentation for the Bug Investigator agent and bug fix selection flow
 
 Pipeline agent that reviews completed workflow items and creates improvement issues.
 
-**Summary:** Runs as the last step in the pipeline (after pr-review). Picks up Done items where reviewed !== true, analyzes their agent execution logs via LLM, appends [LOG:REVIEW] section to the log file, stores summary on the workflow item, sends Telegram notification, and creates improvement issues via agent-workflow create.
-
-**Key Points:**
-- Part of the pipeline — added to ALL_ORDER after pr-review, runs every cycle via --all
-- No local state — review state lives on the workflow item in MongoDB (reviewed, reviewSummary)
-- Skips items without local log files (agent-logs/issue-N.md)
-- Uses read-only tools (Read, Grep, Glob) to incrementally analyze logs
-- Creates workflow items for findings via yarn agent-workflow create (requires admin approval)
-- Appends [LOG:REVIEW] section to log file following .ai/commands/workflow-review.md format
-- Cross-references task runner logs (agent-tasks/all/runs/) for process-level debugging
+**Summary:** Last pipeline step (after pr-review). Picks up Done items where `reviewed !== true`, analyzes agent logs via LLM (read-only tools), appends `[LOG:REVIEW]` to `agent-logs/issue-N.md`, stores `reviewSummary` on the workflow item, sends Telegram, and files improvement issues via `yarn agent-workflow create` (admin-approved). Skips items without local logs.
 
 **Docs:** [workflow-review.md](docs/template/github-agents-workflow/workflow-review.md), [overview.md](docs/template/github-agents-workflow/overview.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md)
 

@@ -1,16 +1,8 @@
 ---
 title: Bug Investigation Workflow
 description: Complete documentation for the Bug Investigator agent and bug fix selection flow.
-summary: "Bugs are auto-routed to Bug Investigation on approval. The Bug Investigator agent performs read-only investigation, posts root cause analysis with fix options. For obvious simple fixes (high confidence, S complexity), the agent auto-submits the fix. Otherwise, admin selects a fix approach via web UI to route to Tech Design or Implementation. Telegram notifications are sent for both auto-submitted and manually selected decisions."
+summary: "On approval, bugs auto-route to Bug Investigation. The agent runs read-only analysis and posts a GitHub comment with root cause + fix options. Obvious fixes (high confidence + S complexity + destination=implement) auto-submit; otherwise admin picks an option at /decision/:issueNumber, routing to Tech Design or Implementation. Telegram notifications fire either way."
 priority: 5
-key_points:
-  - "Bugs auto-route to Bug Investigation on approval (no routing message)"
-  - "Bug Investigator agent uses read-only tools (Glob, Grep, Read, WebFetch)"
-  - "Investigation posted as GitHub issue comment with fix options"
-  - "Obvious fixes auto-submit when all conditions met: autoSubmit=true, high confidence, S complexity, destination=implement, and a recommended option exists"
-  - "Admin selects fix approach via /decision/:issueNumber web UI (when not auto-submitted)"
-  - "Routes to Tech Design (complex fixes) or Implementation (simple fixes)"
-  - "Telegram notifications sent for auto-submits and manual submissions"
 related_docs:
   - overview.md
   - workflow-e2e.md
