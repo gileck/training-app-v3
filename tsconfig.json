@@ -17,7 +17,6 @@
     "node_modules",
     "vitest.config.ts",
     "src/agents/tests/e2e",
-    "packages",
-    "scripts/template/init-mcp-templates/**"
+    "packages"
   ]
 }

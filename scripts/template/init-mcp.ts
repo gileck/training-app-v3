@@ -49,11 +49,21 @@ function substitute(content: string, v: NameVariants): string {
     .replace(/__NAME__/g, v.name);
 }
 
+/**
+ * Strip a trailing `.tmpl` suffix. Template source files are named `.ts.tmpl`
+ * so that the host project's tsc/eslint never tries to compile their
+ * placeholder tokens; the real extension appears after this scaffold step.
+ */
+function stripTmpl(name: string): string {
+  return name.endsWith('.tmpl') ? name.slice(0, -'.tmpl'.length) : name;
+}
+
 function copyTree(srcDir: string, destDir: string, v: NameVariants, created: string[]) {
   if (!fs.existsSync(srcDir)) throw new Error(`Template dir missing: ${srcDir}`);
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const srcPath = path.join(srcDir, entry.name);
-    const destPath = path.join(destDir, entry.name);
+    const destName = stripTmpl(entry.name);
+    const destPath = path.join(destDir, destName);
     if (entry.isDirectory()) {
       fs.mkdirSync(destPath, { recursive: true });
       copyTree(srcPath, destPath, v, created);
@@ -147,7 +157,7 @@ function main() {
   for (const entry of fs.readdirSync(path.join(templatesDir, 'mcp'), { withFileTypes: true })) {
     if (entry.name === 'skills') continue;
     const src = path.join(templatesDir, 'mcp', entry.name);
-    const dst = path.join(mcpDest, entry.name);
+    const dst = path.join(mcpDest, stripTmpl(entry.name));
     if (entry.isDirectory()) {
       fs.mkdirSync(dst, { recursive: true });
       copyTree(src, dst, v, created);

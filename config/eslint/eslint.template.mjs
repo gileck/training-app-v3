@@ -45,10 +45,8 @@ const restrictApiRoutesRule = {
 const eslintTemplateConfig = [
   {
     // Project-owned SDK/MCP packages ship with their own tsconfig + lint rules
-    // and aren't part of the Next.js app. Placeholder templates under
-    // init-mcp-templates/ contain __PASCAL__/__NAME__ tokens and are only
-    // compiled after substitution at scaffold time.
-    ignores: ["packages/**", "scripts/template/init-mcp-templates/**"],
+    // and aren't part of the Next.js app.
+    ignores: ["packages/**"],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
