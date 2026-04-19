@@ -90,6 +90,8 @@ export interface AuthDebugInfo {
     tokenError?: string;
     /** JWT error code (e.g., "TokenExpiredError", "JsonWebTokenError") */
     tokenErrorCode?: string;
+    /** True when request was authenticated via ADMIN_API_TOKEN bearer + X-On-Behalf-Of */
+    tokenAuth?: boolean;
 }
 
 export interface ApiHandlerContext {

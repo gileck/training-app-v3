@@ -143,6 +143,14 @@ export const deleteUser = async (
 };
 
 /**
+ * List all users (admin-only surface). Sorted by username.
+ */
+export const listAllUsers = async (): Promise<User[]> => {
+  const collection = await getUsersCollection();
+  return collection.find({}).sort({ username: 1 }).toArray();
+};
+
+/**
  * Find all users with `approvalStatus: 'pending'`, newest first.
  * Used by the admin approvals page when `requireAdminApproval` is enabled.
  */

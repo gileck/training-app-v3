@@ -4,7 +4,13 @@
   "templateLocalPath": "../app-template-ai",
   "lastSyncCommit": "803708cfaede0ee2deb758c250e36d22f2eccccf",
   "lastSyncDate": "2026-04-18T08:34:56.588Z",
-  "projectOverrides": [],
+  "projectOverrides": [
+    "src/apis/getUserContext.ts",
+    "src/apis/processApiCall.ts",
+    "src/apis/apis.template.ts",
+    "src/apis/template/auth/types.ts",
+    "src/server/database/collections/template/users/users.ts"
+  ],
   "overrideHashes": {
     ".cursor/mcp.json": "4faae3bf83e747b83996cc34f648186e",
     "knip.json": "2a8c296b820ef5a518c442856c5ac018",
