@@ -26,7 +26,7 @@ export function SelectionBar({
 
     return (
         <div
-            className={`fixed left-4 right-4 z-50 mx-auto max-w-lg bg-card border border-border rounded-2xl shadow-lg p-3 ${
+            className={`fixed left-4 right-4 z-50 mx-auto max-w-lg bg-card dark:bg-muted border border-border rounded-2xl shadow-2xl ring-1 ring-border/60 p-3 ${
                 isWorkoutActive ? 'bottom-[150px]' : 'bottom-20'
             }`}
         >
