@@ -7,6 +7,10 @@
 
 import { NavItem } from '../template/layout/types';
 import { Home, Dumbbell, TrendingUp, Settings } from 'lucide-react';
+import { ActiveWorkoutStatusBar } from './ActiveWorkoutStatusBar';
+
+/** Renders in the center of the TopNavBar. Returns null when there's no active workout. */
+export const TopNavBarSlot = ActiveWorkoutStatusBar;
 
 /** Project-specific admin menu items */
 export const projectAdminMenuItems: NavItem[] = [
