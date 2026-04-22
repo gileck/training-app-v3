@@ -11,7 +11,7 @@
  * - codex exec "<prompt>" - Run agent with prompt in non-interactive mode
  * - --json - Output newline-delimited JSON events
  * - --sandbox <mode> - Sandbox mode (read-only, workspace-write, danger-full-access)
- * - --model <model> - Specify model (e.g., gpt-5-codex, gpt-5)
+ * - --model <model> - Specify model (e.g., gpt-5.4, gpt-5)
  *
  * Output Format (--json):
  * {"type":"init","session_id":"uuid"}

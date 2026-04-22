@@ -54,7 +54,7 @@ export const agentsConfig: AgentsConfig = {
 
     libraryModels: {
         'openai-codex': {
-            model: 'gpt-5-codex',  // or 'gpt-5'
+            model: 'gpt-5.4',  // or 'gpt-5'
         },
     },
 };
@@ -64,7 +64,7 @@ export const agentsConfig: AgentsConfig = {
 
 | Model | Description |
 |-------|-------------|
-| `gpt-5-codex` | Codex-optimized model for code tasks |
+| `gpt-5.4` | Codex-optimized model for code tasks |
 | `gpt-5` | General-purpose GPT-5 model |
 
 ## Capabilities
@@ -105,7 +105,7 @@ codex exec "<prompt>" --json --sandbox workspace-write
 
 ### With model specification
 ```bash
-codex exec "<prompt>" --json --model gpt-5-codex --ask-for-approval on-request
+codex exec "<prompt>" --json --model gpt-5.4 --ask-for-approval on-request
 ```
 
 ## Output Format
@@ -201,7 +201,7 @@ If file operations fail:
 
 OpenAI Codex CLI usage is billed based on:
 - Token consumption (input + output)
-- Model tier (gpt-5-codex vs gpt-5)
+- Model tier (gpt-5.4 vs gpt-5)
 
 Monitor your usage at: https://platform.openai.com/usage
 

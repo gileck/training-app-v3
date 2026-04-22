@@ -6,11 +6,22 @@
  * - NavLinks.project.ts: Project items (your custom items)
  */
 
+import type { ReactNode } from 'react';
 import { templateAdminMenuItems, filterAdminNavItems } from './template/NavLinks.template';
 import { projectAdminMenuItems, navItems, menuItems } from './project/NavLinks.project';
+import * as projectNavModule from './project/NavLinks.project';
 
 // Re-export for use by Layout
 export { navItems, menuItems, filterAdminNavItems };
+
+// Optional project-owned slot: child projects add `export const TopNavBarSlot`
+// to NavLinks.project.tsx to render a custom component in the top nav bar.
+// Fallback keeps the template backward-compatible with projects that haven't
+// added the export yet.
+const projectTopNavBarSlot =
+  (projectNavModule as { TopNavBarSlot?: () => ReactNode }).TopNavBarSlot;
+export const TopNavBarSlot: () => ReactNode =
+  projectTopNavBarSlot ?? (() => null);
 
 /** Combined admin menu items (template + project) */
 export const adminMenuItems = [

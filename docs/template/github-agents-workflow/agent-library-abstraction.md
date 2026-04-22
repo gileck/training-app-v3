@@ -350,7 +350,7 @@ export const agentsConfig: AgentsConfig = {
     },
     libraryModels: {
         'openai-codex': {
-            model: 'gpt-5-codex',  // or 'gpt-5'
+            model: 'gpt-5.4',  // or 'gpt-5'
         },
     },
 };
@@ -374,7 +374,7 @@ export const agentsConfig: AgentsConfig = {
 | `allowWrite` | `--sandbox workspace-write` |
 | `!allowWrite` | `--sandbox read-only` |
 | `stream` | `--json` |
-| `model` | `--model gpt-5-codex` |
+| `model` | `--model gpt-5.4` |
 | `approval` | `--ask-for-approval on-request` |
 
 **Features:**

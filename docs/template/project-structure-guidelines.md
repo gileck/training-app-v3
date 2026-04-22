@@ -239,6 +239,20 @@ export const menuItems: NavItem[] = [...];
 export const projectAdminMenuItems: NavItem[] = [...];
 ```
 
+### Custom Top Nav Bar Component
+
+The top navigation bar reserves a centered slot between the hamburger menu and the theme/user controls. Add an optional `TopNavBarSlot` export to your existing `src/client/components/project/NavLinks.project.tsx` to render any component there — search box, status pill, breadcrumb, tenant switcher, etc.
+
+```tsx
+// NavLinks.project.tsx (YOU EDIT THIS)
+import type { ReactNode } from 'react';
+import { MyStatusPill } from './MyStatusPill';
+
+export const TopNavBarSlot = (): ReactNode => <MyStatusPill />;
+```
+
+The slot is automatically centered and capped at `max-w-xs` (320px). Omit the export (or return `null`) to leave it empty — the template provides a no-op fallback so existing projects keep working without changes.
+
 ---
 
 ## When to Use projectOverrides

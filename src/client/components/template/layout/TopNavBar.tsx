@@ -1,6 +1,7 @@
 import { Menu, Moon, SunMedium, LogIn, User, LogOut, WifiOff, Wifi } from 'lucide-react';
 import { useRouter } from '@/client/features';
 import { NavItem } from './types';
+import { TopNavBarSlot } from '@/client/components/NavLinks';
 import {
   useAuthStore,
   useUser,
@@ -98,7 +99,7 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
           color: 'hsl(var(--header-foreground))' 
         }}
       >
-        <div className="mx-auto flex h-14 w-full max-w-screen-lg items-center justify-between px-3 sm:px-4">
+        <div className="mx-auto flex h-14 w-full max-w-screen-lg items-center px-3 sm:px-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" aria-label="open drawer" onClick={onDrawerToggle}>
               <Menu size={18} />
@@ -115,6 +116,12 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
                   {item.label}
                 </Button>
               ))}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-1 justify-center px-2">
+            <div className="w-full min-w-0 max-w-xs">
+              <TopNavBarSlot />
             </div>
           </div>
 

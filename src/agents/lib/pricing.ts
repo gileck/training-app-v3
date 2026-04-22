@@ -31,9 +31,9 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     },
 
     // OpenAI Codex models (rough estimates)
-    'gpt-5-codex': {
-        inputPer1kTokens: 0.005,     // $5.00 per 1M (estimate)
-        outputPer1kTokens: 0.015,    // $15.00 per 1M (estimate)
+    'gpt-5.4': {
+        inputPer1kTokens: 0.0025,    // $2.50 per 1M
+        outputPer1kTokens: 0.015,    // $15.00 per 1M
     },
     'gpt-5': {
         inputPer1kTokens: 0.005,     // $5.00 per 1M (estimate)

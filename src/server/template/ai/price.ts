@@ -90,11 +90,6 @@ export const pricing: PricingModel[] = [
 
   // OpenAI Codex
   {
-    model_id: 'gpt-5-codex',
-    input_cost_per_1k: 0.00125,  // $1.25 per 1M
-    output_cost_per_1k: 0.01     // $10 per 1M
-  },
-  {
     model_id: 'gpt-5.4',
     input_cost_per_1k: 0.0025,   // $2.50 per 1M
     output_cost_per_1k: 0.015    // $15 per 1M
