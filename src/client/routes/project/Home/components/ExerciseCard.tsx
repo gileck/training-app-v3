@@ -44,7 +44,7 @@ export function ExerciseCardGrid({
         <Card
             onClick={handleCardClick}
             className={`rounded-2xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-success/50 bg-success/5' : ''
-                } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+                } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''} ${exercise.isSkipped ? 'opacity-60' : ''}`}
         >
             <CardContent className="p-4">
                 <div className="flex gap-4 mb-3">
@@ -78,7 +78,14 @@ export function ExerciseCardGrid({
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-bold text-lg truncate">{exercise.exerciseDef.name}</h3>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h3 className="font-bold text-lg truncate">{exercise.exerciseDef.name}</h3>
+                                {exercise.isSkipped && (
+                                    <Badge variant="outline" className="text-warning border-warning/40 bg-warning/10 shrink-0">
+                                        Skipped
+                                    </Badge>
+                                )}
+                            </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -189,7 +196,7 @@ export function ExerciseCardList({
         <Card
             onClick={handleCardClick}
             className={`rounded-xl border-0 shadow-sm transition-all cursor-pointer active:scale-[0.98] ${isComplete ? 'border-2 border-success/50 bg-success/5' : ''
-                } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+                } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''} ${exercise.isSkipped ? 'opacity-60' : ''}`}
         >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">
@@ -228,7 +235,14 @@ export function ExerciseCardList({
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{exercise.exerciseDef.name}</h3>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <h3 className="font-semibold truncate">{exercise.exerciseDef.name}</h3>
+                            {exercise.isSkipped && (
+                                <Badge variant="outline" className="text-warning border-warning/40 bg-warning/10 shrink-0 text-[10px] px-1.5 py-0">
+                                    Skipped
+                                </Badge>
+                            )}
+                        </div>
                         <p className={`text-sm ${isComplete ? 'text-success' : 'text-muted-foreground'}`}>
                             {exercise.setsCompleted}/{exercise.targetSets} sets{isComplete && ' ✓'}
                         </p>

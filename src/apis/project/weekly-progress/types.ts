@@ -12,6 +12,8 @@ export interface ExerciseWeekProgress {
     targetSets: number;
     setsCompleted: number;
     isDone: boolean;
+    /** Per-week skip flag — set if the exercise is excluded from week totals. */
+    isSkipped?: boolean;
     exerciseDef: ExerciseDefinitionClient;
     planExercise: PlanExerciseClient;
 }

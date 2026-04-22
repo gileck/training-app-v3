@@ -4,7 +4,7 @@ import { Skeleton } from '@/client/components/template/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { toast } from '@/client/components/template/ui/toast';
 import { Calendar, LayoutGrid, List } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from '@/client/features';
 import {
     useWorkoutStore,
@@ -32,10 +32,15 @@ import {
     usePlanLoading,
     useSetProgress,
     useWeekWorkoutSets,
+    usePlanDataStore,
+    useUpdatePlanExerciseAdapter,
+    syncPlanToServer,
     type ExerciseWeekProgressFromStore,
 } from '@/client/features/project/plan-data';
 import { usePlanWorkouts } from '@/client/features/project/plan-workouts';
 import { ExerciseDetails } from '@/client/components/project/ExerciseDetails/ExerciseDetails';
+import { EditExerciseDialog } from '@/client/routes/project/ManagePlan/components/exercises/EditExerciseDialog';
+import type { PlanExerciseWithDefinition } from '@/apis/project/plan-exercises/types';
 import {
     WeekNavigator,
     SelectionBar,
@@ -92,10 +97,6 @@ export function Home() {
     // Workout-specific sets for all workouts in the current week
     const weekWorkoutSets = useWeekWorkoutSets(activePlanId, currentWeek);
 
-    // Detect mobile viewport (matches Tailwind's sm: breakpoint at 640px)
-    const isMobile = useMemo(() => {
-        return typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
-    }, []);
     const planWorkoutsList = planWorkoutsData?.workouts || [];
 
     // Expanded workout state (persisted in store)
@@ -107,10 +108,19 @@ export function Home() {
     const [exerciseDetailsOpen, setExerciseDetailsOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<ExerciseWeekProgressFromStore | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
+    const [exerciseToEdit, setExerciseToEdit] = useState<PlanExerciseWithDefinition | null>(null);
+
+    // Skip toggle + single-exercise edit mutation
+    const toggleSkipExercise = usePlanDataStore((s) => s.toggleSkipExercise);
+    const updateExerciseMutation = useUpdatePlanExerciseAdapter(activePlanId || '');
 
     const exercises = weekData?.exercises || [];
-    const incompleteExercises = exercises.filter((e) => !e.isDone);
-    const completedExercises = exercises.filter((e) => e.isDone);
+    const incompleteExercises = exercises.filter((e) => !e.isDone && !e.isSkipped);
+    const completedExercises = exercises.filter((e) => e.isDone && !e.isSkipped);
+    const skippedExercises = exercises.filter((e) => e.isSkipped);
 
     const totalSets = weekData?.totalSets || 0;
     const completedSets = weekData?.completedSets || 0;
@@ -274,6 +284,74 @@ export function Home() {
         setExerciseDetailsOpen(true);
     };
 
+    // Find the single selected exercise (when selection count is 1)
+    const singleSelected =
+        selectedExerciseIds.length === 1
+            ? exercises.find((ex) => ex.planExerciseId === selectedExerciseIds[0]) ?? null
+            : null;
+
+    const handleEditSelected = () => {
+        if (!singleSelected) return;
+        // EditExerciseDialog expects the richer PlanExerciseWithDefinition
+        // shape; rebuild it from the current store-derived view.
+        setExerciseToEdit({
+            _id: singleSelected.planExercise._id,
+            planId: singleSelected.planExercise.planId,
+            exerciseDefId: singleSelected.planExercise.exerciseDefId,
+            sets: singleSelected.planExercise.sets,
+            reps: singleSelected.planExercise.reps,
+            weight: singleSelected.planExercise.weight,
+            durationSeconds: singleSelected.planExercise.durationSeconds,
+            comments: singleSelected.planExercise.comments,
+            order: singleSelected.planExercise.order,
+            createdAt: singleSelected.planExercise.createdAt,
+            updatedAt: singleSelected.planExercise.updatedAt,
+            exerciseDef: singleSelected.exerciseDef,
+        });
+        setEditDialogOpen(true);
+    };
+
+    const handleSaveEdit = (config: {
+        sets: number;
+        reps: number;
+        weight: number;
+        durationSeconds: number;
+        comments: string;
+    }) => {
+        if (!exerciseToEdit) return;
+        updateExerciseMutation.mutate(
+            { planExerciseId: exerciseToEdit._id, ...config },
+            {
+                onSuccess: () => {
+                    setEditDialogOpen(false);
+                    setExerciseToEdit(null);
+                    clearSelection();
+                },
+                onError: (error) => {
+                    toast.error(`Failed to update exercise: ${error.message}`);
+                },
+            }
+        );
+    };
+
+    const handleSkipSelected = () => {
+        if (!singleSelected || !activePlanId) return;
+        const wasSkipped = singleSelected.isSkipped;
+        toggleSkipExercise(activePlanId, currentWeek, singleSelected.planExerciseId);
+        syncPlanToServer(activePlanId);
+        toast.success(
+            wasSkipped
+                ? `${singleSelected.exerciseDef.name} un-skipped for week ${currentWeek}`
+                : `${singleSelected.exerciseDef.name} skipped for week ${currentWeek}`
+        );
+        clearSelection();
+    };
+
+    const handleViewSelected = () => {
+        if (!singleSelected) return;
+        handleOpenExerciseDetails(singleSelected);
+    };
+
     // Start workout with selected exercises
     const handleStartWorkout = (
         exercisesToStart?: ExerciseWeekProgressFromStore[],
@@ -421,6 +499,7 @@ export function Home() {
                         exercises={exercises}
                         incompleteExercises={incompleteExercises}
                         completedExercises={completedExercises}
+                        skippedExercises={skippedExercises}
                         selectedExerciseIds={selectedExerciseIds}
                         onToggleSelection={toggleSelection}
                         onAddSet={handleAddSet}
@@ -458,11 +537,23 @@ export function Home() {
                         selectedCount={selectedExerciseIds.length}
                         onClearSelection={clearSelection}
                         onStartWorkout={() => handleStartWorkout()}
-                        isMobile={isMobile}
+                        onEditSingle={handleEditSelected}
+                        onSkipSingle={handleSkipSelected}
+                        onViewSingle={handleViewSelected}
+                        isSingleSkipped={singleSelected?.isSkipped}
                         isWorkoutActive={isWorkoutActive}
                     />
                 )}
             </Tabs>
+
+            {/* Edit Exercise Dialog — opened from the single-selection menu bar */}
+            <EditExerciseDialog
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                exercise={exerciseToEdit}
+                onSave={handleSaveEdit}
+                isPending={updateExerciseMutation.isPending}
+            />
 
             {/* Exercise Details Sheet */}
             <ExerciseDetails

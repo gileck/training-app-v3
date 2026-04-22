@@ -23,6 +23,7 @@ import {
 } from '@/server/database';
 import { toQueryId, toStringId } from '@/server/template/utils';
 import { getDb } from '@/server/database';
+import type { AnyBulkWriteOperation, Document } from 'mongodb';
 import { PlanExercise } from '@/server/database/collections/project/planExercises/types';
 
 export const syncPlanData = async (
@@ -206,23 +207,34 @@ async function syncWeekProgress(
         );
         const weeklyProgressId = toQueryId(toStringId(weeklyProgressRecord._id));
 
-        // Build bulk operations for this week's exercise progress
-        const bulkOps = Object.entries(exercisesProgress).map(([planExerciseId, progress]) => ({
-            updateOne: {
-                filter: {
-                    weeklyProgressId: weeklyProgressId,
-                    planExerciseId: toQueryId(planExerciseId),
-                },
-                update: {
-                    $set: {
-                        setsCompleted: progress.setsCompleted,
-                        isDone: progress.isDone,
-                        updatedAt: now,
+        // Build bulk operations for this week's exercise progress.
+        // `isSkipped` is written with $set when true and $unset when false, so
+        // the document doesn't accumulate a stale `isSkipped: false` field for
+        // exercises that were never skipped.
+        const bulkOps: AnyBulkWriteOperation<Document>[] = Object.entries(exercisesProgress).map(([planExerciseId, progress]) => {
+            const set: Record<string, unknown> = {
+                setsCompleted: progress.setsCompleted,
+                isDone: progress.isDone,
+                updatedAt: now,
+            };
+            if (progress.isSkipped === true) {
+                set.isSkipped = true;
+            }
+            const update: Record<string, unknown> = { $set: set };
+            if (progress.isSkipped !== true) {
+                update.$unset = { isSkipped: '' };
+            }
+            return {
+                updateOne: {
+                    filter: {
+                        weeklyProgressId: weeklyProgressId,
+                        planExerciseId: toQueryId(planExerciseId),
                     },
+                    update,
+                    upsert: true,
                 },
-                upsert: true,
-            },
-        }));
+            };
+        });
 
         if (bulkOps.length > 0) {
             await collection.bulkWrite(bulkOps);

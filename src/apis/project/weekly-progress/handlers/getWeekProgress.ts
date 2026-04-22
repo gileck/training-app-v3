@@ -81,15 +81,19 @@ export const getWeekProgress = async (
             const progress = progressMap.get(toStringId(exercise._id));
             const setsCompleted = progress?.setsCompleted || 0;
             const isDone = progress?.isDone || setsCompleted >= exercise.sets;
+            const isSkipped = progress?.isSkipped === true;
 
-            totalSets += exercise.sets;
-            completedSets += Math.min(setsCompleted, exercise.sets);
+            if (!isSkipped) {
+                totalSets += exercise.sets;
+                completedSets += Math.min(setsCompleted, exercise.sets);
+            }
 
             exercises.push({
                 planExerciseId: toStringId(exercise._id),
                 targetSets: exercise.sets,
                 setsCompleted,
                 isDone,
+                isSkipped,
                 exerciseDef: {
                     _id: toStringId(def._id),
                     name: def.name,

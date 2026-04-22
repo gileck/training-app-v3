@@ -415,6 +415,7 @@ export interface ExerciseWeekProgressFromStore {
     targetSets: number;
     setsCompleted: number;
     isDone: boolean;
+    isSkipped: boolean;
     exerciseDef: PlanExerciseWithDefinition['exerciseDef'];
     planExercise: {
         _id: string;
@@ -463,16 +464,20 @@ export function useWeekProgressFromStoreData(
     const exerciseProgress: ExerciseWeekProgressFromStore[] = exercises.map((ex) => {
         const progress = weekProgress[ex._id] || { setsCompleted: 0, isDone: false };
         const setsCompleted = progress.setsCompleted;
+        const isSkipped = progress.isSkipped === true;
         const isDone = progress.isDone || setsCompleted >= ex.sets;
 
-        totalSets += ex.sets;
-        completedSets += Math.min(setsCompleted, ex.sets);
+        if (!isSkipped) {
+            totalSets += ex.sets;
+            completedSets += Math.min(setsCompleted, ex.sets);
+        }
 
         return {
             planExerciseId: ex._id,
             targetSets: ex.sets,
             setsCompleted,
             isDone,
+            isSkipped,
             exerciseDef: ex.exerciseDef,
             planExercise: {
                 _id: ex._id,

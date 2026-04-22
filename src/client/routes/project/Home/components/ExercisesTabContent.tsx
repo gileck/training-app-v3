@@ -10,6 +10,7 @@ interface ExercisesTabContentProps {
     exercises: ExerciseWeekProgressFromStore[];
     incompleteExercises: ExerciseWeekProgressFromStore[];
     completedExercises: ExerciseWeekProgressFromStore[];
+    skippedExercises: ExerciseWeekProgressFromStore[];
     selectedExerciseIds: string[];
     onToggleSelection: (id: string) => void;
     onAddSet: (exercise: ExerciseWeekProgressFromStore) => void;
@@ -24,6 +25,7 @@ export function ExercisesTabContent({
     exercises,
     incompleteExercises,
     completedExercises,
+    skippedExercises,
     selectedExerciseIds,
     onToggleSelection,
     onAddSet,
@@ -34,6 +36,8 @@ export function ExercisesTabContent({
 }: ExercisesTabContentProps) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [completedExpanded, setCompletedExpanded] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
+    const [skippedExpanded, setSkippedExpanded] = useState(false);
 
     return (
         <div className="space-y-4">
@@ -126,6 +130,55 @@ export function ExercisesTabContent({
                                         onCompleteAll={() => {}}
                                         onOpenDetails={() => onOpenDetails(exercise)}
                                         isComplete
+                                        isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
+                                        onSelect={() => onToggleSelection(exercise.planExerciseId)}
+                                    />
+                                )
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Skipped Exercises Section */}
+            {skippedExercises.length > 0 && (
+                <div className="space-y-3">
+                    <button
+                        onClick={() => setSkippedExpanded(!skippedExpanded)}
+                        className="flex items-center justify-between w-full py-2 text-left"
+                    >
+                        <span className="text-sm font-medium text-muted-foreground">
+                            Skipped Exercises ({skippedExercises.length})
+                        </span>
+                        {skippedExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                    </button>
+
+                    {skippedExpanded && (
+                        <div className="space-y-3">
+                            {skippedExercises.map((exercise) =>
+                                viewMode === 'grid' ? (
+                                    <ExerciseCardGrid
+                                        key={exercise.planExerciseId}
+                                        exercise={exercise}
+                                        onAddSet={() => onAddSet(exercise)}
+                                        onRemoveSet={() => onRemoveSet(exercise)}
+                                        onCompleteAll={() => onCompleteAll(exercise)}
+                                        onOpenDetails={() => onOpenDetails(exercise)}
+                                        isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
+                                        onSelect={() => onToggleSelection(exercise.planExerciseId)}
+                                    />
+                                ) : (
+                                    <ExerciseCardList
+                                        key={exercise.planExerciseId}
+                                        exercise={exercise}
+                                        onAddSet={() => onAddSet(exercise)}
+                                        onRemoveSet={() => onRemoveSet(exercise)}
+                                        onCompleteAll={() => onCompleteAll(exercise)}
+                                        onOpenDetails={() => onOpenDetails(exercise)}
                                         isSelected={selectedExerciseIds.includes(exercise.planExerciseId)}
                                         onSelect={() => onToggleSelection(exercise.planExerciseId)}
                                     />

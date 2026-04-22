@@ -40,6 +40,8 @@ export interface ExerciseSyncData {
 export interface ExerciseProgressData {
     setsCompleted: number;
     isDone: boolean;
+    /** Per-week skip flag — excludes exercise from week totals when true. */
+    isSkipped?: boolean;
 }
 
 /** Week number -> Exercise ID -> Progress */

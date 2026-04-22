@@ -170,10 +170,11 @@ async function fetchPlanFromServer(planId: string, weekNumber: number): Promise<
             weekProgress[weekNumber][ex.planExerciseId] = {
                 setsCompleted: ex.setsCompleted,
                 isDone: ex.isDone,
+                isSkipped: ex.isSkipped,
             };
         }
     }
-    
+
     return {
         exercises,
         weekProgress,
@@ -421,6 +422,7 @@ export async function loadWeekProgress(planId: string, weekNumber: number): Prom
                 weekProgressForWeek[ex.planExerciseId] = {
                     setsCompleted: ex.setsCompleted,
                     isDone: ex.isDone,
+                    isSkipped: ex.isSkipped,
                 };
             }
             

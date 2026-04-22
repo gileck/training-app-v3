@@ -27,6 +27,12 @@ export interface PlanExerciseWithDefinition extends PlanExerciseClient {
 export interface ExerciseProgress {
     setsCompleted: number;
     isDone: boolean;
+    /**
+     * If true, the exercise is skipped for this week — its targetSets are
+     * excluded from the week's total/completed set calculation. Per-week so
+     * skipping one week doesn't affect other weeks.
+     */
+    isSkipped?: boolean;
 }
 
 /**

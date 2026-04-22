@@ -10,6 +10,8 @@ export interface ExerciseProgress {
     planExerciseId: ObjectId | string;
     setsCompleted: number;
     isDone: boolean;
+    /** Per-week skip flag — optional for backward compatibility with existing docs. */
+    isSkipped?: boolean;
     updatedAt: Date;
 }
 
@@ -34,6 +36,7 @@ export interface ExerciseProgressClient {
     planExerciseId: string;
     setsCompleted: number;
     isDone: boolean;
+    isSkipped?: boolean;
     updatedAt: string;
 }
 

@@ -89,6 +89,8 @@ interface PlanDataState {
     decrementSet: (planId: string, weekNumber: number, exerciseId: string) => void;
     /** Complete all remaining sets for an exercise */
     completeAllSets: (planId: string, weekNumber: number, exerciseId: string, targetSets: number) => void;
+    /** Toggle the per-week "skipped" flag for an exercise */
+    toggleSkipExercise: (planId: string, weekNumber: number, exerciseId: string) => void;
 
     // ========================================================================
     // Workout-Specific Progress Actions
@@ -427,6 +429,32 @@ export const usePlanDataStore = createStore<PlanDataState>({
                     [exerciseId]: {
                         setsCompleted: targetSets,
                         isDone: true,
+                    },
+                };
+
+                return {
+                    plans: {
+                        ...state.plans,
+                        [planId]: { ...plan, weekProgress, isDirty: true },
+                    },
+                };
+            });
+        },
+
+        toggleSkipExercise: (planId, weekNumber, exerciseId) => {
+            set((state) => {
+                const plan = state.plans[planId];
+                if (!plan) return state;
+
+                const weekProgress = { ...plan.weekProgress };
+                const currentWeek = weekProgress[weekNumber] || {};
+                const current = currentWeek[exerciseId] || { setsCompleted: 0, isDone: false };
+
+                weekProgress[weekNumber] = {
+                    ...currentWeek,
+                    [exerciseId]: {
+                        ...current,
+                        isSkipped: !current.isSkipped,
                     },
                 };
 

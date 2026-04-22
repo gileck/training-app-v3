@@ -1,11 +1,14 @@
 import { Button } from '@/client/components/template/ui/button';
-import { X, Zap } from 'lucide-react';
+import { X, Zap, Pencil, SkipForward, Eye, RotateCcw } from 'lucide-react';
 
 interface SelectionBarProps {
     selectedCount: number;
     onClearSelection: () => void;
     onStartWorkout: () => void;
-    isMobile: boolean;
+    onEditSingle?: () => void;
+    onSkipSingle?: () => void;
+    onViewSingle?: () => void;
+    isSingleSkipped?: boolean;
     isWorkoutActive: boolean;
 }
 
@@ -13,47 +16,92 @@ export function SelectionBar({
     selectedCount,
     onClearSelection,
     onStartWorkout,
-    isMobile,
+    onEditSingle,
+    onSkipSingle,
+    onViewSingle,
+    isSingleSkipped,
     isWorkoutActive,
 }: SelectionBarProps) {
+    const isSingle = selectedCount === 1;
+
     return (
         <div
-            className="fixed left-0 right-0 p-4 bg-card/95 backdrop-blur-lg border-t z-50"
-            style={{
-                // On mobile, position above the BottomNavBar which includes safe-area-inset-bottom
-                // BottomNavBar height: pt-1 (4px) + h-14 (56px) + paddingBottom (safe-area + 4px) = 64px + safe-area
-                // When FloatingWorkoutBar is active, add ~70px more to avoid overlap
-                // On desktop (≥640px), bottom nav is hidden, so use bottom: 0 (or 70px if workout active)
-                bottom: isMobile
-                    ? isWorkoutActive
-                        ? 'calc(134px + env(safe-area-inset-bottom, 0px))'
-                        : 'calc(64px + env(safe-area-inset-bottom, 0px))'
-                    : isWorkoutActive
-                      ? '70px'
-                      : 0,
-            }}
+            className={`fixed left-4 right-4 z-50 mx-auto max-w-lg bg-card border border-border rounded-2xl shadow-lg p-3 ${
+                isWorkoutActive ? 'bottom-[150px]' : 'bottom-20'
+            }`}
         >
-            <div className="flex items-center gap-3 max-w-lg mx-auto">
+            <div className="flex items-center gap-2">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onClearSelection}
-                    className="h-10 w-10 rounded-full"
+                    className="h-12 w-12 rounded-full shrink-0"
+                    aria-label="Clear selection"
                 >
                     <X className="h-5 w-5" />
                 </Button>
-                <div className="flex-1">
-                    <p className="text-sm font-medium">
-                        {selectedCount} exercise{selectedCount !== 1 ? 's' : ''} selected
-                    </p>
-                </div>
-                <Button
-                    onClick={onStartWorkout}
-                    className="h-12 px-6 rounded-xl bg-success text-success-foreground shadow-lg shadow-success/30"
-                >
-                    <Zap className="mr-2 h-5 w-5" />
-                    Start Workout
-                </Button>
+
+                {isSingle ? (
+                    <div className="flex items-center justify-end gap-1.5 flex-1">
+                        <Button
+                            variant="ghost"
+                            onClick={onEditSingle}
+                            className="h-14 min-w-14 px-2 rounded-xl flex-col gap-1"
+                            aria-label="Edit exercise"
+                        >
+                            <Pencil className="h-5 w-5" />
+                            <span className="text-[11px] leading-none font-medium">Edit</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={onSkipSingle}
+                            className={`h-14 min-w-14 px-2 rounded-xl flex-col gap-1 ${
+                                isSingleSkipped ? 'text-warning' : ''
+                            }`}
+                            aria-label={isSingleSkipped ? 'Unskip exercise' : 'Skip exercise'}
+                        >
+                            {isSingleSkipped ? (
+                                <RotateCcw className="h-5 w-5" />
+                            ) : (
+                                <SkipForward className="h-5 w-5" />
+                            )}
+                            <span className="text-[11px] leading-none font-medium">
+                                {isSingleSkipped ? 'Unskip' : 'Skip'}
+                            </span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={onViewSingle}
+                            className="h-14 min-w-14 px-2 rounded-xl flex-col gap-1"
+                            aria-label="View exercise"
+                        >
+                            <Eye className="h-5 w-5" />
+                            <span className="text-[11px] leading-none font-medium">View</span>
+                        </Button>
+                        <Button
+                            onClick={onStartWorkout}
+                            className="h-14 px-4 ml-1 rounded-xl bg-success text-success-foreground shadow-md shadow-success/30 shrink-0 font-semibold"
+                        >
+                            <Zap className="mr-1.5 h-5 w-5" />
+                            Start
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                                {selectedCount} exercises selected
+                            </p>
+                        </div>
+                        <Button
+                            onClick={onStartWorkout}
+                            className="h-12 px-5 rounded-xl bg-success text-success-foreground shadow-md shadow-success/30 shrink-0 font-semibold"
+                        >
+                            <Zap className="mr-1.5 h-5 w-5" />
+                            Start
+                        </Button>
+                    </>
+                )}
             </div>
         </div>
     );
