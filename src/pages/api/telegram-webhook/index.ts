@@ -10,6 +10,7 @@
  *    - Callback: "approve_bug:reportId" - Creates GitHub issue from bug report
  *    - Callback: "approve_request_bl:requestId" - Creates GitHub issue and parks in Backlog
  *    - Callback: "approve_bug_bl:reportId" - Creates GitHub issue and parks in Backlog
+ *    - Callback: "approve_login:approvalId" - Approves a pending Telegram 2FA login
  *
  * 2. Delete Feature Request / Bug Report:
  *    - Callback: "delete_request:requestId" - Delete feature request from MongoDB
@@ -55,6 +56,7 @@ import {
     handleBugReportDeletion,
     handleFeatureRequestApprovalToBacklog,
     handleBugReportApprovalToBacklog,
+    handleLoginApproval,
     handleFeatureRouting,
     handleBugRouting,
     handleDesignReviewAction,
@@ -193,6 +195,22 @@ async function processCallbackQuery(
         if (!result.success && callback_query.message) {
             await editMessageWithResult(botToken, callback_query.message.chat.id, callback_query.message.message_id, callback_query.message.text || '', false, result.error || 'Unknown error');
         }
+        return;
+    }
+
+    if (action === 'approve_login' && parts.length === 2) {
+        const approvalId = parsed.getString(1);
+        if (!approvalId) {
+            await answerCallbackQuery(botToken, callback_query.id, 'Invalid login approval');
+            return;
+        }
+
+        const result = await handleLoginApproval(botToken, callback_query, approvalId);
+        await answerCallbackQuery(
+            botToken,
+            callback_query.id,
+            result.success ? '✅ Login approved' : (result.error || 'Unable to approve login')
+        );
         return;
     }
 

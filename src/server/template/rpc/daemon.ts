@@ -1,9 +1,15 @@
 import '@/agents/shared/loadEnv';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
+import { pathToFileURL } from 'url';
 import { ensureRpcIndexes, claimNextPendingJob, completeRpcJob, failRpcJob } from './collection';
 import { closeDbConnection } from '@/server/database/connection';
 import { appConfig } from '@/app.config';
+
+// In dev we re-import the handler with a cache-busting query so each job runs
+// the latest handler code without restarting the whole daemon. Disabled in
+// production where module caching is the right default for performance.
+const CACHE_BUST_HANDLERS = process.env.NODE_ENV !== 'production';
 
 const POLL_INTERVAL_MS = 2_000;
 const DEFAULT_MAX_CONCURRENT = 20;
@@ -76,8 +82,14 @@ async function processJob(job: NonNullable<Awaited<ReturnType<typeof claimNextPe
 
   const start = Date.now();
   try {
-    vlog(`  importing ${fullPath}...`);
-    const mod = await import(fullPath);
+    let importSpec: string = fullPath;
+    if (CACHE_BUST_HANDLERS) {
+      const url = pathToFileURL(fullPath);
+      url.searchParams.set('t', Date.now().toString());
+      importSpec = url.href;
+    }
+    vlog(`  importing ${importSpec}${CACHE_BUST_HANDLERS ? ' (cache-bust)' : ''}`);
+    const mod = await import(importSpec);
     const handler = mod.default;
 
     if (typeof handler !== 'function') {

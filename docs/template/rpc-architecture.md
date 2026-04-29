@@ -5,8 +5,9 @@ summary: Vercel inserts jobs into MongoDB, a local daemon polls and executes the
 priority: 5
 key_points:
   - "`src/server/template/rpc/` - Generic RPC system (zero project-specific code)"
-  - "Start daemon: `yarn daemon` or `yarn daemon --verbose`"
+  - "Start daemon: `yarn daemon` or `yarn daemon --verbose` (or `yarn daemon:dev` for tsx --watch + hot handler reload)"
   - "Handlers are modules with a default export async function"
+  - "Child-project handlers MUST live under `src/server/project/**` — never under `src/server/template/` (gets overwritten on template sync)"
   - "Security: shared secret (RPC_SECRET env var) + path validation + file existence check"
   - "task-cli config: `agent-tasks/rpc-daemon/config.json`"
 ---
@@ -98,13 +99,22 @@ MongoDB operations for the `rpc-jobs` collection:
 Any handler is a module with a **default export** async function:
 
 ```typescript
-// src/server/my-feature/myRemoteHandler.ts
+// src/server/project/rpc-handlers/myRemoteHandler.ts
 export default async function(args: Record<string, unknown>): Promise<MyResponse> {
   const param = args.param as string;
   // ... execute locally ...
   return { result };
 }
 ```
+
+### Where to put handlers
+
+| Owner | Path | Notes |
+|-------|------|-------|
+| **Child projects** | `src/server/project/**` | Put all your custom handlers here |
+| Template only | `src/server/template/rpc/handlers/**` | Reserved for handlers shipped with the template |
+
+**Do not add child-project handlers under `src/server/template/`.** That folder is template-owned and gets overwritten on every template sync — your handler will disappear. The path-boundary check only enforces that handlers live somewhere under `src/server/`; ownership is your responsibility.
 
 ## Security
 
@@ -138,12 +148,12 @@ task-cli stop <project>:rpc-daemon
 
 ## Adding a New Remote Handler
 
-1. Create a module in `src/server/` with a default export async function
+1. Create a module under `src/server/project/` with a default export async function (see [Where to put handlers](#where-to-put-handlers))
 2. Call it from Vercel code:
    ```typescript
    import { callRemote } from '@/server/template/rpc';
    const result = await callRemote<MyResponseType>(
-     'src/server/my-feature/myHandler',
+     'src/server/project/rpc-handlers/myHandler',
      { arg1: 'value' }
    );
    ```

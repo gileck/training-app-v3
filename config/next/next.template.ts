@@ -17,6 +17,8 @@ export const pwaConfig = {
   // Prevent automatic page reload when coming back online (iOS airplane mode fix)
   // Default is true, which calls location.reload() on the 'online' event
   reloadOnOnline: false,
+  // Web Push handlers (push + notificationclick). Loaded into the generated sw.js.
+  importScripts: ['/sw-push.js'],
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

@@ -175,6 +175,16 @@ iOS-specific keyboard and viewport issues. Use this when fixing iOS PWA bugs.
 
 ---
 
+## iOS PWA Push Notifications
+
+Web Push notifications for installed PWAs on iOS, Android, and desktop. Use this when adding user-facing push notifications.
+
+**Summary:** Web Push (VAPID) subscriptions. iOS works only from a home-screen-installed PWA on iOS 16.4+. Server uses `sendPushToUser(userId, payload)`; dead endpoints are auto-pruned on 404/410. Run `yarn generate-vapid` once to create keys.
+
+**Docs:** [ios-pwa-notifications.md](docs/template/ios-pwa-notifications.md)
+
+---
+
 ## Logging & Error Tracking
 
 Session logging with bug reporting. Use this when adding logging or debugging.
@@ -306,8 +316,9 @@ Generic remote function execution system for running server code on a local mach
 
 **Key Points:**
 - `src/server/template/rpc/` - Generic RPC system (zero project-specific code)
-- Start daemon: `yarn daemon` or `yarn daemon --verbose`
+- Start daemon: `yarn daemon` or `yarn daemon --verbose` (or `yarn daemon:dev` for tsx --watch + hot handler reload)
 - Handlers are modules with a default export async function
+- Child-project handlers MUST live under `src/server/project/**` — never under `src/server/template/` (gets overwritten on template sync)
 - Security: shared secret (RPC_SECRET env var) + path validation + file existence check
 - task-cli config: `agent-tasks/rpc-daemon/config.json`
 

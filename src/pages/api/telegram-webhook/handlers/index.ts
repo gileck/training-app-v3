@@ -3,7 +3,7 @@
  * Export all handlers from a single entry point
  */
 
-export { handleFeatureRequestApproval, handleBugReportApproval, handleFeatureRequestDeletion, handleBugReportDeletion, handleFeatureRequestApprovalToBacklog, handleBugReportApprovalToBacklog } from './approval';
+export { handleFeatureRequestApproval, handleBugReportApproval, handleLoginApproval, handleFeatureRequestDeletion, handleBugReportDeletion, handleFeatureRequestApprovalToBacklog, handleBugReportApprovalToBacklog } from './approval';
 export { handleFeatureRouting, handleBugRouting } from './routing';
 export { handleDesignReviewAction } from './design-review';
 export { handleClarificationReceived } from './clarification';

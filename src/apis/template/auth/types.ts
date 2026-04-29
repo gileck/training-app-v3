@@ -1,3 +1,5 @@
+export type TwoFactorMethod = 'telegram' | 'email';
+
 export interface LoginRequest {
     username: string;
     password: string;
@@ -14,7 +16,14 @@ export interface AuthResponse {
     error?: string;
 }
 
-export type LoginResponse = AuthResponse;
+export interface LoginResponse extends AuthResponse {
+    requiresTwoFactorApproval?: boolean;
+    loginApprovalId?: string;
+    loginApprovalToken?: string;
+    loginApprovalMethod?: TwoFactorMethod;
+    loginApprovalHint?: string;
+    expiresAt?: string;
+}
 
 /**
  * Registration response. Has one of three shapes:
@@ -55,6 +64,8 @@ export interface UpdateProfileRequest {
     profilePicture?: string;
     notificationsEnabled?: boolean;
     telegramChatId?: string;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: TwoFactorMethod;
 }
 
 export interface UpdateProfileResponse {
@@ -72,6 +83,8 @@ export interface UserResponse {
     profilePicture?: string;
     notificationsEnabled?: boolean;
     telegramChatId?: string;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: TwoFactorMethod;
     isAdmin: boolean;
 }
 

@@ -15,8 +15,11 @@ import { EditableField } from './components/EditableField';
 import { ImageUploadDialog } from './components/ImageUploadDialog';
 import { ProfileLoadingSkeleton } from './components/ProfileLoadingSkeleton';
 import { useProfileImage } from './useProfileImage';
-import { Bell, Calendar, Mail, MessageSquare, User } from 'lucide-react';
+import { Bell, Calendar, Info, Lock, Mail, MessageSquare, User } from 'lucide-react';
 import { Switch } from '@/client/components/template/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/client/components/template/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/client/components/template/ui/dialog';
+import type { TwoFactorMethod } from '@/apis/template/auth/types';
 
 export const Profile = () => {
     const user = useUser();
@@ -127,6 +130,12 @@ export const Profile = () => {
         month: 'long',
         day: 'numeric',
     });
+    const availableTwoFactorMethods: TwoFactorMethod[] = [
+        ...(displayUser.email ? ['email' as const] : []),
+        ...(displayUser.telegramChatId ? ['telegram' as const] : []),
+    ];
+    const selectedTwoFactorMethod = displayUser.twoFactorMethod
+        || (displayUser.email ? 'email' : displayUser.telegramChatId ? 'telegram' : undefined);
 
     return (
         <div className="mx-auto max-w-2xl px-4 py-6">
@@ -157,7 +166,6 @@ export const Profile = () => {
                 </ProfileSection>
 
                 <ProfileSection title="Notifications" icon={<Bell className="h-5 w-5" />}>
-                    {/* Notifications toggle */}
                     <div className="flex items-center justify-between px-4 py-3.5">
                         <div className="flex items-center gap-3">
                             <Bell className="h-4 w-4 text-muted-foreground" />
@@ -170,25 +178,95 @@ export const Profile = () => {
                         />
                     </div>
 
-                    {/* Telegram Chat ID - only shown when notifications enabled */}
-                    {displayUser.notificationsEnabled && (
-                        <EditableField
-                            label="Telegram Chat ID"
-                            value={displayUser.telegramChatId || ''}
-                            icon={<MessageSquare className="h-4 w-4" />}
-                            onSave={(value) => handleSaveField('telegramChatId', value)}
-                            isSaving={savingField === 'telegramChatId'}
-                            placeholder="Enter chat ID for notifications"
-                            infoTitle="How to Get Your Telegram Chat ID"
-                            infoContent={
-                                <ol className="ml-4 list-decimal space-y-2 text-sm text-muted-foreground">
-                                    <li>Open <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-primary underline">@userinfobot</a> on Telegram</li>
-                                    <li>Start a chat and send any message</li>
-                                    <li>The bot will reply with your Chat ID</li>
-                                    <li>Copy the ID number and paste it in the field</li>
-                                </ol>
-                            }
+                </ProfileSection>
+
+                <ProfileSection title="Telegram" icon={<MessageSquare className="h-5 w-5" />}>
+                    <EditableField
+                        label="Telegram Chat ID"
+                        value={displayUser.telegramChatId || ''}
+                        icon={<MessageSquare className="h-4 w-4" />}
+                        onSave={(value) => handleSaveField('telegramChatId', value)}
+                        isSaving={savingField === 'telegramChatId'}
+                        placeholder="Enter chat ID for Telegram 2-factor approval"
+                        infoTitle="How to Get Your Telegram Chat ID"
+                        infoContent={
+                            <ol className="ml-4 list-decimal space-y-2 text-sm text-muted-foreground">
+                                <li>Open <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-primary underline">@userinfobot</a> on Telegram</li>
+                                <li>Start a chat and send any message</li>
+                                <li>The bot will reply with your Chat ID</li>
+                                <li>Copy the ID number and paste it in the field</li>
+                                <li>This chat ID is used when Telegram is selected as your 2-factor method</li>
+                            </ol>
+                        }
+                    />
+                </ProfileSection>
+
+                <ProfileSection title="2-Factor Authentication" icon={<Lock className="h-5 w-5" />}>
+                    <div className="flex items-center justify-between px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                                    Enable 2-Factor Authentication
+                                    <InfoDialog
+                                        title="2-Factor Authentication"
+                                        description="Require a second approval step after password sign-in. Default is off"
+                                    />
+                                </span>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={displayUser.twoFactorEnabled ?? false}
+                            onCheckedChange={(checked) => handleSaveField('twoFactorEnabled', checked)}
+                            disabled={savingField === 'twoFactorEnabled' || availableTwoFactorMethods.length === 0}
                         />
+                    </div>
+
+                    <div className="space-y-2 px-4 pb-3">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                                    Approval Method
+                                    <InfoDialog
+                                        title="Approval Method"
+                                        description="Choose whether sign-in approvals are sent by email or Telegram."
+                                    />
+                                </p>
+                            </div>
+                            <div className="w-40">
+                                <Select
+                                    value={selectedTwoFactorMethod}
+                                    onValueChange={(value) => handleSaveField('twoFactorMethod', value)}
+                                    disabled={savingField === 'twoFactorMethod' || availableTwoFactorMethods.length === 0}
+                                >
+                                    <SelectTrigger className="h-10 text-sm">
+                                        <SelectValue placeholder="Choose method" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {displayUser.email && (
+                                            <SelectItem value="email">Email</SelectItem>
+                                        )}
+                                        {displayUser.telegramChatId && (
+                                            <SelectItem value="telegram">Telegram</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {availableTwoFactorMethods.length === 0 && (
+                        <p className="px-4 pb-3 text-xs text-muted-foreground">
+                            Add an email address or Telegram chat ID before enabling 2-factor authentication.
+                        </p>
+                    )}
+
+                    {availableTwoFactorMethods.length > 0 && !displayUser.twoFactorEnabled && (
+                        <p className="px-4 pb-3 text-xs text-muted-foreground">
+                            {selectedTwoFactorMethod === 'telegram'
+                                ? 'Telegram approval will use the chat ID configured above.'
+                                : 'Email approval will use the email address in Personal Information.'}
+                        </p>
                     )}
                 </ProfileSection>
 
@@ -223,3 +301,33 @@ export const Profile = () => {
 };
 
 export default Profile;
+
+function InfoDialog({ title, description }: { title: string; description: string }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                        }
+                    }}
+                    className="cursor-pointer text-muted-foreground/60 hover:text-muted-foreground"
+                >
+                    <Info className="h-3.5 w-3.5" />
+                </span>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {description}
+                </p>
+            </DialogContent>
+        </Dialog>
+    );
+}

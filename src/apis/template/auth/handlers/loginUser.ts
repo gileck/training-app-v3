@@ -16,6 +16,7 @@ import {
 } from "../shared";
 import { toStringId } from '@/server/template/utils';
 import { authOverrides } from '@/apis/auth-overrides';
+import { createTwoFactorLoginApproval } from '@/server/template/auth/login-approval';
 
 // Login endpoint
 export const loginUser = async (
@@ -66,6 +67,23 @@ export const loginUser = async (
             if (overrideError) {
                 return { error: overrideError };
             }
+        }
+
+        const twoFactorEnabled = user.twoFactorEnabled ?? user.telegramTwoFactorEnabled ?? false;
+        if (twoFactorEnabled) {
+            const approval = await createTwoFactorLoginApproval(user);
+            if ('error' in approval) {
+                return { error: approval.error };
+            }
+
+            return {
+                requiresTwoFactorApproval: true,
+                loginApprovalId: approval.approvalId,
+                loginApprovalToken: approval.approvalToken,
+                loginApprovalMethod: approval.approvalMethod,
+                loginApprovalHint: approval.approvalHint,
+                expiresAt: approval.expiresAt,
+            };
         }
 
         // Generate JWT token

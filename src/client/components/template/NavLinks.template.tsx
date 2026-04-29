@@ -8,13 +8,15 @@
  */
 
 import { NavItem } from './layout/types';
-import { ClipboardList, Workflow, UserCheck } from 'lucide-react';
+import { ClipboardList, Workflow, UserCheck, Bug, Database } from 'lucide-react';
 
 /** Template admin-only menu items */
 export const templateAdminMenuItems: NavItem[] = [
   { path: '/admin/reports', label: 'Reports', icon: <ClipboardList size={18} /> },
   { path: '/admin/workflow', label: 'Workflow', icon: <Workflow size={18} /> },
   { path: '/admin/approvals', label: 'Approvals', icon: <UserCheck size={18} /> },
+  { path: '/admin/service-worker', label: 'SW & Push Debug', icon: <Bug size={18} /> },
+  { path: '/admin/mongo-explorer', label: 'Mongo Explorer', icon: <Database size={18} /> },
 ];
 
 /** Utility to filter admin items based on user role */

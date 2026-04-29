@@ -15,6 +15,7 @@
     "app-guildelines/**",
     "docs/template/**",
     "scripts/template/**",
+    "public/sw-push.js",
     ".ai/commands/**",
     "src/config/**",
     "src/common/ai/**",

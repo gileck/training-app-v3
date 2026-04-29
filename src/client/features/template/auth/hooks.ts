@@ -11,7 +11,7 @@ import { userToHint } from './types';
 import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/template/auth/client';
 import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflight } from './preflight';
 import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
-import type { LoginRequest, RegisterRequest, CurrentUserResponse, UserResponse } from '@/apis/template/auth/types';
+import type { LoginRequest, RegisterRequest, CurrentUserResponse, UserResponse, TwoFactorMethod } from '@/apis/template/auth/types';
 
 /**
  * Discriminated result returned by the register mutation.
@@ -22,6 +22,17 @@ import type { LoginRequest, RegisterRequest, CurrentUserResponse, UserResponse }
 export type RegisterResult =
     | { kind: 'authenticated'; user: UserResponse }
     | { kind: 'pending-approval' };
+
+export type LoginResult =
+    | { kind: 'authenticated'; user: UserResponse }
+    | {
+        kind: 'pending-login-approval';
+        approvalId: string;
+        approvalToken: string;
+        approvalMethod: TwoFactorMethod;
+        approvalHint?: string;
+        expiresAt?: string;
+      };
 
 // Auth queries intentionally use longer cache times than useQueryDefaults()
 // because user identity rarely changes and auth must work regardless of the SWR toggle
@@ -328,20 +339,39 @@ export function useAuthValidation() {
 export function useLogin() {
     const { setValidatedUser, setUserHint, setError } = useAuthStore();
 
-    return useMutation({
-        mutationFn: async (credentials: LoginRequest) => {
+    return useMutation<LoginResult, Error, LoginRequest>({
+        mutationFn: async (credentials: LoginRequest): Promise<LoginResult> => {
             const response = await apiLogin(credentials);
             if (response.data?.error) {
                 throw new Error(response.data.error);
             }
+            if (response.data?.requiresTwoFactorApproval) {
+                if (!response.data.loginApprovalId || !response.data.loginApprovalToken) {
+                    throw new Error('Login approval is missing required data');
+                }
+                return {
+                    kind: 'pending-login-approval',
+                    approvalId: response.data.loginApprovalId,
+                    approvalToken: response.data.loginApprovalToken,
+                    approvalMethod: response.data.loginApprovalMethod || 'email',
+                    approvalHint: response.data.loginApprovalHint,
+                    expiresAt: response.data.expiresAt,
+                };
+            }
             if (!response.data?.user) {
                 throw new Error('Login failed: No user returned');
             }
-            return response.data.user;
+            return {
+                kind: 'authenticated',
+                user: response.data.user,
+            };
         },
-        onSuccess: (user) => {
-            setValidatedUser(user);
-            setUserHint(userToHint(user));
+        onSuccess: (result) => {
+            if (result.kind !== 'authenticated') {
+                return;
+            }
+            setValidatedUser(result.user);
+            setUserHint(userToHint(result.user));
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Login failed');
@@ -444,4 +474,3 @@ async function clearAllLocalData(
         window.location.href = '/';
     }
 }
-
