@@ -732,6 +732,7 @@ export function useSetProgress(planId: string | null, weekNumber: number, workou
                 completedAt: new Date().toISOString(),
                 numberOfSets: 1,
                 activityIds,
+                weekNumber, // Pass the current week number
             });
 
             // Call onSuccess callback with activity IDs
@@ -791,6 +792,7 @@ export function useSetProgress(planId: string | null, weekNumber: number, workou
                 completedAt: new Date().toISOString(),
                 numberOfSets: remaining,
                 activityIds,
+                weekNumber, // Pass the current week number
             });
         },
         [planId, weekNumber, completeAllSetsAction, addActivityMutation]
