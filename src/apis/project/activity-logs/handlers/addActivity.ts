@@ -76,7 +76,7 @@ export async function addActivity(
                 userId: userIdObj,
                 planExerciseId: planExercise._id,
                 planId: planExercise.planId,
-                weekNumber: 1, // Default to week 1 for manually added logs
+                weekNumber: request.weekNumber ?? 1, // Use provided week number, default to 1 for backward compatibility
                 setNumber,
                 completedAt,
             });
