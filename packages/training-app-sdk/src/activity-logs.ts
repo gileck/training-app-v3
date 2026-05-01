@@ -8,6 +8,8 @@ import {
   ExerciseHistoryResponse,
   GetActivityInput,
   GetActivityResponse,
+  GetRecoveryScoreInput,
+  RecoveryScoreResponse,
   SuccessResponse,
 } from './types';
 
@@ -67,6 +69,12 @@ export function activityLogsDomain(opts: ClientOptions) {
     duplicate: (activityId: string): Promise<ActivityResponse> => {
       assertNonEmptyString(activityId, 'activityId');
       return callApi(opts, 'activity-logs/duplicate-activity', { activityId });
+    },
+
+    /** Get recovery score based on recent training volume. */
+    recoveryScore: (input: GetRecoveryScoreInput = {}): Promise<RecoveryScoreResponse> => {
+      assertObject(input, 'input');
+      return callApi(opts, 'activity-logs/get-recovery-score', input);
     },
   };
 }

@@ -11,6 +11,7 @@ import {
     API_EDIT_ACTIVITY,
     API_DUPLICATE_ACTIVITY,
     API_ADD_ACTIVITY,
+    API_GET_RECOVERY_SCORE,
 } from './index';
 
 // Import handlers
@@ -22,6 +23,7 @@ import { bulkDeleteActivity } from './handlers/bulkDeleteActivity';
 import { editActivity } from './handlers/editActivity';
 import { duplicateActivity } from './handlers/duplicateActivity';
 import { addActivity } from './handlers/addActivity';
+import { getRecoveryScore } from './handlers/getRecoveryScore';
 
 // Export consolidated handlers object
 export const activityLogsApiHandlers = {
@@ -33,4 +35,5 @@ export const activityLogsApiHandlers = {
     [API_EDIT_ACTIVITY]: { process: editActivity },
     [API_DUPLICATE_ACTIVITY]: { process: duplicateActivity },
     [API_ADD_ACTIVITY]: { process: addActivity },
+    [API_GET_RECOVERY_SCORE]: { process: getRecoveryScore },
 };

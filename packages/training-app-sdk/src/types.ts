@@ -404,3 +404,30 @@ export interface EditActivityInput {
   performedAt?: string;
   notes?: string;
 }
+
+// ===========================================================================
+// Recovery Score
+// ===========================================================================
+
+export interface RecoveryScoreDailyLoad {
+  date: string;
+  sets: number;
+  loadPercent: number;
+  weight: number;
+  weightedLoad: number;
+}
+
+export interface GetRecoveryScoreInput {
+  planId?: string;
+  lookbackDays?: number;
+  baselineDays?: number;
+}
+
+export interface RecoveryScoreResponse {
+  score?: number;
+  label?: string;
+  color?: string;
+  dailyLoads?: RecoveryScoreDailyLoad[];
+  baseline?: number;
+  error?: string;
+}

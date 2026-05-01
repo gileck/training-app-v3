@@ -105,6 +105,30 @@ export interface DuplicateActivityResponse {
     error?: string;
 }
 
+// Get Recovery Score
+export interface GetRecoveryScoreRequest {
+    planId?: string; // Optional filter by plan
+    lookbackDays?: number; // Days for weighted score (default 10)
+    baselineDays?: number; // Days for baseline calculation (default 30)
+}
+
+export interface RecoveryScoreDailyLoad {
+    date: string;
+    sets: number;
+    loadPercent: number;
+    weight: number;
+    weightedLoad: number;
+}
+
+export interface GetRecoveryScoreResponse {
+    score?: number;
+    label?: string;
+    color?: string;
+    dailyLoads?: RecoveryScoreDailyLoad[];
+    baseline?: number;
+    error?: string;
+}
+
 // Add Activity (create new set logs)
 export interface AddActivityRequest {
     activityIds?: string[]; // Client-generated UUIDs for optimistic updates (one per set)

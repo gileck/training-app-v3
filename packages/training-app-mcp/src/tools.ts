@@ -498,6 +498,21 @@ export const TOOLS: ToolDef[] = [
     inputSchema: { type: 'object', properties: { activityId: str() }, required: ['activityId'] },
     handler: (c, a) => c.activityLogs.duplicate(pick<string>(a, 'activityId')),
   },
+  {
+    name: 'get_recovery_score',
+    description:
+      'Calculate recovery score (0-100) based on recent training volume. Uses exponential decay weighting where recent days impact score more. Returns score, label, daily breakdown, and baseline. High volume = low recovery score.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        planId: str('Optional: filter activity by plan'),
+        lookbackDays: int('Days for weighted score calculation (default 10)'),
+        baselineDays: int('Days for baseline calculation (default 30)'),
+      },
+      required: [],
+    },
+    handler: (c, a) => c.activityLogs.recoveryScore(a as never),
+  },
 
   // ------ admin: users -----------------------------------------------------
   {
