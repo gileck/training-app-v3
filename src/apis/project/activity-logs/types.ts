@@ -135,6 +135,7 @@ export interface AddActivityRequest {
     planExerciseId: string;
     completedAt: string; // ISO date string
     numberOfSets: number; // How many sets to create
+    weekNumber?: number; // Week number for the activity (defaults to 1 if not provided)
 }
 
 export interface AddActivityResponse {

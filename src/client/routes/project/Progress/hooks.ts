@@ -451,7 +451,7 @@ export function useAddActivity() {
                     userId: '',
                     planExerciseId: variables.planExerciseId,
                     planId: '',
-                    weekNumber: 1,
+                    weekNumber: variables.weekNumber ?? 1, // Use provided week number, default to 1
                     setNumber: i + 1,
                     completedAt: variables.completedAt,
                     exerciseName: 'Loading...',
