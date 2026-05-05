@@ -9,11 +9,13 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { usePlanDataStore } from './store';
 import { loadPlan, syncPlanToServer, syncFromCloud, loadWeekProgress } from './sync';
 import { addActivity, deleteActivity, getActivity } from '@/apis/project/activity-logs/client';
 import { uploadOverrideImage } from '@/apis/project/plan-exercises/client';
+import { updatePlanWorkout } from '@/apis/project/plan-workouts/client';
+import { planWorkoutsQueryKey } from '@/client/features/project/plan-workouts';
 import {
     mergeExerciseDef,
     stripEmptyOverrides,
@@ -24,6 +26,7 @@ import { generateId } from '@/client/utils/id';
 import type { ExerciseUpdates, NewExercise, PlanExerciseWithDefinition, ExerciseProgress } from './types';
 import type { AddActivityRequest, GetActivityResponse } from '@/apis/project/activity-logs/types';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
+import type { ListPlanWorkoutsResponse, PlanWorkoutClient } from '@/apis/project/plan-workouts/types';
 
 // ============================================================================
 // Stable Fallback References (CRITICAL for Zustand selectors)
@@ -32,6 +35,68 @@ import type { ExerciseDefinitionClient } from '@/server/database/collections/pro
 
 const EMPTY_EXERCISES: PlanExerciseWithDefinition[] = [];
 const EMPTY_PROGRESS: Record<string, ExerciseProgress> = {};
+
+function syncWorkoutItemsForExerciseSetChange(
+    queryClient: QueryClient,
+    planId: string,
+    planExerciseId: string,
+    previousSets: number,
+    nextSets: number
+) {
+    const queryKey = planWorkoutsQueryKey(planId);
+    const current = queryClient.getQueryData<ListPlanWorkoutsResponse>(queryKey);
+    const workouts = current?.workouts;
+    if (!workouts?.length) return;
+
+    const changedWorkouts: PlanWorkoutClient[] = [];
+    const nextWorkouts = workouts.map((workout) => {
+        let changed = false;
+        const items = workout.items.map((item) => {
+            if (item.planExerciseId !== planExerciseId || item.sets !== previousSets) {
+                return item;
+            }
+
+            changed = true;
+            return { ...item, sets: nextSets };
+        });
+
+        if (!changed) return workout;
+
+        const updatedWorkout = {
+            ...workout,
+            items,
+            updatedAt: new Date().toISOString(),
+        };
+        changedWorkouts.push(updatedWorkout);
+        return updatedWorkout;
+    });
+
+    if (changedWorkouts.length === 0) return;
+
+    queryClient.setQueryData<ListPlanWorkoutsResponse>(queryKey, {
+        ...current,
+        workouts: nextWorkouts,
+    });
+
+    for (const workout of changedWorkouts) {
+        void updatePlanWorkout({
+            planId,
+            workoutId: workout._id,
+            items: workout.items.map((item, index) => ({
+                planExerciseId: item.planExerciseId,
+                order: index,
+                ...(item.sets !== undefined && { sets: item.sets }),
+            })),
+        }).then((response) => {
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+        }).catch((error) => {
+            console.error('Failed to sync workout set allocation after exercise update:', error);
+            void queryClient.invalidateQueries({ queryKey });
+        });
+    }
+}
 
 // ============================================================================
 // Load Hook
@@ -221,6 +286,7 @@ export function useBulkAddPlanExercisesAdapter(
  * Adapter hook for updating an exercise (mimics mutation interface)
  */
 export function useUpdatePlanExerciseAdapter(planId: string) {
+    const queryClient = useQueryClient();
     const updateExercise = usePlanDataStore((s) => s.updateExercise);
 
     const mutate = useCallback(
@@ -236,6 +302,10 @@ export function useUpdatePlanExerciseAdapter(planId: string) {
             options?: { onSuccess?: () => void; onError?: (error: Error) => void }
         ) => {
             try {
+                const previousExercise = usePlanDataStore
+                    .getState()
+                    .plans[planId]?.exercises.find((ex) => ex._id === params.planExerciseId);
+
                 const updates: ExerciseUpdates = {};
                 if (params.sets !== undefined) updates.sets = params.sets;
                 if (params.reps !== undefined) updates.reps = params.reps;
@@ -244,13 +314,28 @@ export function useUpdatePlanExerciseAdapter(planId: string) {
                 if (params.comments !== undefined) updates.comments = params.comments;
 
                 updateExercise(planId, params.planExerciseId, updates);
+
+                if (
+                    params.sets !== undefined &&
+                    previousExercise &&
+                    previousExercise.sets !== params.sets
+                ) {
+                    syncWorkoutItemsForExerciseSetChange(
+                        queryClient,
+                        planId,
+                        params.planExerciseId,
+                        previousExercise.sets,
+                        params.sets
+                    );
+                }
+
                 syncPlanToServer(planId);
                 options?.onSuccess?.();
             } catch (error) {
                 options?.onError?.(error instanceof Error ? error : new Error('Failed to update exercise'));
             }
         },
-        [planId, updateExercise]
+        [planId, queryClient, updateExercise]
     );
 
     return { mutate, isPending: false };

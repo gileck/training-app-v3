@@ -19,9 +19,9 @@ interface WorkoutsTabContentProps {
         planWorkoutId: string,
         planWorkoutName: string
     ) => void;
-    onAddSet: (exercise: ExerciseWeekProgressFromStore) => void;
-    onRemoveSet: (exercise: ExerciseWeekProgressFromStore) => void;
-    onCompleteAll: (exercise: ExerciseWeekProgressFromStore) => void;
+    onAddSet: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
+    onRemoveSet: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
+    onCompleteAll: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
     onOpenDetails: (exercise: ExerciseWeekProgressFromStore) => void;
     selectedExerciseIds: string[];
     onToggleSelection: (id: string) => void;

@@ -138,15 +138,29 @@ export function Home() {
         }
     };
 
-    // Handle adding a set from the Exercise Tab or ad-hoc workout
-    const handleAddSet = (exercise: ExerciseWeekProgressFromStore) => {
-        if (exercise.setsCompleted >= exercise.targetSets) return;
-        const workoutId = getFirstWorkoutWithCapacity(
-            exercise.planExerciseId,
-            planWorkoutsList,
-            exercises,
-            weekWorkoutSets
-        );
+    const getWorkoutTargetSets = (workoutId: string, exercise: ExerciseWeekProgressFromStore) => {
+        const workout = planWorkoutsList.find((w) => w._id === workoutId);
+        const item = workout?.items.find((i) => i.planExerciseId === exercise.planExerciseId);
+        return item?.sets ?? exercise.targetSets;
+    };
+
+    // Handle adding a set from the Exercise Tab, auto-allocation, or a specific saved workout.
+    const handleAddSet = (exercise: ExerciseWeekProgressFromStore, explicitWorkoutId?: string) => {
+        let workoutId = explicitWorkoutId ?? null;
+
+        if (explicitWorkoutId) {
+            const workoutTargetSets = getWorkoutTargetSets(explicitWorkoutId, exercise);
+            const workoutSetsCompleted = weekWorkoutSets[explicitWorkoutId]?.[exercise.planExerciseId] ?? 0;
+            if (workoutSetsCompleted >= workoutTargetSets) return;
+        } else {
+            if (exercise.setsCompleted >= exercise.targetSets) return;
+            workoutId = getFirstWorkoutWithCapacity(
+                exercise.planExerciseId,
+                planWorkoutsList,
+                exercises,
+                weekWorkoutSets
+            );
+        }
 
         addSet(exercise.planExerciseId, exercise.targetSets, workoutId ?? undefined, (activityIds) => {
             // Show toast with delete action
@@ -177,19 +191,57 @@ export function Home() {
         });
     };
 
-    // Handle removing a set from the Exercise Tab or ad-hoc workout
-    const handleRemoveSet = (exercise: ExerciseWeekProgressFromStore) => {
-        if (exercise.setsCompleted <= 0) return;
-        const workoutId = getLastWorkoutWithSets(exercise.planExerciseId, planWorkoutsList, weekWorkoutSets);
+    // Handle removing a set from the Exercise Tab, auto-allocation, or a specific saved workout.
+    const handleRemoveSet = (exercise: ExerciseWeekProgressFromStore, explicitWorkoutId?: string) => {
+        let workoutId = explicitWorkoutId ?? null;
+
+        if (explicitWorkoutId) {
+            const workoutSetsCompleted = weekWorkoutSets[explicitWorkoutId]?.[exercise.planExerciseId] ?? 0;
+            if (workoutSetsCompleted <= 0) return;
+        } else {
+            if (exercise.setsCompleted <= 0) return;
+            workoutId = getLastWorkoutWithSets(exercise.planExerciseId, planWorkoutsList, weekWorkoutSets);
+        }
+
         removeSet(exercise.planExerciseId, workoutId ?? undefined);
     };
 
     // Handle completing all remaining sets for an exercise
-    const handleCompleteAll = (exercise: ExerciseWeekProgressFromStore) => {
-        const remainingSets = exercise.targetSets - exercise.setsCompleted;
+    const handleCompleteAll = (exercise: ExerciseWeekProgressFromStore, explicitWorkoutId?: string) => {
+        const remainingSets = explicitWorkoutId
+            ? getWorkoutTargetSets(explicitWorkoutId, exercise) -
+                (weekWorkoutSets[explicitWorkoutId]?.[exercise.planExerciseId] ?? 0)
+            : exercise.targetSets - exercise.setsCompleted;
         if (remainingSets <= 0) return;
 
         const exerciseId = exercise.planExerciseId;
+        if (explicitWorkoutId) {
+            const allActivityIds: string[] = [];
+            for (let i = 0; i < remainingSets; i++) {
+                addSet(exerciseId, exercise.targetSets, explicitWorkoutId, (activityIds) => {
+                    allActivityIds.push(...activityIds);
+                });
+            }
+
+            if (allActivityIds.length > 0) {
+                toast.success(`${remainingSets} set${remainingSets > 1 ? 's' : ''} logged`, {
+                    duration: 6000,
+                    actions: [
+                        {
+                            label: 'Delete All',
+                            onClick: () => {
+                                allActivityIds.forEach((activityId) => {
+                                    deleteActivityMutation.mutate({ activityId });
+                                });
+                                toast.success('All logs deleted');
+                            },
+                        },
+                    ],
+                });
+            }
+            return;
+        }
+
         const containingWorkouts = planWorkoutsList.filter((workout) =>
             workout.items.some((item) => item.planExerciseId === exerciseId)
         );

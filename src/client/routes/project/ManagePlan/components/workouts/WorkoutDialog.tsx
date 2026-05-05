@@ -74,8 +74,7 @@ export function WorkoutDialog({
                     // Only include IDs that still exist in planExercises
                     const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
                     if (exercise) {
-                        // Use item.sets if defined, otherwise use exercise's weekly sets as default
-                        exerciseMap.set(item.planExerciseId, item.sets ?? exercise.sets);
+                        exerciseMap.set(item.planExerciseId, item.sets);
                     }
                 }
                 setSelectedExercises(exerciseMap);
@@ -92,10 +91,10 @@ export function WorkoutDialog({
             if (newMap.has(exerciseId)) {
                 newMap.delete(exerciseId);
             } else {
-                // Default to remaining sets (0 if fully allocated in other workouts)
+                // Full allocation follows the exercise's weekly set target as it changes.
                 const allocated = allocationMap.get(exerciseId) || 0;
                 const remaining = Math.max(0, exercise.sets - allocated);
-                newMap.set(exerciseId, remaining);
+                newMap.set(exerciseId, allocated === 0 ? undefined : remaining);
             }
             return newMap;
         });
@@ -114,7 +113,7 @@ export function WorkoutDialog({
         for (const exercise of planExercises) {
             const allocated = allocationMap.get(exercise._id) || 0;
             const remaining = Math.max(0, exercise.sets - allocated);
-            newMap.set(exercise._id, remaining);
+            newMap.set(exercise._id, allocated === 0 ? undefined : remaining);
         }
         setSelectedExercises(newMap);
     };
@@ -127,11 +126,16 @@ export function WorkoutDialog({
         if (!workoutName.trim() || selectedExercises.size === 0) return;
 
         // Build items array with proper order
-        const items = Array.from(selectedExercises.entries()).map(([planExerciseId, sets], index) => ({
-            planExerciseId,
-            order: index,
-            sets,
-        }));
+        const items = Array.from(selectedExercises.entries()).map(([planExerciseId, sets], index) => {
+            const exercise = planExercises.find((pe) => pe._id === planExerciseId);
+            const normalizedSets = exercise && sets === exercise.sets ? undefined : sets;
+
+            return {
+                planExerciseId,
+                order: index,
+                ...(normalizedSets !== undefined && { sets: normalizedSets }),
+            };
+        });
 
         onSave(workoutName.trim(), items);
     };

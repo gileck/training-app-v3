@@ -18,9 +18,9 @@ export interface PlanWorkoutCardProps {
     isExpanded: boolean;
     onToggleExpand: () => void;
     // Exercise action handlers
-    onAddSet: (exercise: ExerciseWeekProgressFromStore) => void;
-    onRemoveSet: (exercise: ExerciseWeekProgressFromStore) => void;
-    onCompleteAll: (exercise: ExerciseWeekProgressFromStore) => void;
+    onAddSet: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
+    onRemoveSet: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
+    onCompleteAll: (exercise: ExerciseWeekProgressFromStore, workoutId?: string) => void;
     onOpenDetails: (exercise: ExerciseWeekProgressFromStore) => void;
     selectedExerciseIds: string[];
     onToggleSelection: (exerciseId: string) => void;
@@ -147,9 +147,9 @@ export function PlanWorkoutCard({
                                     <ExerciseCardList
                                         key={ex.planExerciseId}
                                         exercise={displayExercise}
-                                        onAddSet={() => onAddSet(ex)}
-                                        onRemoveSet={() => onRemoveSet(ex)}
-                                        onCompleteAll={() => onCompleteAll(ex)}
+                                        onAddSet={() => onAddSet(ex, workout._id)}
+                                        onRemoveSet={() => onRemoveSet(ex, workout._id)}
+                                        onCompleteAll={() => onCompleteAll(ex, workout._id)}
                                         onOpenDetails={() => onOpenDetails(ex)}
                                         isComplete={isExerciseDone}
                                         isSelected={selectedExerciseIds.includes(ex.planExerciseId)}

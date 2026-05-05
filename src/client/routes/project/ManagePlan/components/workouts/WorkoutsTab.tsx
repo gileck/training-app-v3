@@ -147,11 +147,12 @@ export function WorkoutsTab({
                 items: workout.items.map((item, index) => {
                     // Get exercise to use as fallback for sets
                     const exercise = planExercises.find(pe => pe._id === item.planExerciseId);
+                    const normalizedSets =
+                        exercise && item.sets === exercise.sets ? undefined : item.sets;
                     return {
                         planExerciseId: item.planExerciseId,
                         order: index,
-                        // Preserve sets if defined, otherwise use exercise's weekly sets
-                        sets: item.sets ?? exercise?.sets,
+                        ...(normalizedSets !== undefined && { sets: normalizedSets }),
                     };
                 }),
             },
