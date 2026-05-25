@@ -18,3 +18,4 @@ export * from './template/error-tracking';
 export * from './template/theme';
 export * from './template/boot-performance';
 export * from './template/push-notifications';
+export * from './template/rpc-connection';

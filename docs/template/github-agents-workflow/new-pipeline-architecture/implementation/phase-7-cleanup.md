@@ -1,6 +1,5 @@
 ---
 title: "Phase 7: Cleanup"
-summary: Remove deprecated function bodies, old constants, and unused code after all callers have been migrated to the pipeline engine.
 ---
 
 # Phase 7: Cleanup

@@ -1,7 +1,6 @@
 ---
 title: Workflow Review Agent
 description: Pipeline agent that reviews completed workflow items and creates improvement issues.
-summary: "Last pipeline step (after pr-review). Picks up Done items where `reviewed !== true`, analyzes agent logs via LLM (read-only tools), appends `[LOG:REVIEW]` to `agent-logs/issue-N.md`, stores `reviewSummary` on the workflow item, sends Telegram, and files improvement issues via `yarn agent-workflow create` (admin-approved). Skips items without local logs."
 priority: 6
 related_docs:
   - overview.md

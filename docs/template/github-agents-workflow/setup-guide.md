@@ -1,13 +1,7 @@
 ---
 title: GitHub Agents Workflow Setup
 description: Complete setup instructions for the GitHub agents workflow. Use this when setting up the workflow for the first time.
-summary: "Setup requires: GitHub tokens (admin + bot), MongoDB connection, optional Telegram integration. Pipeline status tracked in workflow-items MongoDB collection. Run `yarn verify-setup` to check configuration."
 priority: 3
-key_points:
-  - "Two tokens: GITHUB_TOKEN (admin/PR reviews) + GITHUB_BOT_TOKEN (PRs/issues)"
-  - "Pipeline status tracked in workflow-items MongoDB collection (no GitHub Projects setup needed)"
-  - "Optional: Telegram topics for organized notifications"
-  - "Optional: Claude GitHub App for automated PR reviews"
 related_docs:
   - overview.md
   - workflow-items-architecture.md

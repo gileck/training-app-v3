@@ -38,6 +38,12 @@ export interface User {
   approvedAt?: Date;
   /** When admin rejected the user (if applicable) */
   rejectedAt?: Date;
+  /**
+   * Updated by the auth/me handler on every successful cookie validation
+   * (= every app boot for authenticated users). Optional for backward compat
+   * with users created before this field existed.
+   */
+  lastSeenAt?: Date;
 }
 
 /**

@@ -1,6 +1,5 @@
 ---
 title: "Phase 6: External Migration"
-summary: Migrate all transport layer callers (Telegram handlers, API handlers, CLI, agents) from direct workflow-service function calls to engine-based calls.
 ---
 
 # Phase 6: External Migration

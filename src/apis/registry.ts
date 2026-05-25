@@ -1,4 +1,8 @@
-import type { ApiHandlerContext, ApiHandlers } from "./types";
+import type {
+    ApiHandlerContext,
+    ApiHandlersWithMeta,
+    ApiMeta,
+} from "./types";
 
 /**
  * Helper for building the API registry with minimal boilerplate.
@@ -9,11 +13,20 @@ import type { ApiHandlerContext, ApiHandlers } from "./types";
  * The registry requires a generic `(unknown, context)` signature, but domain handlers
  * naturally use strongly-typed payloads. We centralize the necessary cast here so
  * `src/apis/apis.ts` stays clean.
+ *
+ * Domain entries MAY also include `meta: ApiMeta` for endpoints that
+ * opt into the agent tool surface (see `buildAgentToolsFromApis`).
+ * `meta` is preserved verbatim onto the merged registry.
  */
-export type LooseApiHandlers = Record<string, { process: unknown }>;
+export type LooseApiHandlers = Record<string, {
+    process: unknown;
+    meta?: ApiMeta;
+}>;
 
-export function mergeApiHandlers(...sources: LooseApiHandlers[]): ApiHandlers {
-    const out: ApiHandlers = {};
+export function mergeApiHandlers(
+    ...sources: LooseApiHandlers[]
+): ApiHandlersWithMeta {
+    const out: ApiHandlersWithMeta = {};
 
     for (const source of sources) {
         for (const [key, handler] of Object.entries(source)) {
@@ -26,6 +39,7 @@ export function mergeApiHandlers(...sources: LooseApiHandlers[]): ApiHandlers {
                     params: unknown,
                     context: ApiHandlerContext
                 ) => Promise<unknown>,
+                ...(handler.meta ? { meta: handler.meta } : {}),
             };
         }
     }

@@ -1,7 +1,7 @@
 import { Menu, Moon, SunMedium, LogIn, User, LogOut, WifiOff, Wifi } from 'lucide-react';
 import { useRouter } from '@/client/features';
 import { NavItem } from './types';
-import { TopNavBarSlot } from '@/client/components/NavLinks';
+import { TopNavBarSlot, TopNavBarRightSlot } from '@/client/components/NavLinks';
 import {
   useAuthStore,
   useUser,
@@ -126,6 +126,7 @@ export const TopNavBar = ({ navItems, isStandalone, onDrawerToggle }: TopNavBarP
           </div>
 
           <div className="flex items-center gap-1">
+            <TopNavBarRightSlot />
             {effectiveOffline && (
               <button
                 onClick={canToggleOnline ? () => setOfflineDialogOpen(true) : undefined}

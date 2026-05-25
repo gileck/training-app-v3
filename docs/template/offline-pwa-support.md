@@ -4,10 +4,11 @@ description: Full offline support with optimistic updates. Use this when impleme
 summary: "GET requests serve cached data, POST requests queue in localStorage and batch-sync when online. **CRITICAL: Never update UI from server response** - use optimistic updates in `onMutate`, keep `onSuccess`/`onSettled` empty."
 guidelines:
   - "CRITICAL: Never update UI from server response — only optimistic updates in `onMutate`"
-  - Keep `onSuccess` empty
+  - Keep `onSuccess` empty (UI side effects like a success toast are fine; never update cache)
   - Keep `onSettled` empty
-  - Only rollback in `onError`
-  - "Mutations must handle empty `{}` responses (offline queue)"
+  - "On error: rollback EVERY cache key `onMutate` wrote to AND call `errorToast(message, err)` to surface the error — empty `onError` is a silent-failure bug"
+  - "Defensive: `invalidateQueries` the affected keys after rollback so a missed rollback key self-corrects on next fetch"
+  - "Mutations must handle empty `{}` responses (offline queue) — when offline, `apiClient.post` returns `{}` and `onError` never fires, so the offline banner is the feedback, not a toast"
 priority: 2
 ---
 
@@ -174,6 +175,8 @@ Server response #2  → UI: 2 (finally correct, but user saw flicker)
 ### The Correct Pattern
 
 ```typescript
+import { errorToast } from '@/client/features';
+
 // ✅ CORRECT: Optimistic-only pattern
 useMutation({
     mutationFn: async (data) => {
@@ -181,40 +184,54 @@ useMutation({
         if (response.data?.error) throw new Error(response.data.error);
         return response.data;
     },
-    
+
     // THIS IS THE SOURCE OF TRUTH - update UI immediately
     onMutate: async (variables) => {
         await queryClient.cancelQueries({ queryKey: ['entity'] });
         const previous = queryClient.getQueryData(['entity']);
-        
+
         // Optimistically update
         queryClient.setQueryData(['entity'], (old) => ({
             ...old,
             value: variables.newValue,
         }));
-        
+
         return { previous }; // For rollback on error
     },
-    
-    // ONLY on error: rollback to previous state
-    onError: (_error, _variables, context) => {
+
+    // ONLY on error:
+    //  1. Surface the error — without this, fire-and-forget callers (.mutate() with no
+    //     .catch) see nothing when the server rejects. Empty onError is a silent-failure bug.
+    //  2. Rollback EVERY key onMutate wrote to (missed keys = "stuck optimistic" UI).
+    //  3. Invalidate as a safety net — if a rollback key was missed, next fetch corrects it.
+    //
+    // Note: when offline, apiClient.post returns {} (not an error) so onError never fires.
+    // The offline banner + batch-sync alert are the feedback for the offline path.
+    onError: (err, _variables, context) => {
+        errorToast(err instanceof Error ? err.message : 'Failed to update', err);
         if (context?.previous) {
             queryClient.setQueryData(['entity'], context.previous);
         }
+        void queryClient.invalidateQueries({ queryKey: ['entity'] });
     },
-    
+
     // onSuccess: intentionally empty - NEVER update UI from server response
     // onSettled: intentionally empty - NEVER refetch after mutation
 });
 ```
 
+> **Mission-critical flows** (signup, payment, onboarding): a toast is not enough. Use
+> `mutateAsync` + try/catch at the call site and open a blocking failure dialog with the
+> error message, copyable trace, and Retry/Cancel actions. See
+> [error-handling.md](./error-handling.md#critical-every-mutation-onerror-must-call-errortoast-or-equivalent).
+
 ### Why This Works
 
 1. **`onMutate`**: Updates UI immediately (this IS the source of truth)
-2. **`mutationFn`**: Sends request to server (queued if offline)
+2. **`mutationFn`**: Sends request to server (queued if offline); throws on `data.error` so server-side validation rejections reach `onError`
 3. **`onSuccess`**: EMPTY - server response is ignored on success
-4. **`onError`**: ONLY on error - rollback to previous state
-5. **`onSettled`**: EMPTY - never invalidateQueries (causes race conditions)
+4. **`onError`**: surface error via `errorToast` + rollback EVERY key + defensive `invalidateQueries`. When offline, this branch never runs (apiClient returns `{}`, not an error) — the offline banner is the feedback.
+5. **`onSettled`**: EMPTY - never invalidateQueries unconditionally (causes race conditions); only invalidate inside `onError` as the safety net
 
 > **Note**: While `onSuccess` should not update state from server responses, ephemeral feedback like **toasts** (`toast.success('Saved')`), **logging**, **analytics**, or **navigation** is acceptable. These don't cause race conditions because they're fire-and-forget operations that don't modify application state. See [React Query Mutations](./react-query-mutations.md#whats-allowed-in-onsuccess) for details.
 

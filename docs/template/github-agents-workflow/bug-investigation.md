@@ -1,7 +1,6 @@
 ---
 title: Bug Investigation Workflow
 description: Complete documentation for the Bug Investigator agent and bug fix selection flow.
-summary: "On approval, bugs auto-route to Bug Investigation. The agent runs read-only analysis and posts a GitHub comment with root cause + fix options. Obvious fixes (high confidence + S complexity + destination=implement) auto-submit; otherwise admin picks an option at /decision/:issueNumber, routing to Tech Design or Implementation. Telegram notifications fire either way."
 priority: 5
 related_docs:
   - overview.md

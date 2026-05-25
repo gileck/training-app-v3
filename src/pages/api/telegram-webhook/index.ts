@@ -72,6 +72,8 @@ import {
     handleUndoDesignChanges,
     handleUndoDesignReview,
     handleChooseRecommended,
+    handleRpcConnectionApprove,
+    handleRpcConnectionReject,
 } from './handlers';
 import type { TelegramUpdate, ReviewAction, DesignType } from './types';
 import { flushPendingLogs } from '@/agents/lib/logging';
@@ -210,6 +212,36 @@ async function processCallbackQuery(
             botToken,
             callback_query.id,
             result.success ? '✅ Login approved' : (result.error || 'Unable to approve login')
+        );
+        return;
+    }
+
+    if (action === 'rpc_conn_approve' && parts.length === 2) {
+        const connectionId = parsed.getString(1);
+        if (!connectionId) {
+            await answerCallbackQuery(botToken, callback_query.id, 'Invalid connection id');
+            return;
+        }
+        const result = await handleRpcConnectionApprove(botToken, callback_query, connectionId);
+        await answerCallbackQuery(
+            botToken,
+            callback_query.id,
+            result.success ? '✅ RPC connection approved' : (result.error || 'Unable to approve')
+        );
+        return;
+    }
+
+    if (action === 'rpc_conn_reject' && parts.length === 2) {
+        const connectionId = parsed.getString(1);
+        if (!connectionId) {
+            await answerCallbackQuery(botToken, callback_query.id, 'Invalid connection id');
+            return;
+        }
+        const result = await handleRpcConnectionReject(botToken, callback_query, connectionId);
+        await answerCallbackQuery(
+            botToken,
+            callback_query.id,
+            result.success ? '🛑 RPC connection rejected' : (result.error || 'Unable to reject')
         );
         return;
     }

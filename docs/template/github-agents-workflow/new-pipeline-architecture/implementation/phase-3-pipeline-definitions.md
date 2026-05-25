@@ -1,6 +1,5 @@
 ---
 title: "Phase 3: Pipeline Definitions"
-summary: Create the two pipeline definition const objects (feature, bug) with unit tests validating internal consistency.
 ---
 
 # Phase 3: Pipeline Definitions

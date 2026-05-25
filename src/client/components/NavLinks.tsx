@@ -23,6 +23,14 @@ const projectTopNavBarSlot =
 export const TopNavBarSlot: () => ReactNode =
   projectTopNavBarSlot ?? (() => null);
 
+// Same shape, but rendered in the right-side controls cluster (before the
+// offline indicator / theme toggle / avatar). Use this for status pills or
+// utility buttons that should sit next to the user controls.
+const projectTopNavBarRightSlot =
+  (projectNavModule as { TopNavBarRightSlot?: () => ReactNode }).TopNavBarRightSlot;
+export const TopNavBarRightSlot: () => ReactNode =
+  projectTopNavBarRightSlot ?? (() => null);
+
 /** Combined admin menu items (template + project) */
 export const adminMenuItems = [
   ...templateAdminMenuItems,

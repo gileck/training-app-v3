@@ -2,6 +2,11 @@
 
 This document defines the **required mutation patterns** for this application.
 
+> **Want to skip the wiring?** `useOptimisticMutation` from `@/client/query`
+> bakes the entire pattern in (cancel + snapshot + rollback + errorToast +
+> defensive invalidate). See [use-optimistic-mutation.md](./use-optimistic-mutation.md).
+> Plain `useMutation` is still allowed — the rules below apply to both styles.
+
 ## Core Rule: Optimistic-only
 
 **The UI is the source of truth.**
@@ -12,6 +17,105 @@ This document defines the **required mutation patterns** for this application.
 - **Do not invalidate/refetch from mutations** in `onSettled` / `onSuccess`
 
 This avoids race conditions when users interact faster than the server responds.
+
+## 🚨 CRITICAL: Mutation Errors MUST Be Visible to the User
+
+**Every optimistic mutation MUST surface server errors to the user.** No exceptions.
+
+This is the #1 silent-failure source we've encountered in this codebase: a mutation throws,
+`onError` rolls back the cache, and the user sees the optimistic UI snap back with **no
+explanation** — or worse, the rollback misses a key and the UI looks "stuck running" while
+the actual server response was a clear validation error.
+
+### Why this is so easy to miss
+
+- `mutation.mutate()` is fire-and-forget — callers don't `await`, so they have no `catch`
+  block to show the error. The mutation's own `onError` is the ONLY place the user can
+  learn it failed.
+- Optimistic rollback is **silent** — `setQueryData` puts the previous state back without
+  any UI signal that something went wrong.
+- The mutation throws inside `mutationFn` — but if the calling component used `.mutate()`
+  (not `.mutateAsync()`), the throw is invisible to it.
+- Devs often write empty `onError: () => {}` when they're focused on the happy path, then
+  ship.
+
+### Required pattern
+
+```typescript
+import { errorToast } from '@/client/features';
+
+useMutation({
+    mutationFn: async (vars) => {
+        const response = await api.doThing(vars);
+        if (response.data?.error) throw new Error(response.data.error);
+        return response.data;
+    },
+    onMutate: async (vars) => {
+        // ... optimistic update ...
+        return { previous };
+    },
+    onError: (err, _vars, context) => {
+        // 🚨 REQUIRED: surface the error to the user.
+        // Use errorToast (NOT plain toast.error) so the user gets a copy-to-clipboard
+        // affordance with the full error for bug reports. The first arg is the
+        // user-facing message; the second is the original error.
+        errorToast(err instanceof Error ? err.message : 'Failed to do thing', err);
+
+        // Roll back EVERY key onMutate touched. Missing one = stuck optimistic state.
+        if (context?.previous) {
+            queryClient.setQueryData(['things'], context.previous);
+        }
+
+        // Optional but recommended: invalidate the affected keys after rollback so the
+        // next fetch returns server truth, in case rollback missed something.
+        void queryClient.invalidateQueries({ queryKey: ['things'] });
+    },
+    onSuccess: () => {
+        // Empty (per the Core Rule). UI side effects like a success toast are fine
+        // here if useful, but never update cache from server response.
+    },
+});
+```
+
+### Code-review checklist for every mutation
+
+Before merging a PR that adds or modifies a `useMutation`:
+
+- [ ] `mutationFn` throws on `response.data?.error` (not just returns it).
+- [ ] `onError` calls `errorToast(message, err)` with the actual server message.
+- [ ] `onError` rolls back **every** cache key `onMutate` wrote to.
+- [ ] If the caller uses `.mutate()` (fire-and-forget), the only path to user-visible
+      error is `onError` — that path MUST exist.
+- [ ] If the caller uses `.mutateAsync()`, the `await` site MUST have a `try/catch` that
+      surfaces the error (or relies on the mutation's own `onError`).
+
+### Anti-patterns we've found in this codebase
+
+❌ **Empty `onError`** — silently swallows the error:
+```typescript
+onError: () => {},  // ← user sees rollback but no reason
+```
+
+❌ **Rollback without surfacing**:
+```typescript
+onError: (_err, _vars, context) => {
+    queryClient.setQueryData(['x'], context.previous);
+    // ← no toast, user has no idea what failed
+},
+```
+
+❌ **Catching the error in the calling component but not in onError, then forgetting to
+toast in the calling component too**:
+```typescript
+// In Thread.tsx
+const handleSend = () => {
+    sendMutation.mutate(input);  // ← fire-and-forget; no .catch() possible
+};
+// In useSendMessage's onError: () => {}  ← also silent
+// Result: user sees nothing when server rejects.
+```
+
+✅ **Correct**: see the "Required pattern" block above.
 
 ## What's Allowed in onSuccess/onError? (UI Side Effects)
 

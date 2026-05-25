@@ -1,6 +1,5 @@
 ---
 title: "Phase 2: Guards and Hooks"
-summary: Extract all precondition checks and side effects from current workflow-service functions into standalone guard and hook modules.
 ---
 
 # Phase 2: Guards and Hooks

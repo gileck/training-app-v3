@@ -1,7 +1,6 @@
 ---
 title: Command Skills Reference
 description: Reference table for command-based skills (slash commands).
-summary: See the linked command files for command usage and details.
 priority: 5
 ---
 

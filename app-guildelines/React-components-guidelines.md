@@ -1,5 +1,6 @@
 1. Always make the React component mobile first and mobile friendly.    
 2. Always use shadcn/ui components with Tailwind CSS for UI components and styling.
+3. Never use native `<select>` in React UI. Always use the project's shadcn `Select` component from `src/client/components/template/ui/select.tsx`.
 
 ## Loading States - CRITICAL UX Pattern
 
@@ -134,4 +135,3 @@ function ItemsList() {
 2. **`isFetching`**: True whenever a network request is in progress (including background revalidation)
 3. **`data`**: Contains cached data immediately if available
 4. **Empty state**: ONLY show when `!isLoading && data exists && items.length === 0`
-

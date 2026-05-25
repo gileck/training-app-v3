@@ -52,7 +52,7 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
   };
 
   const drawerContent = (
-    <div className="py-2">
+    <div className="flex-1 min-h-0 overflow-y-auto py-2">
       <nav className="grid gap-0.5 px-2 pb-2">
         {navItems.map(renderNavItem)}
       </nav>
@@ -93,7 +93,7 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
   return (
     <Sheet open={mobileOpen} onOpenChange={(o) => !o && onDrawerToggle()}>
       <SheetContent side="left" className="w-64">
-        <div className="px-4 py-2">
+        <div className="shrink-0 px-4 py-2">
           <SheetTitle>Menu</SheetTitle>
         </div>
         {drawerContent}

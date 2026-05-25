@@ -1,7 +1,6 @@
 ---
 title: Directory Locking
 description: Directory-level lock for preventing concurrent agent runs on same working directory
-summary: "Master script acquires per-directory lock using PID-based ownership and stale detection. Prevents concurrent git operations and file modifications."
 priority: 3
 ---
 

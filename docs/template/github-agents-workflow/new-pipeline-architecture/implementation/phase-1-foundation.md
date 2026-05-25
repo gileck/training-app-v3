@@ -1,6 +1,5 @@
 ---
 title: "Phase 1: Foundation"
-summary: Create type system, engine skeleton, guard/hook registries, and DB schema changes for the pipeline architecture.
 ---
 
 # Phase 1: Foundation

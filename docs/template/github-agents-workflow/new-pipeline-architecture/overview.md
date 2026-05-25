@@ -1,6 +1,5 @@
 ---
 title: Pipeline Architecture Overview
-summary: JSON-driven pipeline engine replacing unvalidated status transitions with declared state machines, validated by a generic engine with registered hooks and guards.
 description: Use this to understand the new pipeline architecture design, its motivation, and how it replaces the current workflow-service implementation.
 ---
 

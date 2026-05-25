@@ -10,6 +10,8 @@ guidelines:
   - "No client code in server files, no server code in client files"
   - "Mutations return `{}` when offline — always guard against empty data"
 priority: 3
+related_docs:
+  - ../api-endpoint-format.md
 ---
 # Client-Server Communication Guidelines
 

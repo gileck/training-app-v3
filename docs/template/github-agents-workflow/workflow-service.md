@@ -1,6 +1,5 @@
 ---
 title: Unified Workflow Service Layer
-summary: "Architecture of the unified workflow service that centralizes all business logic for workflow lifecycle operations (approve, route, delete, advance, review, merge, revert, undo, decision, agent completion) across transports."
 ---
 
 # Unified Workflow Service Layer

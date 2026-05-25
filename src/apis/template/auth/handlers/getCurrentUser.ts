@@ -5,6 +5,7 @@ import {
 } from '../types';
 import * as users from '@/server/database/collections/template/users/users';
 import { sanitizeUser } from '../shared';
+import { recordSession } from '@/server/template/sessions/recordSession';
 
 // Get current user endpoint
 // NOTE: Returns { user: null } for unauthenticated users - this is NOT an error,
@@ -30,6 +31,9 @@ export const getCurrentUser = async (
                 authDebug: context.authDebug,
             };
         }
+
+        // Record an auto-login session + bump lastSeenAt. Fire-and-forget.
+        recordSession(context.userId, 'auto');
 
         return {
             user: { ...sanitizeUser(user), isAdmin: context.isAdmin },

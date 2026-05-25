@@ -241,17 +241,22 @@ export const projectAdminMenuItems: NavItem[] = [...];
 
 ### Custom Top Nav Bar Component
 
-The top navigation bar reserves a centered slot between the hamburger menu and the theme/user controls. Add an optional `TopNavBarSlot` export to your existing `src/client/components/project/NavLinks.project.tsx` to render any component there — search box, status pill, breadcrumb, tenant switcher, etc.
+The top navigation bar reserves two project-owned slots between the template-managed left (menu + nav) and right (offline / theme / avatar) clusters. Add either or both as exports on `src/client/components/project/NavLinks.project.tsx`:
 
 ```tsx
 // NavLinks.project.tsx (YOU EDIT THIS)
 import type { ReactNode } from 'react';
 import { MyStatusPill } from './MyStatusPill';
+import { RpcConnectionIndicator } from '@/client/features/template/rpc-connection';
 
+// Centered slot — capped at max-w-xs (320px). Good for search boxes, breadcrumbs.
 export const TopNavBarSlot = (): ReactNode => <MyStatusPill />;
+
+// Right cluster — sits before the offline / theme / avatar controls. Good for status pills.
+export const TopNavBarRightSlot = (): ReactNode => <RpcConnectionIndicator />;
 ```
 
-The slot is automatically centered and capped at `max-w-xs` (320px). Omit the export (or return `null`) to leave it empty — the template provides a no-op fallback so existing projects keep working without changes.
+Both exports are optional. The template combiner (`NavLinks.tsx`) reads them from your project file and falls back to a no-op when not present, so existing projects keep working without changes.
 
 ---
 

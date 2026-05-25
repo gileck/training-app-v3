@@ -9,6 +9,7 @@ import { cn } from '@/client/lib/utils';
 import { authConfig } from '@/client/auth-config';
 import { useRouter } from '../router';
 import { savePendingLoginApproval } from './login-approval-storage';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 
 export const LoginForm = () => {
     const error = useAuthStore((state) => state.error);
@@ -32,6 +33,8 @@ export const LoginForm = () => {
     });
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state for password visibility
     const [showPassword, setShowPassword] = useState(false);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog open state
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
     const { formErrors, validateForm, clearFieldError, resetFormErrors } = useLoginFormValidator(isRegistering, formData);
 
@@ -213,7 +216,26 @@ export const LoginForm = () => {
                         </>
                     )}
                 </button>
+
+                {!isRegistering && (
+                    <p className="text-center">
+                        <button
+                            type="button"
+                            onClick={() => setForgotPasswordOpen(true)}
+                            disabled={isLoading}
+                            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        >
+                            Forgot password?
+                        </button>
+                    </p>
+                )}
             </form>
+
+            <ForgotPasswordDialog
+                open={forgotPasswordOpen}
+                onOpenChange={setForgotPasswordOpen}
+                initialUsername={formData.username}
+            />
 
             {/* Toggle */}
             {canRegister && (

@@ -1,6 +1,5 @@
 ---
 title: "Phase 5: Internal Migration"
-summary: Refactor each workflow-service function into a thin wrapper around the pipeline engine, one function at a time with E2E validation after each.
 ---
 
 # Phase 5: Internal Migration

@@ -1,13 +1,7 @@
 ---
 title: GitHub Agents Workflow E2E Scenarios
 description: Visual workflows for all workflow scenarios. Use this to understand specific flows like multi-phase features, request changes, or rejections.
-summary: "Comprehensive visual diagrams for: simple features, multi-phase features (L/XL split into phases), bug fixes, design/implementation request changes flows, undo actions (5-min window), clarification flows, and rejection scenarios."
 priority: 4
-key_points:
-  - Simple features can skip design phases and go straight to implementation
-  - Multi-phase features create sequential PRs (Phase 1/3, 2/3, 3/3)
-  - Request Changes triggers revision cycle on same PR
-  - 5-minute undo window for accidental Request Changes clicks
 related_docs:
   - overview.md
   - workflow-items-architecture.md

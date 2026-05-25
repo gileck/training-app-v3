@@ -9,6 +9,16 @@ import {
 } from '@/client/utils/offlinePostQueue';
 import { logger } from '@/client/features/template/session-logs';
 import { submitApiErrorReport } from '@/client/features/template/bug-report/apiErrorReporter';
+// Import the store module directly (not via the feature barrel) to avoid a
+// cycle: apiClient → feature/index → hooks → apis/.../client → apiClient.
+import { getRpcConnectionToken } from '@/client/features/template/rpc-connection/store';
+
+function buildRequestHeaders(): HeadersInit {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const rpcToken = getRpcConnectionToken();
+  if (rpcToken) headers['X-RPC-Connection-Token'] = rpcToken;
+  return headers;
+}
 
 // Legacy callback support for initialization
 let getSettingsRef: (() => Settings) | null = null;
@@ -85,9 +95,7 @@ export const apiClient = {
       
       const response = await fetch(`/api/process/${urlName}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildRequestHeaders(),
         body: JSON.stringify({ params }),
       });
 
@@ -221,9 +229,7 @@ export const apiClient = {
     try {
       const response = await fetch(`/api/process/${urlName}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildRequestHeaders(),
         body: JSON.stringify({ params }),
       });
 

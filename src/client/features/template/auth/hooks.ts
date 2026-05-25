@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from './store';
 import { userToHint } from './types';
-import { apiLogin, apiLogout, apiRegister, apiFetchCurrentUser } from '@/apis/template/auth/client';
+import { apiChangePassword, apiLogin, apiLogout, apiRegister, apiFetchCurrentUser, apiRequestPasswordReset, apiResetPassword } from '@/apis/template/auth/client';
 import { waitForPreflight, getPreflightResult, isPreflightComplete, resetPreflight } from './preflight';
 import { markPhaseStart, markEvent, logStatus, BOOT_PHASES, printBootSummary } from '../boot-performance';
-import type { LoginRequest, RegisterRequest, CurrentUserResponse, UserResponse, TwoFactorMethod } from '@/apis/template/auth/types';
+import type { ChangePasswordRequest, LoginRequest, RegisterRequest, CurrentUserResponse, RequestPasswordResetRequest, ResetPasswordRequest, UserResponse, TwoFactorMethod } from '@/apis/template/auth/types';
 
 /**
  * Discriminated result returned by the register mutation.
@@ -410,6 +410,57 @@ export function useRegister() {
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Registration failed');
+        },
+    });
+}
+
+export function useChangePassword() {
+    return useMutation<void, Error, ChangePasswordRequest>({
+        mutationFn: async (params: ChangePasswordRequest): Promise<void> => {
+            const response = await apiChangePassword(params);
+            // Empty {} response means the request was queued offline.
+            // Treat as failure so the user knows it didn't actually happen.
+            if (!response.data || Object.keys(response.data).length === 0) {
+                throw new Error('You must be online to change your password');
+            }
+            if (response.data.error) {
+                throw new Error(response.data.error);
+            }
+            if (!response.data.success) {
+                throw new Error('Failed to change password');
+            }
+        },
+    });
+}
+
+export function useRequestPasswordReset() {
+    return useMutation<void, Error, RequestPasswordResetRequest>({
+        mutationFn: async (params: RequestPasswordResetRequest): Promise<void> => {
+            const response = await apiRequestPasswordReset(params);
+            // Empty {} response means the request was queued offline.
+            if (!response.data || Object.keys(response.data).length === 0) {
+                throw new Error('You must be online to request a password reset');
+            }
+            // The server intentionally always returns success to prevent
+            // username enumeration. The UI should always show the same generic
+            // confirmation regardless of outcome.
+        },
+    });
+}
+
+export function useResetPassword() {
+    return useMutation<void, Error, ResetPasswordRequest>({
+        mutationFn: async (params: ResetPasswordRequest): Promise<void> => {
+            const response = await apiResetPassword(params);
+            if (!response.data || Object.keys(response.data).length === 0) {
+                throw new Error('You must be online to reset your password');
+            }
+            if (response.data.error) {
+                throw new Error(response.data.error);
+            }
+            if (!response.data.success) {
+                throw new Error('Failed to reset password');
+            }
         },
     });
 }

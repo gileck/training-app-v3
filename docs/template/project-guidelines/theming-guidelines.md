@@ -9,6 +9,8 @@ guidelines:
   - "Status colors: `text-success`, `text-warning`, `text-info`, `text-destructive`"
   - "Test components with 2+ theme presets in both light and dark modes"
 priority: 3
+related_docs:
+  - ../theming.md
 ---
 
 # Theming Guidelines

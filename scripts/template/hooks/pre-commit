@@ -4,8 +4,8 @@
 # - Prevents committing yarn.lock and package-lock.json
 # - Auto-regenerates CLAUDE.md when docs or skills change
 
-# Check if yarn.lock is staged for commit
-if git diff --cached --name-only | grep -q "^yarn.lock$"; then
+# Check if yarn.lock is being added or modified (deletions/untracks are allowed)
+if git diff --cached --name-only --diff-filter=AM | grep -q "^yarn.lock$"; then
     echo ""
     echo "❌ ERROR: yarn.lock should not be committed"
     echo ""
@@ -18,8 +18,8 @@ if git diff --cached --name-only | grep -q "^yarn.lock$"; then
     exit 1
 fi
 
-# Check if package-lock.json is staged for commit
-if git diff --cached --name-only | grep -q "^package-lock.json$"; then
+# Check if package-lock.json is being added or modified (deletions allowed)
+if git diff --cached --name-only --diff-filter=AM | grep -q "^package-lock.json$"; then
     echo ""
     echo "❌ ERROR: package-lock.json should not be committed"
     echo ""

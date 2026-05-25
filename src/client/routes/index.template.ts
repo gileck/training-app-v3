@@ -19,9 +19,12 @@ import { BugFix } from './template/BugFix';
 import { Decision } from './template/Decision';
 import { DesignMocks } from './template/DesignMocks';
 import { LoginApproval } from './template/LoginApproval';
+import { Connection } from './template/Connection';
+import { ResetPassword } from './template/ResetPassword';
 import { ItemDetail } from './template/ItemDetail';
 import { WorkflowItems } from './template/Workflow';
 import { UserApprovals } from './template/UserApprovals';
+import { AdminSessions } from './template/AdminSessions';
 import { Admin } from './template/Admin';
 import { ServiceWorkerDebug } from './template/ServiceWorkerDebug';
 import { MongoExplorer } from './template/MongoExplorer';
@@ -49,6 +52,9 @@ export const templateRoutes: Routes = {
   '/login-approval': { component: LoginApproval, public: true, fullScreen: true },
   '/telegram-login-approval': { component: LoginApproval, public: true, fullScreen: true },
 
+  // Forgot-password reset page (public, full-screen, ?token= from Telegram link)
+  '/reset-password': { component: ResetPassword, public: true, fullScreen: true },
+
   // Template protected routes
   '/settings': Settings,
   '/theme': Theme,
@@ -63,10 +69,12 @@ export const templateRoutes: Routes = {
   '/admin/item/:id': ItemDetail,
   '/admin/workflow': WorkflowItems,
   '/admin/approvals': UserApprovals,
+  '/admin/sessions': AdminSessions,
   '/admin/service-worker': ServiceWorkerDebug,
   '/admin/mongo-explorer': MongoExplorer,
   '/admin/mongo-explorer/:collectionName': MongoExplorer,
   '/admin/mongo-explorer/:collectionName/:documentKey': MongoExplorer,
+  '/admin/rpc-connection': { component: Connection, adminOnly: true },
 
   // Fallback
   '/not-found': NotFound,

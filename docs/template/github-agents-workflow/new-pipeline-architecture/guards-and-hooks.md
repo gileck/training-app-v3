@@ -1,6 +1,5 @@
 ---
 title: Guards and Hooks
-summary: Complete catalog of guards (precondition checks) and hooks (side effects) extracted from current workflow-service functions, with registry design and function mapping table.
 ---
 
 # Guards and Hooks

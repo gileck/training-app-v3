@@ -1,6 +1,5 @@
 ---
 title: Workflow E2E Tests
-summary: "E2E tests that verify the full agent workflow lifecycle by mocking only at system boundaries (LLM, Telegram, filesystem) while running real code for artifacts, phases, parsing, workflow-db, logging, and decision-utils against an in-memory MongoDB."
 ---
 
 # Workflow E2E Tests

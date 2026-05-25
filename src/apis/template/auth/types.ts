@@ -74,6 +74,40 @@ export interface UpdateProfileResponse {
     error?: string;
 }
 
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+    success: boolean;
+    error?: string;
+}
+
+export interface RequestPasswordResetRequest {
+    username: string;
+}
+
+/**
+ * Always returns `{ success: true }` regardless of whether the username
+ * exists or has Telegram configured. This is intentional anti-enumeration:
+ * an unauthenticated attacker must not be able to learn which usernames
+ * are registered or which have Telegram set up.
+ */
+export interface RequestPasswordResetResponse {
+    success: boolean;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+    success: boolean;
+    error?: string;
+}
+
 // User data returned to the client (without password)
 export interface UserResponse {
     id: string;
@@ -112,7 +146,13 @@ export interface ApiHandlerContext {
     isAdmin: boolean;
     /** Debug info about auth state - useful for diagnosing auth failures */
     authDebug: AuthDebugInfo;
+    /** Originating user-agent header (may be undefined for non-HTTP callers). */
+    userAgent?: string;
+    /** Best-effort originating IP (X-Forwarded-For first hop, falls back to socket address). */
+    ip?: string;
+    /** Per-connection RPC bearer token (X-RPC-Connection-Token header). Required for gated RPC calls. */
+    rpcConnectionToken?: string;
     getCookieValue: (name: string) => string | undefined;
     setCookie: (name: string, value: string, options: Record<string, unknown>) => void;
     clearCookie: (name: string, options: Record<string, unknown>) => void;
-} 
+}

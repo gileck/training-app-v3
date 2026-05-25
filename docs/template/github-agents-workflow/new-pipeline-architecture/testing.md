@@ -1,6 +1,5 @@
 ---
 title: Testing Strategy
-summary: E2E test strategy using existing tests as regression validation, with no test changes needed during migration since exported function signatures are preserved.
 ---
 
 # Testing Strategy

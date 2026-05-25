@@ -4,12 +4,16 @@ description: when building UI components - MUST use shadcn/ui
 title: shadcn/ui Usage
 guidelines:
   - "shadcn/ui is the ONLY component library — never use Material-UI, Ant Design, Chakra, etc."
+  - "Never use native `<select>` — always use the project's shadcn `Select` component"
   - "NEVER hardcode colors (`bg-white`, `text-black`, `bg-blue-500`) — always use semantic tokens (`bg-background`, `text-foreground`)"
   - "Use built-in variants (`variant=\"outline\"`, `size=\"sm\"`) instead of custom styling"
   - "Use `asChild` for proper component composition (e.g., `DialogTrigger asChild`)"
   - "Icons from `lucide-react` only — no other icon libraries"
   - "Always provide `Label` with `htmlFor`/`id` for form inputs"
 priority: 3
+related_docs:
+  - ../shadcn-component-library.md
+  - ../theming.md
 ---
 # shadcn/ui Component Usage Guidelines
 
@@ -34,7 +38,38 @@ import { Button } from 'antd';
 import { Button } from '@chakra-ui/react';
 ```
 
-### 2. Use Semantic Color Tokens
+### 2. Use shadcn Select, Never Native select
+
+Do not use the browser-native `<select>` element in React UI. Always use the project's shadcn `Select` component so styling, dark mode, focus behavior, keyboard interactions, and overlay behavior stay consistent.
+
+```tsx
+// ✅ CORRECT - Project shadcn Select
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/client/components/template/ui/select';
+
+<Select value={status} onValueChange={setStatus}>
+  <SelectTrigger>
+    <SelectValue placeholder="Select status" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="open">Open</SelectItem>
+    <SelectItem value="closed">Closed</SelectItem>
+  </SelectContent>
+</Select>
+
+// ❌ WRONG - Native select
+<select value={status} onChange={(event) => setStatus(event.target.value)}>
+  <option value="open">Open</option>
+  <option value="closed">Closed</option>
+</select>
+```
+
+### 3. Use Semantic Color Tokens
 
 NEVER use hardcoded colors or raw Tailwind color names. Always use semantic tokens:
 
@@ -59,7 +94,7 @@ NEVER use hardcoded colors or raw Tailwind color names. Always use semantic toke
 <div className="bg-slate-100 text-gray-900">
 ```
 
-### 3. Available Semantic Tokens
+### 4. Available Semantic Tokens
 
 | Token | Usage |
 |-------|-------|
@@ -74,7 +109,7 @@ NEVER use hardcoded colors or raw Tailwind color names. Always use semantic toke
 | `border-border` | All borders |
 | `ring-ring` | Focus rings |
 
-### 4. Component Variants and Sizes
+### 5. Component Variants and Sizes
 
 Use built-in variants instead of custom styling:
 
@@ -97,7 +132,7 @@ Use built-in variants instead of custom styling:
 </button>
 ```
 
-### 5. Proper Composition with asChild
+### 6. Proper Composition with asChild
 
 Use `asChild` for proper component composition:
 
@@ -117,7 +152,7 @@ Use `asChild` for proper component composition:
 </Dialog>
 ```
 
-### 6. Accessibility: Labels and ARIA
+### 7. Accessibility: Labels and ARIA
 
 Always provide proper labels and ARIA attributes:
 
@@ -135,7 +170,7 @@ Always provide proper labels and ARIA attributes:
 </div>
 ```
 
-### 7. Icon Usage with lucide-react
+### 8. Icon Usage with lucide-react
 
 Use `lucide-react` for all icons:
 
@@ -153,7 +188,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { PlusOutlined } from '@ant-design/icons';
 ```
 
-### 8. Mobile-First Responsive Design
+### 9. Mobile-First Responsive Design
 
 Build for mobile first, enhance for desktop:
 
@@ -175,7 +210,7 @@ Build for mobile first, enhance for desktop:
 </nav>
 ```
 
-### 9. Loading States
+### 10. Loading States
 
 Always show loading feedback:
 
@@ -195,7 +230,7 @@ import { Skeleton } from '@/client/components/ui/skeleton';
 )}
 ```
 
-### 10. Controlled Components
+### 11. Controlled Components
 
 Prefer controlled components for better state management:
 

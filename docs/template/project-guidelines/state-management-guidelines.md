@@ -7,8 +7,14 @@ guidelines:
   - "Valid useState: text input, dialog open, in-flight submission, confirm dialog — everything else MUST use Zustand"
   - "All Zustand stores MUST use `createStore` from `@/client/stores` — direct zustand imports blocked by ESLint"
   - "NEVER update UI from server response — optimistic-only pattern: update in `onMutate`, rollback in `onError`, empty `onSuccess`/`onSettled`"
+  - "🚨 EVERY mutation's `onError` MUST call `errorToast(message, err)` to surface the server error. Empty `onError` (or rollback-only `onError`) is a silent-failure bug — see react-query-mutations.md."
+  - "🚨 Rollback EVERY cache key `onMutate` wrote to. A missed key = stuck optimistic state (e.g. spinner that never goes away)."
   - "Default to Zustand persisted — use `inMemoryOnly: true` only for truly transient state"
 priority: 2
+related_docs:
+  - ../state-management.md
+  - ../react-query-mutations.md
+  - ../zustand-stores.md
 ---
 # State Management Guidelines
 

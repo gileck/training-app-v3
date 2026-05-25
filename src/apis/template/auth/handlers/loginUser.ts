@@ -12,11 +12,13 @@ import {
     COOKIE_OPTIONS,
     JWT_EXPIRES_IN,
     getJwtSecret,
+    isAdminUser,
     sanitizeUser,
 } from "../shared";
 import { toStringId } from '@/server/template/utils';
 import { authOverrides } from '@/apis/auth-overrides';
 import { createTwoFactorLoginApproval } from '@/server/template/auth/login-approval';
+import { recordSession } from '@/server/template/sessions/recordSession';
 
 // Login endpoint
 export const loginUser = async (
@@ -42,7 +44,7 @@ export const loginUser = async (
         }
 
         const userId = toStringId(user._id);
-        const isAdmin = !!process.env.ADMIN_USER_ID && userId === process.env.ADMIN_USER_ID;
+        const isAdmin = isAdminUser(userId);
 
         // Admin-approved signups gate: block login for any user whose
         // approval is still pending or was rejected. The admin user
@@ -95,6 +97,8 @@ export const loginUser = async (
 
         // Set auth cookie
         context.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+
+        recordSession(userId, 'login');
 
         return { user: { ...sanitizeUser(user), isAdmin } };
     } catch (error: unknown) {

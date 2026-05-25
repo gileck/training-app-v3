@@ -529,6 +529,10 @@ Authentication responses include `user.isAdmin` so the client can enable admin-o
 | `auth/register` | POST | Create user, set JWT cookie |
 | `auth/me` | POST | Get current user (validates token) |
 | `auth/logout` | POST | Clear JWT cookie |
+| `auth/update-profile` | POST | Update profile fields (username, email, 2FA, etc.) |
+| `auth/change-password` | POST | Change password for authenticated user |
+| `auth/request-password-reset` | POST | Send a Telegram reset link (always returns success — anti-enumeration) |
+| `auth/reset-password` | POST | Redeem a reset token and set a new password |
 
 ### Security Notes
 
@@ -537,6 +541,54 @@ Authentication responses include `user.isAdmin` so the client can enable admin-o
 - Real authentication is always validated server-side
 - Token expiry handled by server, client just responds to 401
 - **Long-lived tokens (10 years)**: This project uses 10-year JWT expiry for PWA/mobile-like experience where users expect to stay logged in indefinitely. Security is maintained via HttpOnly cookies and server-side validation.
+
+### Change Password Flow
+
+The `auth/change-password` endpoint lets an authenticated user replace their password. Handler: `src/apis/template/auth/handlers/changePassword.ts`. UI: `src/client/routes/template/Profile/components/ChangePasswordDialog.tsx`, opened from the Security section in Profile.
+
+**Server flow:**
+1. Require `context.userId` (rejects unauthenticated callers)
+2. Validate input — both fields present, new password ≥ 8 chars, must differ from current
+3. `bcrypt.compare(currentPassword, user.password_hash)` — generic error message on mismatch (`"Current password is incorrect"`) to avoid leaking which check failed
+4. `bcrypt.hash(newPassword, SALT_ROUNDS)` and persist via `users.updateUser`
+5. Fire-and-forget `sendTelegramNotificationToUser(userId, "Your password was just changed…")` so a hijacked session can't silently rotate the password without the real owner finding out. Skips silently if the user has no Telegram chat ID configured. Failure is logged but does not fail the request.
+
+**Client flow (`useChangePassword`):**
+- Standard React Query mutation. No optimistic update — this is a security operation that must wait for server confirmation, no offline support.
+- An empty `{}` response (the offline-queue convention from `apiClient`) is treated as failure with a "You must be online" message, so users aren't told it succeeded when the request was just queued.
+
+**Intentional simplifications (current MVP):**
+- **No token / session invalidation.** Existing JWTs on other devices remain valid until they expire. This is consistent with the rest of the system (10-year tokens, no revocation anywhere). If you later need "log out all devices", add a `tokenVersion` field on the user, include it in the JWT payload, increment it on password change, and check it in `getUserContext.ts` — that would invalidate every existing token globally in one place.
+- **No rate limiting.** The endpoint requires a valid auth cookie *and* the current password, so it isn't a public brute-force surface.
+- **No `validateNewPassword` override hook.** Min length 8 is hardcoded in the handler. Add an entry to `auth-overrides-types.ts` if a child project needs a custom policy.
+
+### Forgot Password Flow (Telegram)
+
+Lets a logged-out user reset their password via a one-time link delivered through Telegram. There is no email path — Telegram is the only out-of-band channel the template supports. Users without a `telegramChatId` configured cannot use this flow and must contact the administrator.
+
+**Files:**
+- Server: `src/apis/template/auth/handlers/requestPasswordReset.ts`, `src/apis/template/auth/handlers/resetPassword.ts`
+- Token storage: `src/server/database/collections/template/password-reset-tokens/`
+- UI: `src/client/features/template/auth/ForgotPasswordDialog.tsx` (opened from `LoginForm`), `src/client/routes/template/ResetPassword/`
+
+**Flow:**
+1. From the login form, the user clicks "Forgot password?" and submits their username.
+2. `auth/request-password-reset` looks up the user. If found and they have a `telegramChatId`, it generates a 32-byte random token, stores **only the SHA-256 hash** in `password_reset_tokens` (TTL 30 minutes, single-use), and fires-and-forgets a Telegram message containing `{baseUrl}/reset-password?token={rawToken}`. The endpoint **always** returns `{ success: true }` regardless of outcome — see "Anti-enumeration" below.
+3. The user opens the link in Telegram. The `/reset-password` route reads the token from the URL, prompts for a new password (≥ 8 chars + confirmation), and calls `auth/reset-password`.
+4. `auth/reset-password` hashes the incoming token, looks up an unconsumed/unexpired record, **atomically marks it consumed** (race-safe with `findOneAndUpdate`), updates the user's `password_hash`, invalidates any other outstanding tokens for that user, and sends a Telegram confirmation. On success the user is redirected to sign in.
+
+**Security properties:**
+- **Anti-enumeration (response payload)**: `auth/request-password-reset` returns the same `{ success: true }` whether the username exists, doesn't exist, exists-but-not-approved, or exists-but-has-no-Telegram. The Telegram send is fire-and-forget so response time doesn't leak whether Telegram was actually called. **Caveat**: the DB lookup and token-insert paths still differ in cost between branches, so a sophisticated attacker can probe usernames by *response timing* alone. Add upper-bounded random delays or dummy DB work in the early-exit branches if this matters for your threat model.
+- **Approval gate**: pending/rejected users cannot trigger a reset (mirrors the login gate), even though the response looks identical to the user-doesn't-exist case.
+- **Token is never stored in plaintext**: only the SHA-256 hash. A DB compromise does not expose live reset links.
+- **Single-use + 30-min validity**: tokens are atomically consumed via `findOneAndUpdate` and rejected after `expiresAt`. Successful reset also invalidates any sibling tokens for the same user. **Note**: there is no MongoDB TTL index — consumed/expired token rows accumulate indefinitely. Same pattern as `login_approvals`. Add a TTL index on `expiresAt` (or a sweeper job) if this becomes a storage concern.
+- **Confirmation notification**: a successful reset triggers a follow-up Telegram message so an attacker who manages to intercept a token can't silently take over without the real owner being notified.
+
+**Intentional simplifications (current MVP):**
+- **No rate limiting on `auth/request-password-reset`**. An unauthenticated attacker could spam the endpoint to send Telegram messages to a user. Tradeoff is small (Telegram messages are throttled by their API) but worth adding a per-IP / per-username cooldown if abuse appears.
+- **No verify-token endpoint**. The reset page accepts any non-empty token and only validates on submit, so an expired link shows the error after the user types a password. Add a verify endpoint if the extra UX polish is worth a third route.
+- **No "log out all devices" after reset**. Same reasoning as the change-password flow — see above.
+- **No `tokenVersion` rotation**. A legitimate user who resets after suspecting compromise won't kick the attacker off other devices. The fix is the same `tokenVersion` work mentioned in the change-password section.
 
 ## TTL (Time-to-Live) Settings
 
@@ -674,6 +726,31 @@ function LoginForm() {
                 // Show error message
             }
         });
+    };
+}
+```
+
+### Changing Password
+
+```typescript
+import { useChangePassword } from '@/client/features/auth';
+
+function ChangePasswordForm() {
+    const changePasswordMutation = useChangePassword();
+
+    const handleSubmit = (currentPassword: string, newPassword: string) => {
+        changePasswordMutation.mutate(
+            { currentPassword, newPassword },
+            {
+                onSuccess: () => {
+                    // Password changed; user stays logged in on this device.
+                    // Other devices keep their existing JWTs (no global invalidation).
+                },
+                onError: (error) => {
+                    // error.message is safe to show — generic for auth failures
+                },
+            }
+        );
     };
 }
 ```

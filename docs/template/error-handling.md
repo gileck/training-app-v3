@@ -4,6 +4,8 @@ description: Guidelines for handling and displaying errors across the applicatio
 summary: Use `ErrorDisplay` for route/page errors, `errorToast`/`errorToastAuto` for mutation failures, and shared `errorUtils` for classification. Stack traces are admin-only. Never show raw error messages to users.
 guidelines:
   - Use `ErrorDisplay` for route/page errors, `errorToast` for mutations
+  - "🚨 EVERY useMutation `onError` MUST call `errorToast(message, err)` — empty `onError` is a silent-failure bug. Rollback alone leaves the user with no explanation."
+  - "🚨 Mission-critical flows (signup, payment, onboarding) deserve a blocking failure DIALOG with copyable trace + retry, not just a toast."
   - "Never show raw `error.message` — use `cleanErrorMessage()` or `getUserFriendlyMessage()`"
   - Stack traces are admin-only
   - "Always pass error object to `errorToast` (enables copy)"
@@ -116,6 +118,57 @@ onError: (err) => {
     errorToast('Failed to save changes', err);
 },
 ```
+
+#### 🚨 CRITICAL: every mutation onError MUST call errorToast (or equivalent)
+
+This is the most common silent-failure pattern in the codebase. A mutation fails server-side,
+`onError` runs and rolls back the optimistic cache update, and the user sees the UI snap back
+to the previous state **with no explanation of what went wrong**. Worse, if the rollback
+misses a cache key (e.g. you wrote to both messages and threads in `onMutate` but only rolled
+back messages), the optimistic state leaks and the UI looks "stuck running".
+
+**Required for every `useMutation`**:
+
+```typescript
+useMutation({
+    mutationFn: async (vars) => {
+        const r = await api.doThing(vars);
+        if (r.data?.error) throw new Error(r.data.error);  // throw so onError fires
+        return r.data;
+    },
+    onError: (err, _vars, context) => {
+        // ⚠️ REQUIRED. Without this, fire-and-forget callers (.mutate() with no .catch)
+        // see nothing when the server rejects.
+        errorToast(err instanceof Error ? err.message : 'Failed', err);
+
+        // Roll back EVERY key onMutate touched (not just one).
+        if (context?.previousMessages !== undefined) {
+            queryClient.setQueryData(messagesKey, context.previousMessages);
+        }
+        if (context?.previousThreads !== undefined) {
+            queryClient.setQueryData(threadsKey, context.previousThreads);
+        }
+        // ... etc
+
+        // Defensive: invalidate so next fetch returns server truth even if rollback
+        // missed a key.
+        void queryClient.invalidateQueries({ queryKey: affectedKey });
+    },
+});
+```
+
+**Code-review check**: open every `useMutation` in the diff and verify the `onError`:
+- Calls `errorToast(message, err)` — never an empty `() => {}`.
+- Rolls back every cache key the `onMutate` wrote to.
+- Invalidates queries it touched (defensive — catches a missed rollback key).
+
+**For mission-critical or first-impression flows** (account signup, payment confirmation,
+onboarding, etc.), a toast is **not enough**. Use a blocking failure dialog that shows the
+error message, a copyable trace, and recovery actions (Retry / Cancel / Open debug logs).
+
+See also: [react-query-mutations.md](./react-query-mutations.md) — the
+"🚨 CRITICAL: Mutation Errors MUST Be Visible to the User" section has the full pattern with
+anti-pattern examples.
 
 Use `errorToastAuto` when you want automatic classification:
 

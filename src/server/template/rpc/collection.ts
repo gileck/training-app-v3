@@ -1,5 +1,6 @@
 import type { Collection, ObjectId } from 'mongodb';
 import { getDb } from '@/server/database/connection';
+import { assertRpcConnection } from './connection-gate';
 import type { RpcJobDocument, RpcJobCreate } from './types';
 
 const COLLECTION_NAME = 'rpc-jobs';
@@ -16,6 +17,9 @@ export async function ensureRpcIndexes(): Promise<void> {
 }
 
 export async function createRpcJob(job: RpcJobCreate): Promise<ObjectId> {
+  // Gate here (not just in callRemote) so direct callers — fire-and-forget
+  // patterns that don't wait for a result — are also gated.
+  await assertRpcConnection();
   const col = await getCollection();
   const result = await col.insertOne(job as unknown as RpcJobDocument);
   return result.insertedId;
@@ -54,6 +58,22 @@ export async function findRecentJob(
       status: { $in: ['pending', 'processing', 'completed'] as const },
       expiresAt: { $gt: new Date() },
     },
+    { sort: { createdAt: -1 } }
+  );
+}
+
+/**
+ * Find the most-recent rpc-job for a given assistant-message id —
+ * agent jobs put the assistant-message id under `args.sourceMessageId`,
+ * so this is the canonical "what happened to my turn?" lookup. Returns
+ * null when the job has TTL'd out (1h default).
+ */
+export async function findRpcJobBySourceMessageId(
+  sourceMessageId: string
+): Promise<RpcJobDocument | null> {
+  const col = await getCollection();
+  return col.findOne(
+    { 'args.sourceMessageId': sourceMessageId },
     { sort: { createdAt: -1 } }
   );
 }

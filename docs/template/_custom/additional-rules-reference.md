@@ -1,7 +1,6 @@
 ---
 title: Additional Rules Reference
 description: Reference table for additional skill rules not covered in main sections.
-summary: See the linked skill files for detailed guidelines on each topic.
 priority: 5
 ---
 

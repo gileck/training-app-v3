@@ -1,6 +1,5 @@
 ---
 title: Implementation Roadmap
-summary: Phase dependency graph, progress tracking, and execution order for the 8-phase pipeline architecture migration.
 ---
 
 # Implementation Roadmap

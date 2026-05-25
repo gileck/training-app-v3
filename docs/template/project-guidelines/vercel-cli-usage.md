@@ -8,6 +8,8 @@ guidelines:
   - "Use `--cloud-proxy` when running in Claude Code cloud environment"
   - "Check build logs first when deployments fail: `yarn vercel-cli logs --deployment dpl_xxx`"
 priority: 4
+related_docs:
+  - ../vercel-cli-guide.md
 ---
 # Vercel CLI Usage Guidelines
 

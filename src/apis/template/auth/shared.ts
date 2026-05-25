@@ -6,6 +6,29 @@ import type { User } from "@/server/database/collections/template/users/types";
 
 export const SALT_ROUNDS = 10;
 
+// Centralized admin check used by every auth path (cookie, bearer token,
+// dev-mode LOCAL_USER_ID shortcut, login, register).
+//
+// Two grants:
+//   1. ADMIN_USER_ID matches the userId — the production rule.
+//   2. Local dev shortcut — when NODE_ENV=development and the user is the
+//      LOCAL_USER_ID, treat them as admin even if ADMIN_USER_ID is unset
+//      or different. This makes /admin/* routes work out of the box on a
+//      fresh local install. To opt out, set IGNORE_LOCAL_USER_ID=true
+//      (which disables the LOCAL_USER_ID shortcut entirely).
+export function isAdminUser(userId: string | undefined | null): boolean {
+  if (!userId) return false;
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.IGNORE_LOCAL_USER_ID !== 'true' &&
+    process.env.LOCAL_USER_ID &&
+    userId === process.env.LOCAL_USER_ID
+  ) {
+    return true;
+  }
+  return !!process.env.ADMIN_USER_ID && userId === process.env.ADMIN_USER_ID;
+}
+
 export function getJwtSecret(): string {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET environment variable is required");

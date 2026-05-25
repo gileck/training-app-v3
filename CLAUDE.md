@@ -81,23 +81,14 @@ Single-layer client cache using localStorage. Use this when configuring query ca
 
 ---
 
-## Client-Server Communication
-
-Single API endpoint pattern with React Query. Use this when creating/calling APIs.
-
-**Summary:** All APIs route through `/api/process/{api_name}`. Components use React Query hooks, never call API client functions directly. All domain types in `apis/<domain>/types.ts`.
-
-**Docs:** [api-endpoint-format.md](docs/template/api-endpoint-format.md)
-**Rules:** [client-server-communications](docs/template/project-guidelines/client-server-communications.md)
-
----
-
 ## Error Handling
 
 Guidelines for handling and displaying errors across the application. Use this when implementing error states, catch blocks, or user-facing error messages.
 
 **Guidelines:**
 - Use `ErrorDisplay` for route/page errors, `errorToast` for mutations
+- 🚨 EVERY useMutation `onError` MUST call `errorToast(message, err)` — empty `onError` is a silent-failure bug. Rollback alone leaves the user with no explanation.
+- 🚨 Mission-critical flows (signup, payment, onboarding) deserve a blocking failure DIALOG with copyable trace + retry, not just a toast.
 - Never show raw `error.message` — use `cleanErrorMessage()` or `getUserFriendlyMessage()`
 - Stack traces are admin-only
 - Always pass error object to `errorToast` (enables copy)
@@ -115,28 +106,28 @@ Full offline support with optimistic updates. Use this when implementing mutatio
 
 **Guidelines:**
 - CRITICAL: Never update UI from server response — only optimistic updates in `onMutate`
-- Keep `onSuccess` empty
+- Keep `onSuccess` empty (UI side effects like a success toast are fine; never update cache)
 - Keep `onSettled` empty
-- Only rollback in `onError`
-- Mutations must handle empty `{}` responses (offline queue)
+- On error: rollback EVERY cache key `onMutate` wrote to AND call `errorToast(message, err)` to surface the error — empty `onError` is a silent-failure bug
+- Defensive: `invalidateQueries` the affected keys after rollback so a missed rollback key self-corrects on next fetch
+- Mutations must handle empty `{}` responses (offline queue) — when offline, `apiClient.post` returns `{}` and `onError` never fires, so the offline banner is the feedback, not a toast
 
 **Full docs:** [offline-pwa-support.md](docs/template/offline-pwa-support.md)
 
 ---
 
-## State Management
+## useOptimisticMutation
 
-Dual-store architecture for PWA with offline support. Use this when managing application state.
+Opinionated wrapper around useMutation that bakes in the optimistic-only pattern — cancel, snapshot, rollback, errorToast, and defensive invalidate. Use this when you don't want to wire the same pattern by hand.
 
 **Guidelines:**
-- React Query for server data, Zustand for client state, useState for 4 ephemeral cases only
-- Valid useState: text input, dialog open, in-flight submission, confirm dialog
-- Everything else MUST use Zustand
-- All Zustand stores MUST use `createStore` factory
-- NEVER update UI from server response — optimistic-only pattern
+- Prefer `useOptimisticMutation` over hand-rolled `useMutation` for mutations that follow the optimistic-only pattern
+- Declare every cache key the mutation touches in `affectedKeys` — the wrapper snapshots, rolls back, and defensively invalidates each one
+- Use `errorMessage` to provide a domain-specific user-facing message; return `null` from the function form to suppress the toast (rare — only when the call site shows its own dialog)
+- `onSuccess` is for UI side effects only (success toast, navigation, logging). NEVER call `setQueryData` from it — `applyOptimistic` is the source of truth
+- When offline, `apiClient.post` returns `{}` and `onError` never fires — the offline banner is the feedback, not a toast
 
-**Full docs:** [state-management.md](docs/template/state-management.md), [react-query-mutations.md](docs/template/react-query-mutations.md), [zustand-stores.md](docs/template/zustand-stores.md)
-**Rules:** [state-management-guidelines](docs/template/project-guidelines/state-management-guidelines.md)
+**Full docs:** [use-optimistic-mutation.md](docs/template/use-optimistic-mutation.md)
 
 ---
 
@@ -195,14 +186,13 @@ Session logging with bug reporting. Use this when adding logging or debugging.
 
 ---
 
-## MongoDB Usage
+## MongoDB MCP Server
 
-Database layer patterns and schema evolution. Use this when working with MongoDB.
+How agents read this project's MongoDB through the official mongodb-mcp-server. Use this when you need to inspect collections, run queries, or check schema state from inside an agent session.
 
-**Summary:** All operations in `src/server/database/collections/`. Use `toStringId()`, `toQueryId()`, `toDocumentId()` from `@/server/template/utils`. **CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility.**
+**Summary:** Agents have read-only MongoDB access via the official mongodb-js/mongodb-mcp-server, wired in `.mcp.json` (Claude Code) and `.cursor/mcp.json` (Cursor). Launched per session by `scripts/template/mcp/mongodb-mcp.sh`, which sources `MONGO_URI` from `.env.local`, splices `appConfig.dbName` from `src/app.config.js` into the URI path, and runs the server with `--readOnly --disabledTools atlas`. Every tool call requires an explicit `database` arg — use `appConfig.dbName` (read it from `src/app.config.js`). Writes are intentionally blocked.
 
-**Docs:** [mongodb-usage.md](docs/template/mongodb-usage.md)
-**Rules:** [mongodb-usage](docs/template/project-guidelines/mongodb-usage.md)
+**Docs:** [mongodb-mcp.md](docs/template/mongodb-mcp.md), [mongodb-usage.md](docs/template/mongodb-usage.md), [mongodb-usage.md](docs/template/project-guidelines/mongodb-usage.md)
 
 ---
 
@@ -216,24 +206,21 @@ Common pitfalls causing infinite re-renders. Use this when debugging render loop
 
 ---
 
-## Theming System
+## Agent API Tools (auto-expose project APIs to the agent)
 
-Application theming with semantic color tokens. Use this when customizing colors and themes.
+How project APIs become agent tools. Use this when wiring an existing API endpoint into the AI agent's tool surface so the model can call it.
 
-**Summary:** Comprehensive theming with semantic color tokens. Never hardcode colors - always use theme variables like `bg-background`, `text-foreground`.
+**Summary:** Co-locate an `apiMeta` export next to an API handler, then wire it into the domain's server.ts as the `meta` field on the registry entry. `buildAgentToolsFromApis(apiHandlers)` walks the registry and emits one AgenticTool per opted-in endpoint. Default-deny, isAdmin always false, Zod-validated, error envelopes normalized.
 
-**Docs:** [theming.md](docs/template/theming.md)
+**Key Points:**
+- Two-line opt-in per endpoint — `export const apiMeta = {...}` in the handler file, plus a `meta` entry in the domain's server.ts
+- Default-deny — `agentExposed: true` is required; admin endpoints are unreachable two ways over (no opt-in plus synthesized `isAdmin: false` context)
+- Tool name is derived from API name — `todos/getTodos` becomes `api__todos_getTodos`; collisions throw at build time
+- `mutates: true` drives the UI's Saved chip and can gate behind confirmation in future
+- Agent runs with `userId` from its tool context; cross-tenant safety enforced at the DB layer (all queries filter by userId)
+- Both Claude Code and Codex adapters see the same tool list — built once per process from the same apiHandlers registry
 
----
-
-## UI & Styling
-
-shadcn/ui components with semantic theming. Use this when adding/editing UI components.
-
-**Summary:** Use shadcn/ui as the ONLY component library. All colors must use semantic tokens (`bg-background`, `text-foreground`), never hardcode colors (`bg-white`, `text-black`).
-
-**Docs:** [shadcn-component-library.md](docs/template/shadcn-component-library.md), [theming.md](docs/template/theming.md)
-**Rules:** [shadcn-usage](docs/template/project-guidelines/shadcn-usage.md), [theming-guidelines](docs/template/project-guidelines/theming-guidelines.md)
+**Docs:** [agent-api-tools.md](docs/template/agent-api-tools.md)
 
 ---
 
@@ -297,14 +284,23 @@ Application feature for sending notifications via Telegram. Use this when adding
 
 ---
 
-## Vercel CLI Tool
+## RPC Connection Gate
 
-CLI for managing Vercel deployments and env vars. Use this for deployment operations.
+Per-user, admin-approved, TTL-bound session gate over every RPC call. Use this when enabling, configuring, or extending RPC access.
 
-**Summary:** Run `vercel link` first. **CRITICAL: Never use `npx vercel env add` with piped input** - use `yarn vercel-cli env:sync` instead. Commands - `yarn vercel-cli list`, `yarn vercel-cli env:sync`, `yarn vercel-cli logs`.
+**Summary:** Every `callRemote` (and direct `createRpcJob` call) is gated behind an admin-approved session, bound to a per-connection bearer token issued at Connect time. AsyncLocalStorage propagates the user id + token from the API handler, so every RPC caller is gated transparently with no caller changes. A cookie alone can't impersonate an approved session — the device-local token is required too.
 
-**Docs:** [vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
-**Rules:** [vercel-cli-usage](docs/template/project-guidelines/vercel-cli-usage.md)
+**Key Points:**
+- Admin-only in v1 (route `adminOnly: true` + API name `admin/rpc-connections/*`)
+- Gate is scoped to (userId, clientToken) — the token is issued once on Connect and sent as `X-RPC-Connection-Token` on every API call
+- User clicks Connect → admin approves via Telegram inline button → session is open for `RPC_CONNECTION_TTL_MS` (default 1h)
+- Gate runs inside `createRpcJob` — covers both `callRemote` waiters and fire-and-forget direct callers
+- AsyncLocalStorage propagates `{userId, clientToken}` — set in `processApiCall`, read in `assertRpcConnection`
+- Connect always supersedes any prior session for the user (fresh row, fresh token); Stop revokes immediately
+- Disable per-deployment with `RPC_CONNECTION_ENABLED=false`
+- System callers (agents, scripts, the daemon itself) bypass the gate — they run outside an HTTP request and have no AsyncLocalStorage context
+
+**Docs:** [rpc-connection-gate.md](docs/template/rpc-connection-gate.md), [rpc-architecture.md](docs/template/rpc-architecture.md), [admin.md](docs/template/admin.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
 
 ---
 
@@ -348,226 +344,6 @@ Architecture and flow of the AI-powered feature/bug pipeline. Use this to unders
 
 ---
 
-## Agent Workflow CLI
-
-CLI for managing workflow items. Use this when working with `yarn agent-workflow` commands.
-
-**Summary:** `yarn agent-workflow` commands: `start` (interactive), `create`, `list` (filter by --type/--status/--domain), `get` (details + live status), `update` (status/priority/size/complexity/domain, supports --dry-run). ID lookup accepts ObjectId, 8-char prefix, or GitHub issue number. Flags: `--auto-approve`, `--route`, `--created-by`.
-
-**Docs:** [cli.md](docs/template/github-agents-workflow/cli.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md)
-
----
-
-## Directory Locking
-
-Directory-level lock for preventing concurrent agent runs on same working directory
-
-**Summary:** Master script acquires per-directory lock using PID-based ownership and stale detection. Prevents concurrent git operations and file modifications.
-
-**Docs:** [directory-locking.md](docs/template/github-agents-workflow/directory-locking.md)
-
----
-
-## GitHub Agents Workflow Setup
-
-Complete setup instructions for the GitHub agents workflow. Use this when setting up the workflow for the first time.
-
-**Summary:** Setup requires: GitHub tokens (admin + bot), MongoDB connection, optional Telegram integration. Pipeline status tracked in workflow-items MongoDB collection. Run `yarn verify-setup` to check configuration.
-
-**Key Points:**
-- Two tokens: GITHUB_TOKEN (admin/PR reviews) + GITHUB_BOT_TOKEN (PRs/issues)
-- Pipeline status tracked in workflow-items MongoDB collection (no GitHub Projects setup needed)
-- Optional: Telegram topics for organized notifications
-- Optional: Claude GitHub App for automated PR reviews
-
-**Docs:** [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
-
----
-
-## Guards and Hooks
-
-**Summary:** Complete catalog of guards (precondition checks) and hooks (side effects) extracted from current workflow-service functions, with registry design and function mapping table.
-
-**Docs:** [guards-and-hooks.md](docs/template/github-agents-workflow/new-pipeline-architecture/guards-and-hooks.md)
-
----
-
-## Implementation Roadmap
-
-**Summary:** Phase dependency graph, progress tracking, and execution order for the 8-phase pipeline architecture migration.
-
-**Docs:** [overview.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/overview.md)
-
----
-
-## Phase 1: Foundation
-
-**Summary:** Create type system, engine skeleton, guard/hook registries, and DB schema changes for the pipeline architecture.
-
-**Docs:** [phase-1-foundation.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-1-foundation.md)
-
----
-
-## Phase 2: Guards and Hooks
-
-**Summary:** Extract all precondition checks and side effects from current workflow-service functions into standalone guard and hook modules.
-
-**Docs:** [phase-2-guards-and-hooks.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-2-guards-and-hooks.md)
-
----
-
-## Phase 3: Pipeline Definitions
-
-**Summary:** Create the two pipeline definition const objects (feature, bug) with unit tests validating internal consistency.
-
-**Docs:** [phase-3-pipeline-definitions.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-3-pipeline-definitions.md)
-
----
-
-## Phase 4: Engine Core
-
-**Summary:** Implement the pipeline engine with transition validation, guard execution, hook orchestration, dual-write, and concurrency control.
-
-**Docs:** [phase-4-engine-core.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-4-engine-core.md)
-
----
-
-## Phase 5: Internal Migration
-
-**Summary:** Refactor each workflow-service function into a thin wrapper around the pipeline engine, one function at a time with E2E validation after each.
-
-**Docs:** [phase-5-internal-migration.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-5-internal-migration.md)
-
----
-
-## Phase 6: External Migration
-
-**Summary:** Migrate all transport layer callers (Telegram handlers, API handlers, CLI, agents) from direct workflow-service function calls to engine-based calls.
-
-**Docs:** [phase-6-external-migration.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-6-external-migration.md)
-
----
-
-## Phase 7: Cleanup
-
-**Summary:** Remove deprecated function bodies, old constants, and unused code after all callers have been migrated to the pipeline engine.
-
-**Docs:** [phase-7-cleanup.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-7-cleanup.md)
-
----
-
-## Phase 8: Verification & Review
-
-**Summary:** Verify that all known concerns, edge cases, and awareness items from the design review are properly handled in the final implementation.
-
-**Docs:** [phase-8-verification.md](docs/template/github-agents-workflow/new-pipeline-architecture/implementation/phase-8-verification.md)
-
----
-
-## Pipeline Architecture Overview
-
-Use this to understand the new pipeline architecture design, its motivation, and how it replaces the current workflow-service implementation.
-
-**Summary:** JSON-driven pipeline engine replacing unvalidated status transitions with declared state machines, validated by a generic engine with registered hooks and guards.
-
-**Docs:** [overview.md](docs/template/github-agents-workflow/new-pipeline-architecture/overview.md)
-
----
-
-## Pipeline Definition Schema
-
-**Summary:** TypeScript interfaces and design decisions for declaring pipeline statuses, transitions, guards, hooks, and review flows as typed const objects.
-
-**Docs:** [pipeline-schema.md](docs/template/github-agents-workflow/new-pipeline-architecture/pipeline-schema.md)
-
----
-
-## Pipeline Definitions
-
-**Summary:** Design notes for the two pipeline definitions (feature, bug) including status maps, transition overviews, multi-phase handling, and undo semantics.
-
-**Docs:** [pipeline-definitions.md](docs/template/github-agents-workflow/new-pipeline-architecture/pipeline-definitions.md)
-
----
-
-## Pipeline Engine
-
-**Summary:** Pipeline engine interface, concurrency model, dual-write pattern, and agent integration for executing validated state transitions.
-
-**Docs:** [engine.md](docs/template/github-agents-workflow/new-pipeline-architecture/engine.md)
-
----
-
-## Testing Strategy
-
-**Summary:** E2E test strategy using existing tests as regression validation, with no test changes needed during migration since exported function signatures are preserved.
-
-**Docs:** [testing.md](docs/template/github-agents-workflow/new-pipeline-architecture/testing.md)
-
----
-
-## Unified Workflow Service Layer
-
-**Summary:** Architecture of the unified workflow service that centralizes all business logic for workflow lifecycle operations (approve, route, delete, advance, review, merge, revert, undo, decision, agent completion) across transports.
-
-**Docs:** [workflow-service.md](docs/template/github-agents-workflow/workflow-service.md)
-
----
-
-## Workflow E2E Tests
-
-**Summary:** E2E tests that verify the full agent workflow lifecycle by mocking only at system boundaries (LLM, Telegram, filesystem) while running real code for artifacts, phases, parsing, workflow-db, logging, and decision-utils against an in-memory MongoDB.
-
-**Docs:** [e2e-tests.md](docs/template/github-agents-workflow/e2e-tests.md)
-
----
-
-## GitHub Agents Workflow E2E Scenarios
-
-Visual workflows for all workflow scenarios. Use this to understand specific flows like multi-phase features, request changes, or rejections.
-
-**Summary:** Comprehensive visual diagrams for: simple features, multi-phase features (L/XL split into phases), bug fixes, design/implementation request changes flows, undo actions (5-min window), clarification flows, and rejection scenarios.
-
-**Key Points:**
-- Simple features can skip design phases and go straight to implementation
-- Multi-phase features create sequential PRs (Phase 1/3, 2/3, 3/3)
-- Request Changes triggers revision cycle on same PR
-- 5-minute undo window for accidental Request Changes clicks
-
-**Docs:** [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-items-architecture.md](docs/template/github-agents-workflow/workflow-items-architecture.md)
-
----
-
-## Bug Investigation Workflow
-
-Complete documentation for the Bug Investigator agent and bug fix selection flow.
-
-**Summary:** On approval, bugs auto-route to Bug Investigation. The agent runs read-only analysis and posts a GitHub comment with root cause + fix options. Obvious fixes (high confidence + S complexity + destination=implement) auto-submit; otherwise admin picks an option at /decision/:issueNumber, routing to Tech Design or Implementation. Telegram notifications fire either way.
-
-**Docs:** [bug-investigation.md](docs/template/github-agents-workflow/bug-investigation.md), [overview.md](docs/template/github-agents-workflow/overview.md), [workflow-e2e.md](docs/template/github-agents-workflow/workflow-e2e.md), [setup-guide.md](docs/template/github-agents-workflow/setup-guide.md)
-
----
-
-## GitHub Agents Workflow Setup (Legacy — GitHub Projects)
-
-Legacy setup using GitHub Projects for pipeline status. Prefer the MongoDB-based setup in setup-guide.md.
-
-**Summary:** Legacy flow backed by a GitHub Project (6-column Status field + Review Status field). Requires admin + bot tokens. Prefer setup-guide.md (MongoDB-based) for new installs.
-
-**Docs:** [setup-guide-legacy-github-projects.md](docs/template/github-agents-workflow/setup-guide-legacy-github-projects.md), [overview.md](docs/template/github-agents-workflow/overview.md), [telegram-notifications.md](docs/template/telegram-notifications.md)
-
----
-
-## Workflow Review Agent
-
-Pipeline agent that reviews completed workflow items and creates improvement issues.
-
-**Summary:** Last pipeline step (after pr-review). Picks up Done items where `reviewed !== true`, analyzes agent logs via LLM (read-only tools), appends `[LOG:REVIEW]` to `agent-logs/issue-N.md`, stores `reviewSummary` on the workflow item, sends Telegram, and files improvement issues via `yarn agent-workflow create` (admin-approved). Skips items without local logs.
-
-**Docs:** [workflow-review.md](docs/template/github-agents-workflow/workflow-review.md), [overview.md](docs/template/github-agents-workflow/overview.md), [running-agents.md](docs/template/github-agents-workflow/running-agents.md), [agent-logging.md](docs/template/github-agents-workflow/agent-logging.md)
-
----
-
 # project-guidelines
 
 ## Mobile-First Philosophy
@@ -580,6 +356,7 @@ All UI must be designed for mobile screens first (~400px width). Use this when i
 - No horizontal scroll — content must fit within mobile viewport
 - Use `pb-20` on mobile main to clear fixed bottom navigation
 - Always use semantic color tokens — never hex values or raw Tailwind colors
+- Never use native `<select>` — always use the project's shadcn `Select` component
 
 **Full docs:** [ui-mobile-first-shadcn.md](docs/template/project-guidelines/ui-mobile-first-shadcn.md)
 
@@ -594,9 +371,11 @@ when managing state in the application (client state, server state, offline supp
 - Valid useState: text input, dialog open, in-flight submission, confirm dialog — everything else MUST use Zustand
 - All Zustand stores MUST use `createStore` from `@/client/stores` — direct zustand imports blocked by ESLint
 - NEVER update UI from server response — optimistic-only pattern: update in `onMutate`, rollback in `onError`, empty `onSuccess`/`onSettled`
+- 🚨 EVERY mutation's `onError` MUST call `errorToast(message, err)` to surface the server error. Empty `onError` (or rollback-only `onError`) is a silent-failure bug — see react-query-mutations.md.
+- 🚨 Rollback EVERY cache key `onMutate` wrote to. A missed key = stuck optimistic state (e.g. spinner that never goes away).
 - Default to Zustand persisted — use `inMemoryOnly: true` only for truly transient state
 
-**Full docs:** [state-management-guidelines.md](docs/template/project-guidelines/state-management-guidelines.md)
+**Full docs:** [state-management-guidelines.md](docs/template/project-guidelines/state-management-guidelines.md), [state-management.md](docs/template/state-management.md), [react-query-mutations.md](docs/template/react-query-mutations.md), [zustand-stores.md](docs/template/zustand-stores.md)
 
 ---
 
@@ -612,7 +391,7 @@ Client-Server Communication Guidelines
 - No client code in server files, no server code in client files
 - Mutations return `{}` when offline — always guard against empty data
 
-**Full docs:** [client-server-communications.md](docs/template/project-guidelines/client-server-communications.md)
+**Full docs:** [client-server-communications.md](docs/template/project-guidelines/client-server-communications.md), [api-endpoint-format.md](docs/template/api-endpoint-format.md)
 
 ---
 
@@ -641,7 +420,7 @@ when accessing the database or a collection in the db
 - CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility (`doc.field?.toISOString() ?? fallback`)
 - New fields must be optional (`?`) with nullish coalescing (`??`) defaults
 
-**Full docs:** [mongodb-usage.md](docs/template/project-guidelines/mongodb-usage.md)
+**Full docs:** [mongodb-usage.md](docs/template/project-guidelines/mongodb-usage.md), [mongodb-usage.md](docs/template/mongodb-usage.md)
 
 ---
 
@@ -712,13 +491,14 @@ when building UI components - MUST use shadcn/ui
 
 **Guidelines:**
 - shadcn/ui is the ONLY component library — never use Material-UI, Ant Design, Chakra, etc.
+- Never use native `<select>` — always use the project's shadcn `Select` component
 - NEVER hardcode colors (`bg-white`, `text-black`, `bg-blue-500`) — always use semantic tokens (`bg-background`, `text-foreground`)
 - Use built-in variants (`variant="outline"`, `size="sm"`) instead of custom styling
 - Use `asChild` for proper component composition (e.g., `DialogTrigger asChild`)
 - Icons from `lucide-react` only — no other icon libraries
 - Always provide `Label` with `htmlFor`/`id` for form inputs
 
-**Full docs:** [shadcn-usage.md](docs/template/project-guidelines/shadcn-usage.md)
+**Full docs:** [shadcn-usage.md](docs/template/project-guidelines/shadcn-usage.md), [shadcn-component-library.md](docs/template/shadcn-component-library.md), [theming.md](docs/template/theming.md)
 
 ---
 
@@ -733,7 +513,7 @@ Theming and styling guidelines for components
 - Status colors: `text-success`, `text-warning`, `text-info`, `text-destructive`
 - Test components with 2+ theme presets in both light and dark modes
 
-**Full docs:** [theming-guidelines.md](docs/template/project-guidelines/theming-guidelines.md)
+**Full docs:** [theming-guidelines.md](docs/template/project-guidelines/theming-guidelines.md), [theming.md](docs/template/theming.md)
 
 ---
 
@@ -805,7 +585,7 @@ when using Vercel CLI tool or managing Vercel deployments
 - Use `--cloud-proxy` when running in Claude Code cloud environment
 - Check build logs first when deployments fail: `yarn vercel-cli logs --deployment dpl_xxx`
 
-**Full docs:** [vercel-cli-usage.md](docs/template/project-guidelines/vercel-cli-usage.md)
+**Full docs:** [vercel-cli-usage.md](docs/template/project-guidelines/vercel-cli-usage.md), [vercel-cli-guide.md](docs/template/vercel-cli-guide.md)
 
 ---
 
@@ -846,26 +626,6 @@ Sync template changes to child projects. Use this after pushing template changes
 **Summary:** Syncs safe changes to projects without uncommitted changes. Configure in `child-projects.json`.
 
 **Docs:** [sync-children.md](docs/template/_custom/sync-children.md)
-
----
-
-## Additional Rules Reference
-
-Reference table for additional skill rules not covered in main sections.
-
-**Summary:** See the linked skill files for detailed guidelines on each topic.
-
-**Docs:** [additional-rules-reference.md](docs/template/_custom/additional-rules-reference.md)
-
----
-
-## Command Skills Reference
-
-Reference table for command-based skills (slash commands).
-
-**Summary:** See the linked command files for command usage and details.
-
-**Docs:** [command-skills-reference.md](docs/template/_custom/command-skills-reference.md)
 
 ---
 

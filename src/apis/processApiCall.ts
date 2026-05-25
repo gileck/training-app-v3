@@ -6,6 +6,11 @@ import { fsCacheProvider, s3CacheProvider } from "@/server/template/cache/provid
 import { appConfig } from "@/app.config";
 import { getUserContext } from "./getUserContext";
 import { sendNotificationToOwner } from "@/server/template/telegram";
+import {
+  runWithRpcCallContext,
+  isRpcConnectionRequiredError,
+  RPC_CONNECTION_REQUIRED_CODE,
+} from "@/server/template/rpc";
 
 // Create server-side cache instance
 const provider = appConfig.cacheType === 's3' ? s3CacheProvider : fsCacheProvider;
@@ -57,10 +62,19 @@ export const processApiCall = async (
     }
   };
 
+  // Run the handler inside an AsyncLocalStorage context so the RPC gate
+  // can identify the calling user without every callRemote caller having
+  // to thread userId through.
+  const processInRpcContext = () =>
+    runWithRpcCallContext(
+      { userId: userContext.userId, clientToken: userContext.rpcConnectionToken },
+      () => Promise.resolve(processWithContext())
+    );
+
   try {
     // Server-side caching is disabled - React Query handles client-side caching
     const result = await serverCache.withCache(
-      processWithContext,
+      processInRpcContext,
       {
         key: String(name),
         params: {
@@ -75,6 +89,20 @@ export const processApiCall = async (
 
     return result;
   } catch (error) {
+    // RPC connection gate failures are expected — surface them with a distinct
+    // errorCode so the client can route the user to the Connection page,
+    // and skip the owner notification (otherwise admins get spammed during
+    // normal "session expired" flows).
+    if (isRpcConnectionRequiredError(error)) {
+      return {
+        data: {
+          error: error instanceof Error ? error.message : 'RPC connection required',
+          errorCode: RPC_CONNECTION_REQUIRED_CODE,
+        },
+        isFromCache: false,
+      };
+    }
+
     // Expected/handled behavior: never throw to the route layer; always return HTTP 200 with an error payload.
     console.error(`processApiCall failed for ${String(name)}:`, error);
 

@@ -30,6 +30,8 @@ export interface CallRemoteOptions {
   pollIntervalMs?: number;
   ttlMs?: number;
   skipCache?: boolean;
+  /** Fail with a clear "no daemon" error if the job stays pending this long. Default 30s. */
+  pendingPickupTimeoutMs?: number;
 }
 
 export interface RpcResult<T> {

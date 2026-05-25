@@ -17,6 +17,20 @@ Where it’s used:
 - **Server**: derives `context.isAdmin` for every API call.
 - **Client**: receives `user.isAdmin` on login/register/me and exposes `useIsAdmin()`.
 
+### Local Dev Shortcut
+
+In **development only** (`NODE_ENV=development`), the user identified by
+`LOCAL_USER_ID` is automatically treated as admin — no `ADMIN_USER_ID` needed.
+This is what makes `/admin/*` routes work out of the box on a fresh local
+install. The shortcut is gated by:
+
+- `NODE_ENV === 'development'`
+- `IGNORE_LOCAL_USER_ID !== 'true'` (set this env var to opt out and exercise
+  the production admin rule locally)
+- The user being authenticated has `userId === LOCAL_USER_ID`
+
+In production, only `ADMIN_USER_ID` matching the userId grants admin.
+
 ## Conventions
 
 ### Admin Routes

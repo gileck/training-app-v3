@@ -176,6 +176,39 @@ export const isUsersCollectionEmpty = async (): Promise<boolean> => {
 };
 
 /**
+ * Count users who have been seen at or after the given date.
+ * Returns the number of distinct visitors in a time window.
+ */
+export const countVisitorsSince = async (since: Date): Promise<number> => {
+  const collection = await getUsersCollection();
+  return collection.countDocuments({ lastSeenAt: { $gte: since } });
+};
+
+/**
+ * Total number of users in the system.
+ */
+export const countAllUsers = async (): Promise<number> => {
+  const collection = await getUsersCollection();
+  return collection.countDocuments({});
+};
+
+/**
+ * Update `lastSeenAt` to now for the given user.
+ * Called from the auth/me handler on every successful cookie validation.
+ * Silently no-ops if the user does not exist.
+ */
+export const touchLastSeen = async (
+  userId: ObjectId | string
+): Promise<void> => {
+  const collection = await getUsersCollection();
+  const idObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+  await collection.updateOne(
+    { _id: idObj },
+    { $set: { lastSeenAt: new Date() } }
+  );
+};
+
+/**
  * Update a user's approval status.
  * Also stamps `approvedAt` / `rejectedAt` for audit trail.
  * @returns The updated user, or null if not found.

@@ -4,4 +4,3 @@
 
 export { CacheSection } from './CacheSection';
 export { AIModelSection } from './AIModelSection';
-export { NotificationsSection } from './NotificationsSection';

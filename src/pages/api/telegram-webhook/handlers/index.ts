@@ -11,3 +11,4 @@ export { handleMergeCallback, handleMergeFinalPRCallback, handleRevertMerge, han
 export { handleDesignPRApproval, handleDesignPRRequestChanges, handleRequestChangesCallback } from './design-pr';
 export { handleUndoRequestChanges, handleUndoDesignChanges, handleUndoDesignReview } from './undo';
 export { handleChooseRecommended } from './handle-choose-recommended';
+export { handleRpcConnectionApprove, handleRpcConnectionReject } from './rpc-connection';

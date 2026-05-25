@@ -9,7 +9,6 @@ import { Card } from '@/client/components/template/ui/card';
 import { Alert } from '@/client/components/template/ui/alert';
 import { CacheSection } from './components/CacheSection';
 import { AIModelSection } from './components/AIModelSection';
-import { NotificationsSection } from './components/NotificationsSection';
 
 interface SnackbarState {
     open: boolean;
@@ -37,11 +36,6 @@ export function Settings() {
                 <CacheSection onSnackbar={handleSnackbar} />
 
                 <hr className="my-4 border-border" />
-
-                <NotificationsSection />
-
-                <hr className="my-4 border-border" />
-
                 <AIModelSection />
             </Card>
 

@@ -1,6 +1,5 @@
 ---
 title: Pipeline Definition Schema
-summary: TypeScript interfaces and design decisions for declaring pipeline statuses, transitions, guards, hooks, and review flows as typed const objects.
 ---
 
 # Pipeline Definition Schema

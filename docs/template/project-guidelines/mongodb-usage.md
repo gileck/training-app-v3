@@ -8,6 +8,8 @@ guidelines:
   - "CRITICAL: Always use optional chaining and fallbacks for schema backward compatibility (`doc.field?.toISOString() ?? fallback`)"
   - "New fields must be optional (`?`) with nullish coalescing (`??`) defaults"
 priority: 3
+related_docs:
+  - ../mongodb-usage.md
 ---
 # MongoDB Usage Guidelines
 

@@ -1,7 +1,6 @@
 ---
 title: GitHub Agents Workflow Setup (Legacy — GitHub Projects)
 description: Legacy setup using GitHub Projects for pipeline status. Prefer the MongoDB-based setup in setup-guide.md.
-summary: "Legacy flow backed by a GitHub Project (6-column Status field + Review Status field). Requires admin + bot tokens. Prefer setup-guide.md (MongoDB-based) for new installs."
 priority: 5
 related_docs:
   - overview.md

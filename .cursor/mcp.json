@@ -6,6 +6,10 @@
         "./node_modules/@playwright/mcp/cli.js",
         "--headless"
       ]
+    },
+    "mongodb": {
+      "command": "bash",
+      "args": ["./scripts/template/mcp/mongodb-mcp.sh"]
     }
   }
 }

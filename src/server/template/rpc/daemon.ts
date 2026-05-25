@@ -2,7 +2,12 @@ import '@/agents/shared/loadEnv';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { pathToFileURL } from 'url';
+import * as os from 'os';
 import { ensureRpcIndexes, claimNextPendingJob, completeRpcJob, failRpcJob } from './collection';
+import {
+  markDaemonStarted,
+  recordDaemonHeartbeat,
+} from '@/server/database/collections/template/rpc-daemon-status/daemon-status';
 import { closeDbConnection } from '@/server/database/connection';
 import { appConfig } from '@/app.config';
 
@@ -12,6 +17,7 @@ import { appConfig } from '@/app.config';
 const CACHE_BUST_HANDLERS = process.env.NODE_ENV !== 'production';
 
 const POLL_INTERVAL_MS = 2_000;
+const HEARTBEAT_INTERVAL_MS = 5_000;
 const DEFAULT_MAX_CONCURRENT = 20;
 const verbose = process.argv.includes('--verbose');
 
@@ -123,6 +129,16 @@ async function pollLoop(): Promise<void> {
   await ensureRpcIndexes();
   log('Indexes ensured — polling for jobs...');
 
+  const hostname = os.hostname();
+  await markDaemonStarted(hostname);
+  const heartbeatTimer = setInterval(() => {
+    recordDaemonHeartbeat(hostname).catch((err) => {
+      console.error('[rpc-daemon] heartbeat write failed:', err instanceof Error ? err.message : err);
+    });
+  }, HEARTBEAT_INTERVAL_MS);
+  // Don't keep the event loop alive on shutdown
+  heartbeatTimer.unref?.();
+
   let waitingSince: number | null = null;
 
   while (running) {
@@ -150,6 +166,12 @@ async function pollLoop(): Promise<void> {
 
       activeJobs++;
       processJob(job)
+        .catch((err) => {
+          // processJob has its own try/catch; this is defense-in-depth for
+          // anything thrown outside it (e.g. failRpcJob itself rejecting).
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`[rpc-daemon] processJob crashed for ${job._id.toHexString()}: ${msg}`);
+        })
         .finally(() => { activeJobs--; });
     } catch (err) {
       console.error('[rpc-daemon] Poll error:', err instanceof Error ? err.message : err);
@@ -162,6 +184,7 @@ async function pollLoop(): Promise<void> {
     await sleep(1_000);
   }
 
+  clearInterval(heartbeatTimer);
   log('Stopped');
 }
 
@@ -172,6 +195,18 @@ function handleShutdown(signal: string): void {
 
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+
+// Handlers can leak rejections/exceptions from detached async work that fires
+// after the handler's awaited promise resolves (e.g. an SDK control channel
+// firing post-completion). Without these listeners Node would terminate the
+// whole daemon, which would also abort any sibling jobs running concurrently.
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.stack ?? reason.message : String(reason);
+  console.error('[rpc-daemon] Unhandled rejection (daemon continues):', msg);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[rpc-daemon] Uncaught exception (daemon continues):', err.stack ?? err.message);
+});
 
 pollLoop()
   .then(() => closeDbConnection())

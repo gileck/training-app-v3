@@ -8,3 +8,4 @@
  */
 
 export * as clearCache from './template/settings/clearCache';
+export * as rpcConnections from './template/rpc-connections';

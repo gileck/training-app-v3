@@ -8,6 +8,7 @@ guidelines:
   - "No horizontal scroll — content must fit within mobile viewport"
   - "Use `pb-20` on mobile main to clear fixed bottom navigation"
   - "Always use semantic color tokens — never hex values or raw Tailwind colors"
+  - "Never use native `<select>` — always use the project's shadcn `Select` component"
 priority: 2
 ---
 # Mobile-first UI rules (shadcn + Tailwind)
@@ -179,6 +180,7 @@ export default function Page() {
 - Prefer shadcn primitives and variants:
   - `Button`, `Input`, `Label`, `Select`, `Switch`, `Card`, `Badge`, `Alert`, `Avatar`, `DropdownMenu`, `Dialog`, `Sheet`, `Separator`
   - Keep props minimal; avoid inline styles.
+- Never use native `<select>` in React UI. Use the project's shadcn `Select` from `src/client/components/template/ui/select.tsx` so mobile styling, focus states, keyboard behavior, and menus stay consistent.
 - Focus states: include `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` on interactive elements (built into `Button`, `Input`, etc.).
 - Replace elevation with borders + subtle shadows: `border shadow-sm` for cards/popovers.
 

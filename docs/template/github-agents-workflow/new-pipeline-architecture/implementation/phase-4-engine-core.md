@@ -1,6 +1,5 @@
 ---
 title: "Phase 4: Engine Core"
-summary: Implement the pipeline engine with transition validation, guard execution, hook orchestration, dual-write, and concurrency control.
 ---
 
 # Phase 4: Engine Core

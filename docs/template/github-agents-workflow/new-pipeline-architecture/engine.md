@@ -1,6 +1,5 @@
 ---
 title: Pipeline Engine
-summary: Pipeline engine interface, concurrency model, dual-write pattern, and agent integration for executing validated state transitions.
 ---
 
 # Pipeline Engine

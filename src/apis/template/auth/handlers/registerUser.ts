@@ -13,6 +13,7 @@ import {
     COOKIE_OPTIONS,
     JWT_EXPIRES_IN,
     getJwtSecret,
+    isAdminUser,
     SALT_ROUNDS,
     sanitizeUser,
 } from "../shared";
@@ -20,6 +21,7 @@ import { toStringId } from '@/server/template/utils';
 import { authOverrides } from '@/apis/auth-overrides';
 import { sendNotificationToOwner } from '@/server/template/telegram';
 import { appConfig } from '@/app.config';
+import { recordSession } from '@/server/template/sessions/recordSession';
 
 // Register endpoint
 export const registerUser = async (
@@ -98,7 +100,7 @@ export const registerUser = async (
 
         const newUser = await users.insertUser(userData);
         const userId = toStringId(newUser._id);
-        const isAdmin = !!process.env.ADMIN_USER_ID && userId === process.env.ADMIN_USER_ID;
+        const isAdmin = isAdminUser(userId);
 
         // Pending approval branch: no cookie, no user in response.
         // Skip for: admin (ADMIN_USER_ID bypass) and bootstrap first-user.
@@ -142,6 +144,8 @@ export const registerUser = async (
 
         // Set auth cookie
         context.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+
+        recordSession(userId, 'register');
 
         return { user: { ...sanitizeUser(finalUser), isAdmin } };
     } catch (error: unknown) {

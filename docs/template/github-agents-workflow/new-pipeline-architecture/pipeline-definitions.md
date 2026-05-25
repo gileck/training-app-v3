@@ -1,6 +1,5 @@
 ---
 title: Pipeline Definitions
-summary: Design notes for the two pipeline definitions (feature, bug) including status maps, transition overviews, multi-phase handling, and undo semantics.
 ---
 
 # Pipeline Definitions

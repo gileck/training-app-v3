@@ -298,7 +298,7 @@ async function sendNotificationToAgent(
  *
  * Note: Vercel URLs don't include protocol, so we prepend https://
  */
-function getBaseUrl(): string {
+export function getBaseUrl(): string {
     // Stable production domain (recommended for production)
     if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
         return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
