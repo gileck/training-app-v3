@@ -1,5 +1,52 @@
 import { useState, useEffect } from 'react';
 import { useRestTimerEndAt, useRestTimerDuration, useCancelRestTimer } from './session-store';
+import { toast } from '@/client/components/template/ui/toast';
+
+function playRestDoneBeep() {
+    try {
+        const AudioCtx =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const beep = (start: number, freq: number, duration: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.4, start + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + duration + 0.02);
+        };
+        // Three rising tones — more attention-grabbing than the previous two-beep
+        beep(now, 880, 0.22);
+        beep(now + 0.26, 1175, 0.22);
+        beep(now + 0.52, 1568, 0.38);
+        setTimeout(() => ctx.close().catch(() => { }), 1200);
+    } catch {
+        // Audio playback is best-effort; ignore failures (autoplay policy, etc.)
+    }
+}
+
+function showRestDoneNotification() {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    if (document.visibilityState === 'visible') return;
+    try {
+        new Notification('Rest complete', {
+            body: 'Time for your next set.',
+            tag: 'rest-timer',
+            silent: false,
+        });
+    } catch {
+        // Some browsers (notably iOS Safari) only allow notifications via the
+        // ServiceWorkerRegistration. Fail silently — toast + sound still fire.
+    }
+}
 
 export interface RestTimerState {
     isRunning: boolean;
@@ -45,10 +92,13 @@ export function useRestTimer(): RestTimerState {
                     progress: 100,
                 });
 
-                // Optional: Play notification sound or vibrate
+                // Notify the user the rest is over
                 if ('vibrate' in navigator) {
                     navigator.vibrate([200, 100, 200]);
                 }
+                playRestDoneBeep();
+                toast.success('Rest complete — time for your next set', { duration: 10000 });
+                showRestDoneNotification();
             } else {
                 setState({
                     isRunning: true,
