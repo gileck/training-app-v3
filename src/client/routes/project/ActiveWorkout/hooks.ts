@@ -41,6 +41,7 @@ import {
     useSetGeneratedWarmup,
     useWarmupCost,
     useSetWarmupCost,
+    primeRestAudio,
 } from '@/client/features/project/workout';
 import { useCreatePlanWorkout } from '@/client/features/project/plan-workouts';
 import { useSetProgress } from '@/client/features/project/plan-data';
@@ -430,6 +431,7 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
             );
 
             setIsInSet(false);
+            primeRestAudio();
             startRestTimer();
             return;
         }
@@ -475,6 +477,7 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
         );
 
         setIsInSet(false);
+        primeRestAudio();
         startRestTimer();
 
         const newSetsCompleted = currentExercise.setsCompleted + 1;
@@ -671,6 +674,7 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
             )
         );
         // Auto-start rest timer after adding a set
+        primeRestAudio();
         startRestTimer();
     };
 
@@ -724,6 +728,7 @@ export function useWorkoutHandlers(state: ReturnType<typeof useActiveWorkoutStat
             });
         }
         // Auto-start rest timer after completing all sets
+        primeRestAudio();
         startRestTimer();
     };
 

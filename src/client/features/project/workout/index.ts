@@ -64,10 +64,12 @@ export {
     useSetGeneratedWarmup,
     useWarmupCost,
     useSetWarmupCost,
+    useRestJustCompletedAt,
+    useDismissRestCompletedBanner,
 } from './session-store';
 
 // Export rest timer hook
-export { useRestTimer, formatTime } from './use-rest-timer';
+export { useRestTimer, formatTime, primeRestAudio } from './use-rest-timer';
 
 // Export session types and utilities
 export type { WorkoutSession, WorkoutSessionState, ActiveWorkoutTab, ExercisesViewMode } from './session-types';

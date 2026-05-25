@@ -9,3 +9,4 @@ export { WorkoutCardContainer } from './WorkoutCardContainer';
 export { ExerciseCard } from './ExerciseCard';
 export { SupersetCard } from './SupersetCard';
 export { ExercisesTabContent } from './ExercisesTabContent';
+export { RestCompleteBanner } from './RestCompleteBanner';

@@ -30,6 +30,9 @@ export interface WorkoutSession {
     generatedWarmup: string | null;
     /** Cost info for the generated warmup */
     warmupCost: { totalCost: number; modelId: string; modelName: string } | null;
+    /** Timestamp when the rest timer most recently completed — drives the
+     *  RestCompleteBanner. Null while no banner is showing. Not persisted. */
+    restJustCompletedAt: number | null;
 }
 
 export interface WorkoutSessionState extends WorkoutSession {
@@ -52,6 +55,8 @@ export interface WorkoutSessionState extends WorkoutSession {
     setExercisesViewMode: (mode: ExercisesViewMode) => void;
     setGeneratedWarmup: (warmup: string | null) => void;
     setWarmupCost: (cost: { totalCost: number; modelId: string; modelName: string } | null) => void;
+    markRestJustCompleted: () => void;
+    dismissRestCompletedBanner: () => void;
 }
 
 // Default rest times by exercise type

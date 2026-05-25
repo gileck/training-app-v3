@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/client/components/project/ui/tabs';
 import { ExerciseDetails } from '@/client/components/project/ExerciseDetails/ExerciseDetails';
 import type { ExerciseWeekProgress } from '@/apis/project/weekly-progress/types';
-import type { ActiveWorkoutTab } from '@/client/features/project/workout';
+import { primeRestAudio, type ActiveWorkoutTab } from '@/client/features/project/workout';
 import {
     AllExercisesView,
     EmptyState,
@@ -11,6 +11,7 @@ import {
     WorkoutCompleteCard,
     WorkoutCardContainer,
     ExercisesTabContent,
+    RestCompleteBanner,
 } from './components';
 import {
     SaveWorkoutDialog,
@@ -77,6 +78,7 @@ export function ActiveWorkout() {
                 50% { transform: scale(1.015); }
             }
         `}</style>
+        <RestCompleteBanner />
         <div className="flex flex-col min-h-[calc(100dvh-8rem)] pt-0 bg-transparent transition-colors duration-200">
             <ContextBar
                 planWorkoutName={state.planWorkoutName}
@@ -128,7 +130,10 @@ export function ActiveWorkout() {
                             isRestTimerRunning={state.isRestTimerRunning}
                             remainingSeconds={state.remainingSeconds}
                             restTimerProgress={state.restTimerProgress}
-                            onStartRestTimer={state.startRestTimer}
+                            onStartRestTimer={(seconds) => {
+                                primeRestAudio();
+                                state.startRestTimer(seconds);
+                            }}
                             onCancelRestTimer={state.cancelRestTimer}
                         />
                     )}
@@ -167,7 +172,10 @@ export function ActiveWorkout() {
                         isRestTimerRunning={state.isRestTimerRunning}
                         remainingSeconds={state.remainingSeconds}
                         restTimerProgress={state.restTimerProgress}
-                        onStartRestTimer={state.startRestTimer}
+                        onStartRestTimer={(seconds) => {
+                            primeRestAudio();
+                            state.startRestTimer(seconds);
+                        }}
                         onCancelRestTimer={state.cancelRestTimer}
                     />
                 </TabsContent>

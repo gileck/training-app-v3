@@ -20,6 +20,7 @@ const initialSessionState: WorkoutSession = {
     exercisesViewMode: 'grid',
     generatedWarmup: null,
     warmupCost: null,
+    restJustCompletedAt: null,
 };
 
 export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
@@ -83,6 +84,8 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
                 return {
                     restTimerDuration: duration,
                     restTimerEndAt: Date.now() + duration * 1000,
+                    // Clear any stale "rest complete" banner from a previous set.
+                    restJustCompletedAt: null,
                 };
             });
         },
@@ -151,6 +154,14 @@ export const useWorkoutSessionStore = createStore<WorkoutSessionState>({
         setWarmupCost: (cost) => {
             set({ warmupCost: cost });
         },
+
+        markRestJustCompleted: () => {
+            set({ restJustCompletedAt: Date.now() });
+        },
+
+        dismissRestCompletedBanner: () => {
+            set({ restJustCompletedAt: null });
+        },
     }),
 });
 
@@ -199,5 +210,7 @@ export const useGeneratedWarmup = () => useWorkoutSessionStore((state) => state.
 export const useSetGeneratedWarmup = () => useWorkoutSessionStore((state) => state.setGeneratedWarmup);
 export const useWarmupCost = () => useWorkoutSessionStore((state) => state.warmupCost);
 export const useSetWarmupCost = () => useWorkoutSessionStore((state) => state.setWarmupCost);
+export const useRestJustCompletedAt = () => useWorkoutSessionStore((state) => state.restJustCompletedAt);
+export const useDismissRestCompletedBanner = () => useWorkoutSessionStore((state) => state.dismissRestCompletedBanner);
 
 
