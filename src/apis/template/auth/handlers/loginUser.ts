@@ -17,6 +17,7 @@ import {
 } from "../shared";
 import { toStringId } from '@/server/template/utils';
 import { authOverrides } from '@/apis/auth-overrides';
+import { isPasskeyMode, PASSWORD_AUTH_DISABLED_MESSAGE } from '../authMode';
 import { createTwoFactorLoginApproval } from '@/server/template/auth/login-approval';
 import { recordSession } from '@/server/template/sessions/recordSession';
 
@@ -26,6 +27,11 @@ export const loginUser = async (
     context: ApiHandlerContext
 ): Promise<LoginResponse> => {
     try {
+        // Phase 6: password login is retired in passkey mode (guarded by the flag).
+        if (isPasskeyMode()) {
+            return { error: PASSWORD_AUTH_DISABLED_MESSAGE };
+        }
+
         // Validate input
         if (!request.username || !request.password) {
             return { error: "Username and password are required" };

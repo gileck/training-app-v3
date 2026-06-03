@@ -21,6 +21,7 @@ import {
   useCurrentRpcConnection,
   useStopRpc,
 } from './hooks';
+import { useAuthMode } from '@/client/features/template/auth/store';
 
 const WARN_BEFORE_MS = 5 * 60 * 1000;
 
@@ -28,6 +29,7 @@ export function RpcExpiryWarningDialog() {
   const { data: connection } = useCurrentRpcConnection();
   const stopMutation = useStopRpc();
   const connectMutation = useConnectRpc();
+  const passkeyMode = useAuthMode() === 'passkey';
 
   // eslint-disable-next-line state-management/prefer-state-architecture -- per-connection ack flag, paired with the dialog open state
   const [dismissedId, setDismissedId] = useState<string | null>(null);
@@ -78,8 +80,8 @@ export function RpcExpiryWarningDialog() {
             <span className="font-mono text-foreground">
               {minutes}m {seconds.toString().padStart(2, '0')}s
             </span>
-            . Reconnect now to keep RPC available — admin approval is required
-            again.
+            . Reconnect now to keep RPC available —{' '}
+            {passkeyMode ? 'verify your device again' : 'admin approval is required again'}.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex flex-row gap-2 sm:justify-end">

@@ -20,6 +20,8 @@ export type {
     FinalizeAssistantInput,
 } from './conversations/types';
 export { defineTool, createToolBuilder } from './defineTool';
+export { createAskUserTool } from './tools/askUser';
+export type { AskUserToolOptions } from './tools/askUser';
 export { createAgentHandler } from './handler/createAgentHandler';
 export type { AgentHandlerConfig } from './handler/createAgentHandler';
 export { summarizeToolResult } from './eventSummary';

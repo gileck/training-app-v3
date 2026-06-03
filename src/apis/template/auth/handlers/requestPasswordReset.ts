@@ -8,6 +8,7 @@ import * as users from '@/server/database/collections/template/users/users';
 import { createPasswordResetToken } from '@/server/database/collections/template/password-reset-tokens';
 import { getBaseUrl, sendTelegramNotificationToUser } from '@/server/template/telegram';
 import { toStringId } from '@/server/template/utils';
+import { isPasskeyMode } from '../authMode';
 
 /**
  * Always returns `{ success: true }` to prevent enumeration of usernames or
@@ -18,6 +19,12 @@ export const requestUserPasswordReset = async (
     request: RequestPasswordResetRequest,
     _context: ApiHandlerContext
 ): Promise<RequestPasswordResetResponse> => {
+    // Phase 6: password reset is retired in passkey mode (recovery is the
+    // enroll link). No-op + success to preserve anti-enumeration semantics.
+    if (isPasskeyMode()) {
+        return { success: true };
+    }
+
     const username = (request.username ?? '').trim();
     if (!username) {
         // Even input validation errors return success — don't help attackers

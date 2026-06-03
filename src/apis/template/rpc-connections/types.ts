@@ -2,6 +2,10 @@ import type {
   RpcConnectionEndedReason,
   RpcConnectionStatus,
 } from '@/server/database/collections/template/rpc-connections/types';
+import type {
+  PublicKeyCredentialRequestOptionsJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
 
 export interface RpcConnectionView {
   id: string;
@@ -32,6 +36,28 @@ export interface ConnectResponse {
   clientToken?: string;
   error?: string;
 }
+
+/**
+ * Passkey device-auth connect (passkey mode): a two-step ceremony that
+ * replaces the Telegram admin approval. `connect-options` issues an
+ * authentication assertion restricted to the user's registered passkeys;
+ * `connect-verify` validates it and returns an already-approved connection.
+ */
+export type ConnectOptionsRequest = Record<string, never>;
+
+export interface ConnectOptionsResponse {
+  options?: PublicKeyCredentialRequestOptionsJSON;
+  challengeId?: string;
+  error?: string;
+}
+
+export interface ConnectVerifyRequest {
+  challengeId: string;
+  response: AuthenticationResponseJSON;
+}
+
+/** Same shape as ConnectResponse — returns the approved connection + token. */
+export type ConnectVerifyResponse = ConnectResponse;
 
 export type GetCurrentRequest = Record<string, never>;
 

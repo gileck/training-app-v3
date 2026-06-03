@@ -4,8 +4,7 @@
  * Renders a single decision option with dynamic metadata fields.
  */
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownText } from '@/client/components/template/MarkdownText';
 import { Label } from '@/client/components/template/ui/label';
 import { RadioGroupItem } from '@/client/components/template/ui/radio-group';
 import type { DecisionOption, MetadataFieldConfig } from '@/apis/template/agent-decision/types';
@@ -62,11 +61,10 @@ export function OptionCard({ option, isSelected, metadataSchema }: OptionCardPro
 
             {/* Description rendered as markdown */}
             {option.description && (
-                <div className="markdown-body text-sm mt-2 pl-6 sm:pl-7 overflow-hidden">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {option.description}
-                    </ReactMarkdown>
-                </div>
+                <MarkdownText
+                    content={option.description}
+                    className="mt-2 pl-6 sm:pl-7 overflow-hidden"
+                />
             )}
 
             {/* Block metadata fields */}

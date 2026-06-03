@@ -24,6 +24,8 @@ import { ResetPassword } from './template/ResetPassword';
 import { ItemDetail } from './template/ItemDetail';
 import { WorkflowItems } from './template/Workflow';
 import { UserApprovals } from './template/UserApprovals';
+import { AdminUsers } from './template/AdminUsers';
+import { EnrollPasskey } from './template/EnrollPasskey';
 import { AdminSessions } from './template/AdminSessions';
 import { Admin } from './template/Admin';
 import { ServiceWorkerDebug } from './template/ServiceWorkerDebug';
@@ -55,6 +57,9 @@ export const templateRoutes: Routes = {
   // Forgot-password reset page (public, full-screen, ?token= from Telegram link)
   '/reset-password': { component: ResetPassword, public: true, fullScreen: true },
 
+  // Passkey enrollment landing (public, full-screen, ?token= from admin/email link)
+  '/enroll-passkey': { component: EnrollPasskey, public: true, fullScreen: true },
+
   // Template protected routes
   '/settings': Settings,
   '/theme': Theme,
@@ -68,6 +73,7 @@ export const templateRoutes: Routes = {
   '/admin/feature-requests/:requestId': FeatureRequestDetail,
   '/admin/item/:id': ItemDetail,
   '/admin/workflow': WorkflowItems,
+  '/admin/users': AdminUsers,
   '/admin/approvals': UserApprovals,
   '/admin/sessions': AdminSessions,
   '/admin/service-worker': ServiceWorkerDebug,

@@ -2,6 +2,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 
 const MODEL_MAP: Record<string, string> = {
+  'gpt-5.5': 'gpt-5.5',
   'gpt-5.4': 'gpt-5.4',
 };
 

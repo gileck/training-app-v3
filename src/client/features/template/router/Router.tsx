@@ -16,6 +16,14 @@ interface HistoryState {
 /**
  * Route configuration with metadata
  */
+/** Customization for a route-level passkey step-up guard. */
+export interface RoutePasskeyGuardConfig {
+  title?: string;
+  description?: string;
+  /** How long an unlock lasts before re-prompting (ms). */
+  ttlMs?: number;
+}
+
 export interface RouteConfig {
   component: React.ComponentType;
   /** If true, route is accessible without authentication */
@@ -24,6 +32,27 @@ export interface RouteConfig {
   adminOnly?: boolean;
   /** If true, route renders full screen without header/navbar */
   fullScreen?: boolean;
+  /**
+   * Gate this route behind a fresh passkey assertion (step-up re-auth). The
+   * router wraps the page in <PasskeyGuard> automatically — no need to wrap the
+   * component yourself. Pass `true` for defaults, or an object to customize the
+   * lock screen.
+   */
+  requirePasskey?: boolean | RoutePasskeyGuardConfig;
+}
+
+/** Resolved passkey guard for the current route (null = not guarded). */
+export interface ResolvedRouteGuard {
+  guardKey: string;
+  config: RoutePasskeyGuardConfig;
+}
+
+function resolveRouteGuard(guardKey: string, config: RouteConfig): ResolvedRouteGuard | null {
+  if (!config.requirePasskey) return null;
+  return {
+    guardKey,
+    config: typeof config.requirePasskey === 'object' ? config.requirePasskey : {},
+  };
 }
 
 /** Routes can be simple components or full config objects */
@@ -36,6 +65,8 @@ type RouterContextType = {
   queryParams: QueryParams;
   isPublicRoute: boolean;
   isFullScreen: boolean;
+  /** Passkey step-up guard for the current route, or null if not guarded. */
+  routePasskeyGuard: ResolvedRouteGuard | null;
   /** Exit full-screen mode (show header/navbar) */
   exitFullScreen: () => void;
   /** Enter full-screen mode (hide header/navbar) */
@@ -49,6 +80,7 @@ const RouterContext = createContext<RouterContextType>({
   queryParams: {},
   isPublicRoute: false,
   isFullScreen: false,
+  routePasskeyGuard: null,
   exitFullScreen: () => { },
   enterFullScreen: () => { },
   navigate: () => { },
@@ -191,7 +223,7 @@ export const RouterProvider = ({ children, routes }: {
   }, [currentPath, isAdmin]);
 
   // Find matching route pattern, parse route parameters, and determine if route is public/fullScreen
-  const { RouteComponent, routeParams, isCurrentRoutePublic, isCurrentRouteFullScreen } = useMemo(() => {
+  const { RouteComponent, routeParams, isCurrentRoutePublic, isCurrentRouteFullScreen, currentRoutePasskeyGuard } = useMemo(() => {
     const pathWithoutQuery = currentPath.split('?')[0];
 
     // Treat admin routes as home for non-admins (helps avoid flash before redirect effect runs).
@@ -204,7 +236,8 @@ export const RouterProvider = ({ children, routes }: {
         RouteComponent: config.component,
         routeParams: {},
         isCurrentRoutePublic: config.public === true,
-        isCurrentRouteFullScreen: config.fullScreen === true
+        isCurrentRouteFullScreen: config.fullScreen === true,
+        currentRoutePasskeyGuard: resolveRouteGuard(effectivePath, config)
       };
     }
 
@@ -218,7 +251,8 @@ export const RouterProvider = ({ children, routes }: {
             RouteComponent: config.component,
             routeParams: params,
             isCurrentRoutePublic: config.public === true,
-            isCurrentRouteFullScreen: config.fullScreen === true
+            isCurrentRouteFullScreen: config.fullScreen === true,
+            currentRoutePasskeyGuard: resolveRouteGuard(pattern, config)
           };
         }
       }
@@ -231,7 +265,8 @@ export const RouterProvider = ({ children, routes }: {
       RouteComponent: fallbackConfig?.component ?? (() => null),
       routeParams: {},
       isCurrentRoutePublic: fallbackConfig?.public === true,
-      isCurrentRouteFullScreen: fallbackConfig?.fullScreen === true
+      isCurrentRouteFullScreen: fallbackConfig?.fullScreen === true,
+      currentRoutePasskeyGuard: null
     };
   }, [currentPath, routes, isAdmin]);
 
@@ -316,6 +351,7 @@ export const RouterProvider = ({ children, routes }: {
       queryParams,
       isPublicRoute: isCurrentRoutePublic,
       isFullScreen,
+      routePasskeyGuard: currentRoutePasskeyGuard,
       exitFullScreen,
       enterFullScreen,
       navigate

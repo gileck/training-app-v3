@@ -69,7 +69,11 @@
     "generate-vapid": "tsx scripts/template/generate-vapid.ts",
     "test-push": "tsx scripts/template/test-push.ts",
     "daemon:dev": "tsx --watch src/server/template/rpc/daemon.ts --verbose",
-    "create-project": "bash scripts/template/create-project-from-template.sh"
+    "create-project": "bash scripts/template/create-project-from-template.sh",
+    "create-user": "tsx scripts/template/create-user.ts",
+    "create-local-user": "tsx scripts/template/create-user.ts --local",
+    "set-app-url": "tsx scripts/template/set-app-url.ts",
+    "test-codex-sdk": "tsx scripts/template/test-codex-sdk.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
@@ -123,7 +127,9 @@
     "@openai/codex": "^0.115.0",
     "web-push": "^3.6.7",
     "@openai/codex-sdk": "^0.133.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "@simplewebauthn/browser": "^13",
+    "@simplewebauthn/server": "^13"
   },
   "resolutions": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",

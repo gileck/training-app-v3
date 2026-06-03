@@ -151,6 +151,8 @@ export const routes = createRoutes({
 | `component` | `React.ComponentType` | required | The route component |
 | `public` | `boolean` | `false` | If `true`, bypasses authentication in `AuthWrapper` |
 | `adminOnly` | `boolean` | `false` | If `true`, requires admin access |
+| `fullScreen` | `boolean` | `false` | If `true`, renders without the header/navbar chrome |
+| `requirePasskey` | `boolean \| { title?, description?, ttlMs? }` | `false` | If set, gates the page behind a fresh passkey assertion (step-up re-auth). The router wraps it in `<PasskeyGuard>` automatically. See [passwordless-passkeys.md](../passwordless-passkeys.md). |
 
 **When to use `public: true`:**
 - Share pages that should be accessible without login

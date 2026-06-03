@@ -16,3 +16,7 @@ export * as pushSubscriptions from './template/push-subscriptions';
 export * as rpcConnections from './template/rpc-connections';
 export * as rpcDaemonStatus from './template/rpc-daemon-status';
 export * as agentTraces from './template/agentTraces';
+export * as agentQuestions from './template/agentQuestions';
+export * as credentials from './template/credentials';
+export * as webauthnChallenges from './template/webauthn-challenges';
+export * as enrollmentTokens from './template/enrollment-tokens';

@@ -116,6 +116,16 @@ Full offline support with optimistic updates. Use this when implementing mutatio
 
 ---
 
+## Passwordless Passkeys (WebAuthn)
+
+Passwordless auth with passkeys (WebAuthn / Face ID / Touch ID). Use this when enabling, testing, or migrating a project to passkey login, or wiring passkey enrollment.
+
+**Summary:** Opt-in passwordless auth behind the `AUTH_MODE` env flag (default `password`). Discoverable "just tap" login + a universal token-authenticated enrollment flow delivered by admin-generated links (email later). Passkeys replace the credential, not the JWT session. Per-project cutover via the `/migrate-to-passkeys` skill. rpID must be a stable domain (NOT a Vercel preview URL).
+
+**Docs:** [passwordless-passkeys.md](docs/template/passwordless-passkeys.md)
+
+---
+
 ## useOptimisticMutation
 
 Opinionated wrapper around useMutation that bakes in the optimistic-only pattern — cancel, snapshot, rollback, errorToast, and defensive invalidate. Use this when you don't want to wire the same pattern by hand.

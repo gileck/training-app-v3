@@ -1,4 +1,24 @@
-import { changePassword, login, logout, me, register, requestPasswordReset, resetPassword, updateProfile } from "./index";
+import {
+    changePassword,
+    login,
+    logout,
+    me,
+    register,
+    requestPasswordReset,
+    resetPassword,
+    updateProfile,
+    passkeyRegisterOptions,
+    passkeyRegisterVerify,
+    passkeyList,
+    passkeyRename,
+    passkeyDelete,
+    passkeyLoginOptions,
+    passkeyLoginVerify,
+    passkeyEnrollOptions,
+    passkeyEnrollVerify,
+    passkeyStepUpOptions,
+    passkeyStepUpVerify,
+} from "./index";
 import { getCurrentUser } from "./handlers/getCurrentUser";
 import { loginUser } from "./handlers/loginUser";
 import { logoutUser } from "./handlers/logoutUser";
@@ -7,6 +27,17 @@ import { updateUserProfile } from "./handlers/updateUserProfile";
 import { changeUserPassword } from "./handlers/changePassword";
 import { requestUserPasswordReset } from "./handlers/requestPasswordReset";
 import { resetUserPassword } from "./handlers/resetPassword";
+import { passkeyRegisterOptionsHandler } from "./handlers/passkey/registerOptions";
+import { passkeyRegisterVerifyHandler } from "./handlers/passkey/registerVerify";
+import { passkeyListHandler } from "./handlers/passkey/listPasskeys";
+import { passkeyRenameHandler } from "./handlers/passkey/renamePasskey";
+import { passkeyDeleteHandler } from "./handlers/passkey/deletePasskey";
+import { passkeyLoginOptionsHandler } from "./handlers/passkey/loginOptions";
+import { passkeyLoginVerifyHandler } from "./handlers/passkey/loginVerify";
+import { passkeyEnrollOptionsHandler } from "./handlers/passkey/enrollOptions";
+import { passkeyEnrollVerifyHandler } from "./handlers/passkey/enrollVerify";
+import { passkeyStepUpOptionsHandler } from "./handlers/passkey/stepUpOptions";
+import { passkeyStepUpVerifyHandler } from "./handlers/passkey/stepUpVerify";
 export * from "./shared";
 
 // Export API endpoint names and types from index.ts as per guidelines
@@ -21,5 +52,16 @@ export const authApiHandlers = {
     [changePassword]: { process: changeUserPassword },
     [requestPasswordReset]: { process: requestUserPasswordReset },
     [resetPassword]: { process: resetUserPassword },
+    [passkeyRegisterOptions]: { process: passkeyRegisterOptionsHandler },
+    [passkeyRegisterVerify]: { process: passkeyRegisterVerifyHandler },
+    [passkeyList]: { process: passkeyListHandler },
+    [passkeyRename]: { process: passkeyRenameHandler },
+    [passkeyDelete]: { process: passkeyDeleteHandler },
+    [passkeyLoginOptions]: { process: passkeyLoginOptionsHandler },
+    [passkeyLoginVerify]: { process: passkeyLoginVerifyHandler },
+    [passkeyEnrollOptions]: { process: passkeyEnrollOptionsHandler },
+    [passkeyEnrollVerify]: { process: passkeyEnrollVerifyHandler },
+    [passkeyStepUpOptions]: { process: passkeyStepUpOptionsHandler },
+    [passkeyStepUpVerify]: { process: passkeyStepUpVerifyHandler },
 };
 

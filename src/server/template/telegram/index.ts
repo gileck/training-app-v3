@@ -27,6 +27,7 @@ import { users } from '@/server/database';
 import type { FeatureRequestDocument } from '@/server/database/collections/template/feature-requests/types';
 import type { ReportDocument } from '@/server/database/collections/template/reports/types';
 import { appConfig } from '@/app.config';
+import { requireAppUrl } from '@/server/template/appUrl';
 
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 
@@ -288,31 +289,12 @@ async function sendNotificationToAgent(
 // ============================================================================
 
 /**
- * Get the base app URL
- *
- * Priority order:
- * 1. VERCEL_PROJECT_PRODUCTION_URL - Stable production domain (e.g., app-template-ai.vercel.app)
- * 2. VERCEL_URL - Deployment-specific URL (changes per deployment)
- * 3. NEXT_PUBLIC_APP_URL - Manual override (optional)
- * 4. localhost:3000 - Local development fallback
- *
- * Note: Vercel URLs don't include protocol, so we prepend https://
+ * Get the base app URL (no trailing slash). Resolves from the single source of
+ * truth — `NEXT_PUBLIC_APP_URL` via `appConfig.appUrl` (localhost in dev). Throws
+ * a clear error in production when unset, rather than building broken links.
  */
 export function getBaseUrl(): string {
-    // Stable production domain (recommended for production)
-    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-    }
-    // Deployment-specific URL (preview deployments)
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    // Manual override (optional)
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-        return process.env.NEXT_PUBLIC_APP_URL;
-    }
-    // Local development
-    return 'http://localhost:3000';
+    return requireAppUrl();
 }
 
 /**

@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MarkdownText } from '@/client/components/template/MarkdownText';
 import { Button } from '@/client/components/template/ui/button';
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { toast } from '@/client/components/template/ui/toast';
@@ -230,11 +229,7 @@ export function ItemDetailPage({ id }: ItemDetailPageProps) {
             {/* Description */}
             <Card className="mb-6">
                 <CardContent className="pt-6">
-                    <div className="markdown-body text-sm">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {description}
-                        </ReactMarkdown>
-                    </div>
+                    <MarkdownText content={description} />
                 </CardContent>
             </Card>
 

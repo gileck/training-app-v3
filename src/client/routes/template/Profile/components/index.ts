@@ -6,3 +6,4 @@ export { ProfileHeader } from './ProfileHeader';
 export { ProfileSection } from './ProfileSection';
 export { EditableField } from './EditableField';
 export { ImageUploadDialog } from './ImageUploadDialog';
+export { PasskeysSection } from './PasskeysSection';

@@ -11,12 +11,14 @@
  * Cost is taken from the SDK's `total_cost_usd` on the result message.
  */
 
+import { randomUUID } from 'crypto';
 import {
     createSdkMcpServer,
     query,
     tool,
     type SDKMessage,
     type SDKResultMessage,
+    type SDKUserMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
@@ -165,8 +167,33 @@ export class ClaudeCodeAgenticAdapter implements AgenticAdapter {
         // thinking entirely (fastest + cheapest).
         const maxThinkingTokens = thinkingTokensForEffort(opts.effort ?? 'medium');
 
+        // When images are attached we have to use the AsyncIterable
+        // prompt form — a plain string can't carry image content
+        // blocks, and the SDK's `query()` only accepts `string |
+        // AsyncIterable<SDKUserMessage>`. The text-only path stays
+        // on the string form so we don't change the SDK's request
+        // shape for the common case.
+        //
+        // We fetch each image server-side and embed it as a base64
+        // content block rather than passing the URL through. Two
+        // reasons: (1) Anthropic's URL image source is honored by
+        // their REST API but the Claude Code CLI bridge that this
+        // SDK wraps doesn't always pass URL sources through cleanly;
+        // (2) base64 is the universally supported path. The fetch
+        // happens once per turn, before the SDK call.
+        const imageUrls = opts.userImageUrls ?? [];
+        let prompt: string | AsyncIterable<SDKUserMessage>;
+        if (imageUrls.length === 0) {
+            prompt = opts.userText;
+        } else {
+            const images = await Promise.all(
+                imageUrls.map((url) => fetchImageAsBase64(url, logPrefix))
+            );
+            prompt = makeMultimodalUserPrompt(opts.userText, images);
+        }
+
         const stream = query({
-            prompt: opts.userText,
+            prompt,
             options: {
                 model: sdkModelId,
                 mcpServers: { [mcpServerName]: mcp },
@@ -270,6 +297,86 @@ function sumModelUsage(
         output += usage.outputTokens ?? 0;
     }
     return { input, output };
+}
+
+/** Anthropic only accepts these as image media types via the
+ *  base64-source path. Anything else (or empty) is coerced to png. */
+type AnthropicImageMediaType =
+    | 'image/jpeg'
+    | 'image/png'
+    | 'image/gif'
+    | 'image/webp';
+
+interface InlineImage {
+    /** Base64-encoded image bytes. */
+    data: string;
+    mediaType: AnthropicImageMediaType;
+}
+
+function normalizeMediaType(raw: string): AnthropicImageMediaType {
+    const lower = raw.toLowerCase();
+    if (lower === 'image/jpeg' || lower === 'image/jpg') return 'image/jpeg';
+    if (lower === 'image/gif') return 'image/gif';
+    if (lower === 'image/webp') return 'image/webp';
+    return 'image/png';
+}
+
+/**
+ * Fetch a public image URL, base64-encode it, and tag with its media
+ * type. Used by the multimodal path because the SDK's CLI bridge
+ * doesn't reliably pass `{ source: { type: 'url' } }` through.
+ */
+async function fetchImageAsBase64(
+    url: string,
+    logPrefix: string
+): Promise<InlineImage> {
+    const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error(
+            `${logPrefix} failed to fetch image attachment (${res.status}): ${url}`
+        );
+    }
+    const arrayBuf = await res.arrayBuffer();
+    return {
+        data: Buffer.from(arrayBuf).toString('base64'),
+        mediaType: normalizeMediaType(res.headers.get('content-type') ?? ''),
+    };
+}
+
+/**
+ * Build a single-message AsyncIterable for query() carrying a
+ * multimodal user turn. The model sees the text alongside each image
+ * as a separate base64-source content block — that's what
+ * vision-capable models need to actually look at the image.
+ *
+ * `session_id` is required by the SDK type; we pass a UUID. When the
+ * caller supplied `resume`, the SDK uses options.resume (set at the
+ * query() call site) to anchor the conversation — the inline
+ * session_id here only labels this single yielded message.
+ */
+async function* makeMultimodalUserPrompt(
+    text: string,
+    images: ReadonlyArray<InlineImage>
+): AsyncIterable<SDKUserMessage> {
+    yield {
+        type: 'user',
+        message: {
+            role: 'user',
+            content: [
+                { type: 'text', text },
+                ...images.map((img) => ({
+                    type: 'image' as const,
+                    source: {
+                        type: 'base64' as const,
+                        media_type: img.mediaType,
+                        data: img.data,
+                    },
+                })),
+            ],
+        },
+        parent_tool_use_id: null,
+        session_id: randomUUID(),
+    };
 }
 
 function buildSystemPromptWithHistory(

@@ -126,77 +126,45 @@ Route (pages)                                Size  First Load JS
 
 ---
 
-## ✅ Vercel Environment Variables - Automatic URLs
+## The app URL — auto on Vercel, override with `NEXT_PUBLIC_APP_URL`
 
-### Good News
+Every absolute link the app builds — passkey enrollment links, password-reset
+and login-approval links, Telegram deep-links, the WebAuthn origin — comes from
+`appConfig.appUrl`, read through the `getAppUrl()` / `requireAppUrl()` helpers
+(`src/server/template/appUrl.ts`).
 
-Vercel automatically provides stable production URLs - **no manual configuration needed!**
+### Resolution order (zero-config on Vercel)
 
-### Automatic System Variables
+1. **`NEXT_PUBLIC_APP_URL`** — explicit override (custom domain / testing).
+2. **`VERCEL_PROJECT_PRODUCTION_URL`** — auto-provided by Vercel, **per-project
+   correct** (each project's own stable production domain, including custom
+   domains). This is the default, so deployed projects "just work" with no env
+   setup, on production **and** preview.
+3. **Development:** `http://localhost:3000`.
+4. Otherwise **`undefined`** → link builders call `requireAppUrl()`, which
+   **throws a clear error** rather than producing a wrong link. In practice this
+   only happens off Vercel with nothing configured; best-effort callers use
+   `getAppUrl()` and degrade gracefully.
 
-| Variable | Description | Stability | Example | Protocol |
-|----------|-------------|-----------|---------|----------|
-| `VERCEL_PROJECT_PRODUCTION_URL` | **Stable production domain** | ✅ Never changes | `app-template-ai.vercel.app` | No `https://` |
-| `VERCEL_URL` | Current deployment URL | ❌ Changes per deployment | `app-template-xyz123.vercel.app` | No `https://` |
-| `VERCEL_BRANCH_URL` | Git branch URL | ⚠️  Stable per branch | `app-template-git-main.vercel.app` | No `https://` |
-| `VERCEL_ENV` | Environment | ✅ Never changes | `production`, `preview`, `development` | N/A |
+There is intentionally **NO hardcoded fallback domain** — that was the bug:
+projects silently inherited `app-template-ai.vercel.app`. The per-project
+`VERCEL_PROJECT_PRODUCTION_URL` gives the *correct* domain instead.
 
-### Important Note
+### When to set `NEXT_PUBLIC_APP_URL`
 
-**Vercel URLs don't include the protocol** - always prepend `https://`
+Only to **override** the auto value — e.g. a custom domain Vercel doesn't report,
+or to pin it explicitly:
 
-### Usage in Code
-
-```typescript
-function getBaseUrl(): string {
-    // 1. Stable production domain (automatic) ✅ BEST
-    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-    }
-    // 2. Deployment-specific URL (automatic)
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    // 3. Manual override (optional)
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-        return process.env.NEXT_PUBLIC_APP_URL;
-    }
-    // 4. Local development
-    return 'http://localhost:3000';
-}
+```bash
+yarn set-app-url https://yourapp.com   # sets it on Vercel for ALL environments
 ```
 
-### When to Manually Set NEXT_PUBLIC_APP_URL
+Use a **stable** domain (not a per-deployment preview URL `*-xyz123.vercel.app`,
+which changes every deploy and would break links + WebAuthn). `--local` also
+writes `.env.local`; otherwise local dev uses `http://localhost:3000`.
 
-- ✅ Using a custom domain (e.g., `myapp.com` instead of `*.vercel.app`)
-- ✅ Want to override for testing purposes
-- ❌ NOT needed for standard `*.vercel.app` domains (automatic)
-
-### Why VERCEL_PROJECT_PRODUCTION_URL is Better
-
-**Problem with VERCEL_URL:**
-- Changes with each deployment (`app-template-xyz123.vercel.app`)
-- Old URLs become invalid after new deployment
-- Breaks bookmarked links
-- Telegram buttons stop working
-
-**Solution with VERCEL_PROJECT_PRODUCTION_URL:**
-- Stable across all deployments (`app-template-ai.vercel.app`)
-- Always redirects to latest deployment
-- Links never break
-- Telegram approval buttons work permanently
-
-### Real-World Impact
-
-**Telegram Approval Buttons:**
-When agents send Telegram notifications with approval buttons, the button URLs must remain valid. Using `VERCEL_URL` means:
-1. Agent creates feature, sends Telegram notification
-2. URLs in buttons point to `app-template-xyz123.vercel.app`
-3. New code is pushed, new deployment created
-4. URLs now point to old deployment
-5. Buttons may not work or show stale data
-
-Using `VERCEL_PROJECT_PRODUCTION_URL` ensures buttons always work.
+> Existing projects need **no migration** — they pick up their own
+> `VERCEL_PROJECT_PRODUCTION_URL` automatically after syncing.
 
 ### References
 

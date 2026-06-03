@@ -116,6 +116,7 @@ export function useAuthValidation() {
         user,
         setValidatedUser,
         setValidating,
+        setAuthMode,
         clearAuth,
     } = useAuthStore();
 
@@ -152,8 +153,14 @@ export function useAuthValidation() {
 
     const handlePreflightResult = (result: { data: CurrentUserResponse | null; error?: string | null; skippedOffline?: boolean }) => {
         if (hasValidated.current) return;
-        
+
         const { data, error, skippedOffline } = result;
+
+        // Learn the deployment's auth mode from the preflight as soon as it's
+        // available, independent of whether the user turned out authenticated.
+        if (data?.authMode) {
+            setAuthMode(data.authMode);
+        }
         
         // If offline OR network error, skip validation and let instant boot hints work
         // Network errors (fetch failed, DNS, timeout) should NOT clear hints

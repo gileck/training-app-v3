@@ -7,7 +7,18 @@ import {
     register,
     requestPasswordReset,
     resetPassword,
-    updateProfile
+    updateProfile,
+    passkeyRegisterOptions,
+    passkeyRegisterVerify,
+    passkeyList,
+    passkeyRename,
+    passkeyDelete,
+    passkeyLoginOptions,
+    passkeyLoginVerify,
+    passkeyEnrollOptions,
+    passkeyEnrollVerify,
+    passkeyStepUpOptions,
+    passkeyStepUpVerify
 } from './index';
 import {
     ChangePasswordRequest,
@@ -23,7 +34,25 @@ import {
     ResetPasswordRequest,
     ResetPasswordResponse,
     UpdateProfileRequest,
-    UpdateProfileResponse
+    UpdateProfileResponse,
+    PasskeyRegisterOptionsResponse,
+    PasskeyRegisterVerifyRequest,
+    PasskeyRegisterVerifyResponse,
+    PasskeyListResponse,
+    PasskeyRenameRequest,
+    PasskeyRenameResponse,
+    PasskeyDeleteRequest,
+    PasskeyDeleteResponse,
+    PasskeyLoginOptionsResponse,
+    PasskeyLoginVerifyRequest,
+    PasskeyLoginVerifyResponse,
+    PasskeyEnrollOptionsRequest,
+    PasskeyEnrollOptionsResponse,
+    PasskeyEnrollVerifyRequest,
+    PasskeyEnrollVerifyResponse,
+    PasskeyStepUpOptionsResponse,
+    PasskeyStepUpVerifyRequest,
+    PasskeyStepUpVerifyResponse
 } from './types';
 
 export const apiLogin = (params: LoginRequest) => {
@@ -56,4 +85,48 @@ export const apiRequestPasswordReset = (params: RequestPasswordResetRequest) => 
 
 export const apiResetPassword = (params: ResetPasswordRequest) => {
     return apiClient.call<ResetPasswordResponse, ResetPasswordRequest>(resetPassword, params);
+};
+
+export const apiPasskeyRegisterOptions = () => {
+    return apiClient.call<PasskeyRegisterOptionsResponse>(passkeyRegisterOptions, {});
+};
+
+export const apiPasskeyRegisterVerify = (params: PasskeyRegisterVerifyRequest) => {
+    return apiClient.call<PasskeyRegisterVerifyResponse, PasskeyRegisterVerifyRequest>(passkeyRegisterVerify, params);
+};
+
+export const apiPasskeyList = () => {
+    return apiClient.call<PasskeyListResponse>(passkeyList, {});
+};
+
+export const apiPasskeyRename = (params: PasskeyRenameRequest) => {
+    return apiClient.call<PasskeyRenameResponse, PasskeyRenameRequest>(passkeyRename, params);
+};
+
+export const apiPasskeyDelete = (params: PasskeyDeleteRequest) => {
+    return apiClient.call<PasskeyDeleteResponse, PasskeyDeleteRequest>(passkeyDelete, params);
+};
+
+export const apiPasskeyLoginOptions = () => {
+    return apiClient.call<PasskeyLoginOptionsResponse>(passkeyLoginOptions, {});
+};
+
+export const apiPasskeyLoginVerify = (params: PasskeyLoginVerifyRequest) => {
+    return apiClient.call<PasskeyLoginVerifyResponse, PasskeyLoginVerifyRequest>(passkeyLoginVerify, params);
+};
+
+export const apiPasskeyEnrollOptions = (params: PasskeyEnrollOptionsRequest) => {
+    return apiClient.call<PasskeyEnrollOptionsResponse, PasskeyEnrollOptionsRequest>(passkeyEnrollOptions, params);
+};
+
+export const apiPasskeyEnrollVerify = (params: PasskeyEnrollVerifyRequest) => {
+    return apiClient.call<PasskeyEnrollVerifyResponse, PasskeyEnrollVerifyRequest>(passkeyEnrollVerify, params);
+};
+
+export const apiPasskeyStepUpOptions = () => {
+    return apiClient.call<PasskeyStepUpOptionsResponse>(passkeyStepUpOptions, {});
+};
+
+export const apiPasskeyStepUpVerify = (params: PasskeyStepUpVerifyRequest) => {
+    return apiClient.call<PasskeyStepUpVerifyResponse, PasskeyStepUpVerifyRequest>(passkeyStepUpVerify, params);
 };

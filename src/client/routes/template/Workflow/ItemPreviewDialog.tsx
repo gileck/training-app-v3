@@ -7,8 +7,7 @@
 
 import { useState, useMemo } from 'react';
 import { Loader2, ExternalLink, Clock, CheckCircle, Trash2, Copy, Archive } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownText } from '@/client/components/template/MarkdownText';
 import { Button } from '@/client/components/template/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/client/components/template/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/client/components/template/ui/select';
@@ -413,13 +412,7 @@ export function ItemPreviewDialog({ itemId, onClose, workflowItems }: { itemId: 
                             )}
 
                             {description && (
-                                <>
-                                    <div className="markdown-body text-sm mb-4">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {description}
-                                        </ReactMarkdown>
-                                    </div>
-                                </>
+                                <MarkdownText content={description} className="mb-4" />
                             )}
 
                             {item?.report?.errorMessage && (

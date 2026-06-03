@@ -194,6 +194,17 @@ export const CLAUDE_CODE_MODELS: AIModelDefinition[] = [
 // OpenAI Codex models (routed via RPC to local Codex CLI)
 export const CODEX_MODELS: AIModelDefinition[] = [
   {
+    id: 'gpt-5.5',
+    name: 'GPT-5.5',
+    provider: 'codex',
+    tier: 'Premium',
+    maxTokens: 1050000,
+    maxOutputTokens: 128000,
+    inputPricePer1M: 5.00,
+    outputPricePer1M: 30.00,
+    capabilities: ['frontier-reasoning', 'coding', 'analysis', 'agentic-workflows', 'multimodal']
+  },
+  {
     id: 'gpt-5.4',
     name: 'GPT-5.4',
     provider: 'codex',

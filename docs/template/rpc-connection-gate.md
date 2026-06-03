@@ -30,6 +30,23 @@ The RPC daemon executes arbitrary handler code on a residential machine. Even wi
 - **Bounded blast radius**: sessions are absolute-TTL'd. A compromised cookie expires automatically.
 - **Per-user audit trail**: every approval/rejection/revocation is a database row.
 
+## Two approval paths: Telegram vs. passkey device-auth
+
+How a connection gets **approved** depends on `AUTH_MODE` (see
+[passwordless-passkeys.md](./passwordless-passkeys.md)):
+
+| `AUTH_MODE` | Approval | Flow |
+|---|---|---|
+| `password` (default) | **Telegram admin** | `connect` → pending row → admin taps ✅ in Telegram → approved. |
+| `passkey` | **Device passkey** | `connect-options` → Face ID assertion restricted to the user's registered passkeys → `connect-verify` → an *already-approved* connection bound to the verified credential. **No Telegram.** |
+
+Everything *after* approval is identical — the gate (`assertRpcConnection`)
+only checks for an approved, unexpired token match; it doesn't care how the
+row was approved. The passkey path is admin-only like the rest of this domain,
+adds a `connect-options` / `connect-verify` endpoint pair, and records
+`approvalMethod: 'passkey'` + the `credentialId` on the connection row. The
+diagram below shows the default (Telegram) path.
+
 ## End-to-end flow
 
 ```

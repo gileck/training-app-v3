@@ -1,6 +1,8 @@
 import apiClient from '@/client/utils/apiClient';
 import {
   API_RPC_CONNECTION_CONNECT,
+  API_RPC_CONNECTION_CONNECT_OPTIONS,
+  API_RPC_CONNECTION_CONNECT_VERIFY,
   API_RPC_CONNECTION_DAEMON_STATUS,
   API_RPC_CONNECTION_GET_CURRENT,
   API_RPC_CONNECTION_LIST_HISTORY,
@@ -10,6 +12,10 @@ import {
 import type {
   ConnectRequest,
   ConnectResponse,
+  ConnectOptionsRequest,
+  ConnectOptionsResponse,
+  ConnectVerifyRequest,
+  ConnectVerifyResponse,
   DaemonStatusRequest,
   DaemonStatusResponse,
   GetCurrentRequest,
@@ -26,6 +32,18 @@ export const apiConnectRpc = () =>
   apiClient.call<ConnectResponse, ConnectRequest>(
     API_RPC_CONNECTION_CONNECT,
     {} as ConnectRequest
+  );
+
+export const apiRpcConnectOptions = () =>
+  apiClient.call<ConnectOptionsResponse, ConnectOptionsRequest>(
+    API_RPC_CONNECTION_CONNECT_OPTIONS,
+    {} as ConnectOptionsRequest
+  );
+
+export const apiRpcConnectVerify = (params: ConnectVerifyRequest) =>
+  apiClient.call<ConnectVerifyResponse, ConnectVerifyRequest>(
+    API_RPC_CONNECTION_CONNECT_VERIFY,
+    params
   );
 
 export const apiGetCurrentRpcConnection = () =>

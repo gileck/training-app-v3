@@ -2,8 +2,8 @@
   "templateRepo": "git@github.com:gileck/app-template-ai.git",
   "templateBranch": "main",
   "templateLocalPath": "../app-template-ai",
-  "lastSyncCommit": "96f66a54f9de65bb5d4b1dc2afa8c916aa2435b9",
-  "lastSyncDate": "2026-05-25T14:47:14.184Z",
+  "lastSyncCommit": "d0183e346323c63bf423888917988e26c78564a2",
+  "lastSyncDate": "2026-06-03T13:16:55.633Z",
   "projectOverrides": [],
   "overrideHashes": {
     ".cursor/mcp.json": "4faae3bf83e747b83996cc34f648186e",

@@ -13,6 +13,7 @@ import {
 } from '@/server/database/collections/template/password-reset-tokens';
 import { sendTelegramNotificationToUser } from '@/server/template/telegram';
 import { SALT_ROUNDS } from '../shared';
+import { isPasskeyMode } from '../authMode';
 import { toStringId } from '@/server/template/utils';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -23,6 +24,9 @@ export const resetUserPassword = async (
     _context: ApiHandlerContext
 ): Promise<ResetPasswordResponse> => {
     try {
+        if (isPasskeyMode()) {
+            return { success: false, error: 'Password reset is disabled in passkey mode.' };
+        }
         const token = request.token ?? '';
         const newPassword = request.newPassword ?? '';
 

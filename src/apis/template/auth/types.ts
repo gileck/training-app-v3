@@ -1,3 +1,11 @@
+import type { AuthMode } from './authMode';
+import type {
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+    RegistrationResponseJSON,
+    AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
+
 export type TwoFactorMethod = 'telegram' | 'email';
 
 export interface LoginRequest {
@@ -52,6 +60,12 @@ export type CurrentUserResponse = {
     connectionError?: boolean;
     /** Debug info about auth status - helps diagnose auth failures */
     authDebug?: AuthDebugInfo;
+    /**
+     * Active auth mode for this deployment ('password' | 'passkey'), surfaced
+     * on the public preflight so the unauthenticated login UI knows which flow
+     * to render without an extra round-trip. Always present.
+     */
+    authMode?: AuthMode;
 };
 export type LogoutResponse = {
     success: boolean;
@@ -139,6 +153,143 @@ export interface AuthDebugInfo {
     tokenErrorCode?: string;
     /** True when request was authenticated via ADMIN_API_TOKEN bearer + X-On-Behalf-Of */
     tokenAuth?: boolean;
+}
+
+// ============================================================
+// Passkeys / WebAuthn (Phase 1: enroll a passkey for a logged-in user)
+// ============================================================
+
+/** A registered passkey as shown in the device-management UI. */
+export interface PasskeyInfo {
+    credentialId: string;
+    deviceName?: string;
+    backedUp?: boolean;
+    createdAt: string;
+    lastUsedAt?: string;
+}
+
+/** `passkey/register-options` — start the registration ceremony. */
+export interface PasskeyRegisterOptionsResponse {
+    options?: PublicKeyCredentialCreationOptionsJSON;
+    /** Correlates this ceremony's two round-trips; echo back on verify. */
+    challengeId?: string;
+    error?: string;
+}
+
+/** `passkey/register-verify` — finish registration and store the credential. */
+export interface PasskeyRegisterVerifyRequest {
+    challengeId: string;
+    response: RegistrationResponseJSON;
+    /** Optional user-facing label for this device. */
+    deviceName?: string;
+}
+
+export interface PasskeyRegisterVerifyResponse {
+    verified: boolean;
+    passkey?: PasskeyInfo;
+    error?: string;
+}
+
+/** `passkey/list` — the current user's registered passkeys. */
+export interface PasskeyListResponse {
+    passkeys?: PasskeyInfo[];
+    error?: string;
+}
+
+/** `passkey/rename` — relabel one of the current user's passkeys. */
+export interface PasskeyRenameRequest {
+    credentialId: string;
+    deviceName: string;
+}
+
+export interface PasskeyRenameResponse {
+    success: boolean;
+    error?: string;
+}
+
+/** `passkey/delete` — remove one of the current user's passkeys. */
+export interface PasskeyDeleteRequest {
+    credentialId: string;
+}
+
+export interface PasskeyDeleteResponse {
+    success: boolean;
+    error?: string;
+}
+
+/** `passkey/login-options` — start discoverable ("just tap") login. */
+export interface PasskeyLoginOptionsResponse {
+    options?: PublicKeyCredentialRequestOptionsJSON;
+    /** Correlates this ceremony's two round-trips; echo back on verify. */
+    challengeId?: string;
+    error?: string;
+}
+
+/** `passkey/login-verify` — verify the assertion and issue the session. */
+export interface PasskeyLoginVerifyRequest {
+    challengeId: string;
+    response: AuthenticationResponseJSON;
+}
+
+export interface PasskeyLoginVerifyResponse {
+    user?: UserResponse;
+    error?: string;
+}
+
+/**
+ * Token-authenticated enrollment (the universal enroll-link flow). Authorized
+ * by a one-time enrollment token (from an admin-generated link or, later, an
+ * email), NOT by an existing session — this is how a user with no passkey yet
+ * registers their first device.
+ */
+export interface PasskeyEnrollOptionsRequest {
+    token: string;
+}
+
+export interface PasskeyEnrollOptionsResponse {
+    options?: PublicKeyCredentialCreationOptionsJSON;
+    challengeId?: string;
+    /** Who the link enrolls — shown on the landing page. */
+    username?: string;
+    error?: string;
+}
+
+export interface PasskeyEnrollVerifyRequest {
+    token: string;
+    challengeId: string;
+    response: RegistrationResponseJSON;
+    deviceName?: string;
+}
+
+export interface PasskeyEnrollVerifyResponse {
+    verified: boolean;
+    passkey?: PasskeyInfo;
+    /** Present when a session was issued (user is now logged in on this device). */
+    user?: UserResponse;
+    error?: string;
+}
+
+/**
+ * Step-up re-authentication: the logged-in user proves device possession again
+ * (a fresh passkey assertion) before a sensitive page reveals its content.
+ * Reuses the authentication ceremony restricted to the user's own passkeys.
+ */
+export interface PasskeyStepUpOptionsResponse {
+    options?: PublicKeyCredentialRequestOptionsJSON;
+    challengeId?: string;
+    error?: string;
+}
+
+export interface PasskeyStepUpVerifyRequest {
+    challengeId: string;
+    response: AuthenticationResponseJSON;
+}
+
+export interface PasskeyStepUpVerifyResponse {
+    verified: boolean;
+    /** Server-clock ISO timestamp of a successful verification. */
+    verifiedAt?: string;
+    error?: string;
 }
 
 export interface ApiHandlerContext {

@@ -139,6 +139,13 @@ export interface AgenticRunOptions<TData = unknown> {
     history: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>;
     /** The new user message for this turn. */
     userText: string;
+    /** Optional public image URLs to attach to the user message as
+     *  vision content blocks. Adapters that support multimodal input
+     *  (e.g. Claude Code via Anthropic image blocks) MUST pass these
+     *  alongside `userText` so the model can actually see the image.
+     *  Adapters without vision support should fall back to inlining
+     *  the URLs in `userText` server-side. */
+    userImageUrls?: string[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous tool shapes
     tools: AgenticTool<any, TData>[];
     /** Passed to every tool handler when the model invokes it. */

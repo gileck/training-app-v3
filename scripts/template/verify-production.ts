@@ -415,7 +415,12 @@ async function checkProductionDeployment(productionUrl: string): Promise<Categor
 }
 
 async function getProductionUrl(): Promise<string | null> {
-    // Try to get from VERCEL_PROJECT_PRODUCTION_URL env var
+    // The single source of truth for the app's URL.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (appUrl) {
+        return appUrl.replace(/\/$/, '');
+    }
+    // Fallback (informational only): the Vercel-provided production domain.
     const envUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
     if (envUrl) {
         return `https://${envUrl}`;

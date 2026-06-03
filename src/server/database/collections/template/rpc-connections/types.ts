@@ -12,6 +12,9 @@ export type RpcConnectionEndedReason =
   | 'admin_reject'
   | 'pending_timeout';
 
+/** How an approved connection was authorized. Missing = legacy 'telegram'. */
+export type RpcConnectionApprovalMethod = 'telegram' | 'passkey';
+
 export interface RpcConnection {
   _id: ObjectId;
   userId: string;
@@ -31,6 +34,10 @@ export interface RpcConnection {
   userAgent: string;
   ip: string;
   endedReason?: RpcConnectionEndedReason;
+  /** How the session was approved. Missing = legacy 'telegram'. */
+  approvalMethod?: RpcConnectionApprovalMethod;
+  /** The passkey credential that authorized the session (passkey method only). */
+  credentialId?: string;
 }
 
 export interface CreateRpcConnectionParams {
@@ -38,4 +45,15 @@ export interface CreateRpcConnectionParams {
   userAgent: string;
   ip: string;
   pendingTtlMs: number;
+}
+
+export interface CreateApprovedRpcConnectionParams {
+  userId: string;
+  userAgent: string;
+  ip: string;
+  /** TTL for the already-approved session. */
+  ttlMs: number;
+  approvalMethod: RpcConnectionApprovalMethod;
+  /** The verified passkey credential (passkey method). */
+  credentialId?: string;
 }

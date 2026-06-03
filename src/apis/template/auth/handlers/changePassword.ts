@@ -7,6 +7,7 @@ import {
 } from '../types';
 import * as users from '@/server/database/collections/template/users/users';
 import { SALT_ROUNDS } from '../shared';
+import { isPasskeyMode } from '../authMode';
 import { sendTelegramNotificationToUser } from '@/server/template/telegram';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -17,6 +18,9 @@ export const changeUserPassword = async (
     context: ApiHandlerContext
 ): Promise<ChangePasswordResponse> => {
     try {
+        if (isPasskeyMode()) {
+            return { success: false, error: 'Password changes are disabled in passkey mode.' };
+        }
         if (!context.userId) {
             return { success: false, error: 'Not authenticated' };
         }

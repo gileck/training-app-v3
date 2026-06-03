@@ -261,6 +261,14 @@ yarn dev
 
 Visit http://localhost:3000 and test key features.
 
+> **App URL note (no action needed for most projects):** the template builds
+> absolute links from `appConfig.appUrl`, which defaults to Vercel's auto
+> `VERCEL_PROJECT_PRODUCTION_URL` (your project's own correct domain) — so it
+> just works after sync. Only set `NEXT_PUBLIC_APP_URL` (e.g.
+> `yarn set-app-url https://yourapp.com`) if you use a **custom domain** Vercel
+> doesn't report, or want to override it. See
+> [critical-deployment-issues.md](../../docs/template/critical-deployment-issues.md).
+
 ### Step 8: Commit the Changes
 
 ```bash

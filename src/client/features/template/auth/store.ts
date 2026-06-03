@@ -12,6 +12,7 @@ import { createStore } from '@/client/stores';
 import type { UserPublicHint } from './types';
 import { userToHint } from './types';
 import type { UserResponse } from '@/apis/template/auth/types';
+import type { AuthMode } from '@/apis/template/auth/authMode';
 import { STORE_DEFAULTS, createTTLValidator } from '@/client/config';
 
 // Use centralized TTL
@@ -29,12 +30,19 @@ interface AuthState extends PersistedAuthState {
     isValidated: boolean;
     isValidating: boolean;
     error: string | null;
+    /**
+     * Active auth mode for this deployment, learned from the preflight /me
+     * response. Defaults to 'password' until preflight resolves. Drives which
+     * login UI the unauthenticated view renders.
+     */
+    authMode: AuthMode;
 
     // Actions
     setUserHint: (user: UserPublicHint) => void;
     setValidatedUser: (user: UserResponse) => void;
     setValidating: (validating: boolean) => void;
     setError: (error: string | null) => void;
+    setAuthMode: (mode: AuthMode) => void;
     clearAuth: () => void;
 }
 
@@ -52,6 +60,7 @@ export const useAuthStore = createStore<AuthState>({
         isValidated: false,
         isValidating: false,
         error: null,
+        authMode: 'password',
 
         setUserHint: (user) => {
             set({
@@ -84,6 +93,10 @@ export const useAuthStore = createStore<AuthState>({
 
         setError: (error) => {
             set({ error, isValidating: false });
+        },
+
+        setAuthMode: (mode) => {
+            set({ authMode: mode });
         },
 
         clearAuth: () => {
@@ -130,6 +143,10 @@ export function useUser(): UserResponse | null {
 
 export function useUserHint(): UserPublicHint | null {
     return useAuthStore((state) => state.userPublicHint);
+}
+
+export function useAuthMode(): AuthMode {
+    return useAuthStore((state) => state.authMode);
 }
 
 export function useIsAdmin(): boolean {

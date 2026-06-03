@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/client/components/template/ui/dialog';
-import { useIsAdmin } from '@/client/features/template/auth/store';
+import { useIsAdmin, useAuthMode } from '@/client/features/template/auth/store';
 import { useRouter } from '@/client/features/template/router';
 import {
   useConnectRpc,
@@ -147,15 +147,21 @@ function DialogBody({
   isConnecting,
   isStopping,
 }: BodyProps) {
+  const passkeyMode = useAuthMode() === 'passkey';
   if (!connection) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
-          Not connected. Click Connect to send an approval request to the admin.
+          {passkeyMode
+            ? 'Not connected. Click Connect and verify this device with your passkey.'
+            : 'Not connected. Click Connect to send an approval request to the admin.'}
         </p>
         <Button onClick={onConnect} disabled={isConnecting} className="self-start min-h-11">
           {isConnecting ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending request…</>
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {passkeyMode ? 'Verifying device…' : 'Sending request…'}
+            </>
           ) : (
             <><Plug className="mr-2 h-4 w-4" />Connect</>
           )}

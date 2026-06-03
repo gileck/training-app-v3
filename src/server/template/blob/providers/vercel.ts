@@ -17,21 +17,7 @@ export class VercelBlobProvider implements BlobStorageProvider {
         options: BlobUploadOptions = {}
     ): Promise<BlobUploadResult> {
         const { buffer, contentType, extension } = parseBase64Image(base64Data);
-        
-        const filename = generateFilename(options.filename, extension);
-        const folder = options.folder || '';
-        const pathname = folder ? `${folder}/${filename}` : filename;
-
-        const blob = await put(pathname, buffer, {
-            access: 'public',
-            contentType: options.contentType || contentType,
-        });
-
-        return {
-            url: blob.url,
-            key: blob.pathname,
-            size: buffer.length,
-        };
+        return this.putBuffer(buffer, contentType, extension, options);
     }
 
     async uploadBuffer(
@@ -40,13 +26,39 @@ export class VercelBlobProvider implements BlobStorageProvider {
         options: BlobUploadOptions = {}
     ): Promise<BlobUploadResult> {
         const extension = this.getExtensionFromContentType(contentType);
-        const filename = generateFilename(options.filename, extension);
-        const folder = options.folder || '';
-        const pathname = folder ? `${folder}/${filename}` : filename;
+        return this.putBuffer(buffer, contentType, extension, options);
+    }
+
+    /**
+     * Shared upload path. Builds the pathname (with sane handling of
+     * a caller-supplied filename + extension) and calls Vercel `put`
+     * with `addRandomSuffix: true` so colliding filenames (e.g. the
+     * browser names every paste-screenshot "image.png") still land at
+     * unique URLs. The suffix lives in the URL, not the pathname.
+     */
+    private async putBuffer(
+        buffer: Buffer,
+        contentType: string,
+        extension: string,
+        options: BlobUploadOptions
+    ): Promise<BlobUploadResult> {
+        const callerName = options.filename;
+        // Use callerName as-is when it already has an extension —
+        // otherwise generateFilename's unconditional append produces
+        // "image.png.png".
+        const callerHasExt =
+            !!callerName && /\.[^./\\]+$/.test(callerName);
+        const filename = callerHasExt
+            ? callerName
+            : generateFilename(callerName, extension);
+        const pathname = options.folder
+            ? `${options.folder}/${filename}`
+            : filename;
 
         const blob = await put(pathname, buffer, {
             access: 'public',
             contentType: options.contentType || contentType,
+            addRandomSuffix: true,
         });
 
         return {

@@ -33,6 +33,34 @@ The authentication system uses:
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Two Auth Modes: Password vs. Passkey (`AUTH_MODE`)
+
+The template ships **both** a password flow and a passwordless **passkey
+(WebAuthn)** flow. Which one is live is decided by the `AUTH_MODE` env var:
+
+| `AUTH_MODE` | Login | Notes |
+|---|---|---|
+| unset / `password` (default) | username + password (bcrypt) | today's flow, unchanged |
+| `passkey` | discoverable "just tap" passkey | password login / sign-up / change / reset are **disabled** (guarded by the flag — set `AUTH_MODE=password` to restore). Enroll users *before* flipping. |
+
+**The key invariant: passkeys replace the _credential_, not the _session_.**
+Both modes end the same way — `→ issue the JWT cookie`. So everything in the
+rest of this document (preflight, instant-boot hints, the Zustand store,
+`useUser()`, server-side `context.userId`, `isAdmin`, admin-approval gating,
+the MCP/SDK bearer path) is **identical in both modes**. Only the credential
+check at the front differs.
+
+Because `AUTH_MODE` is an env var (never touched by template sync), a child
+project that has merged the passkey code but hasn't run `/migrate-to-passkeys`
+keeps running password auth with zero behaviour change. The client learns the
+mode from the public preflight `/me` response (`authMode` field → `useAuthMode()`),
+so the login UI renders the right thing with no extra round-trip.
+
+Full details — the enrollment flows, the admin-generated enroll links, the
+collections, the rpID gotcha, and the per-project cutover — live in
+**[passwordless-passkeys.md](./passwordless-passkeys.md)**. The per-project
+migration is the **`/migrate-to-passkeys`** skill.
+
 ## Auth Preflight (No Login Flash)
 
 The **auth preflight** is the key innovation that ensures users with valid cookies **never see a login form flash**. It works by starting the `/me` API call immediately when the JS bundle loads, **before React even mounts**.

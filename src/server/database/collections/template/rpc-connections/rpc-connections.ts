@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import { Collection, ObjectId } from 'mongodb';
 import { getDb } from '../../../connection';
 import type {
+  CreateApprovedRpcConnectionParams,
   CreateRpcConnectionParams,
   RpcConnection,
   RpcConnectionEndedReason,
@@ -82,6 +83,45 @@ export async function createRpcConnection(
     pendingExpiresAt: new Date(now.getTime() + params.pendingTtlMs),
     userAgent: params.userAgent,
     ip: params.ip,
+  };
+
+  try {
+    await collection.insertOne(document);
+  } catch (err) {
+    if ((err as { code?: number })?.code === 11000) {
+      throw new DuplicateActiveConnectionError();
+    }
+    throw err;
+  }
+  return document;
+}
+
+/**
+ * Insert an ALREADY-APPROVED connection (no pending step). Used when the
+ * device proved itself up front (e.g. a passkey assertion), so there is no
+ * separate admin approval. Caller must first supersede any prior active row
+ * (expireStale + endActive) to satisfy the partial unique index.
+ */
+export async function createApprovedRpcConnection(
+  params: CreateApprovedRpcConnectionParams
+): Promise<RpcConnection> {
+  const collection = await getRpcConnectionsCollection();
+  const now = new Date();
+
+  const document: RpcConnection = {
+    _id: new ObjectId(),
+    userId: params.userId,
+    clientToken: randomBytes(32).toString('hex'),
+    status: 'approved',
+    requestedAt: now,
+    approvedAt: now,
+    expiresAt: new Date(now.getTime() + params.ttlMs),
+    // Already approved — pending deadline is moot; set to now for the schema.
+    pendingExpiresAt: now,
+    userAgent: params.userAgent,
+    ip: params.ip,
+    approvalMethod: params.approvalMethod,
+    ...(params.credentialId ? { credentialId: params.credentialId } : {}),
   };
 
   try {

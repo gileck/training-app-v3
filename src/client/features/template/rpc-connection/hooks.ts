@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { startAuthentication, WebAuthnError } from '@simplewebauthn/browser';
 import {
   apiConnectRpc,
+  apiRpcConnectOptions,
+  apiRpcConnectVerify,
   apiGetCurrentRpcConnection,
   apiGetDaemonStatus,
   apiListRpcHistory,
@@ -17,7 +20,46 @@ import type {
   TestRpcResponse,
 } from '@/apis/template/rpc-connections/types';
 import { useQueryDefaults, useOptimisticMutation } from '@/client/query';
+import { useAuthMode } from '@/client/features/template/auth';
 import { useRpcConnectionTokenStore } from './store';
+
+/**
+ * Passkey device-auth connect (passkey mode): verify the current device holds
+ * one of the user's registered passkeys, then open an approved connection —
+ * no Telegram admin approval.
+ */
+async function connectViaPasskey(): Promise<{
+  connection: RpcConnectionView;
+  clientToken: string;
+}> {
+  const optionsRes = await apiRpcConnectOptions();
+  const od = optionsRes.data;
+  if (od?.error) throw new Error(od.error);
+  if (!od?.options || !od?.challengeId) {
+    throw new Error('Failed to start device verification');
+  }
+
+  let assertion;
+  try {
+    assertion = await startAuthentication({ optionsJSON: od.options });
+  } catch (err) {
+    if (err instanceof WebAuthnError && err.code === 'ERROR_CEREMONY_ABORTED') {
+      throw new Error('Device verification was cancelled');
+    }
+    throw err instanceof Error ? err : new Error('Device verification failed');
+  }
+
+  const verifyRes = await apiRpcConnectVerify({
+    challengeId: od.challengeId,
+    response: assertion,
+  });
+  const vd = verifyRes.data;
+  if (vd?.error) throw new Error(vd.error);
+  if (!vd?.connection || !vd?.clientToken) {
+    throw new Error('Device verification failed');
+  }
+  return { connection: vd.connection, clientToken: vd.clientToken };
+}
 
 export const rpcConnectionQueryKey = ['rpc-connections', 'current'] as const;
 const rpcConnectionHistoryQueryKey = ['rpc-connections', 'history'] as const;
@@ -41,11 +83,17 @@ export function useCurrentRpcConnection() {
 export function useConnectRpc() {
   const queryClient = useQueryClient();
   const setToken = useRpcConnectionTokenStore((s) => s.setToken);
+  const authMode = useAuthMode();
   return useOptimisticMutation<
     { connection: RpcConnectionView; clientToken: string },
     void
   >({
     mutationFn: async () => {
+      // Passkey mode: prove the device via a passkey assertion (replaces the
+      // Telegram admin approval). Password mode: the existing Telegram flow.
+      if (authMode === 'passkey') {
+        return await connectViaPasskey();
+      }
       const result = await apiConnectRpc();
       const data = result.data as ConnectResponse | undefined;
       if (data?.error) throw new Error(data.error);

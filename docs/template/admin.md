@@ -54,6 +54,19 @@ export const routes = createRoutes({
 
 Non-admin users attempting to access admin routes are redirected to `/`.
 
+### Built-in admin pages
+
+The template ships several admin pages (under `/admin/*`), including:
+
+- **`/admin/users`** — lists all users with approval status and passkey count.
+  Per user, an admin can **Generate a passkey enrollment link** to hand off
+  (the same one-time link email would send once SES is wired). Backed by
+  `admin/users/list` + `admin/users/generate-passkey-link`. See
+  [passwordless-passkeys.md](./passwordless-passkeys.md).
+- **`/admin/approvals`** — approve/reject pending signups (see
+  [admin-approved-signups.md](./admin-approved-signups.md)).
+- **`/admin/sessions`**, **`/admin/rpc-connection`**, **`/admin/mongo-explorer`**, etc.
+
 ### Admin APIs
 
 - Any API name under **`admin/*`** is treated as **admin-only**.

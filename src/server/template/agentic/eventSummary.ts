@@ -17,6 +17,26 @@ export function summarizeToolResult(name: string, result: ToolResult): string {
     if (Array.isArray(result.data)) return `Returned ${result.data.length} item(s)`;
     if (result.data && typeof result.data === 'object') {
         const d = result.data as Record<string, unknown>;
+        // ask_user returns { responses: [{ question, selected, other? }] }.
+        if (Array.isArray(d.responses)) {
+            const picked: string[] = [];
+            for (const r of d.responses as Array<{
+                selected?: unknown;
+                other?: unknown;
+            }>) {
+                if (Array.isArray(r.selected)) {
+                    for (const s of r.selected) {
+                        if (typeof s === 'string') picked.push(s);
+                    }
+                }
+                if (typeof r.other === 'string' && r.other.trim()) {
+                    picked.push(`“${r.other.trim()}”`);
+                }
+            }
+            return picked.length > 0
+                ? `User chose: ${picked.join(', ')}`
+                : 'User made no selection';
+        }
         if (d.requiresApproval === true) return 'Requires user approval';
         if (d.saved === true) return 'Saved';
         if (d.updated === true) return 'Updated';

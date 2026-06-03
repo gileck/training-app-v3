@@ -43,20 +43,54 @@ export class ClaudeCodeAdapter implements AIModel {
       { skipCache: true, timeoutMs: 120_000 }
     );
 
-    let parsed: T;
-    try {
-      parsed = JSON.parse(data.result) as T;
-    } catch (error) {
+    const parsed = parseJsonLeniently<T>(data.result);
+    if (!parsed.ok) {
       console.error('Failed to parse JSON response from Claude Code SDK:', {
-        error,
+        error: parsed.error,
         result: data.result,
       });
       throw new Error('Failed to parse JSON response from Claude Code SDK');
     }
 
     return {
-      result: parsed,
+      result: parsed.value,
       usage: data.usage,
     };
   }
+}
+
+/**
+ * The Claude Code SDK's output often arrives wrapped in markdown fences
+ * (```json ... ```) or with a sentence of explanatory prose around the
+ * JSON object — strict JSON.parse fails on both even though the actual
+ * JSON inside is perfectly valid. Walk the string from the outside in:
+ *   1. trim
+ *   2. strip a leading ```/```json fence and a trailing ```
+ *   3. if that still fails, extract the first `{` … last `}` and try that
+ */
+function parseJsonLeniently<T>(
+  raw: string
+): { ok: true; value: T } | { ok: false; error: unknown } {
+  const trimmed = raw.trim();
+
+  const candidates: string[] = [trimmed];
+
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/i);
+  if (fenceMatch) candidates.push(fenceMatch[1].trim());
+
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first >= 0 && last > first) {
+    candidates.push(trimmed.slice(first, last + 1));
+  }
+
+  let lastError: unknown = null;
+  for (const candidate of candidates) {
+    try {
+      return { ok: true, value: JSON.parse(candidate) as T };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  return { ok: false, error: lastError };
 }

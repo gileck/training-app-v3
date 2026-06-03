@@ -7,8 +7,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownText } from '@/client/components/template/MarkdownText';
 import { getDecision } from '@/apis/template/agent-decision/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/client/components/template/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/client/components/template/ui/alert';
@@ -141,11 +140,7 @@ export function DecisionPage({ issueNumber, token }: DecisionPageProps) {
                                 <span>Details</span>
                             </CollapsibleTrigger>
                             <CollapsibleContent className="mt-2">
-                                <div className="markdown-body text-sm">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {decision.context}
-                                    </ReactMarkdown>
-                                </div>
+                                <MarkdownText content={decision.context} />
                             </CollapsibleContent>
                         </Collapsible>
                     </CardContent>

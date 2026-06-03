@@ -1,6 +1,7 @@
 import type { User } from '@/server/database/collections/template/users/types';
 import { loginApprovals } from '@/server/database';
 import { appConfig } from '@/app.config';
+import { requireAppUrl } from '@/server/template/appUrl';
 import { sendTelegramNotification } from '@/server/template/telegram';
 import { sendEmail } from '@/server/template/email';
 import type { TwoFactorMethod } from '@/apis/template/auth/types';
@@ -96,7 +97,7 @@ async function createEmailLoginApproval(user: User) {
     method: 'email',
   });
 
-  const approvalUrl = `${appConfig.appUrl.replace(/\/$/, '')}/api/login-approvals/approve?approvalId=${encodeURIComponent(approval._id.toString())}&token=${encodeURIComponent(approval.externalApprovalToken)}`;
+  const approvalUrl = `${requireAppUrl()}/api/login-approvals/approve?approvalId=${encodeURIComponent(approval._id.toString())}&token=${encodeURIComponent(approval.externalApprovalToken)}`;
 
   const sent = await sendEmail({
     to: user.email,

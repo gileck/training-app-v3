@@ -5,6 +5,7 @@ import {
 } from '../types';
 import * as users from '@/server/database/collections/template/users/users';
 import { sanitizeUser } from '../shared';
+import { getAuthMode } from '../authMode';
 import { recordSession } from '@/server/template/sessions/recordSession';
 
 // Get current user endpoint
@@ -14,12 +15,16 @@ export const getCurrentUser = async (
     _: unknown,
     context: ApiHandlerContext
 ): Promise<CurrentUserResponse> => {
+    // Surfaced on every response so the unauthenticated login UI can read the
+    // active auth mode straight off the preflight (no extra round-trip).
+    const authMode = getAuthMode();
     try {
         // No session - return null user with debug info
         if (!context.userId) {
             return {
                 user: null,
                 authDebug: context.authDebug,
+                authMode,
             };
         }
 
@@ -29,6 +34,7 @@ export const getCurrentUser = async (
             return {
                 error: "User not found",
                 authDebug: context.authDebug,
+                authMode,
             };
         }
 
@@ -38,6 +44,7 @@ export const getCurrentUser = async (
         return {
             user: { ...sanitizeUser(user), isAdmin: context.isAdmin },
             authDebug: context.authDebug,
+            authMode,
         };
     } catch (error: unknown) {
         console.error("Get current user error:", error);
@@ -54,6 +61,7 @@ export const getCurrentUser = async (
             error: message,
             connectionError: isConnectionError,
             authDebug: context.authDebug,
+            authMode,
         };
     }
 };
