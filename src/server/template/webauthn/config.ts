@@ -11,7 +11,7 @@
  *
  * Resolution order for rpID:
  *   - `WEBAUTHN_RP_ID` env (the explicit, stable prod domain) — preferred.
- *   - else the host of `appConfig.appUrl`.
+ *   - else the host of `getAppUrl()` (the resolved app URL).
  *   - in development, always `localhost` (host-only, port stripped) so Touch
  *     ID works on `http://localhost:<port>`.
  *
@@ -25,6 +25,7 @@
  */
 
 import { appConfig } from '@/app.config';
+import { getAppUrl } from '@/server/template/appUrl';
 
 export interface WebAuthnConfig {
     /** Registrable domain the credential is bound to (no scheme, no port). */
@@ -51,7 +52,7 @@ function hostOf(url: string | undefined): string | null {
 
 export function getRpID(): string {
     if (isDev()) return 'localhost';
-    return process.env.WEBAUTHN_RP_ID || hostOf(appConfig.appUrl) || 'localhost';
+    return process.env.WEBAUTHN_RP_ID || hostOf(getAppUrl() ?? undefined) || 'localhost';
 }
 
 export function getWebAuthnConfig(): WebAuthnConfig {
@@ -74,6 +75,6 @@ export function getWebAuthnConfig(): WebAuthnConfig {
     }
 
     const explicitOrigin = process.env.WEBAUTHN_ORIGIN;
-    const origin = explicitOrigin || appConfig.appUrl || `https://${rpID}`;
+    const origin = explicitOrigin || getAppUrl() || `https://${rpID}`;
     return { rpID, rpName, expectedOrigin: origin };
 }

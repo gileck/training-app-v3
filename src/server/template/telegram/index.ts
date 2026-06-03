@@ -290,7 +290,7 @@ async function sendNotificationToAgent(
 
 /**
  * Get the base app URL (no trailing slash). Resolves from the single source of
- * truth — `NEXT_PUBLIC_APP_URL` via `appConfig.appUrl` (localhost in dev). Throws
+ * truth — `requireAppUrl()` from `@/server/template/appUrl` (localhost in dev). Throws
  * a clear error in production when unset, rather than building broken links.
  */
 export function getBaseUrl(): string {
