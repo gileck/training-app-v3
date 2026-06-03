@@ -1,3 +1,0 @@
-2026-05-01T10:30:22.326Z [daemon][warn] security.blocked {"tool":"Bash","reason":"Bash: changing directory to an absolute path is not allowed inside the sandbox.","input":{"command":"cd /Users/gileck/Projects/training-app-v3/packages/training-app-sdk && npm run build","timeout":60000,"description":"Build SDK package"}}
-2026-05-01T13:45:10.740Z [daemon][info] agent.codex:spawn {"model":"gpt-5.4","sandboxMode":"workspace-write","networkAccessEnabled":false,"cwd":"/Users/gileck/Projects/training-app-v3","maxTurns":20}
-2026-05-01T13:45:26.678Z [daemon][info] agent.codex:exit {"success":true,"sessionId":"019de3c9-44da-7de0-8a8f-b9f5a54a487f","usage":{"input_tokens":26050,"cached_input_tokens":16128,"output_tokens":265}}
