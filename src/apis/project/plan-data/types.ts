@@ -37,11 +37,22 @@ export interface ExerciseSyncData {
 // Week Progress Sync Data
 // ============================================================================
 
+/**
+ * Per-week, per-exercise sync data.
+ *
+ * Only `isSkipped` is persisted server-side — completed-set counts are derived
+ * from the activity log (`setLogs`) at read time. Older clients may still
+ * send `setsCompleted` / `isDone`; the server ignores them. We keep those
+ * fields optional in the wire type so older clients still type-check while
+ * communicating that they're no longer authoritative.
+ */
 export interface ExerciseProgressData {
-    setsCompleted: number;
-    isDone: boolean;
     /** Per-week skip flag — excludes exercise from week totals when true. */
     isSkipped?: boolean;
+    /** @deprecated server-derived from setLogs; ignored on the server. */
+    setsCompleted?: number;
+    /** @deprecated server-derived from setLogs; ignored on the server. */
+    isDone?: boolean;
 }
 
 /** Week number -> Exercise ID -> Progress */

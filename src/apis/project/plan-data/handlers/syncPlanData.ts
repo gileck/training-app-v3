@@ -208,33 +208,44 @@ async function syncWeekProgress(
         const weeklyProgressId = toQueryId(toStringId(weeklyProgressRecord._id));
 
         // Build bulk operations for this week's exercise progress.
-        // `isSkipped` is written with $set when true and $unset when false, so
-        // the document doesn't accumulate a stale `isSkipped: false` field for
-        // exercises that were never skipped.
-        const bulkOps: AnyBulkWriteOperation<Document>[] = Object.entries(exercisesProgress).map(([planExerciseId, progress]) => {
-            const set: Record<string, unknown> = {
-                setsCompleted: progress.setsCompleted,
-                isDone: progress.isDone,
-                updatedAt: now,
-            };
-            if (progress.isSkipped === true) {
-                set.isSkipped = true;
-            }
-            const update: Record<string, unknown> = { $set: set };
-            if (progress.isSkipped !== true) {
-                update.$unset = { isSkipped: '' };
-            }
-            return {
-                updateOne: {
-                    filter: {
-                        weeklyProgressId: weeklyProgressId,
-                        planExerciseId: toQueryId(planExerciseId),
+        //
+        // As of the setLog-source-of-truth migration this collection only
+        // persists the per-week `isSkipped` flag — the actual count of
+        // completed sets is computed from setLogs at read time (see
+        // weekly-progress/getWeekProgress.ts). For each incoming exercise
+        // we upsert with `isSkipped: true` when set, or $unset any stale
+        // skip flag when not.
+        const bulkOps: AnyBulkWriteOperation<Document>[] = Object.entries(exercisesProgress).map(
+            ([planExerciseId, progress]) => {
+                const filter = {
+                    weeklyProgressId: weeklyProgressId,
+                    planExerciseId: toQueryId(planExerciseId),
+                };
+                if (progress.isSkipped === true) {
+                    return {
+                        updateOne: {
+                            filter,
+                            update: {
+                                $set: { isSkipped: true, updatedAt: now },
+                            },
+                            upsert: true,
+                        },
+                    };
+                }
+                // Not skipped — clear any stale `isSkipped: true` row but
+                // don't upsert (no need to create a row that exists solely
+                // to say "not skipped").
+                return {
+                    updateOne: {
+                        filter,
+                        update: {
+                            $set: { updatedAt: now },
+                            $unset: { isSkipped: '' },
+                        },
                     },
-                    update,
-                    upsert: true,
-                },
-            };
-        });
+                };
+            }
+        );
 
         if (bulkOps.length > 0) {
             await collection.bulkWrite(bulkOps);

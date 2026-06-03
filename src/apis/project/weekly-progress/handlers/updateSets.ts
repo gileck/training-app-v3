@@ -2,17 +2,22 @@ import { ApiHandlerContext, UpdateSetsRequest, UpdateSetsResponse } from '../typ
 import {
     trainingPlans,
     planExercises,
-    weeklyProgress,
-    exerciseProgress,
     setLogs,
 } from '@/server/database';
-import {
-    atomicIncrementSets,
-    atomicDecrementSets,
-    findOrCreateExerciseProgress,
-} from '@/server/database/collections/project/exerciseProgress';
 import { toStringId, toDocumentId } from '@/server/template/utils';
 
+/**
+ * Add / remove / complete-all sets for a (plan, exercise, week).
+ *
+ * Source of truth: `setLogs` — we count rows in the activity log to derive
+ * `setsCompleted`. We don't touch `exerciseProgress.setsCompleted` here any
+ * more; it's been demoted to a pure `isSkipped` flag store (see
+ * weekly-progress/getWeekProgress.ts and plan-data/syncPlanData.ts).
+ *
+ * This endpoint is kept for SDK / MCP callers (agents and scripts). The PWA
+ * client itself doesn't call it — it uses the local-first sync path plus
+ * direct activity-log APIs.
+ */
 export const updateSets = async (
     request: UpdateSetsRequest,
     context: ApiHandlerContext
@@ -55,124 +60,60 @@ export const updateSets = async (
             return { error: 'Exercise not found in plan' };
         }
 
-        // Get or create weekly progress
-        const weekProgress = await weeklyProgress.findOrCreateWeeklyProgress(
-            request.planId,
+        // Current count (source of truth)
+        const currentCount = await setLogs.countSetsForExerciseWeek(
+            context.userId,
+            request.planExerciseId,
             request.weekNumber
         );
 
-        // Ensure exercise progress document exists before atomic operations
-        const weekProgressId = toStringId(weekProgress._id);
-        await findOrCreateExerciseProgress(weekProgressId, request.planExerciseId);
-
-        let setsCompleted: number;
-        let isDone: boolean;
-
         if (request.action === 'add') {
-            // Use atomic increment to prevent race conditions from rapid clicks
-            const updated = await atomicIncrementSets(
-                weekProgressId,
-                request.planExerciseId,
-                exercise.sets
-            );
-
-            if (updated) {
-                setsCompleted = updated.setsCompleted;
-                isDone = setsCompleted >= exercise.sets;
-
-                // Create set log entry (handles both ObjectId and UUID formats)
+            if (currentCount < exercise.sets) {
                 await setLogs.createSetLog({
                     userId: toDocumentId(context.userId),
                     planExerciseId: toDocumentId(request.planExerciseId),
                     planId: toDocumentId(request.planId),
                     weekNumber: request.weekNumber,
-                    setNumber: setsCompleted,
+                    setNumber: currentCount + 1,
                     completedAt: new Date(),
                 });
-
-                // Update isDone flag if needed
-                if (isDone) {
-                    await exerciseProgress.updateExerciseProgress(
-                        weekProgressId,
-                        request.planExerciseId,
-                        { isDone: true }
-                    );
-                }
-            } else {
-                // Already at max sets, return current state
-                const current = await exerciseProgress.findExerciseProgress(
-                    weekProgressId,
-                    request.planExerciseId
-                );
-                setsCompleted = current?.setsCompleted || exercise.sets;
-                isDone = true;
             }
         } else if (request.action === 'remove') {
-            // Use atomic decrement to prevent race conditions from rapid clicks
-            const updated = await atomicDecrementSets(
-                weekProgressId,
-                request.planExerciseId
-            );
-
-            if (updated) {
-                setsCompleted = updated.setsCompleted;
-                isDone = setsCompleted >= exercise.sets;
-
-                // Delete the most recent set log
+            if (currentCount > 0) {
                 await setLogs.deleteLatestSetLog(
                     context.userId,
                     request.planExerciseId,
                     request.weekNumber
                 );
-
-                // Update isDone flag if it changed
-                await exerciseProgress.updateExerciseProgress(
-                    weekProgressId,
-                    request.planExerciseId,
-                    { isDone }
-                );
-            } else {
-                // Already at 0, return current state
-                setsCompleted = 0;
-                isDone = false;
             }
         } else {
-            // complete-all action - get current state first
-            const currentProgress = await exerciseProgress.findExerciseProgress(
-                weekProgressId,
-                request.planExerciseId
-            );
-            const currentSets = currentProgress?.setsCompleted || 0;
-            const remaining = exercise.sets - currentSets;
-
+            // complete-all
+            const remaining = exercise.sets - currentCount;
             if (remaining > 0) {
-                // Create set log entries for all remaining sets (handles both ObjectId and UUID formats)
-                const setLogPromises = [];
-                for (let i = 1; i <= remaining; i++) {
-                    setLogPromises.push(
+                const now = new Date();
+                await Promise.all(
+                    Array.from({ length: remaining }, (_, i) =>
                         setLogs.createSetLog({
-                            userId: toDocumentId(context.userId),
+                            userId: toDocumentId(context.userId!),
                             planExerciseId: toDocumentId(request.planExerciseId),
                             planId: toDocumentId(request.planId),
                             weekNumber: request.weekNumber,
-                            setNumber: currentSets + i,
-                            completedAt: new Date(),
+                            setNumber: currentCount + i + 1,
+                            completedAt: now,
                         })
-                    );
-                }
-                await Promise.all(setLogPromises);
+                    )
+                );
             }
-
-            setsCompleted = exercise.sets;
-            isDone = true;
-
-            // Update to full completion
-            await exerciseProgress.updateExerciseProgress(
-                weekProgressId,
-                request.planExerciseId,
-                { setsCompleted, isDone }
-            );
         }
+
+        // Re-read for an accurate response (and to honor the cap at exercise.sets)
+        const newRawCount = await setLogs.countSetsForExerciseWeek(
+            context.userId,
+            request.planExerciseId,
+            request.weekNumber
+        );
+        const setsCompleted = Math.min(newRawCount, exercise.sets);
+        const isDone = setsCompleted >= exercise.sets;
 
         await trainingPlans.touchPlan(request.planId);
         return { setsCompleted, isDone };

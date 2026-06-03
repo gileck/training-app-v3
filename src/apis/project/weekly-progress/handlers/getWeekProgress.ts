@@ -10,6 +10,7 @@ import {
     exerciseDefinitions,
     weeklyProgress,
     exerciseProgress,
+    setLogs,
 } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
 
@@ -65,9 +66,21 @@ export const getWeekProgress = async (
         const exerciseDefs = await exerciseDefinitions.findExercisesByIds(exerciseDefIds);
         const exerciseDefMap = new Map(exerciseDefs.map((def) => [toStringId(def._id), def]));
 
-        // Get all exercise progress for this week
-        const allProgress = await exerciseProgress.findExerciseProgressByWeekId(toStringId(weekProgress._id));
-        const progressMap = new Map(allProgress.map((p) => [toStringId(p.planExerciseId), p]));
+        // Source of truth for sets completed is the activity log (setLogs).
+        // exerciseProgress is now only consulted for the per-week `isSkipped`
+        // flag — its `setsCompleted` / `isDone` fields are stale legacy data
+        // and no longer read.
+        const [setCounts, allProgress] = await Promise.all([
+            setLogs.countSetsByPlanExerciseForWeek(
+                context.userId,
+                request.planId,
+                request.weekNumber
+            ),
+            exerciseProgress.findExerciseProgressByWeekId(toStringId(weekProgress._id)),
+        ]);
+        const skipMap = new Map(
+            allProgress.map((p) => [toStringId(p.planExerciseId), p.isSkipped === true])
+        );
 
         // Calculate totals and build response
         let totalSets = 0;
@@ -78,10 +91,12 @@ export const getWeekProgress = async (
             const def = exerciseDefMap.get(toStringId(exercise.exerciseDefId));
             if (!def) continue;
 
-            const progress = progressMap.get(toStringId(exercise._id));
-            const setsCompleted = progress?.setsCompleted || 0;
-            const isDone = progress?.isDone || setsCompleted >= exercise.sets;
-            const isSkipped = progress?.isSkipped === true;
+            const exerciseIdStr = toStringId(exercise._id);
+            const rawCount = setCounts[exerciseIdStr] ?? 0;
+            // Cap at target so a user can't push the bar past 100% by logging extras.
+            const setsCompleted = Math.min(rawCount, exercise.sets);
+            const isDone = setsCompleted >= exercise.sets;
+            const isSkipped = skipMap.get(exerciseIdStr) === true;
 
             if (!isSkipped) {
                 totalSets += exercise.sets;

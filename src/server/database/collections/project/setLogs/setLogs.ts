@@ -89,6 +89,34 @@ export const countSetsForExerciseWeek = async (
 };
 
 /**
+ * Count sets per plan exercise for a single (user, plan, week) — the source
+ * of truth for week progress. Returns a plain object keyed by stringified
+ * planExerciseId (covers both ObjectId and UUID string keys uniformly).
+ */
+export const countSetsByPlanExerciseForWeek = async (
+    userId: ObjectId | string,
+    planId: ObjectId | string,
+    weekNumber: number
+): Promise<Record<string, number>> => {
+    const collection = await getCollection();
+    const userIdObj = typeof userId === 'string' ? new ObjectId(userId) : userId;
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+
+    const rows = await collection
+        .aggregate<{ _id: ObjectId | string; count: number }>([
+            { $match: { userId: userIdObj, planId: planIdQuery as ObjectId, weekNumber } },
+            { $group: { _id: '$planExerciseId', count: { $sum: 1 } } },
+        ])
+        .toArray();
+
+    const out: Record<string, number> = {};
+    for (const row of rows) {
+        out[row._id.toString()] = row.count;
+    }
+    return out;
+};
+
+/**
  * Get all set logs for a user's plan/week
  */
 export const findSetLogsByPlanWeek = async (
