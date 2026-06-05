@@ -10,6 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { SyncContext, SyncJsonResult, TEMPLATE_DIR, DivergedResolution, ConflictResolution } from '../types';
 import { loadConfig, saveConfig, mergeTemplateIgnoredFiles, syncTemplateConfig } from '../utils/config';
 import { exec } from '../utils';
@@ -18,6 +19,7 @@ import { analyzeFolderSync } from '../analysis';
 import { syncFolderOwnership } from '../sync';
 import { getTemplateCommitsSinceLastSync, formatSyncCommitMessage, addSyncHistoryEntry } from '../reporting';
 import { runValidationWithDetails } from './validation';
+import { getDependencySnapshot } from '../utils/package-json-merge';
 
 /**
  * Run sync in JSON mode - outputs structured result for programmatic use.
@@ -117,6 +119,11 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
     }
 
     // Step 8: Apply changes using folder-ownership sync
+    // Snapshot dependency-related fields first so we can detect whether the
+    // sync changed deps and the child project needs a `yarn install`.
+    const packageJsonPath = path.join(context.projectRoot, 'package.json');
+    const depsBefore = getDependencySnapshot(packageJsonPath);
+
     const result = await syncFolderOwnership(
       analysis, context.config, context.projectRoot, templateDir,
       { dryRun: context.options.dryRun, quiet: true, conflictResolutions, divergedResolutions }
@@ -129,6 +136,27 @@ export async function runJsonMode(context: SyncContext): Promise<void> {
     jsonResult.filesDeleted = result.deleted;
     jsonResult.filesDiverged = analysis.diverged.map(f => f.path);
     jsonResult.errors = result.errors;
+
+    // Step 8.5: Install dependencies if the sync changed them, so validation
+    // runs against the updated dependency tree.
+    if (!context.options.dryRun) {
+      const depsAfter = getDependencySnapshot(packageJsonPath);
+      if (depsAfter && depsAfter !== depsBefore) {
+        try {
+          // Use execSync directly (not the silent `exec` helper, which swallows
+          // errors) so a failed install surfaces in the JSON result.
+          execSync('yarn install', {
+            cwd: context.projectRoot,
+            encoding: 'utf-8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          jsonResult.dependenciesInstalled = true;
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'yarn install failed';
+          jsonResult.errors.push(`yarn install failed: ${message}`);
+        }
+      }
+    }
 
     // Step 9: Run validation
     const validationResult = await runValidationWithDetails(context);

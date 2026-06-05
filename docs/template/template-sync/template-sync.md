@@ -186,6 +186,20 @@ For each file matching `templatePaths`:
   ⚠️  src/app.config.js - template changed (override conflict)
 ```
 
+### Automatic `yarn install` on dependency changes
+
+After applying changes, the sync snapshots the dependency-related fields of
+`package.json` (`dependencies`, `devDependencies`, `peerDependencies`,
+`optionalDependencies`) before and after the 3-way merge. If any of them
+changed, it runs `yarn install` **before** the post-sync validation (`yarn ts`
++ `yarn lint`), so the checks run against the updated dependency tree. If only
+scripts/config/other fields changed, the install is skipped.
+
+This applies to both the interactive sync and JSON mode (`--json`, used by
+`sync-child-projects`). In JSON mode, a successful install sets
+`dependenciesInstalled: true` in the result; a failed install is reported in
+`errors` rather than silently swallowed.
+
 ---
 
 ## Initial Setup (For New Projects)

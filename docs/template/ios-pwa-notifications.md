@@ -40,7 +40,7 @@ server feature code
 user taps notification → sw-push.js `notificationclick`
   ├─ if a same-origin client window exists:
   │    client.focus() + client.postMessage({ type:'push-navigate', url })
-  │       └─▶ <PushNavigationBridge> in _app.tsx receives the message
+  │       └─▶ <PushNavigationBridge> (mounted by <AppShell>) receives it
   │             └─▶ useRouter().navigate(url)   ← real SPA transition
   │
   └─ else:
@@ -310,7 +310,9 @@ It pushes to every device that user has registered and returns
     `useSendTestPush` hooks for the Settings UI.
   - `PushNavigationBridge` — null-rendering component that listens for
     `push-navigate` messages from the SW and calls the app router. Mounted
-    inside `<RouterProvider>` in `src/pages/_app.tsx`.
+    by the template-owned `<AppShell>` (via `<TemplateAppBridges>`), so it is
+    wired automatically in every child project — no `_app.tsx` change needed.
+    See [app-shell.md](app-shell.md).
 - `scripts/template/test-push.ts` — `yarn test-push` CLI for sending ad-hoc
   pushes from the terminal during development.
 - `scripts/template/generate-vapid.ts` — `yarn generate-vapid` CLI for
@@ -326,8 +328,10 @@ It pushes to every device that user has registered and returns
   permission — it may be blocked at the OS level (System Settings → Notifications).
 - **Subscription disappears after a few days:** expected; devices rotate keys.
   Subscribing again is idempotent (the `endpoint` unique index upserts).
-- **Tap on notification opens the app but doesn't navigate:** check that
-  `<PushNavigationBridge />` is mounted inside `<RouterProvider>` in
-  `_app.tsx`. Without it, the SW posts `push-navigate` messages to the
-  client but nothing handles them. (`WindowClient.navigate()` won't save
-  you here — it's unreliable on iOS and breaks under SPA path rewrites.)
+- **Tap on notification opens the app but doesn't navigate:** the bridge is
+  mounted by `<AppShell>` via `<TemplateAppBridges>`, so confirm your
+  `src/pages/_app.tsx` renders `<AppShell />` (the thin-shim pattern). A child
+  still on a hand-rolled `_app.tsx` must mount `<PushNavigationBridge />` inside
+  `<RouterProvider>` itself. Without the bridge, the SW posts `push-navigate`
+  messages but nothing handles them. (`WindowClient.navigate()` won't save you
+  here — it's unreliable on iOS and breaks under SPA path rewrites.)

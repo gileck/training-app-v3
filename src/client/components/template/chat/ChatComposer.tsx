@@ -219,7 +219,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
         return (
             <form
                 onSubmit={submit}
-                className="mx-auto w-full max-w-3xl px-3 pb-4 pt-2 sm:px-4"
+                className="mx-auto w-full max-w-3xl px-3 pb-2 pt-2 sm:px-4"
             >
                 {/* Composer card — single rounded container holding
                     attachments + textarea + bottom toolbar. */}

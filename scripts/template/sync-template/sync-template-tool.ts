@@ -5,6 +5,7 @@
 import * as path from 'path';
 import * as readline from 'readline';
 import { SyncContext, SyncOptions, SyncMode, AutoMode, ConflictResolutionMap, TEMPLATE_DIR, FolderOwnershipConfig, ConflictResolution, DivergedResolution, InteractiveResolutionContext, InteractiveFileInfo } from './types';
+import { getDependencySnapshot } from './utils/package-json-merge';
 import { loadConfig, saveConfig, saveTemplateConfig, mergeTemplateIgnoredFiles, hasSplitConfig, syncTemplateConfig } from './utils/config';
 import { log, logError } from './utils/logging';
 import { exec } from './utils';
@@ -306,6 +307,11 @@ export class TemplateSyncTool {
     }
 
     // Step 8: Apply changes
+    // Snapshot dependency-related fields before applying so we can detect
+    // whether the sync actually changed deps and needs a `yarn install`.
+    const packageJsonPath = path.join(this.projectRoot, 'package.json');
+    const depsBefore = getDependencySnapshot(packageJsonPath);
+
     console.log('\n🔄 Applying changes...');
     const result = await syncFolderOwnership(
       analysis,
@@ -332,6 +338,20 @@ export class TemplateSyncTool {
 
       config.lastSyncDate = new Date().toISOString();
       saveConfig(this.projectRoot, config);
+
+      // If the sync changed dependency-related fields in package.json,
+      // install them before validation so TypeScript/ESLint run against the
+      // updated dependency tree.
+      const depsAfter = getDependencySnapshot(packageJsonPath);
+      if (depsAfter && depsAfter !== depsBefore) {
+        console.log('\n📦 Dependencies changed during sync. Running yarn install...');
+        try {
+          exec('yarn install', this.projectRoot, { silent: false });
+          console.log('✅ yarn install completed.');
+        } catch {
+          console.log('⚠️  yarn install failed. Please run it manually before relying on the build.');
+        }
+      }
 
       // Run validation (TypeScript + ESLint) before committing
       const validationPassed = await runValidation(this.context);

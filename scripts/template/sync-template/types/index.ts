@@ -173,6 +173,7 @@ export interface SyncJsonResult {
   errors: string[];
   filesDeleted?: string[];
   filesDiverged?: string[];
+  dependenciesInstalled?: boolean;
   templateCommit?: string;
   projectCommit?: string;
   checksResult?: {

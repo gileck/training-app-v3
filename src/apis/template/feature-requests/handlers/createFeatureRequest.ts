@@ -6,6 +6,7 @@ import { ApiHandlerContext } from '@/apis/types';
 import { toFeatureRequestClientForUser } from './utils';
 import { toDocumentId } from '@/server/template/utils';
 import { sendFeatureRequestNotification } from '@/server/template/telegram';
+import { forwardFeatureRequestToAssistant } from '@/server/template/issue-reporter';
 import type { ObjectId } from 'mongodb';
 
 /**
@@ -63,6 +64,13 @@ export const createFeatureRequest = async (
             // Don't fail the request if notification fails
             console.error('[Telegram] Failed to send notification:', notifyError);
         }
+
+        // Forward to the external AI assistant app (no-op if not configured).
+        // AWAIT (not fire-and-forget): an un-awaited promise doesn't survive
+        // serverless suspension after the response is sent, so it'd silently
+        // not deliver. The forward never throws and is time-bounded, so
+        // awaiting can't fail or noticeably hang the submission.
+        await forwardFeatureRequestToAssistant(newRequest);
 
         return { featureRequest: toFeatureRequestClientForUser(newRequest) };
     } catch (error: unknown) {

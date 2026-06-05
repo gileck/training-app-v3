@@ -5,6 +5,7 @@ import { ApiHandlerContext } from '@/apis/types';
 import { fileStorageAPI } from '@/server/template/blob';
 import { toStringId } from '@/server/template/utils';
 import { sendBugReportNotification } from '@/server/template/telegram';
+import { forwardBugReportToAssistant } from '@/server/template/issue-reporter';
 import crypto from 'crypto';
 
 /**
@@ -145,6 +146,13 @@ export const createReport = async (
                 // Don't fail the request if notification fails
                 console.error('[Telegram] Failed to send bug report notification:', notifyError);
             }
+
+            // Forward to the external AI assistant app (no-op if not configured).
+            // AWAIT (not fire-and-forget): an un-awaited promise doesn't survive
+            // serverless suspension after the response is sent, so it'd silently
+            // not deliver. The forward never throws and is time-bounded, so
+            // awaiting can't fail or noticeably hang the submission.
+            await forwardBugReportToAssistant(newReport);
         }
 
         // Convert to client format

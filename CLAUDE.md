@@ -151,6 +151,16 @@ Single-admin setup via environment variable. Use this when implementing admin fe
 
 ---
 
+## App Shell
+
+Template-owned application root that owns the full provider/bridge tree. Use this when adding app-root wiring (providers, bridges) or wondering why _app.tsx is a thin shim.
+
+**Summary:** The entire provider/boot tree (Query, Theme, Router, Auth, Layout, hydration gating, offline + API-client init, app-root bridges) lives in the template-owned <AppShell>. Child `src/pages/_app.tsx` is a thin shim that renders <AppShell/> and imports global CSS. Template features needing app-root mounting (e.g. push deep-link navigation) are wired via <TemplateAppBridges> and work end-to-end in every child with no _app.tsx changes. Project-wide providers attach via the `wrapProviders` prop. Existing projects migrate with the `/migrate-to-app-shell` skill.
+
+**Docs:** [app-shell.md](docs/template/app-shell.md)
+
+---
+
 ## Configuration Files (Template/Project Split)
 
 Config files use a split pattern for template updates without losing project customizations. Use this when modifying ESLint, Next.js, or TypeScript configs.

@@ -407,6 +407,31 @@ export function readPackageJson(filePath: string): Record<string, unknown> | nul
 }
 
 /**
+ * Dependency-related fields whose changes require a `yarn install`.
+ */
+const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const;
+
+/**
+ * Build a stable snapshot of a package.json's dependency-related fields.
+ * Used to detect whether a sync actually changed installed dependencies
+ * (as opposed to scripts, config, or other fields) so we only run
+ * `yarn install` when it's needed.
+ *
+ * Returns an empty string if the file can't be read.
+ */
+export function getDependencySnapshot(filePath: string): string {
+  const pkg = readPackageJson(filePath);
+  if (!pkg) return '';
+  const subset: Record<string, unknown> = {};
+  for (const field of DEPENDENCY_FIELDS) {
+    if (pkg[field] !== undefined) {
+      subset[field] = pkg[field];
+    }
+  }
+  return JSON.stringify(subset);
+}
+
+/**
  * Write a package.json file with proper formatting
  */
 export function writePackageJson(filePath: string, content: Record<string, unknown>): void {
