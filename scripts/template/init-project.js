@@ -107,6 +107,20 @@ function setInitFlag(name) {
     writeTemplateSyncConfig(cfg);
 }
 
+// Register a path as a project override so template sync won't clobber it and
+// the template-ownership pre-commit guard won't flag legitimate edits to it.
+// Idempotent. Requires .template-sync.json to exist (runInitTemplate() ran).
+function ensureProjectOverride(relPath) {
+    const cfg = readTemplateSyncConfig();
+    if (!cfg) return;
+    const overrides = Array.isArray(cfg.projectOverrides) ? cfg.projectOverrides : [];
+    if (overrides.includes(relPath)) return;
+    overrides.push(relPath);
+    cfg.projectOverrides = overrides;
+    writeTemplateSyncConfig(cfg);
+    console.log(`[.template-sync.json] Added ${relPath} to projectOverrides.`);
+}
+
 function isProjectConfigured() {
     if (getInitFlag('appConfig')) return true;
     // Legacy migration: projects initialized before the flag existed have a
@@ -205,10 +219,19 @@ async function writeEnvLocalUserId(id) {
 // LOCAL_USER_ID for the new project's own database in createLocalUserAndWriteEnv().
 const LEAKY_IDENTITY_KEYS = ['LOCAL_USER_ID', 'ADMIN_USER_ID'];
 
-function stripLeakyIdentityKeys(filePath, fileName) {
+// Vercel values bound to the TEMPLATE's own deployment. Copying them would point
+// the new project at the template's domain / Vercel project — e.g.
+// VERCEL_PROJECT_PRODUCTION_URL="app-template-ai.vercel.app" silently becomes the
+// new project's app URL. Each is re-provided per-project by Vercel at deploy time
+// (or via `yarn set-app-url`), so drop them rather than inherit the template's.
+const LEAKY_PROJECT_KEYS = ['VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_OIDC_TOKEN'];
+
+const LEAKY_TEMPLATE_KEYS = [...LEAKY_IDENTITY_KEYS, ...LEAKY_PROJECT_KEYS];
+
+function stripLeakyTemplateKeys(filePath, fileName, keys = LEAKY_TEMPLATE_KEYS) {
     let content = fs.readFileSync(filePath, 'utf8');
     let changed = false;
-    for (const key of LEAKY_IDENTITY_KEYS) {
+    for (const key of keys) {
         // Match active OR commented assignments (whole line), with optional
         // leading "#"/whitespace and optional "export ".
         const re = new RegExp(`^[ \\t]*#?[ \\t]*(?:export[ \\t]+)?${key}=.*$\\n?`, 'gm');
@@ -219,7 +242,7 @@ function stripLeakyIdentityKeys(filePath, fileName) {
     }
     if (changed) {
         fs.writeFileSync(filePath, content, 'utf8');
-        console.log(`[${fileName}] Stripped template identity keys (${LEAKY_IDENTITY_KEYS.join(', ')}).`);
+        console.log(`[${fileName}] Stripped template-specific keys (${LEAKY_TEMPLATE_KEYS.join(', ')}).`);
     }
 }
 
@@ -235,7 +258,7 @@ function copyEnvFileIfMissing(fileName) {
     if (fs.existsSync(templatePath)) {
         fs.copyFileSync(templatePath, cwdPath);
         console.log(`[${fileName}] Copied from ../app-template-ai/`);
-        stripLeakyIdentityKeys(cwdPath, fileName);
+        stripLeakyTemplateKeys(cwdPath, fileName);
         return;
     }
 
@@ -244,7 +267,7 @@ function copyEnvFileIfMissing(fileName) {
     if (fs.existsSync(parentPath)) {
         fs.copyFileSync(parentPath, cwdPath);
         console.log(`[${fileName}] Copied from parent directory.`);
-        stripLeakyIdentityKeys(cwdPath, fileName);
+        stripLeakyTemplateKeys(cwdPath, fileName);
         return;
     }
 
@@ -260,6 +283,17 @@ function copyEnvFileIfMissing(fileName) {
 function ensureEnvFromParentOrEmpty() {
     copyEnvFileIfMissing('.env');
     copyEnvFileIfMissing('.env.local');
+    // copyEnvFileIfMissing only strips on COPY — a pre-existing .env.local
+    // (cloned with template values, or hand-edited) never gets cleaned. Always
+    // strip the leaky PROJECT keys from whatever's on disk so a stale
+    // VERCEL_PROJECT_PRODUCTION_URL=app-template-ai.vercel.app can't silently
+    // rewrite the new project's app URL. Identity keys (LOCAL_USER_ID /
+    // ADMIN_USER_ID) are deliberately NOT stripped here — on an existing file
+    // they belong to THIS project.
+    for (const fileName of ['.env', '.env.local']) {
+        const p = path.resolve(process.cwd(), fileName);
+        if (fs.existsSync(p)) stripLeakyTemplateKeys(p, fileName, LEAKY_PROJECT_KEYS);
+    }
 }
 
 function createPwaConfig(projectName, description, themeColor, { force = false } = {}) {
@@ -525,6 +559,12 @@ async function main() {
         setInitFlag('appConfig');
     }
 
+    // pwa.config.ts carries per-project identity (name / description / theme) and
+    // is meant to be edited per project. Register it as a projectOverride (in both
+    // fresh and already-configured paths) so the template-ownership pre-commit
+    // guard won't block those edits and template sync won't overwrite them.
+    ensureProjectOverride('src/config/pwa.config.ts');
+
     // Step 6-7: Create local user and write LOCAL_USER_ID to .env
     await createLocalUserAndWriteEnv();
 
@@ -596,6 +636,13 @@ async function promptVercelLink() {
 // cases that don't follow the LOCAL_ prefix convention.
 const VERCEL_ENV_EXCLUDE_EXACT = new Set([
     'IGNORE_LOCAL_USER_ID',
+    // Auto-generated by Vercel (vercel env pull / dev); short-lived, never a
+    // runtime input. Pushing a stale value back would only cause confusion.
+    'VERCEL_OIDC_TOKEN',
+    // Local-dev-only RPC shortcut (runs handlers in-process instead of via the
+    // daemon). Inert in production anyway (guarded by NODE_ENV), but it has no
+    // LOCAL_ prefix, so exclude it explicitly to keep it off Vercel.
+    'RPC_LOCAL_DIRECT',
 ]);
 
 function isLocalOnlyEnvKey(key) {

@@ -18,7 +18,7 @@ It does everything `yarn init-project` does — but **AI-driven and verified at 
 
 | # | Step | What it sets |
 |---|---|---|
-| 1 | Ensure `.env` + `.env.local` | Copies from a sibling `../app-template-ai/` if present (or creates empty), and **strips template identity keys** (`LOCAL_USER_ID`, `ADMIN_USER_ID`) so you don't inherit the template author's ids |
+| 1 | Ensure `.env` + `.env.local` | Copies from a sibling `../app-template-ai/` if present (or creates empty), and **strips template-specific keys** so you don't inherit the template author's values: identity (`LOCAL_USER_ID`, `ADMIN_USER_ID`) and Vercel deployment (`VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_OIDC_TOKEN` — otherwise the new project's app URL silently resolves to `app-template-ai.vercel.app`) |
 | 2 | Init template tracking | Runs `init-template` → creates `.template-sync.json` (holds `init.*` idempotency flags + path-ownership config) |
 | 3–5 | Project identity | Prompts name / description / theme color → updates `src/app.config.js` (`appName` + `dbName`), `package.json` name, `src/config/pwa.config.ts`, `public/manifest.json`. Sets the `init.appConfig` flag |
 | 6–7 | Local user | Via **`yarn create-local-user`** — reuses the app's real `users.insertUser` + `SALT_ROUNDS` + approval logic (so the seeded user matches the current schema and is created **approved**), then writes `LOCAL_USER_ID` to `.env`. `LOCAL_USER_ID` is a dev-only auth shortcut that also grants admin locally |
@@ -87,8 +87,10 @@ Don't trust — verify each result, and fix any gap directly:
 
 - `src/app.config.js` → `appName` is the new name (not `app-template-ai`) and `dbName` is derived/sensible.
 - `package.json` `name` updated.
-- `src/config/pwa.config.ts` + `public/manifest.json` reflect the name / description / theme color.
+- `src/config/pwa.config.ts` + `public/manifest.json` reflect the name / description / theme color. `init-project` registers `src/config/pwa.config.ts` under `.template-sync.json` → `projectOverrides` (its per-project identity edits would otherwise trip the template-ownership pre-commit guard); confirm it's listed.
 - `.env` contains a real `LOCAL_USER_ID` (and it is NOT the template author's — it should be a freshly-created id).
+- `.env` / `.env.local` did NOT inherit the template's Vercel values. `init-project` now strips the leaky PROJECT keys (`VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_OIDC_TOKEN`) from `.env`/`.env.local` on **every run** — not just on copy — so a pre-populated env is cleaned too. Confirm: `grep -nE '^VERCEL_PROJECT_PRODUCTION_URL=|^VERCEL_OIDC_TOKEN=' .env.local` prints nothing (Vercel re-provides the correct per-project URL at deploy time). The identity keys (`LOCAL_USER_ID`/`ADMIN_USER_ID`) are intentionally left alone on existing files — they belong to this project.
+- If `AUTH_MODE=passkey` (passkey login), `WEBAUTHN_RP_ID` must be the **production domain host** (no scheme) — passkeys bind to the rpID and break without it. You get the domain in Phase 5 (`yarn vercel-cli domain`); see `/migrate-to-passkeys`.
 - `.template-sync.json` exists with `init.appConfig` (and other `init.*`) flags set.
 - Git hooks installed (`.git/hooks` populated by `yarn setup-hooks`) and `yarn.lock` is skip-worktree.
 - Demo features removed (Todos / Chat / AIChat / demo Home gone), and `src/client/routes/index.project.ts` / `src/apis/apis.project.ts` no longer reference them. If `/` is now unrouted, decide with the developer (redirect, placeholder, or leave for their first feature) — see `/cleanup-template-demo` for the routing follow-up.
@@ -113,29 +115,32 @@ Gate: checks green and the app boots + logs in. Continue.
    ! vercel link
    ```
    Confirm `.vercel/project.json` now exists and names the right project.
-2. **App URL (usually nothing to do).** Absolute links (passkey enrollment,
-   password reset, login-approval, Telegram deep-links, WebAuthn origin) come
-   from `appConfig.appUrl`, which on Vercel defaults to the project's own
-   `VERCEL_PROJECT_PRODUCTION_URL` automatically — so a standard deploy just
-   works. **Only** set an override if the developer uses a **custom domain**
-   Vercel doesn't report (or wants to pin it explicitly), for all envs:
+2. **Sync env vars** — this changes Vercel project configuration, so **confirm the key list with the developer first** (values aren't shown). Use `env:sync`: it reads `.env.local` by default and skips local-only keys — `VERCEL_OIDC_TOKEN`, `VERCEL_TOKEN`, `VERCEL_PROJECT_PRODUCTION_URL`, `RPC_LOCAL_DIRECT`, `TEST_*`, `IGNORE_*` (so dev shortcuts and personal/ephemeral tokens never reach prod). Preview first:
    ```
-   yarn set-app-url https://<custom-domain>      # add --local for local dev too
+   yarn vercel-cli env:sync --dry-run         # preview what would sync
+   yarn vercel-cli env:sync                    # sync .env.local → Vercel (all envs)
    ```
-   Skip otherwise.
-3. **Push env vars** — this changes Vercel project configuration, so **confirm the key list with the developer first** (values aren't shown; `LOCAL_*` keys are excluded automatically):
+   Still scrub any dev-only value the filter can't know about (e.g. a local `MONGO_URI`) before syncing. (`env:push --file .env.local` is the lower-level alternative — it now applies the same exclusion list; use `env:rm --name X` to delete a var that slipped through.)
+3. **Verify the deployment is live.** A push to the connected branch triggers a build — check it reaches **Ready** (prefer the project's own CLI over `npx vercel`, which can be network-blocked in agent sandboxes):
    ```
-   yarn vercel-cli env:push
+   yarn vercel-cli list                       # latest deployment + status
+   yarn vercel-cli logs --deployment <id>     # build logs if it failed
    ```
-   Remind them to remove any dev-only values (e.g. a local MongoDB URI) before pushing.
-4. **Verify the deployment is live** (the addition). After a push to the connected branch triggers a build — or trigger one — check it reaches **Ready**:
+   If the latest build is **Error**, read the logs, fix the cause (commonly a missing env var or a `yarn checks` failure), and redeploy (`yarn vercel-cli redeploy`). Don't finish this phase until a deployment is **Ready**.
+4. **Lock in the app URL — verify it points at THIS project.** Absolute links (passkey enrollment, password reset, login-approval, Telegram deep-links, WebAuthn origin) come from `appConfig.appUrl`. Now that the project has deployed, read its **canonical production domain** straight from Vercel:
    ```
-   npx vercel ls          # latest deployment + status
-   npx vercel inspect <deployment-url>   # details if a build failed
+   yarn vercel-cli domain                      # e.g. https://<project>-<hash>.vercel.app (or your custom domain)
+   yarn vercel-cli domain --plain              # bare URL; capture with: URL=$(yarn --silent vercel-cli domain --plain)
    ```
-   If the latest build is **Error**, read the build logs (`yarn vercel-cli logs --deployment <id>`), fix the cause (commonly a missing env var or a `yarn checks` failure), and redeploy. Don't finish this phase until a deployment is **Ready**.
+   This calls the Vercel API (`GET /v9/projects/{projectId}/domains`) and returns the real production domain — NOT a per-deployment alias (`info --deployment` shows those), and NOT the `<project>.vercel.app` short name (another account may already own it). **Verify** `appConfig.appUrl` resolves to this domain:
+   - **Normal case (nothing to do):** with the leaky `VERCEL_PROJECT_PRODUCTION_URL` stripped in Phase 1, Vercel auto-injects the correct per-project value and `appUrl` already matches.
+   - **If it doesn't match** — an older project that inherited `app-template-ai.vercel.app`, or a **custom domain** Vercel reports here — pin the real domain (sets `NEXT_PUBLIC_APP_URL`, resolution priority #1, locally + all Vercel envs) and redeploy so it takes effect:
+     ```
+     yarn vercel-cli domain --set-app-url       # detect + pin in one step
+     yarn vercel-cli redeploy                   # env changes only affect NEW builds
+     ```
 
-Gate: a Vercel deployment is **Ready**. Continue.
+Gate: a Vercel deployment is **Ready** and `appConfig.appUrl` points at this project's own domain. Continue.
 
 ---
 
@@ -178,7 +183,7 @@ Confirm and summarize:
 - ✅ Identity configured (name / description / theme) and verified
 - ✅ `.env.local` has the required secrets; `LOCAL_USER_ID` seeded (fresh, not the template author's)
 - ✅ `yarn checks` green; app boots and the local user logs in
-- ✅ Vercel linked, env pushed, a deployment is **Ready**
+- ✅ Vercel linked, env pushed, a deployment is **Ready**; `appConfig.appUrl` points at this project's own domain (`yarn vercel-cli domain`)
 - ✅ Production owner account exists + approved; `ADMIN_USER_ID` set (locally + Vercel)
 - ✅ Telegram bot set up
 
@@ -200,7 +205,9 @@ Offer to commit the initialization changes (don't commit unprompted). Suggested 
 | Seed the local dev user (idempotent, approved) | `yarn create-local-user` |
 | Create an approved owner/admin user (any DB) | `yarn create-user --username <u> --password <pw> --admin` |
 | Validate | `yarn checks`, `yarn dev` |
-| Vercel link / env / deploys | `vercel link`, `yarn vercel-cli env:push`, `npx vercel ls` |
+| Vercel link / env / deploys | `vercel link`, `yarn vercel-cli env:sync` (or `--dry-run`), `yarn vercel-cli list` |
+| Remove an env var (where `npx vercel` is blocked) | `yarn vercel-cli env:rm --name X [--target production]` |
+| Get the production domain / fix app URL | `yarn vercel-cli domain`, `yarn vercel-cli domain --set-app-url` |
 | Telegram bot | `/setup-telegram-bot` |
 | RPC (needed for the agent) | `/enable-rpc-calls` |
 | Build the app's agent | `/build-app-agent` |
