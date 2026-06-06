@@ -7,12 +7,12 @@
  */
 
 import type { ReactNode } from 'react';
-import { templateAdminMenuItems, filterAdminNavItems } from './template/NavLinks.template';
+import { templateAdminMenuItems, templateMenuItems, filterAdminNavItems } from './template/NavLinks.template';
 import { projectAdminMenuItems, navItems, menuItems } from './project/NavLinks.project';
 import * as projectNavModule from './project/NavLinks.project';
 
 // Re-export for use by Layout
-export { navItems, menuItems, filterAdminNavItems };
+export { navItems, menuItems, templateMenuItems, filterAdminNavItems };
 
 // Optional project-owned slot: child projects add `export const TopNavBarSlot`
 // to NavLinks.project.tsx to render a custom component in the top nav bar.

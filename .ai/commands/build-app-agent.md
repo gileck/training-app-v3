@@ -46,9 +46,11 @@ You customize the **bold-italic** pieces below; the rest is template plumbing yo
 | Piece | Path | Owner | You edit? |
 |---|---|---|---|
 | Agentic **engine** (`createAgentHandler`, `createToolBuilder`, `buildAgentToolsFromApis`, `initClaudeCode`, `initCodex`, `runCodexMcpServer`, `defineApiMeta`) | `src/server/template/agentic/` | template (synced) | **Never** — import from `@/server/template/agentic` |
-| Conversation **storage** (threads + messages) | `src/server/database/collections/project/agentConversations/` | project | Reuse as-is |
+| Conversation **storage** (threads + messages) | `src/server/database/collections/template/agentConversations/` | template (synced) | Reuse as-is |
 | **Traces** + verbose log + "Copy debug trace" | `src/server/database/collections/template/agentTraces/`, `/agent` ⋮ menu | template | Reuse for debugging |
-| Chat **API domain** (`sendMessage`, `getConversation`, …) | `src/apis/project/agent/` | project | Edit `sendMessage.ts` only (system prompt + handler path) |
+| Chat **API domain** (`sendMessage`, `getConversation`, …) | `src/apis/template/agent/` | template (synced) | Don't edit — configure via the runtime seam below |
+| Agent **runtime seam** (handler path + system prompt) | `src/apis/project/agent/runtime.project.ts` | project (not synced) | **Edit this** — `agentRuntime.handlerPath` + `agentRuntime.systemPrompt` |
+| Default **model** seam | `src/client/utils/project/agentClientConfig.ts` | project (not synced) | Edit `defaultModelId` |
 | **RPC handler + tools + data context** | `src/server/project/<agent>/` | project | **This is the heart — you build it** |
 | Codex **MCP server** bootstrap | `src/server/project/<agent>/adapters/codex-mcp-server.ts` | project | You build it (mirror of the handler's tool list) |
 | Chat **composer** (`ChatComposer` — text input, file attach, paste, model picker, send/stop) | `src/client/components/template/chat/ChatComposer.tsx` | template (synced) | Reuse as-is — pass `models`/handlers as props |
@@ -68,7 +70,8 @@ The template ships an example agent under `src/server/project/demo-agent/` (tool
 1. **Child project check.** This skill is for child projects. If `package.json` `name` is `app-template-ai`, warn the user: running it here edits the *demo* agent (template documentation). Only proceed if they confirm that's intentional.
 2. **Stack present?** Confirm these exist:
    - engine: `src/server/template/agentic/index.ts`
-   - chat API: `src/apis/project/agent/handlers/sendMessage.ts`
+   - chat API: `src/apis/template/agent/handlers/sendMessage.ts`
+   - runtime seam: `src/apis/project/agent/runtime.project.ts`
    - chat UI: `src/client/routes/project/Agent/Agent.tsx`
    - an agent module: `src/server/project/demo-agent/handler.ts` (or another `*-agent/handler.ts`)
 
@@ -91,11 +94,9 @@ Ask the user (use `AskUserQuestion` where a few clear options help, free text ot
 - **Tone** — concise/clinical, warm/encouraging, etc.
 - **Default model** — `claude-code-sonnet` is a sensible default (Claude Code is the primary adapter and needs no extra setup). Other options: `claude-code-haiku` (cheap/fast), `claude-code-opus` (deep reasoning), or Codex `gpt-5.5` / `gpt-5.4` (require the Codex MCP subprocess from Phase 5).
 
-Encode it in the system prompt. It currently lives as `DEFAULT_SYSTEM_PROMPT` in `src/apis/project/agent/handlers/sendMessage.ts`. Replace it with the app-specific identity, and **list the tools you'll add in Phase 3** so the model knows when to use them. Keep it tight — a few sentences of identity + a one-line cue per tool.
+Encode it in the system prompt. It lives as `agentRuntime.systemPrompt` in the project-owned seam `src/apis/project/agent/runtime.project.ts` (the template-owned `sendMessage` handler reads it). Replace it with the app-specific identity, and **list the tools you'll add in Phase 3** so the model knows when to use them. Keep it tight — a few sentences of identity + a one-line cue per tool.
 
-> Tip: if you expect to iterate on the prompt, extract it to `src/apis/project/agent/systemPrompt.ts` and import it — but editing the constant in place is fine.
-
-Also set the default model the picker opens on: `selectedModelId` default in `src/client/features/project/agent/store.ts`.
+Also set the default model the picker opens on: `defaultModelId` in `src/client/utils/project/agentClientConfig.ts`.
 
 Gate: `yarn checks` green. Continue.
 
@@ -265,10 +266,13 @@ runCodexMcpServer({
 });
 ```
 
-3. **`HANDLER_PATH`** in `src/apis/project/agent/handlers/sendMessage.ts` — update to the new folder (note: **no `.ts` extension**; the daemon appends it):
+3. **`agentRuntime.handlerPath`** in `src/apis/project/agent/runtime.project.ts` — point it at the new folder (note: **no `.ts` extension**; the daemon appends it):
 
 ```ts
-const HANDLER_PATH = 'src/server/project/doctor-agent/handler';
+export const agentRuntime = {
+    handlerPath: 'src/server/project/doctor-agent/handler',
+    systemPrompt: '…', // set in Phase 1
+};
 ```
 
 4. **Daemon working dir** — `agent-tasks/rpc-daemon/config.json` `script.workingDirectory` must point at this project's absolute path (set during `/enable-rpc-calls`; verify it's correct here, not the template path).
@@ -317,8 +321,8 @@ Gate: a real turn calls a real tool and produces the right side effect.
 | Tools + data context | `src/server/project/<agent>/tools.ts` |
 | RPC handler | `src/server/project/<agent>/handler.ts` |
 | Codex MCP bootstrap | `src/server/project/<agent>/adapters/codex-mcp-server.ts` |
-| System prompt + handler path | `src/apis/project/agent/handlers/sendMessage.ts` |
-| Default model | `src/client/features/project/agent/store.ts` |
+| System prompt + handler path | `src/apis/project/agent/runtime.project.ts` |
+| Default model | `src/client/utils/project/agentClientConfig.ts` |
 | UI branding (route only — composer is shared) | `src/client/routes/project/Agent/Agent.tsx`, `MessageList.tsx` |
 | Route / nav (optional rename) | `src/client/routes/index.project.ts`, `src/client/components/NavLinks.tsx` |
 | Expose existing APIs as tools | each handler's `apiMeta` + its `server.ts` (see `docs/template/agent-api-tools.md`) |

@@ -61,7 +61,7 @@ export interface AgentsConfig {
  * Available models:
  * - claude-code-sdk: 'sonnet', 'opus', 'haiku'
  * - cursor: 'opus-4.5', 'sonnet-4', etc.
- * - gemini: 'gemini-3-flash-preview', 'gemini-3-pro-preview', etc.
+ * - gemini: 'gemini-3.5-flash', 'gemini-3.1-pro-preview', etc.
  * - openai-codex: 'gpt-5.4', 'gpt-5', etc.
  *
  * To use a different library for a specific workflow, add it to workflowOverrides.
@@ -97,7 +97,7 @@ export const agentsConfig: AgentsConfig = {
             model: 'opus-4.5',
         },
         'gemini': {
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
         },
         'openai-codex': {
             model: 'gpt-5.4',

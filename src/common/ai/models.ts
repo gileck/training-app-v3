@@ -21,7 +21,7 @@ export interface AIModelDefinition {
   capabilities: string[];
 }
 
-// Google Gemini models (Feb 2026)
+// Google Gemini models (June 2026)
 export const GEMINI_MODELS: AIModelDefinition[] = [
   {
     id: 'gemini-2.5-flash-lite',
@@ -35,19 +35,30 @@ export const GEMINI_MODELS: AIModelDefinition[] = [
     capabilities: ['fast-responses', 'low-latency', 'cost-efficient']
   },
   {
-    id: 'gemini-3-flash-preview',
-    name: 'Gemini 3 Flash',
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash-Lite',
     provider: 'gemini',
     tier: 'Budget',
+    maxTokens: 1048576, // 1M context
+    maxOutputTokens: 65536,
+    inputPricePer1M: 0.25,
+    outputPricePer1M: 1.50,
+    capabilities: ['fast-responses', 'low-latency', 'cost-efficient', 'multimodal']
+  },
+  {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    provider: 'gemini',
+    tier: 'Pro',
     maxTokens: 1048576,
     maxOutputTokens: 65536,
-    inputPricePer1M: 0.50,
-    outputPricePer1M: 3.00,
+    inputPricePer1M: 1.50,
+    outputPricePer1M: 9.00,
     capabilities: ['fast-responses', 'low-latency', 'reasoning', 'multimodal']
   },
   {
-    id: 'gemini-3-pro-preview',
-    name: 'Gemini 3 Pro',
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro',
     provider: 'gemini',
     tier: 'Premium',
     maxTokens: 1048576,

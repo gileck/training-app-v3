@@ -57,3 +57,6 @@ agent-logs/
 
 # agent tasks (task-cli configs are machine-specific)
 agent-tasks/
+
+# git worktrees
+.worktrees/

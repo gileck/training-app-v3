@@ -10,21 +10,26 @@ type PricingModel = {
 }
 
 export const pricing: PricingModel[] = [
-  // Google Gemini (Feb 2026)
+  // Google Gemini (June 2026)
   {
     model_id: 'gemini-2.5-flash-lite',
     input_cost_per_1k: 0.0001,   // $0.10 per 1M
     output_cost_per_1k: 0.0004   // $0.40 per 1M
   },
   {
-    model_id: 'gemini-3-flash-preview',
-    input_cost_per_1k: 0.0005,   // $0.50 per 1M
-    output_cost_per_1k: 0.003    // $3.00 per 1M
+    model_id: 'gemini-3.1-flash-lite',
+    input_cost_per_1k: 0.00025,  // $0.25 per 1M
+    output_cost_per_1k: 0.0015   // $1.50 per 1M
   },
   {
-    model_id: 'gemini-3-pro-preview',
-    input_cost_per_1k: 0.002,    // $2.00 per 1M
-    output_cost_per_1k: 0.012    // $12.00 per 1M
+    model_id: 'gemini-3.5-flash',
+    input_cost_per_1k: 0.0015,   // $1.50 per 1M
+    output_cost_per_1k: 0.009    // $9.00 per 1M
+  },
+  {
+    model_id: 'gemini-3.1-pro-preview',
+    input_cost_per_1k: 0.002,    // $2.00 per 1M (≤200k context)
+    output_cost_per_1k: 0.012    // $12.00 per 1M (≤200k context)
   },
   
   // OpenAI (Feb 2026)

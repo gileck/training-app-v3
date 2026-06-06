@@ -9,12 +9,13 @@ import { Separator } from '@/client/components/template/ui/separator';
 
 interface DrawerMenuProps {
   navItems: NavItem[];
+  templateNavItems?: NavItem[];
   adminNavItems?: NavItem[];
   mobileOpen: boolean;
   onDrawerToggle: () => void;
 }
 
-export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle }: DrawerMenuProps) => {
+export const DrawerMenu = ({ navItems, templateNavItems, adminNavItems, mobileOpen, onDrawerToggle }: DrawerMenuProps) => {
   const { currentPath, navigate } = useRouter();
   const openBugReportDialog = useOpenBugReportDialog();
   const openFeatureRequestDialog = useOpenFeatureRequestDialog();
@@ -56,6 +57,16 @@ export const DrawerMenu = ({ navItems, adminNavItems, mobileOpen, onDrawerToggle
       <nav className="grid gap-0.5 px-2 pb-2">
         {navItems.map(renderNavItem)}
       </nav>
+
+      {/* Template-provided menu items, separated from project items by a divider */}
+      {templateNavItems && templateNavItems.length > 0 && (
+        <>
+          <Separator className="my-2" />
+          <nav className="grid gap-0.5 px-2 pb-2">
+            {templateNavItems.map(renderNavItem)}
+          </nav>
+        </>
+      )}
 
       <div className="grid gap-0.5 px-2">
         <button

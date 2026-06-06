@@ -8,7 +8,17 @@
  */
 
 import { NavItem } from './layout/types';
-import { ClipboardList, Workflow, UserCheck, Bug, Database, Activity, Plug, Users } from 'lucide-react';
+import { ClipboardList, Workflow, UserCheck, Bug, Database, Activity, Plug, Users, Palette, Settings } from 'lucide-react';
+
+/**
+ * Template-provided app menu items (rendered after project items in the drawer).
+ * Note: '/my-requests' is intentionally omitted — each project opts in by adding
+ * it to menuItems in NavLinks.project.tsx if it wants the feature-request page.
+ */
+export const templateMenuItems: NavItem[] = [
+  { path: '/theme', label: 'Theme', icon: <Palette size={18} /> },
+  { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
+];
 
 /** Template admin-only menu items */
 export const templateAdminMenuItems: NavItem[] = [

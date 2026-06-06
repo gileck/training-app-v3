@@ -219,14 +219,35 @@ async function writeEnvLocalUserId(id) {
 // LOCAL_USER_ID for the new project's own database in createLocalUserAndWriteEnv().
 const LEAKY_IDENTITY_KEYS = ['LOCAL_USER_ID', 'ADMIN_USER_ID'];
 
+// Service credentials/config bound to the TEMPLATE's own bots, chats, auth, and
+// deployment. A child must NOT inherit the template's Telegram bots, owner /
+// notification chats, webhook signing secret, auth mode, or passkey rpID — e.g.
+// inheriting TELEGRAM_BOT_TOKEN points the child at the template's bot (whose
+// webhook is global per bot), and AUTH_MODE=passkey silently locks a child into
+// passkey login with no enrolled passkeys. Like the identity keys, these are
+// stripped on COPY ONLY (see LEAKY_PROJECT_KEYS for the every-run set): once a
+// configured project sets its OWN value, a re-run must not wipe it.
+const LEAKY_SERVICE_KEYS = [
+    'TELEGRAM_BOT_TOKEN',
+    'CLAUDE_TELEGRAM_BOT_TOKEN',
+    'OWNER_TELEGRAM_CHAT_ID',
+    'VERCEL_TELEGRAM_CHAT_ID',
+    'VERCEL_WEBHOOK_SECRET',
+    'AUTH_MODE',
+    'WEBAUTHN_RP_ID',
+];
+
 // Vercel values bound to the TEMPLATE's own deployment. Copying them would point
 // the new project at the template's domain / Vercel project — e.g.
 // VERCEL_PROJECT_PRODUCTION_URL="app-template-ai.vercel.app" silently becomes the
 // new project's app URL. Each is re-provided per-project by Vercel at deploy time
 // (or via `yarn set-app-url`), so drop them rather than inherit the template's.
+// Unlike the identity/service keys, these are NEVER valid in a child's env, so
+// they're stripped on copy AND on every run (a pre-populated env is cleaned too).
 const LEAKY_PROJECT_KEYS = ['VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_OIDC_TOKEN'];
 
-const LEAKY_TEMPLATE_KEYS = [...LEAKY_IDENTITY_KEYS, ...LEAKY_PROJECT_KEYS];
+// Everything stripped when COPYING the template's env file into a child.
+const LEAKY_TEMPLATE_KEYS = [...LEAKY_IDENTITY_KEYS, ...LEAKY_SERVICE_KEYS, ...LEAKY_PROJECT_KEYS];
 
 function stripLeakyTemplateKeys(filePath, fileName, keys = LEAKY_TEMPLATE_KEYS) {
     let content = fs.readFileSync(filePath, 'utf8');
@@ -242,7 +263,8 @@ function stripLeakyTemplateKeys(filePath, fileName, keys = LEAKY_TEMPLATE_KEYS) 
     }
     if (changed) {
         fs.writeFileSync(filePath, content, 'utf8');
-        console.log(`[${fileName}] Stripped template-specific keys (${LEAKY_TEMPLATE_KEYS.join(', ')}).`);
+        // Report the keys actually stripped (the every-run call passes a subset).
+        console.log(`[${fileName}] Stripped template-specific keys (${keys.join(', ')}).`);
     }
 }
 

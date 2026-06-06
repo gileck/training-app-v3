@@ -4,7 +4,7 @@ import { BottomNavBar } from './layout/BottomNavBar';
 import { DrawerMenu } from './layout/DrawerMenu';
 import { Footer } from './layout/Footer';
 import { NavigatorStandalone } from './layout/types';
-import { filterAdminNavItems, menuItems, navItems, adminMenuItems } from '../NavLinks';
+import { filterAdminNavItems, menuItems, templateMenuItems, navItems, adminMenuItems } from '../NavLinks';
 import { useGlobalErrorHandler, ErrorBoundary, useNetworkLogger } from '@/client/features';
 import { GlobalDialogs } from '../GlobalDialogs';
 import { ToastContainer } from './ui/toast';
@@ -77,6 +77,7 @@ export const Layout = ({ children }: { children?: ReactNode }) => {
         {/* Mobile Drawer Menu */}
         <DrawerMenu
           navItems={menuItems}
+          templateNavItems={templateMenuItems}
           adminNavItems={isAdmin ? adminMenuItems : undefined}
           mobileOpen={mobileOpen}
           onDrawerToggle={handleDrawerToggle}
