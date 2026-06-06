@@ -1,5 +1,5 @@
 import { createStore } from '@/client/stores';
-import { agentClientConfig } from '@/client/utils/project/agentClientConfig';
+import { agentClientConfig } from '@/client/utils/agentClientConfig';
 
 interface AgentUIState {
     /** Currently-selected conversation id, or null when on the empty

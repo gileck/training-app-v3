@@ -49,8 +49,8 @@ You customize the **bold-italic** pieces below; the rest is template plumbing yo
 | Conversation **storage** (threads + messages) | `src/server/database/collections/template/agentConversations/` | template (synced) | Reuse as-is |
 | **Traces** + verbose log + "Copy debug trace" | `src/server/database/collections/template/agentTraces/`, `/agent` ⋮ menu | template | Reuse for debugging |
 | Chat **API domain** (`sendMessage`, `getConversation`, …) | `src/apis/template/agent/` | template (synced) | Don't edit — configure via the runtime seam below |
-| Agent **runtime seam** (handler path + system prompt) | `src/apis/project/agent/runtime.project.ts` | project (not synced) | **Edit this** — `agentRuntime.handlerPath` + `agentRuntime.systemPrompt` |
-| Default **model** seam | `src/client/utils/project/agentClientConfig.ts` | project (not synced) | Edit `defaultModelId` |
+| Agent **runtime seam** (handler path + system prompt) | `src/apis/template/agent/runtime.ts` | synced default, override + `projectOverride` | **Edit this** — `agentRuntime.handlerPath` + `agentRuntime.systemPrompt` |
+| Default **model** seam | `src/client/utils/agentClientConfig.ts` | synced default, override + `projectOverride` | Edit `defaultModelId` |
 | **RPC handler + tools + data context** | `src/server/project/<agent>/` | project | **This is the heart — you build it** |
 | Codex **MCP server** bootstrap | `src/server/project/<agent>/adapters/codex-mcp-server.ts` | project | You build it (mirror of the handler's tool list) |
 | Chat **composer** (`ChatComposer` — text input, file attach, paste, model picker, send/stop) | `src/client/components/template/chat/ChatComposer.tsx` | template (synced) | Reuse as-is — pass `models`/handlers as props |
@@ -71,7 +71,7 @@ The template ships an example agent under `src/server/project/demo-agent/` (tool
 2. **Stack present?** Confirm these exist:
    - engine: `src/server/template/agentic/index.ts`
    - chat API: `src/apis/template/agent/handlers/sendMessage.ts`
-   - runtime seam: `src/apis/project/agent/runtime.project.ts`
+   - runtime seam: `src/apis/template/agent/runtime.ts`
    - chat UI: `src/client/routes/project/Agent/Agent.tsx`
    - an agent module: `src/server/project/demo-agent/handler.ts` (or another `*-agent/handler.ts`)
 
@@ -94,9 +94,9 @@ Ask the user (use `AskUserQuestion` where a few clear options help, free text ot
 - **Tone** — concise/clinical, warm/encouraging, etc.
 - **Default model** — `claude-code-sonnet` is a sensible default (Claude Code is the primary adapter and needs no extra setup). Other options: `claude-code-haiku` (cheap/fast), `claude-code-opus` (deep reasoning), or Codex `gpt-5.5` / `gpt-5.4` (require the Codex MCP subprocess from Phase 5).
 
-Encode it in the system prompt. It lives as `agentRuntime.systemPrompt` in the project-owned seam `src/apis/project/agent/runtime.project.ts` (the template-owned `sendMessage` handler reads it). Replace it with the app-specific identity, and **list the tools you'll add in Phase 3** so the model knows when to use them. Keep it tight — a few sentences of identity + a one-line cue per tool.
+Encode it in the system prompt. It lives as `agentRuntime.systemPrompt` in the override seam `src/apis/template/agent/runtime.ts` (the template-owned `sendMessage` handler reads it). This file ships a template default and **is** synced, so to keep your edits, add it to `projectOverrides` in `.template-sync.json` (Phase 7 reminds you). Replace the prompt with the app-specific identity, and **list the tools you'll add in Phase 3** so the model knows when to use them. Keep it tight — a few sentences of identity + a one-line cue per tool.
 
-Also set the default model the picker opens on: `defaultModelId` in `src/client/utils/project/agentClientConfig.ts`.
+Also set the default model the picker opens on: `defaultModelId` in `src/client/utils/agentClientConfig.ts` (same override-seam rules — add it to `projectOverrides` too).
 
 Gate: `yarn checks` green. Continue.
 
@@ -266,7 +266,7 @@ runCodexMcpServer({
 });
 ```
 
-3. **`agentRuntime.handlerPath`** in `src/apis/project/agent/runtime.project.ts` — point it at the new folder (note: **no `.ts` extension**; the daemon appends it):
+3. **`agentRuntime.handlerPath`** in `src/apis/template/agent/runtime.ts` — point it at the new folder (note: **no `.ts` extension**; the daemon appends it):
 
 ```ts
 export const agentRuntime = {
@@ -308,6 +308,9 @@ Gate: a real turn calls a real tool and produces the right side effect.
 ## Phase 7 — Wrap up
 
 - Run `yarn checks` one final time (must be green: TypeScript, ESLint, circular deps, unused deps).
+- **Protect the override seams from sync.** The two files you edited ship template defaults and are synced, so add both to `projectOverrides` in `.template-sync.json` or the next `/sync-template` reverts them to the demo:
+  - `src/apis/template/agent/runtime.ts`
+  - `src/client/utils/agentClientConfig.ts`
 - Summarize what was built: agent identity, the tools (custom + exposed APIs), data context, UI branding, and the handler wiring.
 - Suggest follow-ups: more tools, richer data context, suggested-prompt presets, a domain disclaimer in the system prompt, and per-tool confirmation for destructive actions.
 - Offer to commit (don't commit unprompted). Suggested message: `feat(agent): build <app> agent (<identity> + <tool summary>)`.
@@ -321,8 +324,8 @@ Gate: a real turn calls a real tool and produces the right side effect.
 | Tools + data context | `src/server/project/<agent>/tools.ts` |
 | RPC handler | `src/server/project/<agent>/handler.ts` |
 | Codex MCP bootstrap | `src/server/project/<agent>/adapters/codex-mcp-server.ts` |
-| System prompt + handler path | `src/apis/project/agent/runtime.project.ts` |
-| Default model | `src/client/utils/project/agentClientConfig.ts` |
+| System prompt + handler path | `src/apis/template/agent/runtime.ts` |
+| Default model | `src/client/utils/agentClientConfig.ts` |
 | UI branding (route only — composer is shared) | `src/client/routes/project/Agent/Agent.tsx`, `MessageList.tsx` |
 | Route / nav (optional rename) | `src/client/routes/index.project.ts`, `src/client/components/NavLinks.tsx` |
 | Expose existing APIs as tools | each handler's `apiMeta` + its `server.ts` (see `docs/template/agent-api-tools.md`) |

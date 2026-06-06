@@ -28,9 +28,10 @@ import { getModelById } from '@/common/ai/models';
 import { toQueryId, toStringId } from '@/server/template/utils';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { SendMessageRequest, SendMessageResponse } from '../types';
-// Project-owned seam: which agent handler runs + its default system
-// prompt. NOT synced — `build-app-agent` customizes it per project.
-import { agentRuntime } from '@/apis/project/agent/runtime.project';
+// Agent runtime override point (which handler runs + its default system
+// prompt). Ships template defaults; `build-app-agent` customizes it and
+// adds it to the project's `projectOverrides` so sync keeps the change.
+import { agentRuntime } from '../runtime';
 
 const RPC_TTL_MS = 60 * 60 * 1000; // 1 hour
 
