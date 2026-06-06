@@ -7,7 +7,7 @@
 
 import type { ReactNode } from 'react';
 import { NavItem } from '../template/layout/types';
-import { Home, Dumbbell, TrendingUp, Settings } from 'lucide-react';
+import { Home, Dumbbell, TrendingUp, Settings, Sparkles } from 'lucide-react';
 import { ActiveWorkoutStatusBar } from './ActiveWorkoutStatusBar';
 import { RpcConnectionIndicator } from '@/client/features/template/rpc-connection';
 
@@ -38,5 +38,6 @@ export const menuItems: NavItem[] = [
   { path: '/', label: 'Home', icon: <Home size={18} /> },
   { path: '/training-plans', label: 'Training Plans', icon: <Dumbbell size={18} /> },
   { path: '/progress', label: 'Progress', icon: <TrendingUp size={18} /> },
+  { path: '/agent', label: 'Coach', icon: <Sparkles size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];

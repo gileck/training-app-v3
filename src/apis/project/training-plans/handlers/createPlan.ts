@@ -1,6 +1,18 @@
 import { ApiHandlerContext, CreatePlanRequest, CreatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<CreatePlanRequest>()({
+    description: "Create a new, empty training plan. Returns the created plan. Add exercises afterward with plan-exercises/add.",
+    inputSchema: {
+        name: z.string().describe('Name for the new plan.'),
+        durationWeeks: z.number().int().min(1).describe('How many weeks the plan runs.'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const createPlan = async (
     request: CreatePlanRequest,

@@ -1,6 +1,17 @@
 import { ApiHandlerContext, GetPlanRequest, GetPlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<GetPlanRequest>()({
+    description: "Get one training plan in full detail by its id. Use after listing plans to inspect a specific plan.",
+    inputSchema: {
+        planId: z.string().describe('The training plan id (from training-plans/list).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export const getPlan = async (
     request: GetPlanRequest,

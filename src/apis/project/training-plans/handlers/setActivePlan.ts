@@ -1,6 +1,17 @@
 import { ApiHandlerContext, SetActivePlanRequest, SetActivePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<SetActivePlanRequest>()({
+    description: "Set which training plan is the user's active plan. Returns the now-active plan.",
+    inputSchema: {
+        planId: z.string().describe('Plan id to make active.'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const setActivePlan = async (
     request: SetActivePlanRequest,

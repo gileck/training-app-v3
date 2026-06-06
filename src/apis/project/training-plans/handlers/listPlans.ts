@@ -1,6 +1,14 @@
 import { ApiHandlerContext, ListPlansRequest, ListPlansResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+
+export const apiMeta = defineApiMeta<ListPlansRequest>()({
+    description: "List all of the user's training plans (id, name, duration in weeks, and which one is active). Use this first to see what plans exist before reading or changing one.",
+    inputSchema: {},
+    agentExposed: true,
+    mutates: false,
+});
 
 export const listPlans = async (
     _: ListPlansRequest,

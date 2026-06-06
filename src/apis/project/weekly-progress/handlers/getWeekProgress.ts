@@ -4,6 +4,8 @@ import {
     GetWeekProgressResponse,
     ExerciseWeekProgress,
 } from '../types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
 import {
     trainingPlans,
     planExercises,
@@ -13,6 +15,16 @@ import {
     setLogs,
 } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+
+export const apiMeta = defineApiMeta<GetWeekProgressRequest>()({
+    description: "Get the user's progress for a given week of a plan: per-exercise target vs completed sets, and overall completion. Use to review how the week is going.",
+    inputSchema: {
+        planId: z.string().describe('The training plan id.'),
+        weekNumber: z.number().int().min(1).describe('Which week of the plan (1-based).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export const getWeekProgress = async (
     request: GetWeekProgressRequest,

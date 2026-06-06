@@ -4,6 +4,17 @@ import {
     DeletePlanExerciseResponse,
 } from '../types';
 import { trainingPlans, planExercises, exerciseProgress, setLogs } from '@/server/database';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<DeletePlanExerciseRequest>()({
+    description: "Remove an exercise from a plan. Destructive — confirm with the user first.",
+    inputSchema: {
+        planExerciseId: z.string().describe('The plan-exercise id to delete.'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const deletePlanExercise = async (
     request: DeletePlanExerciseRequest,

@@ -5,6 +5,21 @@ import {
     setLogs,
 } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<UpdateSetsRequest>()({
+    description: "Log set progress for an exercise in a given week: add one set, remove one set, or complete all remaining sets.",
+    inputSchema: {
+        planId: z.string().describe('The training plan id.'),
+        planExerciseId: z.string().describe('The plan-exercise id (from plan-exercises/list or weekly-progress/get-week).'),
+        weekNumber: z.number().int().min(1).describe('Which week (1-based).'),
+        action: z.enum(['add', 'remove', 'complete-all']).describe("'add' logs one set, 'remove' removes one, 'complete-all' fills remaining."),
+        targetSets: z.number().int().optional().describe("Required for 'complete-all': total sets to reach."),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 /**
  * Add / remove / complete-all sets for a (plan, exercise, week).

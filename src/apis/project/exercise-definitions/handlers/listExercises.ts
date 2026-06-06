@@ -1,6 +1,17 @@
 import { ApiHandlerContext, ListExercisesRequest, ListExercisesResponse } from '../types';
 import { exerciseDefinitions } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<ListExercisesRequest>()({
+    description: "List available exercise definitions (library + the user's custom ones) to find an exerciseDefId to add to a plan, or to suggest exercises.",
+    inputSchema: {
+        includeCustom: z.boolean().optional().describe("Include the user's custom exercises (default true)."),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export const listExercises = async (
     request: ListExercisesRequest,

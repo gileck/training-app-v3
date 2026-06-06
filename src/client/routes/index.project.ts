@@ -12,6 +12,7 @@ import { ManagePlan } from './project/ManagePlan';
 import { Progress } from './project/Progress';
 import { ActiveWorkout } from './project/ActiveWorkout';
 import { SharedPlan } from './project/SharedPlan';
+import { Agent } from './project/Agent';
 
 export const projectRoutes: Routes = {
   // Training App routes:
@@ -21,4 +22,5 @@ export const projectRoutes: Routes = {
   '/active-workout': ActiveWorkout,
   '/progress': Progress,
   '/share/:token': { component: SharedPlan, public: true },
+  '/agent': { component: Agent, fullScreen: true },
 };

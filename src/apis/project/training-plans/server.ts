@@ -18,12 +18,12 @@ import {
 } from './index';
 
 // Import handlers
-import { listPlans } from './handlers/listPlans';
-import { getPlan } from './handlers/getPlan';
-import { createPlan } from './handlers/createPlan';
-import { updatePlan } from './handlers/updatePlan';
-import { deletePlan } from './handlers/deletePlan';
-import { setActivePlan } from './handlers/setActivePlan';
+import { listPlans, apiMeta as listPlansMeta } from './handlers/listPlans';
+import { getPlan, apiMeta as getPlanMeta } from './handlers/getPlan';
+import { createPlan, apiMeta as createPlanMeta } from './handlers/createPlan';
+import { updatePlan, apiMeta as updatePlanMeta } from './handlers/updatePlan';
+import { deletePlan, apiMeta as deletePlanMeta } from './handlers/deletePlan';
+import { setActivePlan, apiMeta as setActivePlanMeta } from './handlers/setActivePlan';
 import { duplicatePlan } from './handlers/duplicatePlan';
 import { generatePlanFromText } from './handlers/generatePlanFromText';
 import { createPlanFromText } from './handlers/createPlanFromText';
@@ -33,12 +33,12 @@ import { getSharedPlan } from './handlers/getSharedPlan';
 
 // Export consolidated handlers object
 export const trainingPlansApiHandlers = {
-    [API_LIST_PLANS]: { process: listPlans },
-    [API_GET_PLAN]: { process: getPlan },
-    [API_CREATE_PLAN]: { process: createPlan },
-    [API_UPDATE_PLAN]: { process: updatePlan },
-    [API_DELETE_PLAN]: { process: deletePlan },
-    [API_SET_ACTIVE_PLAN]: { process: setActivePlan },
+    [API_LIST_PLANS]: { process: listPlans, meta: listPlansMeta },
+    [API_GET_PLAN]: { process: getPlan, meta: getPlanMeta },
+    [API_CREATE_PLAN]: { process: createPlan, meta: createPlanMeta },
+    [API_UPDATE_PLAN]: { process: updatePlan, meta: updatePlanMeta },
+    [API_DELETE_PLAN]: { process: deletePlan, meta: deletePlanMeta },
+    [API_SET_ACTIVE_PLAN]: { process: setActivePlan, meta: setActivePlanMeta },
     [API_DUPLICATE_PLAN]: { process: duplicatePlan },
     [API_GENERATE_PLAN_FROM_TEXT]: { process: generatePlanFromText },
     [API_CREATE_PLAN_FROM_TEXT]: { process: createPlanFromText },

@@ -1,6 +1,19 @@
 import { ApiHandlerContext, UpdatePlanRequest, UpdatePlanResponse } from '../types';
 import { trainingPlans } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<UpdatePlanRequest>()({
+    description: "Update a training plan's name and/or duration. Only the fields you pass are changed.",
+    inputSchema: {
+        planId: z.string().describe('Plan id to update.'),
+        name: z.string().optional().describe('New plan name (optional).'),
+        durationWeeks: z.number().int().min(1).optional().describe('New duration in weeks (optional).'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const updatePlan = async (
     request: UpdatePlanRequest,

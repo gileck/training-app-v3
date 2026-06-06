@@ -5,6 +5,23 @@ import {
 } from '../types';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
 import { toStringId, toDocumentId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<AddPlanExerciseRequest>()({
+    description: "Add an exercise to a training plan. Look up exerciseDefId via exercise-definitions/list first.",
+    inputSchema: {
+        planId: z.string().describe('Plan id to add the exercise to.'),
+        exerciseDefId: z.string().describe('Exercise definition id (from exercise-definitions/list).'),
+        sets: z.number().int().min(1).describe('Number of sets.'),
+        reps: z.number().int().min(0).describe('Reps per set.'),
+        weight: z.number().optional().describe('Weight in kg (optional).'),
+        durationSeconds: z.number().int().optional().describe('Duration in seconds for timed exercises (optional).'),
+        comments: z.string().optional().describe('Optional notes for this exercise.'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const addPlanExercise = async (
     request: AddPlanExerciseRequest,

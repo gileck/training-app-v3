@@ -12,7 +12,7 @@ import {
 } from './index';
 
 // Import handlers
-import { listExercises } from './handlers/listExercises';
+import { listExercises, apiMeta as listExercisesMeta } from './handlers/listExercises';
 import { getExercise } from './handlers/getExercise';
 import { createExercise } from './handlers/createExercise';
 import { updateExercise } from './handlers/updateExercise';
@@ -21,7 +21,7 @@ import { getMuscleGroups } from './handlers/getMuscleGroups';
 
 // Export consolidated handlers object
 export const exerciseDefinitionsApiHandlers = {
-    [API_LIST_EXERCISES]: { process: listExercises },
+    [API_LIST_EXERCISES]: { process: listExercises, meta: listExercisesMeta },
     [API_GET_EXERCISE]: { process: getExercise },
     [API_CREATE_EXERCISE]: { process: createExercise },
     [API_UPDATE_EXERCISE]: { process: updateExercise },

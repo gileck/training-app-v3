@@ -10,15 +10,15 @@ import {
 } from './index';
 
 // Import handlers
-import { getWeekProgress } from './handlers/getWeekProgress';
-import { updateSets } from './handlers/updateSets';
+import { getWeekProgress, apiMeta as getWeekProgressMeta } from './handlers/getWeekProgress';
+import { updateSets, apiMeta as updateSetsMeta } from './handlers/updateSets';
 import { getExerciseNotes } from './handlers/getExerciseNotes';
 import { updateExerciseNote } from './handlers/updateExerciseNote';
 
 // Export consolidated handlers object
 export const weeklyProgressApiHandlers = {
-    [API_GET_WEEK_PROGRESS]: { process: getWeekProgress },
-    [API_UPDATE_SETS]: { process: updateSets },
+    [API_GET_WEEK_PROGRESS]: { process: getWeekProgress, meta: getWeekProgressMeta },
+    [API_UPDATE_SETS]: { process: updateSets, meta: updateSetsMeta },
     [API_GET_EXERCISE_NOTES]: { process: getExerciseNotes },
     [API_UPDATE_EXERCISE_NOTE]: { process: updateExerciseNote },
 };

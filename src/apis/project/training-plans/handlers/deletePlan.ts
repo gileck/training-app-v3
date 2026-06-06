@@ -7,6 +7,17 @@ import {
     setLogs,
 } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<DeletePlanRequest>()({
+    description: "Permanently delete a training plan and its exercises. Destructive — confirm with the user first.",
+    inputSchema: {
+        planId: z.string().describe('Plan id to delete.'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const deletePlan = async (
     request: DeletePlanRequest,

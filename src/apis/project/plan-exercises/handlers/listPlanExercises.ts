@@ -8,6 +8,17 @@ import { mergeExerciseDef, stripEmptyOverrides } from '../mergeExerciseDef';
 import { trainingPlans, planExercises, exerciseDefinitions } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
 import type { ExerciseDefinitionClient } from '@/server/database/collections/project/exerciseDefinitions/types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<ListPlanExercisesRequest>()({
+    description: "List the exercises in a training plan, with their effective sets/reps/weight and exercise details. Use to see what a plan contains.",
+    inputSchema: {
+        planId: z.string().describe('The training plan id.'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export const listPlanExercises = async (
     request: ListPlanExercisesRequest,

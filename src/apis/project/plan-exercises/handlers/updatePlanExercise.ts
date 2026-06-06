@@ -5,6 +5,22 @@ import {
 } from '../types';
 import { trainingPlans, planExercises } from '@/server/database';
 import { toStringId } from '@/server/template/utils';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
+
+export const apiMeta = defineApiMeta<UpdatePlanExerciseRequest>()({
+    description: "Update a plan exercise's sets/reps/weight/duration/comments. Only the fields you pass are changed.",
+    inputSchema: {
+        planExerciseId: z.string().describe('The plan-exercise id (from plan-exercises/list).'),
+        sets: z.number().int().min(1).optional().describe('New number of sets (optional).'),
+        reps: z.number().int().min(0).optional().describe('New reps per set (optional).'),
+        weight: z.number().optional().describe('New weight in kg (optional).'),
+        durationSeconds: z.number().int().optional().describe('New duration in seconds (optional).'),
+        comments: z.string().optional().describe('New notes (optional).'),
+    },
+    agentExposed: true,
+    mutates: true,
+});
 
 export const updatePlanExercise = async (
     request: UpdatePlanExerciseRequest,

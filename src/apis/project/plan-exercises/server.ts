@@ -13,21 +13,21 @@ import {
 } from './index';
 
 // Import handlers
-import { listPlanExercises } from './handlers/listPlanExercises';
-import { addPlanExercise } from './handlers/addPlanExercise';
+import { listPlanExercises, apiMeta as listPlanExercisesMeta } from './handlers/listPlanExercises';
+import { addPlanExercise, apiMeta as addPlanExerciseMeta } from './handlers/addPlanExercise';
 import { bulkAddPlanExercises } from './handlers/bulkAddPlanExercises';
-import { updatePlanExercise } from './handlers/updatePlanExercise';
-import { deletePlanExercise } from './handlers/deletePlanExercise';
+import { updatePlanExercise, apiMeta as updatePlanExerciseMeta } from './handlers/updatePlanExercise';
+import { deletePlanExercise, apiMeta as deletePlanExerciseMeta } from './handlers/deletePlanExercise';
 import { reorderPlanExercises } from './handlers/reorderPlanExercises';
 import { uploadOverrideImage } from './handlers/uploadOverrideImage';
 
 // Export consolidated handlers object
 export const planExercisesApiHandlers = {
-    [API_LIST_PLAN_EXERCISES]: { process: listPlanExercises },
-    [API_ADD_PLAN_EXERCISE]: { process: addPlanExercise },
+    [API_LIST_PLAN_EXERCISES]: { process: listPlanExercises, meta: listPlanExercisesMeta },
+    [API_ADD_PLAN_EXERCISE]: { process: addPlanExercise, meta: addPlanExerciseMeta },
     [API_BULK_ADD_PLAN_EXERCISES]: { process: bulkAddPlanExercises },
-    [API_UPDATE_PLAN_EXERCISE]: { process: updatePlanExercise },
-    [API_DELETE_PLAN_EXERCISE]: { process: deletePlanExercise },
+    [API_UPDATE_PLAN_EXERCISE]: { process: updatePlanExercise, meta: updatePlanExerciseMeta },
+    [API_DELETE_PLAN_EXERCISE]: { process: deletePlanExercise, meta: deletePlanExerciseMeta },
     [API_REORDER_PLAN_EXERCISES]: { process: reorderPlanExercises },
     [API_UPLOAD_OVERRIDE_IMAGE]: { process: uploadOverrideImage },
 };
