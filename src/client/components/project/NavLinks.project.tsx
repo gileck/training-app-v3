@@ -5,12 +5,20 @@
  * This file is NOT synced from template - it's owned by your project.
  */
 
+import type { ReactNode } from 'react';
 import { NavItem } from '../template/layout/types';
 import { Home, Dumbbell, TrendingUp, Settings } from 'lucide-react';
 import { ActiveWorkoutStatusBar } from './ActiveWorkoutStatusBar';
+import { RpcConnectionIndicator } from '@/client/features/template/rpc-connection';
 
 /** Renders in the center of the TopNavBar. Returns null when there's no active workout. */
 export const TopNavBarSlot = ActiveWorkoutStatusBar;
+
+/**
+ * Renders on the right of the TopNavBar. The RPC connection indicator
+ * self-hides for non-admins (via useIsAdmin), so it's safe to mount unconditionally.
+ */
+export const TopNavBarRightSlot = (): ReactNode => <RpcConnectionIndicator />;
 
 /** Project-specific admin menu items */
 export const projectAdminMenuItems: NavItem[] = [
