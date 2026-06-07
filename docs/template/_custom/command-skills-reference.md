@@ -12,5 +12,6 @@ priority: 5
 | Debug Bug Report | [.ai/commands/debug-bug-report.md](.ai/commands/debug-bug-report.md) |
 | Full Project Audit | [.ai/commands/full-project-audit.md](.ai/commands/full-project-audit.md) |
 | Migrate to Path Ownership | [.ai/commands/migrate-to-path-ownership.md](.ai/commands/migrate-to-path-ownership.md) |
+| Project Overview | [.ai/commands/project-overview.md](.ai/commands/project-overview.md) |
 | Sync Template | [.ai/commands/sync-template.md](.ai/commands/sync-template.md) |
 | Template Diff | [.ai/commands/template-diff.md](.ai/commands/template-diff.md) |

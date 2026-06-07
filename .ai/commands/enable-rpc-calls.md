@@ -114,6 +114,25 @@ REMOTE=$(yarn vercel-cli env:get --name RPC_SECRET --target production 2>/dev/nu
 
 If `MISMATCH`, re-run 2b and recheck. Do not proceed until the first 8 chars match.
 
+### 2c. Optional but recommended — local dev shortcut (skip the approval gate)
+
+By default `RPC_CONNECTION_ENABLED` is `true`, so **every** RPC caller — including
+the in-app agent's `agent/sendMessage` → `createRpcJob` — is blocked until an admin
+clicks Connect and approves it via Telegram. That ceremony is correct for
+production, but painful in local dev: without it, sending an agent message just
+errors with *"RPC connection required"*. Set these **local-only** flags in
+`.env.local` to bypass it on your machine:
+
+```bash
+grep -q '^RPC_CONNECTION_ENABLED=' .env.local || printf 'RPC_CONNECTION_ENABLED=false\n' >> .env.local
+grep -q '^RPC_LOCAL_DIRECT=' .env.local || printf 'RPC_LOCAL_DIRECT=true\n' >> .env.local
+```
+
+- `RPC_CONNECTION_ENABLED=false` short-circuits `assertRpcConnection` (`rpc/connection-gate.ts`) so no Connect/approve is needed locally. **This is the flag that unblocks the agent.**
+- `RPC_LOCAL_DIRECT=true` runs `callRemote` handlers in-process (skips the daemon) for *non-agent* RPC features. ⚠️ It does **not** apply to the agent — `agent/sendMessage` uses `createRpcJob` (fire-and-forget), so **`yarn daemon` must still be running** for an agent turn to execute. It's set here for parity with the template's local env.
+
+🔒 These are `.env.local`-only. **Never** push them to Vercel — `RPC_CONNECTION_ENABLED=false` would disable the production approval gate, and `RPC_LOCAL_DIRECT=true` would make production try to run handlers from the blocked datacenter IP. Restart `next dev` after editing `.env.local` for the change to load.
+
 ---
 
 ## Step 3 — Register the daemon with task-cli
@@ -377,3 +396,4 @@ End the skill with these instructions. Do not click these yourself — the test 
 - [ ] Vercel redeployed (only if `RPC_SECRET` was new/changed)
 - [ ] Telegram bot wired (`TELEGRAM_BOT_TOKEN` + `OWNER_TELEGRAM_CHAT_ID` set, `yarn telegram-webhook info` shows this deployment's URL with no `last_error_message`) — handed off to `/setup-telegram-bot` if not
 - [ ] User instructed to Connect → approve in Telegram → Test
+- [ ] (Optional, Step 2c) `RPC_CONNECTION_ENABLED=false` + `RPC_LOCAL_DIRECT=true` in `.env.local` for a frictionless local loop — **local only, never on Vercel**

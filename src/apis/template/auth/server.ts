@@ -16,6 +16,8 @@ import {
     passkeyLoginVerify,
     passkeyEnrollOptions,
     passkeyEnrollVerify,
+    passkeySignupOptions,
+    passkeySignupVerify,
     passkeyStepUpOptions,
     passkeyStepUpVerify,
 } from "./index";
@@ -36,6 +38,8 @@ import { passkeyLoginOptionsHandler } from "./handlers/passkey/loginOptions";
 import { passkeyLoginVerifyHandler } from "./handlers/passkey/loginVerify";
 import { passkeyEnrollOptionsHandler } from "./handlers/passkey/enrollOptions";
 import { passkeyEnrollVerifyHandler } from "./handlers/passkey/enrollVerify";
+import { passkeySignupOptionsHandler } from "./handlers/passkey/signupOptions";
+import { passkeySignupVerifyHandler } from "./handlers/passkey/signupVerify";
 import { passkeyStepUpOptionsHandler } from "./handlers/passkey/stepUpOptions";
 import { passkeyStepUpVerifyHandler } from "./handlers/passkey/stepUpVerify";
 export * from "./shared";
@@ -61,6 +65,8 @@ export const authApiHandlers = {
     [passkeyLoginVerify]: { process: passkeyLoginVerifyHandler },
     [passkeyEnrollOptions]: { process: passkeyEnrollOptionsHandler },
     [passkeyEnrollVerify]: { process: passkeyEnrollVerifyHandler },
+    [passkeySignupOptions]: { process: passkeySignupOptionsHandler },
+    [passkeySignupVerify]: { process: passkeySignupVerifyHandler },
     [passkeyStepUpOptions]: { process: passkeyStepUpOptionsHandler },
     [passkeyStepUpVerify]: { process: passkeyStepUpVerifyHandler },
 };

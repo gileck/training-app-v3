@@ -78,6 +78,7 @@ The template ships an example agent under `src/server/project/demo-agent/` (tool
    If the engine is missing → tell the user to run `/sync-template`. If only the *demo agent* is missing (cleaned up) → note it; Phase 5 will scaffold a fresh module from the templates below.
 3. **RPC daemon enabled?** The handler only runs if the local daemon is polling. Check `agent-tasks/rpc-daemon/config.json` exists and ask whether `yarn daemon` is running. If RPC isn't set up, stop and tell the user to run `/enable-rpc-calls` first — the agent cannot answer without it.
 4. **Env:** `MONGO_URI` and `RPC_SECRET` must be in `.env.local` (shared by the API and the daemon). `appConfig.dbName` in `src/app.config.js` must be set.
+   - **Local dev gate bypass.** By default `RPC_CONNECTION_ENABLED=true`, so `agent/sendMessage` requires an admin-approved RPC connection (Connect → Telegram approve) before any turn runs — locally that just errors with *"RPC connection required."* For a frictionless dev loop, ensure `.env.local` has `RPC_CONNECTION_ENABLED=false` (and `RPC_LOCAL_DIRECT=true` for parity); both are **local-only**, never pushed to Vercel. If they're missing, add them (this is `/enable-rpc-calls` Step 2c). Note: even with these, `yarn daemon` must be running — the agent enqueues via `createRpcJob`, which `RPC_LOCAL_DIRECT` does not bypass.
 5. **Baseline green:** run `yarn checks`. If it's already red, fix or stop — don't build on a broken tree. Confirm the working tree is clean (this skill edits multiple files).
 
 Gate: stack present, daemon path known, checks green. Then continue.
@@ -96,7 +97,7 @@ Ask the user (use `AskUserQuestion` where a few clear options help, free text ot
 
 Encode it in the system prompt. It lives as `agentRuntime.systemPrompt` in the override seam `src/apis/template/agent/runtime.ts` (the template-owned `sendMessage` handler reads it). This file ships a template default and **is** synced, so to keep your edits, add it to `projectOverrides` in `.template-sync.json` (Phase 7 reminds you). Replace the prompt with the app-specific identity, and **list the tools you'll add in Phase 3** so the model knows when to use them. Keep it tight — a few sentences of identity + a one-line cue per tool.
 
-Also set the default model the picker opens on: `defaultModelId` in `src/client/utils/agentClientConfig.ts` (same override-seam rules — add it to `projectOverrides` too).
+Also set the default model the picker opens on: `defaultModelId` in `src/client/utils/agentClientConfig.ts`. Same override-seam rules — but only add it to `projectOverrides` **if you actually change it** from the template default (Phase 7).
 
 Gate: `yarn checks` green. Continue.
 
@@ -308,9 +309,9 @@ Gate: a real turn calls a real tool and produces the right side effect.
 ## Phase 7 — Wrap up
 
 - Run `yarn checks` one final time (must be green: TypeScript, ESLint, circular deps, unused deps).
-- **Protect the override seams from sync.** The two files you edited ship template defaults and are synced, so add both to `projectOverrides` in `.template-sync.json` or the next `/sync-template` reverts them to the demo:
-  - `src/apis/template/agent/runtime.ts`
-  - `src/client/utils/agentClientConfig.ts`
+- **Protect the seams you changed from sync.** These two files ship template defaults and are synced, so any you *edited* must go into `projectOverrides` in `.template-sync.json` or the next `/sync-template` reverts them to the demo. **Override only the files you actually changed** — listing an unchanged file freezes it and silently stops it receiving future template updates (and can re-break it if the template later changes its shape):
+  - `src/apis/template/agent/runtime.ts` — you almost always change this (handler path + prompt) → override it.
+  - `src/client/utils/agentClientConfig.ts` — override **only if** you changed `defaultModelId` from the template default. If you left it, leave it out and re-add it the day you change the model.
 - Summarize what was built: agent identity, the tools (custom + exposed APIs), data context, UI branding, and the handler wiring.
 - Suggest follow-ups: more tools, richer data context, suggested-prompt presets, a domain disclaimer in the system prompt, and per-tool confirmation for destructive actions.
 - Offer to commit (don't commit unprompted). Suggested message: `feat(agent): build <app> agent (<identity> + <tool summary>)`.

@@ -17,6 +17,8 @@ import {
     passkeyLoginVerify,
     passkeyEnrollOptions,
     passkeyEnrollVerify,
+    passkeySignupOptions,
+    passkeySignupVerify,
     passkeyStepUpOptions,
     passkeyStepUpVerify
 } from './index';
@@ -50,6 +52,10 @@ import {
     PasskeyEnrollOptionsResponse,
     PasskeyEnrollVerifyRequest,
     PasskeyEnrollVerifyResponse,
+    PasskeySignupOptionsRequest,
+    PasskeySignupOptionsResponse,
+    PasskeySignupVerifyRequest,
+    PasskeySignupVerifyResponse,
     PasskeyStepUpOptionsResponse,
     PasskeyStepUpVerifyRequest,
     PasskeyStepUpVerifyResponse
@@ -121,6 +127,14 @@ export const apiPasskeyEnrollOptions = (params: PasskeyEnrollOptionsRequest) => 
 
 export const apiPasskeyEnrollVerify = (params: PasskeyEnrollVerifyRequest) => {
     return apiClient.call<PasskeyEnrollVerifyResponse, PasskeyEnrollVerifyRequest>(passkeyEnrollVerify, params);
+};
+
+export const apiPasskeySignupOptions = (params: PasskeySignupOptionsRequest) => {
+    return apiClient.call<PasskeySignupOptionsResponse, PasskeySignupOptionsRequest>(passkeySignupOptions, params);
+};
+
+export const apiPasskeySignupVerify = (params: PasskeySignupVerifyRequest) => {
+    return apiClient.call<PasskeySignupVerifyResponse, PasskeySignupVerifyRequest>(passkeySignupVerify, params);
 };
 
 export const apiPasskeyStepUpOptions = () => {

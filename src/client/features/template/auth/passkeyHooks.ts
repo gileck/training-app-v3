@@ -22,6 +22,8 @@ import {
     apiPasskeyDelete,
     apiPasskeyLoginOptions,
     apiPasskeyLoginVerify,
+    apiPasskeySignupOptions,
+    apiPasskeySignupVerify,
     apiPasskeyStepUpOptions,
     apiPasskeyStepUpVerify,
 } from '@/apis/template/auth/client';
@@ -163,6 +165,82 @@ export function usePasskeyLogin() {
         },
         onError: (error) => {
             setError(error instanceof Error ? error.message : 'Passkey sign-in failed');
+        },
+    });
+}
+
+/**
+ * Result of a self-service passkey sign-up:
+ * - { kind: 'authenticated', user } — approved + logged in on this device
+ * - { kind: 'pending-approval' }    — account + passkey created, awaiting admin
+ */
+export type PasskeySignupResult =
+    | { kind: 'authenticated'; user: UserResponse }
+    | { kind: 'pending-approval' };
+
+/**
+ * Self-service sign-up with a passkey: create the account (username-gated),
+ * register this device, and either adopt the issued session (approved) or
+ * surface the pending-approval state. Mirrors `useRegister` so `LoginForm`
+ * can share the same waiting screen.
+ */
+export function usePasskeySignup() {
+    const { setValidatedUser, setUserHint, setError } = useAuthStore();
+    return useMutation<PasskeySignupResult, Error, { username: string; email?: string }>({
+        mutationFn: async ({ username, email }): Promise<PasskeySignupResult> => {
+            if (!browserSupportsPasskeys()) {
+                throw new Error('This browser does not support passkeys');
+            }
+
+            const optionsResponse = await apiPasskeySignupOptions({ username, ...(email ? { email } : {}) });
+            if (!optionsResponse.data || Object.keys(optionsResponse.data).length === 0) {
+                throw new Error('You must be online to sign up');
+            }
+            if (optionsResponse.data.error) {
+                throw new Error(optionsResponse.data.error);
+            }
+            const { options, challengeId } = optionsResponse.data;
+            if (!options || !challengeId) {
+                throw new Error('Failed to start sign-up');
+            }
+
+            let attestation;
+            try {
+                attestation = await startRegistration({ optionsJSON: options });
+            } catch (err) {
+                if (err instanceof WebAuthnError) {
+                    if (err.code === 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED') {
+                        throw new Error('A passkey for this device is already registered');
+                    }
+                    if (err.code === 'ERROR_CEREMONY_ABORTED') {
+                        throw new Error('Sign-up was cancelled');
+                    }
+                }
+                throw err instanceof Error ? err : new Error('Sign-up failed');
+            }
+
+            const verifyResponse = await apiPasskeySignupVerify({ challengeId, response: attestation });
+            if (verifyResponse.data?.error) {
+                throw new Error(verifyResponse.data.error);
+            }
+            if (verifyResponse.data?.pendingApproval) {
+                return { kind: 'pending-approval' };
+            }
+            if (!verifyResponse.data?.user) {
+                throw new Error('Could not complete sign-up');
+            }
+            return { kind: 'authenticated', user: verifyResponse.data.user };
+        },
+        onSuccess: (result) => {
+            if (result.kind === 'authenticated') {
+                setValidatedUser(result.user);
+                setUserHint(userToHint(result.user));
+            }
+            // pending-approval: LoginForm reads mutation.data and shows the
+            // waiting screen — nothing to do here.
+        },
+        onError: (error) => {
+            setError(error instanceof Error ? error.message : 'Sign-up failed');
         },
     });
 }

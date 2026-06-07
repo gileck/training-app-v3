@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, ArrowRight, UserPlus, AlertCircle, Clock, Fingerprint } from 'lucide-react';
 import { useAuthStore, useAuthMode } from './store';
 import { useLogin, useRegister } from './hooks';
-import { usePasskeyLogin, browserSupportsPasskeys } from './passkeyHooks';
+import { usePasskeyLogin, usePasskeySignup, browserSupportsPasskeys } from './passkeyHooks';
 import { useLoginFormValidator } from './useLoginFormValidator';
 import { isNetworkError, cleanErrorMessage as cleanApiErrorMessage } from '../error-tracking/errorUtils';
 import type { LoginFormState } from './types';
@@ -20,10 +20,14 @@ export const LoginForm = () => {
     const loginMutation = useLogin();
     const registerMutation = useRegister();
     const passkeyLoginMutation = usePasskeyLogin();
+    const passkeySignupMutation = usePasskeySignup();
     const authMode = useAuthMode();
 
     const isLoading =
-        loginMutation.isPending || registerMutation.isPending || passkeyLoginMutation.isPending;
+        loginMutation.isPending ||
+        registerMutation.isPending ||
+        passkeyLoginMutation.isPending ||
+        passkeySignupMutation.isPending;
 
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral form mode toggle
     const [isRegistering, setIsRegistering] = useState(false);
@@ -48,6 +52,18 @@ export const LoginForm = () => {
             loginMutation.reset();
         }
         passkeyLoginMutation.mutate();
+    };
+
+    const handlePasskeySignup = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const username = formData.username.trim();
+        if (!username) {
+            setError('Username is required');
+            return;
+        }
+        if (error) setError(null);
+        const email = formData.email.trim();
+        passkeySignupMutation.mutate({ username, ...(email && { email }) });
     };
 
     useEffect(() => {
@@ -105,6 +121,8 @@ export const LoginForm = () => {
         setError(null);
         loginMutation.reset();
         registerMutation.reset();
+        passkeyLoginMutation.reset();
+        passkeySignupMutation.reset();
     };
 
     // Get error message - clean up technical jargon
@@ -125,17 +143,30 @@ export const LoginForm = () => {
         return <LoginApprovalRedirectScreen />;
     }
 
-    // Passkey mode (Phase 6): password sign-in is retired — show a passkey-only
-    // screen. New users / new devices come in via an enrollment link.
+    // Passkey mode: password sign-in is retired. Discoverable "just tap" login,
+    // plus optional self-service sign-up (username + passkey → pending admin
+    // approval, exactly like password sign-up). The enrollment link is now a
+    // recovery path (lost/added device), not the primary onboarding route.
     if (authMode === 'passkey') {
+        // Self-service sign-up created the account but it awaits admin review.
+        if (passkeySignupMutation.data?.kind === 'pending-approval') {
+            return <PendingApprovalScreen />;
+        }
+
+        const passkeyRegistering = isRegistering && canRegister;
+
         return (
             <div className="space-y-6">
                 <div className="text-center">
                     <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25 mb-4">
                         <Fingerprint className="w-7 h-7 text-primary-foreground" />
                     </div>
-                    <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Sign in with your passkey</p>
+                    <h1 className="text-2xl font-bold text-foreground">
+                        {passkeyRegistering ? 'Create Account' : 'Welcome'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        {passkeyRegistering ? 'Sign up with a passkey' : 'Sign in with your passkey'}
+                    </p>
                 </div>
 
                 {displayError && (
@@ -145,7 +176,55 @@ export const LoginForm = () => {
                     </div>
                 )}
 
-                {browserSupportsPasskeys() ? (
+                {!browserSupportsPasskeys() ? (
+                    <p className="text-sm text-muted-foreground text-center">
+                        This browser doesn&apos;t support passkeys. Open the app on a device with
+                        Face ID, Touch ID, or a device PIN.
+                    </p>
+                ) : passkeyRegistering ? (
+                    <form onSubmit={handlePasskeySignup} className="space-y-4">
+                        <div className="space-y-3">
+                            <InputField
+                                icon={<User className="w-5 h-5" />}
+                                name="username"
+                                placeholder="Username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                disabled={isLoading}
+                                autoComplete="username"
+                            />
+                            <InputField
+                                icon={<Mail className="w-5 h-5" />}
+                                name="email"
+                                type="email"
+                                placeholder="Email (optional, for recovery)"
+                                value={formData.email}
+                                onChange={handleChange}
+                                disabled={isLoading}
+                                autoComplete="email"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className={cn(
+                                'w-full h-12 rounded-xl font-semibold text-primary-foreground',
+                                'bg-primary hover:bg-primary/90 active:scale-[0.98]',
+                                'flex items-center justify-center gap-2 transition-all duration-150',
+                                'disabled:opacity-50 disabled:cursor-not-allowed'
+                            )}
+                        >
+                            {passkeySignupMutation.isPending ? (
+                                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <Fingerprint className="w-5 h-5" />
+                                    Create account with a passkey
+                                </>
+                            )}
+                        </button>
+                    </form>
+                ) : (
                     <button
                         type="button"
                         onClick={handlePasskeyLogin}
@@ -166,16 +245,26 @@ export const LoginForm = () => {
                             </>
                         )}
                     </button>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center">
-                        This browser doesn&apos;t support passkeys. Open the app on a device with
-                        Face ID, Touch ID, or a device PIN.
-                    </p>
                 )}
 
-                <p className="text-center text-xs text-muted-foreground">
-                    Don&apos;t have a passkey yet? Ask your admin for an enrollment link.
-                </p>
+                {canRegister ? (
+                    <p className="text-center text-sm">
+                        <button
+                            type="button"
+                            onClick={toggleMode}
+                            disabled={isLoading}
+                            className="text-primary hover:text-primary/80 font-medium disabled:opacity-50"
+                        >
+                            {passkeyRegistering
+                                ? 'Already have a passkey? Sign in'
+                                : "Don't have an account? Sign up"}
+                        </button>
+                    </p>
+                ) : (
+                    <p className="text-center text-xs text-muted-foreground">
+                        Don&apos;t have a passkey yet? Ask your admin for an enrollment link.
+                    </p>
+                )}
             </div>
         );
     }

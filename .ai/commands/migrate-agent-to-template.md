@@ -84,17 +84,24 @@ Edit the seams that arrived from sync (don't recreate the old files):
 2. `src/client/utils/agentClientConfig.ts` — set `defaultModelId` to the captured
    model.
 
-Then **protect both from future syncs** — add to `projectOverrides` in
-`.template-sync.json` (these files ship template defaults and would otherwise be
-reverted on the next sync):
+Then **protect the seams you actually changed** — add each *edited* file to
+`projectOverrides` in `.template-sync.json`, or the next sync reverts it to the
+template default. **Override only what you changed:** listing an unchanged file
+freezes it and silently stops it receiving future template updates (and can
+re-break it if the template later changes its shape).
 
 ```jsonc
 // .template-sync.json → projectOverrides
-"src/apis/template/agent/runtime.ts",
-"src/client/utils/agentClientConfig.ts"
+"src/apis/template/agent/runtime.ts",          // you ported handler path + prompt → override
+"src/client/utils/agentClientConfig.ts"        // include ONLY if you changed defaultModelId
 ```
 
-Gate: seams hold the child's values; both listed in `projectOverrides`.
+`runtime.ts` is essentially always changed (handler path differs), so it goes in.
+Add `agentClientConfig.ts` only if the captured model differed from the template
+default; otherwise leave it out and re-add it the day you change the model.
+
+Gate: every seam you edited is listed in `projectOverrides`; unchanged seams are
+left out.
 
 ---
 
@@ -167,8 +174,10 @@ Gate: `yarn checks` green and (if testable) a real turn works.
   gone).
 - **The chat UI stays yours.** Only its import paths change.
 - **Override seams ship synced defaults.** That's why a fresh child needs no
-  migration — but it's also why a customizing child MUST list the two seam files
-  in `projectOverrides`, or the next sync reverts them to the demo agent.
+  migration — but it's also why a customizing child MUST list **each seam it
+  edited** in `projectOverrides`, or the next sync reverts it to the demo agent.
+  Don't override seams you didn't change — that just freezes them out of future
+  template updates.
 - **Future agent fixes** (streaming, polling, attachments, stuck-pending recovery)
   arrive via `/sync-template`. You own only: the two seams, your agent module under
   `src/server/project/<agent>/`, and the chat UI.

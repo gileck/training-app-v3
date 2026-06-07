@@ -270,6 +270,41 @@ export interface PasskeyEnrollVerifyResponse {
 }
 
 /**
+ * Self-service passkey sign-up. Unlike the enroll flow, this is NOT authorized
+ * by a pre-issued token — the username itself is the gate (must be free). It
+ * creates the account (with `approvalStatus: 'pending'` when admin approval is
+ * enabled) and registers the first device. Approval is a separate downstream
+ * step, exactly like password sign-up — so verify returns `pendingApproval`
+ * (no session) when the new user still needs admin review.
+ */
+export interface PasskeySignupOptionsRequest {
+    username: string;
+    email?: string;
+}
+
+export interface PasskeySignupOptionsResponse {
+    options?: PublicKeyCredentialCreationOptionsJSON;
+    challengeId?: string;
+    error?: string;
+}
+
+export interface PasskeySignupVerifyRequest {
+    challengeId: string;
+    response: RegistrationResponseJSON;
+    deviceName?: string;
+}
+
+export interface PasskeySignupVerifyResponse {
+    verified: boolean;
+    passkey?: PasskeyInfo;
+    /** Present when a session was issued (the new user is approved + logged in). */
+    user?: UserResponse;
+    /** True when the account was created but awaits admin approval (no session). */
+    pendingApproval?: boolean;
+    error?: string;
+}
+
+/**
  * Step-up re-authentication: the logged-in user proves device possession again
  * (a fresh passkey assertion) before a sensitive page reveals its content.
  * Reuses the authentication ceremony restricted to the user's own passkeys.

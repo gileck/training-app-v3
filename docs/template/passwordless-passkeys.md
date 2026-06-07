@@ -1,7 +1,7 @@
 ---
 title: Passwordless Passkeys (WebAuthn)
 description: Passwordless auth with passkeys (WebAuthn / Face ID / Touch ID). Use this when enabling, testing, or migrating a project to passkey login, or wiring passkey enrollment.
-summary: Opt-in passwordless auth behind the `AUTH_MODE` env flag (default `password`). Discoverable "just tap" login + a universal token-authenticated enrollment flow delivered by admin-generated links (email later). Passkeys replace the credential, not the JWT session. Per-project cutover via the `/migrate-to-passkeys` skill. rpID must be a stable domain (NOT a Vercel preview URL).
+summary: Opt-in passwordless auth behind the `AUTH_MODE` env flag (default `password`). Discoverable "just tap" login + self-service username-gated sign-up (account + first passkey, then admin approval) + a token-authenticated enrollment flow (now recovery / add-a-device) delivered by admin-generated links. Passkeys replace the credential, not the JWT session. Per-project cutover via the `/migrate-to-passkeys` skill. rpID must be a stable domain (NOT a Vercel preview URL).
 priority: 2
 ---
 
@@ -35,7 +35,7 @@ credential storage, the login/enroll handlers, and a few client surfaces.
 | Env | Effect |
 |---|---|
 | `AUTH_MODE` unset / `password` | **Default.** Today's bcrypt password flow. |
-| `AUTH_MODE=passkey` | Passkey-only login. Password sign-in / sign-up / change / reset are **disabled** (Phase 6, guarded by the flag). The login screen shows only the passkey button. |
+| `AUTH_MODE=passkey` | Passkey-only auth. _Password_ sign-in / sign-up / change / reset are **disabled** (guarded by the flag). The login screen shows the passkey button plus a self-service "Sign up" toggle (passkey sign-up), gated by `authConfig.allowRegistration`. |
 
 Because everything branches on the flag, the cutover is fully reversible:
 `AUTH_MODE=password` + redeploy restores the password flow with no code change.
@@ -49,7 +49,13 @@ Because everything branches on the flag, the cutover is fully reversible:
   password→passkey choice) survives every `/sync-template` with no
   `projectOverrides` bookkeeping.
 
-## The two flows
+## The three flows
+
+> **Sign-up and approval are separate, unrelated steps.** Sign-up creates the
+> account and registers the first device. Approval is a downstream admin action
+> (`/admin/approvals`). Neither requires the other to be wired a certain way —
+> the admin never has to hand out a link to *onboard* a user; they only approve.
+> Enrollment links are now a **recovery / add-a-device** path, not the front door.
 
 ### 1. Daily login (discoverable / "just tap")
 
@@ -68,11 +74,45 @@ returns a generic error on any failure (no passkey enumeration). 2FA is
 intentionally skipped in passkey mode (a passkey is already possession +
 biometric).
 
-### 2. Enrollment (the universal flow)
+### 2. Self-service sign-up (username-gated, no link)
 
-One flow covers **signup, add-a-device, recovery, and migration**: a one-time
-**enrollment-link token** authorizes registering a passkey for a specific user.
-The link is `${appUrl}/enroll-passkey?token=<raw>`.
+The passkey analogue of password sign-up. The **username is the gate** (must be
+free) — no admin-issued token needed. It is fully decoupled from approval:
+registering a device and being approved to log in are two independent things.
+
+```
+LoginForm "Sign up"  (passkey mode, authConfig.allowRegistration)
+  → auth/passkey/signup/options   (username free? → create PENDING user → registration options)
+  → navigator.credentials.create()  (Face ID / Touch ID)
+  → auth/passkey/signup/verify    (verify → store first credential → approval gate)
+        ├─ pending approval → { pendingApproval: true }  (no session → "Waiting for approval")
+        └─ approved/bootstrap/admin → issue JWT cookie
+```
+
+These endpoints are **public** (no session, no token). Account-status logic
+mirrors password `registerUser` exactly: `approvalStatus: 'pending'` unless
+admin approval is disabled, the **first-user-wins** bootstrap applies, or the
+`ADMIN_USER_ID` bypass matches. The owner is notified via Telegram on a new
+pending sign-up (sent at *verify* time, once a real device is registered).
+
+Resumable: if a user abandons the WebAuthn ceremony, their account is `pending`
+with no credential. `signup/options` detects that exact state (pending + zero
+credentials) and **reuses the same user** on retry instead of erroring
+"Username already exists". A username that maps to a real account (has a
+credential, or is approved) is rejected as taken; a `rejected` account surfaces
+the rejection message. Trade-off: abandoned sign-ups leave credential-less
+pending rows — they appear in `/admin/approvals` and can be rejected, or pruned
+by a future cleanup job.
+
+Because the endpoints are public and create rows + fire a Telegram message,
+they are a light abuse surface (the approval gate means nobody actually gets in;
+add rate-limiting if you expose this on a high-traffic public deployment).
+
+### 3. Enrollment links (recovery / add-a-device)
+
+A one-time **enrollment-link token** authorizes registering a passkey for an
+**existing** user — used for recovery (lost device) and adding a device, plus
+the password→passkey migration. The link is `${appUrl}/enroll-passkey?token=<raw>`.
 
 Two delivery channels for the *same* link:
 
@@ -115,21 +155,29 @@ users can set up passkeys *before* a deployment cuts over.
 
 **Endpoints** (auth domain unless noted):
 `passkey/register-options`, `register-verify`, `list`, `rename`, `delete`,
-`login-options`, `login-verify`, `enroll/options`, `enroll/verify`,
-`step-up/options`, `step-up/verify`, and `admin/users/generate-passkey-link`
-(admin-gated).
+`login-options`, `login-verify`, `signup/options`, `signup/verify`,
+`enroll/options`, `enroll/verify`, `step-up/options`, `step-up/verify`, and
+`admin/users/generate-passkey-link` (admin-gated).
+
+`signup/*` (self-service sign-up) and `enroll/*` (token recovery / add-device)
+share the same registration ceremony and approval gate; they differ only in the
+gate at the front — a free username vs. a one-time token — and `signup/*`
+*creates* the user while `enroll/*` requires an existing one.
 
 **Library:** `@simplewebauthn/server` (server) + `@simplewebauthn/browser`
 (client). The server crypto never reaches the client bundle.
 
 ## Client surfaces
 
-- `LoginForm` — "Sign in with a passkey" button (passkey mode only).
+- `LoginForm` — "Sign in with a passkey" + a self-service "Sign up" toggle
+  (passkey mode; sign-up shown when `authConfig.allowRegistration`). Reuses the
+  shared `PendingApprovalScreen` for the awaiting-approval state.
 - `Profile → Passkeys` (`PasskeysSection`) — add / rename / remove / list.
-- `/admin/users` (`AdminUsers`) — list users + generate enroll links.
-- `/enroll-passkey` (`EnrollPasskey`) — public landing page the link opens.
-- Hooks: `usePasskeyLogin`, `usePasskeys`, `useAddPasskey`, `useRenamePasskey`,
-  `useDeletePasskey`, `useAuthMode`, `browserSupportsPasskeys`.
+- `/admin/users` (`AdminUsers`) — list users + generate enroll (recovery) links.
+- `/admin/approvals` — where new sign-ups are approved (separate from sign-up).
+- `/enroll-passkey` (`EnrollPasskey`) — public landing page the recovery link opens.
+- Hooks: `usePasskeyLogin`, `usePasskeySignup`, `usePasskeys`, `useAddPasskey`,
+  `useRenamePasskey`, `useDeletePasskey`, `useAuthMode`, `browserSupportsPasskeys`.
 
 ## Guarding a sensitive page (step-up re-auth)
 
@@ -210,7 +258,7 @@ origin allowance is not a production security concern (it's `NODE_ENV`-gated).
   never reject zero counters.
 - **Enrollment links are bearer tokens** (like a password-reset link):
   single-use, 1-hour TTL, one active per user. Send over a channel you trust.
-- **Approval gate honored** everywhere a session could be issued (login + enroll).
+- **Approval gate honored** everywhere a session could be issued (login, sign-up, enroll).
 - **Anti-enumeration**: login-verify returns a generic error for any failure.
 - **Secure context** required: prod HTTPS ✅, localhost ✅, installed iOS PWA
   16.4+ ✅ (same constraint as web push).
@@ -235,8 +283,13 @@ rollback is `AUTH_MODE=password` + redeploy.
 ## Status / deferred
 
 - ✅ Built & production-verified: mode flag, discoverable login, self-service
-  enroll/rename/delete, the universal token-enroll flow, admin-generated links,
+  enroll/rename/delete, the token-enroll flow, admin-generated links,
   the `/admin/users` page, the `/enroll-passkey` landing page.
+- ✅ **Self-service passkey sign-up:** username-gated `signup/options` +
+  `signup/verify`, decoupled from approval (new users land in `/admin/approvals`
+  exactly like password sign-up). Shown in `LoginForm` behind
+  `authConfig.allowRegistration`. Enrollment links are repositioned as recovery /
+  add-a-device. (Email-delivered self-service is still the SES item below.)
 - ✅ **Phase 6 — password retirement (guarded):** in passkey mode the password
   login/sign-up/change/reset endpoints refuse, and the login UI is passkey-only
   (the Profile password row is hidden). Reversible via `AUTH_MODE=password`.
@@ -245,7 +298,8 @@ rollback is `AUTH_MODE=password` + redeploy.
   admin approval), via `connect-options`/`connect-verify`. See
   [rpc-connection-gate.md](./rpc-connection-gate.md).
 - ⛔ **Deferred (needs SES):** `enroll/request` — emailing the enroll link so
-  signup/recovery self-serves instead of going through an admin. The link and
-  ceremony are identical; only the delivery channel is missing. Email lives in
+  **recovery / add-a-device** self-serves instead of going through an admin
+  (sign-up itself already self-serves via `signup/*`). The link and ceremony are
+  identical; only the delivery channel is missing. Email lives in
   `src/server/template/email` (AWS SES via `TWO_FACTOR_EMAIL_FROM` + AWS creds);
   verify deliverability before enabling.
