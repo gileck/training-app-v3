@@ -284,7 +284,7 @@ Common failures and what they mean:
 
 | Log line | Cause | Fix |
 |---|---|---|
-| `MONGO_URI is required` | env var missing from the daemon's process env | Daemon reads `.env.local` via `src/agents/shared/loadEnv` — confirm it exists at the project root |
+| `MONGO_URI is required` | env var missing from the daemon's process env | Daemon reads `.env.local` via `src/server/template/loadEnv` — confirm it exists at the project root |
 | `MongoServerError: bad auth` | wrong `MONGO_URI` | Re-paste from your Atlas dashboard, confirm user/password URL-encoded |
 | `RPC_SECRET is required` | missing local secret | Step 2a |
 | `Error: Cannot find module 'tsx'` | `node_modules` missing | `yarn install` in the project dir |

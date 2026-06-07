@@ -1,4 +1,4 @@
-import '@/agents/shared/loadEnv';
+import '@/server/template/loadEnv';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { pathToFileURL } from 'url';

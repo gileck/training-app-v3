@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { Badge } from '@/client/components/template/ui/badge';
 import { Button } from '@/client/components/template/ui/button';
-import { Filter, GitBranch, Link2Off, Clock, CalendarClock, SlidersHorizontal } from 'lucide-react';
+import { Filter, Clock, CalendarClock, SlidersHorizontal } from 'lucide-react';
 import type { FeatureRequestPriority } from '@/apis/template/feature-requests/types';
 import { MobileFilterSheet } from './MobileFilterSheet';
 import { FilterChipButton } from './FilterChipButton';
@@ -19,8 +19,6 @@ interface FilterChipBarProps {
     onToggleStatusFilter: (filter: string) => void;
     priorityFilters: FeatureRequestPriority[];
     onTogglePriorityFilter: (priority: FeatureRequestPriority) => void;
-    githubFilters: ('has_issue' | 'no_link')[];
-    onToggleGitHubFilter: (filter: 'has_issue' | 'no_link') => void;
     activityFilters: ('recent' | 'stale')[];
     onToggleActivityFilter: (filter: 'recent' | 'stale') => void;
     onClearAll: () => void;
@@ -31,8 +29,6 @@ export function FilterChipBar({
     onToggleStatusFilter,
     priorityFilters,
     onTogglePriorityFilter,
-    githubFilters,
-    onToggleGitHubFilter,
     activityFilters,
     onToggleActivityFilter,
     onClearAll,
@@ -41,7 +37,7 @@ export function FilterChipBar({
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
     const totalActiveFilters =
-        statusFilters.length + priorityFilters.length + githubFilters.length + activityFilters.length;
+        statusFilters.length + priorityFilters.length + activityFilters.length;
     const hasActiveFilters = totalActiveFilters > 0;
 
     return (
@@ -63,11 +59,10 @@ export function FilterChipBar({
             <div className="hidden sm:block space-y-2 flex-1">
                 <div className="flex items-center gap-2 overflow-x-auto pb-2">
                     <FilterChipButton label="Active" isActive={statusFilters.includes('active')} onClick={() => onToggleStatusFilter('active')} icon={<Filter className="h-3 w-3" />} />
-                    <FilterChipButton label="Waiting for Review" isActive={statusFilters.includes('waiting_for_review')} onClick={() => onToggleStatusFilter('waiting_for_review')} icon={<Clock className="h-3 w-3" />} />
-                    <FilterChipButton label="In Progress" isActive={statusFilters.includes('in_progress')} onClick={() => onToggleStatusFilter('in_progress')} icon={<CalendarClock className="h-3 w-3" />} />
-                    <FilterChipButton label="Blocked" isActive={statusFilters.includes('blocked')} onClick={() => onToggleStatusFilter('blocked')} />
-                    <FilterChipButton label="Done" isActive={statusFilters.includes('done')} onClick={() => onToggleStatusFilter('done')} />
                     <FilterChipButton label="New" isActive={statusFilters.includes('new')} onClick={() => onToggleStatusFilter('new')} />
+                    <FilterChipButton label="In Progress" isActive={statusFilters.includes('in_progress')} onClick={() => onToggleStatusFilter('in_progress')} icon={<CalendarClock className="h-3 w-3" />} />
+                    <FilterChipButton label="Done" isActive={statusFilters.includes('done')} onClick={() => onToggleStatusFilter('done')} />
+                    <FilterChipButton label="Rejected" isActive={statusFilters.includes('rejected')} onClick={() => onToggleStatusFilter('rejected')} />
 
                     <div className="h-6 w-px bg-border" />
 
@@ -75,11 +70,6 @@ export function FilterChipBar({
                     <FilterChipButton label="High" isActive={priorityFilters.includes('high')} onClick={() => onTogglePriorityFilter('high')} variant="priority" priorityLevel="high" />
                     <FilterChipButton label="Medium" isActive={priorityFilters.includes('medium')} onClick={() => onTogglePriorityFilter('medium')} variant="priority" priorityLevel="medium" />
                     <FilterChipButton label="Low" isActive={priorityFilters.includes('low')} onClick={() => onTogglePriorityFilter('low')} variant="priority" priorityLevel="low" />
-
-                    <div className="h-6 w-px bg-border" />
-
-                    <FilterChipButton label="Has Issue" isActive={githubFilters.includes('has_issue')} onClick={() => onToggleGitHubFilter('has_issue')} icon={<GitBranch className="h-3 w-3" />} />
-                    <FilterChipButton label="No GitHub Link" isActive={githubFilters.includes('no_link')} onClick={() => onToggleGitHubFilter('no_link')} icon={<Link2Off className="h-3 w-3" />} />
 
                     <div className="h-6 w-px bg-border" />
 
@@ -107,8 +97,6 @@ export function FilterChipBar({
                 onToggleStatusFilter={onToggleStatusFilter}
                 priorityFilters={priorityFilters}
                 onTogglePriorityFilter={onTogglePriorityFilter}
-                githubFilters={githubFilters}
-                onToggleGitHubFilter={onToggleGitHubFilter}
                 activityFilters={activityFilters}
                 onToggleActivityFilter={onToggleActivityFilter}
                 onClearAll={onClearAll}

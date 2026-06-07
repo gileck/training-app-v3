@@ -37,7 +37,7 @@ Read the **project-owned** code. Minimum exploration:
 | In-app agent | agent override seams / project agent config if the project customized the AI agent (system prompt, tools) |
 | Integrations | usage of Telegram notifications, push, `AIModelAdapter`, external APIs — what business purpose each serves |
 
-Also check `docs/project/` and `task-manager/` for any existing written context worth folding in.
+Also check `docs/project/` for any existing written context worth folding in.
 
 **If the project is a fresh clone with no project code yet** (demo cleaned, nothing built): say so, and write a minimal overview stating the purpose (from app config / README) with an empty per-route scaffold — it will be filled in as the app grows.
 

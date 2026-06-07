@@ -1,4 +1,4 @@
-import { User, ExternalLink, Clock, Calendar } from 'lucide-react';
+import { User, Clock, Calendar } from 'lucide-react';
 import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
 
 interface MetadataIconRowProps {
@@ -18,7 +18,7 @@ function formatShortDate(dateStr: string): string {
 
 /**
  * Compact icon row for metadata display in collapsed card view
- * Shows: Owner, GitHub issue link, GitHub PR link, Activity staleness indicator
+ * Shows: Owner, created date, Activity staleness indicator
  * All icons are 14px (h-3.5), muted colors, and tappable
  */
 export function MetadataIconRow({ request }: MetadataIconRowProps) {
@@ -40,21 +40,6 @@ export function MetadataIconRow({ request }: MetadataIconRowProps) {
                     <User className="h-3.5 w-3.5" />
                     <span className="hidden md:inline text-xs">{request.requestedByName}</span>
                 </div>
-            )}
-
-            {/* GitHub issue link - compact display */}
-            {request.githubIssueUrl && (
-                <a
-                    href={request.githubIssueUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                    title={`GitHub Issue #${request.githubIssueNumber}`}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    <span className="text-xs">#{request.githubIssueNumber}</span>
-                </a>
             )}
 
             {/* Created date - always show */}

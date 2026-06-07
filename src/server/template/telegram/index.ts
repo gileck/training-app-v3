@@ -298,8 +298,8 @@ export function getBaseUrl(): string {
 }
 
 /**
- * Send feature request notification when a new feature request is created
- * Includes "Approve" button for admin to approve and sync to GitHub
+ * Send feature request notification when a new feature request is created.
+ * Notifies the owner with a link to the admin detail page.
  */
 export async function sendFeatureRequestNotification(request: FeatureRequestDocument): Promise<SendMessageResult> {
     const priorityEmoji = getPriorityEmoji(request.priority);
@@ -321,45 +321,18 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
         messageParts.push(`👤 Requested by: ${request.requestedByName}`);
     }
 
-    if (request.createdBy) {
-        messageParts.push(`🤖 Agent: ${request.createdBy}`);
-    }
-
     const message = messageParts.join('\n');
 
-    // Add buttons
-    const inlineKeyboard: InlineKeyboardButton[][] = [];
     const baseUrl = getBaseUrl();
+    const inlineKeyboard: InlineKeyboardButton[][] = [];
 
-    if (baseUrl.startsWith('https') && request.approvalToken) {
-        inlineKeyboard.push([
-            {
-                text: '✅ Approve & Route',
-                callback_data: `approve_request:${request._id}`,
-            },
-        ]);
-        inlineKeyboard.push([
-            {
-                text: '📋 Backlog',
-                callback_data: `approve_request_bl:${request._id}`,
-            },
-            {
-                text: '🗑 Delete',
-                callback_data: `delete_request:${request._id}`,
-            },
-        ]);
-    } else if (request.approvalToken) {
+    // View details link (only when not on localhost — Telegram rejects localhost URLs)
+    if (!baseUrl.includes('localhost')) {
         inlineKeyboard.push([{
-            text: '✅ Approve & Create GitHub Issue',
-            url: `${baseUrl}/api/feature-requests/approve/${request._id}?token=${request.approvalToken}`,
+            text: '🔍 View Full Details',
+            url: `${baseUrl}/admin/feature-requests/${request._id}`,
         }]);
     }
-
-    // View details link
-    inlineKeyboard.push([{
-        text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/item/feature:${request._id}`,
-    }]);
 
     return sendNotificationToAgent(message, {
         parseMode: 'HTML',
@@ -368,8 +341,8 @@ export async function sendFeatureRequestNotification(request: FeatureRequestDocu
 }
 
 /**
- * Send bug report notification when user submits a new bug
- * Includes "Approve" button if running on HTTPS
+ * Send bug report notification when user submits a new bug.
+ * Notifies the owner with a link to the admin reports page.
  */
 export async function sendBugReportNotification(report: ReportDocument): Promise<SendMessageResult> {
     const category = report.category === 'performance' ? '⚡ Performance' : '🐛 Bug';
@@ -400,10 +373,6 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
         messageParts.push(`👤 Reported by: ${report.userInfo.username}`);
     }
 
-    if (report.createdBy) {
-        messageParts.push(`🤖 Agent: ${report.createdBy}`);
-    }
-
     // Append metadata on separate lines at the end
     if (metadataMatch) {
         messageParts.push(
@@ -417,196 +386,15 @@ export async function sendBugReportNotification(report: ReportDocument): Promise
 
     const message = messageParts.join('\n');
 
-    // Add buttons
+    const baseUrl = getBaseUrl();
     const inlineKeyboard: InlineKeyboardButton[][] = [];
-    const baseUrl = getBaseUrl();
 
-    if (baseUrl.startsWith('https') && report.approvalToken) {
-        inlineKeyboard.push([
-            {
-                text: '🔍 Approve & Investigate',
-                callback_data: `approve_bug:${report._id}`,
-            },
-        ]);
-        inlineKeyboard.push([
-            {
-                text: '📋 Backlog',
-                callback_data: `approve_bug_bl:${report._id}`,
-            },
-            {
-                text: '🗑 Delete',
-                callback_data: `delete_bug:${report._id}`,
-            },
-        ]);
-    } else if (report.approvalToken) {
-        inlineKeyboard.push([{
-            text: '✅ Approve & Create GitHub Issue',
-            url: `${baseUrl}/api/reports/approve/${report._id}?token=${report.approvalToken}`,
-        }]);
-    }
-
-    // View details link
-    inlineKeyboard.push([{
-        text: '🔍 View Full Details',
-        url: `${baseUrl}/admin/item/report:${report._id}`,
-    }]);
-
-    return sendNotificationToAgent(message, {
-        parseMode: 'HTML',
-        inlineKeyboard,
-    });
-}
-
-/**
- * Send routing notification after feature request is synced to GitHub
- * Asks admin where the feature should start (Product Dev, Product Design, Tech Design, Implementation, or Backlog)
- */
-export async function sendFeatureRoutingNotification(
-    request: FeatureRequestDocument,
-    issueResult: { number: number; url: string }
-): Promise<SendMessageResult> {
-    const priorityEmoji = getPriorityEmoji(request.priority);
-
-    const message = [
-        '✨ <b>Feature Request Synced to GitHub!</b>',
-        '',
-        `📋 ${request.title}`,
-        `${priorityEmoji} Priority: ${request.priority || 'medium'}`,
-        `🔗 Issue #${issueResult.number}`,
-        '',
-        '<b>Where should this feature start?</b>',
-        '',
-        '• <b>Product Dev</b> - Vague idea, needs product spec',
-        '• <b>Product Design</b> - Needs UX/UI design',
-        '• <b>Tech Design</b> - Needs architecture planning',
-        '• <b>Implementation</b> - Simple feature, go straight to coding',
-        '• <b>Backlog</b> - Keep in backlog for now',
-    ].join('\n');
-
-    const inlineKeyboard: InlineKeyboardButton[][] = [
-        [
-            { text: '📋 Product Dev', callback_data: `route_feature:${request._id}:product-dev` },
-            { text: '🎨 Product Design', callback_data: `route_feature:${request._id}:product-design` },
-        ],
-        [
-            { text: '🔧 Tech Design', callback_data: `route_feature:${request._id}:tech-design` },
-            { text: '⚡ Implementation', callback_data: `route_feature:${request._id}:implementation` },
-        ],
-        [
-            { text: '📋 Keep in Backlog', callback_data: `route_feature:${request._id}:backlog` },
-            { text: '🔗 View Issue', url: issueResult.url },
-        ],
-    ];
-
-    return sendNotificationToOwner(message, {
-        parseMode: 'HTML',
-        inlineKeyboard,
-    });
-}
-
-/**
- * Send routing notification after bug report is synced to GitHub
- * Asks admin where the bug should start (Product Design, Tech Design, Implementation, or Backlog)
- */
-export async function sendBugRoutingNotification(
-    report: ReportDocument,
-    issueResult: { number: number; url: string }
-): Promise<SendMessageResult> {
-    const category = report.category === 'performance' ? '⚡ Performance' : '🐛 Bug';
-    const description = report.description?.slice(0, 100) || 'Bug Report';
-    const truncated = (report.description?.length || 0) > 100 ? '...' : '';
-
-    const message = [
-        `${category} <b>Bug Synced to GitHub!</b>`,
-        '',
-        `📋 ${description}${truncated}`,
-        `🔗 Issue #${issueResult.number}`,
-        '',
-        '<b>Where should this bug start?</b>',
-        '',
-        '• <b>Product Design</b> - UX/UI needs redesign',
-        '• <b>Tech Design</b> - Needs architecture planning',
-        '• <b>Implementation</b> - Simple fix, go straight to coding',
-        '• <b>Backlog</b> - Keep in backlog for now',
-    ].join('\n');
-
-    const inlineKeyboard: InlineKeyboardButton[][] = [
-        [
-            { text: '🎨 Product Design', callback_data: `route_bug:${report._id}:product-design` },
-            { text: '🔧 Tech Design', callback_data: `route_bug:${report._id}:tech-design` },
-        ],
-        [
-            { text: '⚡ Implementation', callback_data: `route_bug:${report._id}:implementation` },
-            { text: '📋 Keep in Backlog', callback_data: `route_bug:${report._id}:backlog` },
-        ],
-        [
-            { text: '🔗 View Issue', url: issueResult.url },
-        ],
-    ];
-
-    return sendNotificationToOwner(message, {
-        parseMode: 'HTML',
-        inlineKeyboard,
-    });
-}
-
-/**
- * Send notification when an item is created directly (bypassing approval flow)
- * Used by CLI and automated agents. Provides buttons to route to implementation or delete.
- */
-export async function sendItemCreatedNotification(
-    itemId: string,
-    type: 'feature' | 'bug',
-    title: string,
-    issueResult: { number: number; url: string },
-    options?: {
-        priority?: string;
-        createdBy?: string;
-    }
-): Promise<SendMessageResult> {
-    const typeEmoji = type === 'feature' ? '✨' : '🐛';
-    const typeLabel = type === 'feature' ? 'Feature' : 'Bug';
-    const priorityEmoji = getPriorityEmoji(options?.priority);
-
-    const message = [
-        `${typeEmoji} <b>${typeLabel} Created</b>`,
-        '',
-        `📋 ${title}`,
-        options?.priority ? `${priorityEmoji} Priority: ${options.priority}` : '',
-        options?.createdBy ? `👤 Created by: ${options.createdBy}` : '',
-        `🔗 Issue #${issueResult.number}`,
-        '',
-        '<b>Actions:</b>',
-        type === 'bug' ? '• Move to Bug Investigation to analyze' : '• Move to Implementation to start development',
-        '• Keep in Backlog for later',
-        '• Delete if not needed',
-    ].filter(Boolean).join('\n');
-
-    const baseUrl = getBaseUrl();
-
-    const primaryAction = type === 'bug'
-        ? { text: '🔍 Move to Bug Investigation', callback_data: `route_${type}:${itemId}:bug-investigation` }
-        : { text: '⚡ Move to Implementation', callback_data: `route_${type}:${itemId}:implementation` };
-
-    const inlineKeyboard: InlineKeyboardButton[][] = [
-        [
-            primaryAction,
-        ],
-        [
-            { text: '📋 Keep in Backlog', callback_data: `route_${type}:${itemId}:backlog` },
-            { text: '🗑 Delete', callback_data: `delete_${type}:${itemId}` },
-        ],
-        [
-            { text: '🔗 View Issue', url: issueResult.url },
-        ],
-    ];
-
-    // Add "View Full Details" button only if not localhost (Telegram doesn't allow localhost URLs)
+    // View reports link (only when not on localhost — Telegram rejects localhost URLs)
     if (!baseUrl.includes('localhost')) {
-        inlineKeyboard[2].unshift({
-            text: '🔍 View Full Details',
-            url: `${baseUrl}/admin/item/workflow-items:${itemId}`
-        });
+        inlineKeyboard.push([{
+            text: '🔍 View Reports',
+            url: `${baseUrl}/admin/reports`,
+        }]);
     }
 
     return sendNotificationToAgent(message, {

@@ -10,8 +10,8 @@ export default defineConfig({
   test: {
     globals: true,
     testTimeout: 30_000,
-    include: ['src/agents/tests/e2e/**/*.e2e.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     environment: 'node',
-    setupFiles: ['src/agents/tests/e2e/testkit/vitest-setup.ts'],
+    passWithNoTests: true,
   },
 });

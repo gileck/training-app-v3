@@ -2,11 +2,11 @@
  * Sorting utilities for Feature Requests list
  *
  * Provides multiple sorting modes including Smart sort that prioritizes
- * items needing attention.
+ * items needing attention. Driven entirely by the native `status` and
+ * `priority` fields.
  */
 
 import type { FeatureRequestClient, FeatureRequestPriority } from '@/apis/template/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 /**
  * Sort mode options
@@ -23,119 +23,45 @@ const PRIORITY_ORDER: Record<FeatureRequestPriority, number> = {
     low: 1,
 };
 
-
 /**
- * Get effective status for sorting purposes
- * Prioritizes GitHub status when available, falls back to DB status
+ * Check if item is in progress (native status)
  */
-function getEffectiveStatus(
-    request: FeatureRequestClient,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): string {
-    if (request.githubProjectItemId && githubStatusMap?.[request._id]?.status) {
-        return githubStatusMap[request._id]?.status?.toLowerCase() || '';
-    }
-    return request.status.toLowerCase();
+function isInProgress(request: FeatureRequestClient): boolean {
+    return request.status === 'in_progress';
 }
 
 /**
- * Check if item is "Waiting for Review"
- * Can be indicated by GitHub status or review status
+ * Check if item is done (native status)
  */
-function isWaitingForReview(
-    request: FeatureRequestClient,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): boolean {
-    // Check GitHub review status
-    if (request.githubProjectItemId && githubStatusMap?.[request._id]?.reviewStatus) {
-        return true;
-    }
-
-    // Check GitHub status
-    const status = getEffectiveStatus(request, githubStatusMap);
-    return status.toLowerCase().includes('waiting') || status.toLowerCase().includes('review');
-}
-
-/**
- * Check if item is blocked
- */
-function isBlocked(
-    request: FeatureRequestClient,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): boolean {
-    const status = getEffectiveStatus(request, githubStatusMap);
-    return status.toLowerCase().includes('blocked');
-}
-
-/**
- * Check if item is in progress
- */
-function isInProgress(
-    request: FeatureRequestClient,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): boolean {
-    const status = getEffectiveStatus(request, githubStatusMap);
-    return status === 'in_progress' || status.toLowerCase().includes('in progress');
-}
-
-/**
- * Check if item is done
- * Checks BOTH DB status and GitHub status to handle stale cache
- */
-function isDone(
-    request: FeatureRequestClient,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): boolean {
-    // Check DB status first (most reliable)
-    if (request.status === 'done') return true;
-    // Then check effective (GitHub) status
-    const status = getEffectiveStatus(request, githubStatusMap);
-    return status === 'done';
+function isDone(request: FeatureRequestClient): boolean {
+    return request.status === 'done';
 }
 
 /**
  * Smart sort: Prioritize items needing attention
  *
  * Order:
- * 1. Blocked (sorted by time in status, longest first)
- * 2. Waiting for Review (sorted by time in status, longest first)
- * 3. In Progress (sorted by updatedAt, least recent first)
- * 4. New/Backlog (sorted by priority, then creation date)
- * 5. Done items are excluded (handled separately)
+ * 1. In Progress (sorted by updatedAt, least recent first)
+ * 2. New (sorted by priority, then creation date)
+ * 3. Everything else (e.g. rejected) by priority, then creation date
+ *
+ * Done items are excluded - they're handled separately via separateDoneItems().
  */
-export function smartSort(
-    requests: FeatureRequestClient[],
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
-): FeatureRequestClient[] {
-    // Separate into categories
-    // Note: Done items are excluded - they're handled separately via separateDoneItems()
-    const blocked: FeatureRequestClient[] = [];
-    const waitingForReview: FeatureRequestClient[] = [];
+export function smartSort(requests: FeatureRequestClient[]): FeatureRequestClient[] {
     const inProgress: FeatureRequestClient[] = [];
-    const newOrBacklog: FeatureRequestClient[] = [];
+    const newItems: FeatureRequestClient[] = [];
+    const other: FeatureRequestClient[] = [];
 
     requests.forEach((request) => {
-        if (isDone(request, githubStatusMap)) {
+        if (isDone(request)) {
             return; // Skip done items - handled separately
-        } else if (isBlocked(request, githubStatusMap)) {
-            blocked.push(request);
-        } else if (isWaitingForReview(request, githubStatusMap)) {
-            waitingForReview.push(request);
-        } else if (isInProgress(request, githubStatusMap)) {
+        } else if (isInProgress(request)) {
             inProgress.push(request);
+        } else if (request.status === 'new') {
+            newItems.push(request);
         } else {
-            newOrBacklog.push(request);
+            other.push(request);
         }
-    });
-
-    // Sort blocked items by time in status (longest first = oldest updatedAt)
-    blocked.sort((a, b) => {
-        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-    });
-
-    // Sort waiting for review items by time in status (longest first)
-    waitingForReview.sort((a, b) => {
-        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
     });
 
     // Sort in progress by updatedAt (least recent first = needs attention)
@@ -143,8 +69,7 @@ export function smartSort(
         return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
     });
 
-    // Sort new/backlog by priority, then creation date (older first)
-    newOrBacklog.sort((a, b) => {
+    const byPriorityThenAge = (a: FeatureRequestClient, b: FeatureRequestClient) => {
         const priorityA = PRIORITY_ORDER[a.priority || 'medium'];
         const priorityB = PRIORITY_ORDER[b.priority || 'medium'];
 
@@ -154,10 +79,12 @@ export function smartSort(
 
         // Same priority: older items first
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
+    };
 
-    // Concatenate in priority order (excluding done)
-    return [...blocked, ...waitingForReview, ...inProgress, ...newOrBacklog];
+    newItems.sort(byPriorityThenAge);
+    other.sort(byPriorityThenAge);
+
+    return [...inProgress, ...newItems, ...other];
 }
 
 /**
@@ -210,12 +137,11 @@ export function sortByUpdated(requests: FeatureRequestClient[]): FeatureRequestC
  */
 export function applySorting(
     requests: FeatureRequestClient[],
-    mode: SortMode,
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
+    mode: SortMode
 ): FeatureRequestClient[] {
     switch (mode) {
         case 'smart':
-            return smartSort(requests, githubStatusMap);
+            return smartSort(requests);
         case 'newest':
             return sortByNewest(requests);
         case 'oldest':
@@ -233,8 +159,7 @@ export function applySorting(
  * Separate done items from active items
  */
 export function separateDoneItems(
-    requests: FeatureRequestClient[],
-    githubStatusMap?: Record<string, GetGitHubStatusResponse | undefined>
+    requests: FeatureRequestClient[]
 ): {
     activeItems: FeatureRequestClient[];
     doneItems: FeatureRequestClient[];
@@ -243,7 +168,7 @@ export function separateDoneItems(
     const doneItems: FeatureRequestClient[] = [];
 
     requests.forEach((request) => {
-        if (isDone(request, githubStatusMap)) {
+        if (isDone(request)) {
             doneItems.push(request);
         } else {
             activeItems.push(request);

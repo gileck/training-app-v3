@@ -15,7 +15,7 @@ import {
     DropdownMenuTrigger,
 } from '@/client/components/template/ui/dropdown-menu';
 import { Loader2, AlertCircle, Inbox, Lightbulb, Plus, ArrowDownAZ } from 'lucide-react';
-import { useFeatureRequests, useBatchGitHubStatuses } from './hooks';
+import { useFeatureRequests } from './hooks';
 import { useFeatureRequestsStore } from './store';
 import { FeatureRequestCard } from './components/FeatureRequestCard';
 import { CompletedSection } from './components/CompletedSection';
@@ -24,7 +24,6 @@ import { CreateFeatureRequestDialog } from './components/CreateFeatureRequestDia
 import { applyAllFilters } from './utils/filterUtils';
 import { applySorting, separateDoneItems } from './utils/sortingUtils';
 import type { SortMode } from './utils/sortingUtils';
-import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 // Sort mode display labels
 const SORT_MODE_LABELS: Record<SortMode, string> = {
@@ -46,13 +45,11 @@ const SORT_MODE_SHORT_LABELS: Record<SortMode, string> = {
 export function FeatureRequests() {
     const statusFilters = useFeatureRequestsStore((state) => state.statusFilters);
     const priorityFilters = useFeatureRequestsStore((state) => state.priorityFilters);
-    const githubFilters = useFeatureRequestsStore((state) => state.githubFilters);
     const activityFilters = useFeatureRequestsStore((state) => state.activityFilters);
     const sortMode = useFeatureRequestsStore((state) => state.sortMode);
 
     const toggleStatusFilter = useFeatureRequestsStore((state) => state.toggleStatusFilter);
     const togglePriorityFilter = useFeatureRequestsStore((state) => state.togglePriorityFilter);
-    const toggleGitHubFilter = useFeatureRequestsStore((state) => state.toggleGitHubFilter);
     const toggleActivityFilter = useFeatureRequestsStore((state) => state.toggleActivityFilter);
     const clearAllFilters = useFeatureRequestsStore((state) => state.clearAllFilters);
     const setSortMode = useFeatureRequestsStore((state) => state.setSortMode);
@@ -62,45 +59,19 @@ export function FeatureRequests() {
 
     const { data: rawRequests, isLoading, error } = useFeatureRequests({});
 
-    const githubLinkedIds = useMemo(() => {
-        if (!rawRequests) return [];
-        return rawRequests
-            .filter((r) => r.githubProjectItemId)
-            .map((r) => r._id);
-    }, [rawRequests]);
-
-    const { data: batchStatusData, isLoading: isLoadingStatuses, error: statusError } = useBatchGitHubStatuses(githubLinkedIds);
-
-    const githubStatusMap = useMemo(() => {
-        const map: Record<string, GetGitHubStatusResponse | undefined> = {};
-        if (batchStatusData) {
-            Object.entries(batchStatusData).forEach(([requestId, status]) => {
-                if (status) {
-                    map[requestId] = status;
-                }
-            });
-        }
-        return map;
-    }, [batchStatusData]);
-
     const { activeRequests, doneRequests } = useMemo(() => {
         if (!rawRequests) return { activeRequests: [], doneRequests: [] };
         const filtered = applyAllFilters(
             rawRequests,
-            { statusFilters, priorityFilters, githubFilters, activityFilters },
-            githubStatusMap
+            { statusFilters, priorityFilters, activityFilters }
         );
-        const { activeItems, doneItems } = separateDoneItems(filtered, githubStatusMap);
-        const sortedActive = applySorting(activeItems, sortMode, githubStatusMap);
+        const { activeItems, doneItems } = separateDoneItems(filtered);
+        const sortedActive = applySorting(activeItems, sortMode);
         return { activeRequests: sortedActive, doneRequests: doneItems };
-    }, [rawRequests, statusFilters, priorityFilters, githubFilters, activityFilters, githubStatusMap, sortMode]);
+    }, [rawRequests, statusFilters, priorityFilters, activityFilters, sortMode]);
 
     const totalFilteredCount = activeRequests.length + doneRequests.length;
     const showLoading = isLoading || rawRequests === undefined;
-    const isLoadingGitHubData = isLoadingStatuses && githubLinkedIds.length > 0;
-    const rateLimitError = statusError instanceof Error && statusError.message.includes('rate limit')
-        ? 'GitHub API rate limit reached. Status data may be incomplete.'
-        : null;
 
     return (
         <div className="space-y-4 pb-6">
@@ -126,8 +97,6 @@ export function FeatureRequests() {
                     onToggleStatusFilter={toggleStatusFilter}
                     priorityFilters={priorityFilters}
                     onTogglePriorityFilter={togglePriorityFilter}
-                    githubFilters={githubFilters}
-                    onToggleGitHubFilter={toggleGitHubFilter}
                     activityFilters={activityFilters}
                     onToggleActivityFilter={toggleActivityFilter}
                     onClearAll={clearAllFilters}
@@ -153,22 +122,6 @@ export function FeatureRequests() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {rateLimitError && (
-                <Card className="border-warning bg-warning/10">
-                    <CardContent className="py-3 px-4 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-warning shrink-0" />
-                        <p className="text-sm text-warning">{rateLimitError}</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {isLoadingGitHubData && !showLoading && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Loading GitHub statuses...</span>
-                </div>
-            )}
 
             {showLoading ? (
                 <div className="flex items-center justify-center py-12">

@@ -18,7 +18,7 @@
  */
 
 // Load environment variables from .env.local
-import '../../src/agents/shared/loadEnv';
+import '../../src/server/template/loadEnv';
 
 import {
     S3Client,

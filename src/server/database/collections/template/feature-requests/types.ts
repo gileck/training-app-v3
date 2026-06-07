@@ -1,18 +1,15 @@
 import type { ObjectId } from 'mongodb';
 
 /**
- * Main workflow status for a feature request
- *
- * Simplified schema - detailed workflow tracking happens in GitHub Projects.
- * MongoDB only tracks high-level state:
- * - new: Not yet synced to GitHub
- * - in_progress: Synced to GitHub, check GitHub Project for detailed status
- * - done: Completed and merged
+ * Status for a feature request
+ * - new: Newly submitted, not yet triaged
+ * - in_progress: Being worked on
+ * - done: Completed
  * - rejected: Not going to implement
  */
 export type FeatureRequestStatus =
-    | 'new'              // Not yet synced to GitHub
-    | 'in_progress'      // Exists in GitHub (detailed status tracked in GitHub Projects)
+    | 'new'              // Newly submitted
+    | 'in_progress'      // Being worked on
     | 'done'             // Completed
     | 'rejected';        // Not going to implement
 
@@ -77,23 +74,6 @@ export interface FeatureRequestDocument {
     // Source tracking
     source?: FeatureRequestSource;    // Where this was created from (ui, cli)
 
-    // GitHub integration fields
-    githubIssueUrl?: string;          // URL to the GitHub issue
-    githubIssueNumber?: number;       // GitHub issue number
-    githubProjectItemId?: string;     // GitHub Project item ID (for status updates)
-    githubIssueTitle?: string;        // Cached issue title for listItems() efficiency
-
-    // Workflow tracking (replaces GitHub Projects V2)
-    workflowStatus?: string;          // 'Backlog', 'Product Design', 'Technical Design', etc.
-    workflowReviewStatus?: string;    // 'Waiting for Review', 'Approved', 'Request Changes', etc.
-    implementationPhase?: string;     // '1/3', '2/3', etc.
-
-    // Approval token for Telegram quick-approve link
-    approvalToken?: string;           // Secure token for one-click approval
-
-    // Agent attribution
-    createdBy?: string;               // Which agent created this (e.g., 'workflow-review', 'repo-commits-code-reviewer')
-
     // Timestamps
     createdAt: Date;
     updatedAt: Date;
@@ -120,15 +100,6 @@ export interface FeatureRequestClient {
     adminNotes?: string;
     priority?: FeatureRequestPriority;
     source?: FeatureRequestSource;
-    // GitHub integration fields
-    githubIssueUrl?: string;
-    githubIssueNumber?: number;
-    githubProjectItemId?: string;
-    githubIssueTitle?: string;
-    // Workflow tracking
-    workflowStatus?: string;
-    workflowReviewStatus?: string;
-    implementationPhase?: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -48,9 +48,6 @@ export const getReport = async (
             firstOccurrence,
             lastOccurrence,
             errorKey: reportDoc.errorKey,
-            githubIssueUrl: reportDoc.githubIssueUrl,
-            githubIssueNumber: reportDoc.githubIssueNumber,
-            githubProjectItemId: reportDoc.githubProjectItemId,
             createdAt,
             updatedAt,
         };

@@ -133,21 +133,6 @@ export interface UpdateInvestigationResponse {
     error?: string;
 }
 
-// Approve bug report and sync to GitHub
-export interface ApproveBugReportRequest {
-    reportId: string;
-    toBacklog?: boolean;
-}
-
-export interface ApproveBugReportResponse {
-    success?: boolean;
-    error?: string;
-    githubIssueUrl?: string;
-    githubIssueNumber?: number;
-    githubProjectItemId?: string;
-    needsRouting?: boolean;
-}
-
 // Re-export types for convenience
 export type {
     ReportClient,

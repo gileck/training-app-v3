@@ -1,15 +1,12 @@
 import { CardContent } from '@/client/components/template/ui/card';
-import { User, Calendar, FileText, ExternalLink } from 'lucide-react';
-import { HealthIndicator } from './HealthIndicator';
+import { User, Calendar, FileText } from 'lucide-react';
 import type { FeatureRequestClient } from '@/apis/template/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 interface FeatureRequestCardExpandedProps {
     request: FeatureRequestClient;
-    githubStatus: GetGitHubStatusResponse | null | undefined;
 }
 
-export function FeatureRequestCardExpanded({ request, githubStatus }: FeatureRequestCardExpandedProps) {
+export function FeatureRequestCardExpanded({ request }: FeatureRequestCardExpandedProps) {
     return (
         <CardContent className="space-y-3 pt-2 px-3 pb-4 sm:space-y-4 sm:px-4 transition-all duration-200 ease-out">
             <div className="space-y-2 rounded-lg bg-muted/20 p-3">
@@ -35,25 +32,6 @@ export function FeatureRequestCardExpanded({ request, githubStatus }: FeatureReq
                     </div>
                 )}
             </div>
-
-            {request.githubIssueUrl && (
-                <div className="space-y-2 rounded-lg border-l-2 border-l-primary/20 bg-primary/5 p-3">
-                    <h4 className="text-sm font-medium">GitHub Integration</h4>
-                    <div className="flex flex-wrap gap-2 text-sm">
-                        <a
-                            href={request.githubIssueUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors sm:px-3 sm:text-sm"
-                        >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            <span>Issue #{request.githubIssueNumber}</span>
-                        </a>
-                    </div>
-                </div>
-            )}
-
-            <HealthIndicator request={request} githubStatus={githubStatus} />
 
             {request.comments && request.comments.length > 0 && (
                 <div className="space-y-3 rounded-lg bg-muted/20 p-3">

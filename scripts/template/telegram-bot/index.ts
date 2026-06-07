@@ -13,7 +13,7 @@
  *   LOCAL_TELEGRAM_CHAT_ID - Chat ID to listen to (supports thread: chatId:threadId)
  */
 
-import '../../../src/agents/shared/loadEnv';
+import '../../../src/server/template/loadEnv';
 import { getConfig, parseChatId, PROJECT_ROOT, ALLOWED_BASH_COMMANDS, BOT_CONFIG } from './config';
 import { loadSessions, getOrCreateSession, clearSession, getCallback } from './sessions';
 import { sendMessage, deleteMessage, answerCallbackQuery, deleteWebhook, getUpdates } from './telegram';

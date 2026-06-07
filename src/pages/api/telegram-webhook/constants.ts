@@ -3,9 +3,6 @@
  * Constants for Telegram Webhook
  */
 
-import { REVIEW_STATUSES } from '@/server/template/project-management/config';
-import type { ReviewAction } from './types';
-
 /**
  * Telegram Bot API base URL
  */
@@ -15,37 +12,3 @@ export const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
  * Undo timeout in milliseconds (5 minutes)
  */
 export const UNDO_TIMEOUT_MS = 5 * 60 * 1000;
-
-/**
- * Map review actions to their status values
- */
-export const ACTION_TO_REVIEW_STATUS: Record<ReviewAction, string> = {
-    approve: REVIEW_STATUSES.approved,
-    changes: REVIEW_STATUSES.requestChanges,
-    reject: REVIEW_STATUSES.rejected,
-};
-
-/**
- * Human-readable labels for review actions
- */
-export const ACTION_LABELS: Record<ReviewAction, string> = {
-    approve: 'Approved',
-    changes: 'Requested Changes',
-    reject: 'Rejected',
-};
-
-/**
- * Emoji icons for review actions
- */
-export const ACTION_EMOJIS: Record<ReviewAction, string> = {
-    approve: '✅',
-    changes: '📝',
-    reject: '❌',
-};
-
-// Routing maps — single source of truth in workflow-service
-export {
-    FEATURE_ROUTING_STATUS_MAP,
-    BUG_ROUTING_STATUS_MAP,
-    ROUTING_DESTINATION_LABELS,
-} from '@/server/template/workflow-service';

@@ -33,7 +33,7 @@
 
 // MUST be first: connection.ts reads MONGO_URI at module-load time, so
 // env has to be loaded before `@/server/database` is imported.
-import '../../src/agents/shared/loadEnv';
+import '../../src/server/template/loadEnv';
 
 import * as path from 'path';
 import * as fs from 'fs';

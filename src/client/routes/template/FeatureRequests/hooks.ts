@@ -12,14 +12,7 @@ import {
     updatePriority,
     deleteFeatureRequest,
     addAdminComment,
-    approveFeatureRequest,
-    getGitHubStatus,
-    getGitHubStatuses,
-    updateGitHubStatus,
-    updateGitHubReviewStatus,
-    clearGitHubReviewStatus,
     createFeatureRequest,
-    getGitHubIssueDetails,
 } from '@/apis/template/feature-requests/client';
 import type {
     GetFeatureRequestsRequest,
@@ -196,8 +189,11 @@ export function useAddAdminComment() {
             return result.data.featureRequest;
         },
         onMutate: async ({ requestId, content, commentId }) => {
+            const detailKey = ['feature-request', requestId] as const;
             await queryClient.cancelQueries({ queryKey: featureRequestsBaseQueryKey });
+            await queryClient.cancelQueries({ queryKey: detailKey });
             const previous = queryClient.getQueriesData({ queryKey: featureRequestsBaseQueryKey });
+            const previousDetail = queryClient.getQueryData(detailKey);
 
             // Optimistically add the comment
             const newComment = {
@@ -209,290 +205,35 @@ export function useAddAdminComment() {
                 createdAt: new Date().toISOString(),
             };
 
+            const addComment = (request: { comments?: unknown[] } & Record<string, unknown>) => ({
+                ...request,
+                comments: [...(request.comments || []), newComment],
+            });
+
             queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
                 if (!Array.isArray(old)) return old;
                 return old.map((request) =>
-                    request._id === requestId
-                        ? { ...request, comments: [...(request.comments || []), newComment] }
-                        : request
+                    request._id === requestId ? addComment(request) : request
                 );
             });
 
-            return { previous };
+            // Also update the single-item detail cache the detail page reads from
+            queryClient.setQueryData(detailKey, (old) =>
+                old && typeof old === 'object' ? addComment(old as Record<string, unknown>) : old
+            );
+
+            return { previous, previousDetail, requestId };
         },
         onError: (err, _variables, context) => {
-            if (!context?.previous) return;
+            if (!context) return;
             for (const [key, data] of context.previous) {
                 queryClient.setQueryData(key, data);
             }
+            queryClient.setQueryData(['feature-request', context.requestId], context.previousDetail);
             toast.error('Failed to add comment');
         },
         onSuccess: () => {},
         onSettled: () => {},
-    });
-}
-
-export function useApproveFeatureRequest() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async (requestId: string) => {
-            const result = await approveFeatureRequest({ requestId });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        onMutate: async (requestId) => {
-            await queryClient.cancelQueries({ queryKey: featureRequestsBaseQueryKey });
-            const previous = queryClient.getQueriesData({ queryKey: featureRequestsBaseQueryKey });
-
-            // Optimistically update status to in_progress
-            queryClient.setQueriesData({ queryKey: featureRequestsBaseQueryKey }, (old) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((request) =>
-                    request._id === requestId
-                        ? { ...request, status: 'in_progress' as FeatureRequestStatus }
-                        : request
-                );
-            });
-
-            return { previous };
-        },
-        onError: (err, _variables, context) => {
-            if (!context?.previous) return;
-            for (const [key, data] of context.previous) {
-                queryClient.setQueryData(key, data);
-            }
-            toast.error('Failed to approve feature request');
-        },
-        onSuccess: (data) => {
-            if (data.githubIssueUrl) {
-                toast.success(`Approved! GitHub Issue #${data.githubIssueNumber} created`);
-            } else {
-                toast.success('Feature request approved');
-            }
-        },
-        onSettled: () => {},
-    });
-}
-
-/**
- * Hook to fetch GitHub Project status for a feature request
- * Only enabled when there's a GitHub project item ID
- */
-// GitHub status changes frequently, use shorter staleTime when SWR is enabled
-const GITHUB_STATUS_STALE_TIME = 30_000;
-
-export function useGitHubStatus(requestId: string | null, enabled: boolean = true) {
-    const queryDefaults = useQueryDefaults();
-
-    return useQuery({
-        queryKey: ['github-status', requestId],
-        queryFn: async () => {
-            if (!requestId) return null;
-            const result = await getGitHubStatus({ requestId });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        enabled: enabled && !!requestId,
-        ...queryDefaults,
-        staleTime: queryDefaults.staleTime > 0 ? GITHUB_STATUS_STALE_TIME : 0,
-        refetchOnWindowFocus: true,
-    });
-}
-
-/**
- * Hook to fetch GitHub Project statuses for multiple feature requests
- * Used by the list view to get all statuses for filtering
- */
-export function useBatchGitHubStatuses(requestIds: string[]) {
-    const queryDefaults = useQueryDefaults();
-
-    return useQuery({
-        queryKey: ['github-statuses-batch', requestIds],
-        queryFn: async () => {
-            if (requestIds.length === 0) return {};
-
-            // Fetch all statuses in parallel
-            const results = await Promise.allSettled(
-                requestIds.map(async (requestId) => {
-                    const result = await getGitHubStatus({ requestId });
-                    return { requestId, data: result.data };
-                })
-            );
-
-            // Build map from results, handling errors gracefully
-            const statusMap: Record<string, { status: string; reviewStatus: string | null } | undefined> = {};
-
-            results.forEach((result, index) => {
-                const requestId = requestIds[index];
-                if (result.status === 'fulfilled' && !result.value.data.error) {
-                    statusMap[requestId] = {
-                        status: result.value.data.status || '',
-                        reviewStatus: result.value.data.reviewStatus || null,
-                    };
-                }
-                // On error, don't add to map - will fall back to DB status
-            });
-
-            return statusMap;
-        },
-        enabled: requestIds.length > 0,
-        ...queryDefaults,
-        staleTime: queryDefaults.staleTime > 0 ? GITHUB_STATUS_STALE_TIME : 0,
-        refetchOnWindowFocus: true,
-        // Handle rate limit errors gracefully
-        retry: (failureCount, error) => {
-            // Don't retry on rate limit errors
-            if (error instanceof Error && error.message.includes('rate limit')) {
-                return false;
-            }
-            return failureCount < 2;
-        },
-    });
-}
-
-/**
- * Hook to fetch available GitHub Project statuses
- */
-export function useGitHubStatuses() {
-    const queryDefaults = useQueryDefaults();
-
-    return useQuery({
-        queryKey: ['github-statuses'],
-        queryFn: async () => {
-            const result = await getGitHubStatuses();
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        ...queryDefaults,
-    });
-}
-
-/**
- * Hook to update GitHub Project status
- */
-export function useUpdateGitHubStatus() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ requestId, status }: { requestId: string; status: string }) => {
-            const result = await updateGitHubStatus({ requestId, status });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        onMutate: async ({ requestId, status }) => {
-            await queryClient.cancelQueries({ queryKey: ['github-status', requestId] });
-            const previous = queryClient.getQueryData(['github-status', requestId]);
-            queryClient.setQueryData(['github-status', requestId], (old: unknown) => ({
-                ...(old as Record<string, unknown>),
-                status,
-            }));
-            return { previous, requestId };
-        },
-        onError: (_err, _vars, context) => {
-            if (context?.previous !== undefined) {
-                queryClient.setQueryData(['github-status', context.requestId], context.previous);
-            }
-            toast.error('Failed to update GitHub status');
-        },
-        onSuccess: () => {
-            toast.success('GitHub status updated');
-        },
-        onSettled: () => {},
-    });
-}
-
-/**
- * Hook to update GitHub Project review status
- */
-export function useUpdateGitHubReviewStatus() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ requestId, reviewStatus }: { requestId: string; reviewStatus: string }) => {
-            const result = await updateGitHubReviewStatus({ requestId, reviewStatus });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        onMutate: async ({ requestId, reviewStatus }) => {
-            // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: ['github-status', requestId] });
-
-            // Snapshot previous value
-            const previous = queryClient.getQueryData(['github-status', requestId]);
-
-            // Optimistically update UI
-            queryClient.setQueryData(['github-status', requestId], (old: unknown) => ({
-                ...(old as Record<string, unknown>),
-                reviewStatus
-            }));
-
-            return { previous };
-        },
-        onError: (err, { requestId }, context) => {
-            // Rollback on error
-            if (context?.previous) {
-                queryClient.setQueryData(['github-status', requestId], context.previous);
-            }
-            toast.error('Failed to update GitHub review status');
-        },
-        onSuccess: () => {
-            toast.success('GitHub review status updated');
-            // No invalidateQueries needed - UI already updated optimistically
-        },
-    });
-}
-
-/**
- * Hook to clear GitHub Project review status
- */
-export function useClearGitHubReviewStatus() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ requestId }: { requestId: string }) => {
-            const result = await clearGitHubReviewStatus({ requestId });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data;
-        },
-        onMutate: async ({ requestId }) => {
-            // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: ['github-status', requestId] });
-
-            // Snapshot previous value
-            const previous = queryClient.getQueryData(['github-status', requestId]);
-
-            // Optimistically update UI - set reviewStatus to null
-            queryClient.setQueryData(['github-status', requestId], (old: unknown) => ({
-                ...(old as Record<string, unknown>),
-                reviewStatus: null
-            }));
-
-            return { previous };
-        },
-        onError: (err, { requestId }, context) => {
-            // Rollback on error
-            if (context?.previous) {
-                queryClient.setQueryData(['github-status', requestId], context.previous);
-            }
-            toast.error('Failed to clear GitHub review status');
-        },
-        onSuccess: () => {
-            toast.success('GitHub review status cleared');
-            // No invalidateQueries needed - UI already updated optimistically
-        },
     });
 }
 
@@ -528,9 +269,6 @@ export function useCreateFeatureRequest() {
                     priority: null,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    likes: 0,
-                    githubIssueNumber: null,
-                    githubStatus: null,
                     comments: [],
                 };
 
@@ -551,26 +289,5 @@ export function useCreateFeatureRequest() {
         },
         onSuccess: () => {}, // EMPTY - never update from server response
         onSettled: () => {}, // EMPTY - never invalidateQueries
-    });
-}
-
-/**
- * Hook to fetch GitHub issue details including full description and linked PRs
- */
-export function useGitHubIssueDetails(requestId: string | null, enabled: boolean = true) {
-    const queryDefaults = useQueryDefaults();
-
-    return useQuery({
-        queryKey: ['github-issue-details', requestId],
-        queryFn: async () => {
-            if (!requestId) return null;
-            const result = await getGitHubIssueDetails({ requestId });
-            if (result.data.error) {
-                throw new Error(result.data.error);
-            }
-            return result.data.issueDetails;
-        },
-        enabled: enabled && !!requestId,
-        ...queryDefaults,
     });
 }

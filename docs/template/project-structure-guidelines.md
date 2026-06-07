@@ -21,7 +21,6 @@ This project uses a **template sync system** that automatically updates certain 
 | `src/apis/template/**` | Template | ❌ No | Template APIs (auth, settings, reports, etc.) |
 | `src/server/database/collections/project/**` | Project | ✅ Yes | Your collections |
 | `src/server/database/collections/template/**` | Template | ❌ No | Template collections (users, reports, etc.) |
-| `src/agents/**` | Template | ❌ No | Template agents |
 | `*.project.ts` files | Project | ✅ Yes | Project-specific exports |
 | `src/client/components/template/**` | Template | ❌ No | UI, layout, and shared components |
 | `src/client/components/project/**` | Project | ✅ Yes | Your custom components |
@@ -58,7 +57,6 @@ src/client/routes/index.ts             # Route combiner file
 src/client/routes/index.template.ts    # Template route exports
 src/server/template/utils/**                    # Server utilities
 src/server/template/middleware/**               # Server middleware
-src/agents/**                          # AI agents system
 config/**                              # ESLint, Next.js, TypeScript configs
 
 # Template APIs and collections (use template/ subfolder)

@@ -6,7 +6,6 @@ import { fileStorageAPI } from '@/server/template/blob';
 import { toStringId } from '@/server/template/utils';
 import { sendBugReportNotification } from '@/server/template/telegram';
 import { forwardBugReportToAssistant } from '@/server/template/issue-reporter';
-import crypto from 'crypto';
 
 /**
  * Generate error key for deduplication
@@ -22,13 +21,6 @@ function generateErrorKey(request: CreateReportRequest): string {
     }
     // No error key if no errorMessage (user-submitted bugs)
     return '';
-}
-
-/**
- * Generate a secure approval token
- */
-function generateApprovalToken(): string {
-    return crypto.randomBytes(32).toString('hex');
 }
 
 export const createReport = async (
@@ -79,9 +71,6 @@ export const createReport = async (
                     firstOccurrence: existingReport.firstOccurrence.toISOString(),
                     lastOccurrence: now.toISOString(), // Use current time
                     errorKey: existingReport.errorKey,
-                    githubIssueUrl: existingReport.githubIssueUrl,
-                    githubIssueNumber: existingReport.githubIssueNumber,
-                    githubProjectItemId: existingReport.githubProjectItemId,
                     source: existingReport.source,
                     createdAt: existingReport.createdAt.toISOString(),
                     updatedAt: now.toISOString(),
@@ -105,9 +94,6 @@ export const createReport = async (
             }
         }
 
-        // Generate approval token for user-submitted bug reports
-        const approvalToken = request.type === 'bug' ? generateApprovalToken() : undefined;
-
         // Create new report with deduplication fields
         // Source: 'auto' for automatic error reports, 'ui' for user-submitted bugs
         const source = request.type === 'error' ? 'auto' : 'ui';
@@ -127,7 +113,6 @@ export const createReport = async (
             category: request.category,
             performanceEntries: request.performanceEntries,
             errorKey: errorKey || undefined,
-            approvalToken, // Add approval token for bug reports
             source: source as 'ui' | 'auto',
             occurrenceCount: 1,
             firstOccurrence: now,

@@ -9,7 +9,7 @@
  *   yarn telegram-bot
  */
 
-import '../../src/agents/shared/loadEnv';
+import '../../src/server/template/loadEnv';
 import { query, type SDKAssistantMessage, type SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================

@@ -74,7 +74,7 @@ For **fire-and-forget** patterns (long-running daemon jobs whose progress is tra
 
 Standalone process that runs on a local machine. Start with `yarn daemon` or `yarn daemon --verbose`.
 
-- Loads env vars via `src/agents/shared/loadEnv`
+- Loads env vars via `src/server/template/loadEnv`
 - Ensures MongoDB indexes on startup (TTL on `expiresAt`, compound on `{status, createdAt}`)
 - Polls every 2s for pending jobs
 - For each job, validates in order:

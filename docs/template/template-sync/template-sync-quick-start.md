@@ -68,7 +68,7 @@ This creates `.template-sync.json`. The template supports two config formats:
 
 > **⚠️ WARNING: Do NOT Ignore package.json**
 >
-> **NEVER add `package.json` to ignoredFiles!** The template's `package.json` contains critical scripts that power the GitHub Projects workflow, template sync, and other features. If you ignore it, commands like `yarn agent:*`, `yarn verify-setup`, and `yarn telegram-setup` will be missing.
+> **NEVER add `package.json` to ignoredFiles!** The template's `package.json` contains critical scripts that power template sync, the RPC daemon, and other features. If you ignore it, commands like `yarn sync-template`, `yarn daemon`, and `yarn telegram-setup` will be missing.
 >
 > **It's safe to add custom scripts** to your `package.json` - just keep it synced from the template to receive updates.
 

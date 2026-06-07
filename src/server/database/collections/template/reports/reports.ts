@@ -68,18 +68,6 @@ export const findReportById = async (
 };
 
 /**
- * Find a report by GitHub issue number
- * @param issueNumber - The GitHub issue number
- * @returns The report document or null if not found
- */
-export const findByGitHubIssueNumber = async (
-    issueNumber: number
-): Promise<ReportDocument | null> => {
-    const collection = await getReportsCollection();
-    return collection.findOne({ githubIssueNumber: issueNumber });
-};
-
-/**
  * Create a new report
  * @param report - The report data to create
  * @returns The created report document
@@ -354,67 +342,6 @@ export const getReportCounts = async (): Promise<Record<ReportStatus, number>> =
 };
 
 /**
- * Atomically claim (consume) the approval token.
- * Uses findOneAndUpdate with a condition so only the first caller succeeds.
- * Returns the document (with token) if claimed, null if already claimed or missing.
- */
-export const claimApprovalToken = async (
-    reportId: ObjectId | string
-): Promise<ReportDocument | null> => {
-    const collection = await getReportsCollection();
-    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
-
-    // $ne: null is valid MongoDB but conflicts with TypeScript's strict typing for optional string fields
-    const filter = { _id: reportIdObj, approvalToken: { $exists: true, $ne: null } } as unknown as Filter<ReportDocument>;
-    const result = await collection.findOneAndUpdate(
-        filter,
-        { $unset: { approvalToken: '' }, $set: { updatedAt: new Date() } },
-        { returnDocument: 'before' }
-    );
-
-    return result || null;
-};
-
-/**
- * Update approval token (or remove it by passing null)
- * @param reportId - The ID of the report to update
- * @param token - The new token, or null to remove it
- * @returns True if updated successfully
- */
-export const updateApprovalToken = async (
-    reportId: ObjectId | string,
-    token: string | null
-): Promise<boolean> => {
-    const collection = await getReportsCollection();
-    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
-
-    if (token === null) {
-        // Remove the token field
-        const result = await collection.updateOne(
-            { _id: reportIdObj },
-            {
-                $unset: { approvalToken: '' },
-                $set: { updatedAt: new Date() },
-            }
-        );
-        return result.modifiedCount === 1;
-    }
-
-    // Set the token
-    const result = await collection.updateOne(
-        { _id: reportIdObj },
-        {
-            $set: {
-                approvalToken: token,
-                updatedAt: new Date(),
-            },
-        }
-    );
-
-    return result.modifiedCount === 1;
-};
-
-/**
  * Find an existing open report by error key (for deduplication)
  * @param errorKey - The error key to search for
  * @returns The report document or null if not found
@@ -453,62 +380,6 @@ export const incrementReportOccurrence = async (
     );
 
     return result.modifiedCount === 1;
-};
-
-/**
- * Find reports by workflow status (for AppProjectAdapter)
- */
-export const findByWorkflowStatus = async (
-    workflowStatus?: string,
-    workflowReviewStatus?: string
-): Promise<ReportDocument[]> => {
-    const collection = await getReportsCollection();
-    const query: Filter<ReportDocument> = {};
-
-    if (workflowStatus) {
-        query.workflowStatus = workflowStatus;
-    }
-    if (workflowReviewStatus) {
-        query.workflowReviewStatus = workflowReviewStatus;
-    }
-
-    // Only return items that have been synced to GitHub (have a projectItemId)
-    query.githubProjectItemId = { $exists: true, $ne: undefined };
-
-    return collection.find(query).sort({ updatedAt: -1 }).toArray();
-};
-
-/**
- * Update workflow fields on a report
- */
-export const updateWorkflowFields = async (
-    reportId: ObjectId | string,
-    fields: {
-        workflowStatus?: string | null;
-        workflowReviewStatus?: string | null;
-        implementationPhase?: string | null;
-    }
-): Promise<void> => {
-    const collection = await getReportsCollection();
-    const reportIdObj = typeof reportId === 'string' ? new ObjectId(reportId) : reportId;
-
-    const $set: Record<string, unknown> = { updatedAt: new Date() };
-    const $unset: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(fields)) {
-        if (value === null) {
-            $unset[key] = '';
-        } else if (value !== undefined) {
-            $set[key] = value;
-        }
-    }
-
-    const update: Record<string, unknown> = { $set };
-    if (Object.keys($unset).length > 0) {
-        update.$unset = $unset;
-    }
-
-    await collection.updateOne({ _id: reportIdObj }, update);
 };
 
 /**

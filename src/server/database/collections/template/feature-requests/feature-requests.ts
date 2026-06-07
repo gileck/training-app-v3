@@ -91,16 +91,6 @@ export const findFeatureRequestById = async (
 };
 
 /**
- * Find a feature request by GitHub issue number
- */
-export const findByGitHubIssueNumber = async (
-    issueNumber: number
-): Promise<FeatureRequestDocument | null> => {
-    const collection = await getFeatureRequestsCollection();
-    return collection.findOne({ githubIssueNumber: issueNumber });
-};
-
-/**
  * Create a new feature request
  */
 export const createFeatureRequest = async (
@@ -249,92 +239,6 @@ export const deleteFeatureRequest = async (
 };
 
 /**
- * Update GitHub fields on a feature request
- */
-export const updateGitHubFields = async (
-    requestId: ObjectId | string,
-    fields: {
-        githubIssueUrl?: string;
-        githubIssueNumber?: number;
-        githubProjectItemId?: string;
-        githubIssueTitle?: string;
-    }
-): Promise<FeatureRequestDocument | null> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    const result = await collection.findOneAndUpdate(
-        { _id: requestIdObj },
-        {
-            $set: {
-                ...fields,
-                updatedAt: new Date(),
-            },
-        },
-        { returnDocument: 'after' }
-    );
-
-    return result || null;
-};
-
-/**
- * Atomically claim (consume) the approval token.
- * Uses findOneAndUpdate with a condition so only the first caller succeeds.
- * Returns the document (with token) if claimed, null if already claimed or missing.
- */
-export const claimApprovalToken = async (
-    requestId: ObjectId | string
-): Promise<FeatureRequestDocument | null> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    // $ne: null is valid MongoDB but conflicts with TypeScript's strict typing for optional string fields
-    const filter = { _id: requestIdObj, approvalToken: { $exists: true, $ne: null } } as unknown as Filter<FeatureRequestDocument>;
-    const result = await collection.findOneAndUpdate(
-        filter,
-        { $unset: { approvalToken: '' }, $set: { updatedAt: new Date() } },
-        { returnDocument: 'before' }
-    );
-
-    return result || null;
-};
-
-/**
- * Update or clear the approval token
- */
-export const updateApprovalToken = async (
-    requestId: ObjectId | string,
-    token: string | null
-): Promise<boolean> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    if (token === null) {
-        // Remove the token field
-        const result = await collection.updateOne(
-            { _id: requestIdObj },
-            {
-                $unset: { approvalToken: '' },
-                $set: { updatedAt: new Date() },
-            }
-        );
-        return result.modifiedCount === 1;
-    }
-
-    const result = await collection.updateOne(
-        { _id: requestIdObj },
-        {
-            $set: {
-                approvalToken: token,
-                updatedAt: new Date(),
-            },
-        }
-    );
-
-    return result.modifiedCount === 1;
-};
-
-/**
  * Get feature request counts by status
  */
 export const getFeatureRequestCounts = async (): Promise<Record<FeatureRequestStatus, number>> => {
@@ -365,60 +269,4 @@ export const getFeatureRequestCounts = async (): Promise<Record<FeatureRequestSt
     }
 
     return counts;
-};
-
-/**
- * Find feature requests by workflow status (for AppProjectAdapter)
- */
-export const findByWorkflowStatus = async (
-    workflowStatus?: string,
-    workflowReviewStatus?: string
-): Promise<FeatureRequestDocument[]> => {
-    const collection = await getFeatureRequestsCollection();
-    const query: Filter<FeatureRequestDocument> = {};
-
-    if (workflowStatus) {
-        query.workflowStatus = workflowStatus;
-    }
-    if (workflowReviewStatus) {
-        query.workflowReviewStatus = workflowReviewStatus;
-    }
-
-    // Only return items that have been synced to GitHub (have a projectItemId)
-    query.githubProjectItemId = { $exists: true, $ne: undefined };
-
-    return collection.find(query).sort({ updatedAt: -1 }).toArray();
-};
-
-/**
- * Update workflow fields on a feature request
- */
-export const updateWorkflowFields = async (
-    requestId: ObjectId | string,
-    fields: {
-        workflowStatus?: string | null;
-        workflowReviewStatus?: string | null;
-        implementationPhase?: string | null;
-    }
-): Promise<void> => {
-    const collection = await getFeatureRequestsCollection();
-    const requestIdObj = typeof requestId === 'string' ? new ObjectId(requestId) : requestId;
-
-    const $set: Record<string, unknown> = { updatedAt: new Date() };
-    const $unset: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(fields)) {
-        if (value === null) {
-            $unset[key] = '';
-        } else if (value !== undefined) {
-            $set[key] = value;
-        }
-    }
-
-    const update: Record<string, unknown> = { $set };
-    if (Object.keys($unset).length > 0) {
-        update.$unset = $unset;
-    }
-
-    await collection.updateOne({ _id: requestIdObj }, update);
 };

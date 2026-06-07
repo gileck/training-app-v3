@@ -2,25 +2,23 @@
  * Filter Utility Functions
  *
  * Client-side filtering logic for feature requests list.
- * Supports multi-select filters across status, priority, GitHub linkage, and activity.
+ * Supports multi-select filters across status, priority, and activity.
  */
 
 import type {
     FeatureRequestClient,
     FeatureRequestPriority,
 } from '@/apis/template/feature-requests/types';
-import type { GetGitHubStatusResponse } from '@/apis/template/feature-requests/types';
 
 /**
- * Filter by GitHub status
+ * Filter by native status
  *
- * Maps UI filter labels to actual GitHub statuses from API.
- * Handles both GitHub Project status and database status.
+ * Status filter values map to the feature request's `status` field, plus a
+ * synthetic 'active' filter (anything not done or rejected).
  */
-export function filterByGitHubStatus(
+export function filterByStatus(
     requests: FeatureRequestClient[],
-    statusFilters: string[],
-    githubStatusMap: Record<string, GetGitHubStatusResponse | undefined>
+    statusFilters: string[]
 ): FeatureRequestClient[] {
     // If no status filters active, show all
     if (statusFilters.length === 0) {
@@ -28,64 +26,24 @@ export function filterByGitHubStatus(
     }
 
     return requests.filter((request) => {
-        const githubStatus = githubStatusMap[request._id];
-        const effectiveStatus = getEffectiveStatus(request, githubStatus);
-
-        // Check if request matches any of the active status filters
         return statusFilters.some((filter) => {
             switch (filter) {
                 case 'active':
                     // Active = not Done or Rejected
-                    // Check BOTH DB status and GitHub status to handle stale cache
-                    if (request.status === 'done' || request.status === 'rejected') {
-                        return false;
-                    }
-                    return !['done', 'rejected'].includes(effectiveStatus.toLowerCase());
-
-                case 'waiting_for_review':
-                    // Waiting for Review = GitHub status OR reviewStatus contains "review"
-                    if (githubStatus?.reviewStatus) {
-                        return githubStatus.reviewStatus.toLowerCase().includes('review');
-                    }
-                    return effectiveStatus.toLowerCase().includes('review');
-
-                case 'in_progress':
-                    // In Progress = DB status or GitHub status contains "progress"
-                    if (request.status === 'in_progress') return true;
-                    return effectiveStatus.toLowerCase().includes('progress');
-
-                case 'blocked':
-                    // Blocked = status contains "blocked"
-                    return effectiveStatus.toLowerCase().includes('blocked');
-
-                case 'done':
-                    // Done = DB status done OR GitHub status done
-                    if (request.status === 'done') return true;
-                    return effectiveStatus.toLowerCase() === 'done';
-
+                    return request.status !== 'done' && request.status !== 'rejected';
                 case 'new':
-                    // New = DB status new OR GitHub status backlog
-                    if (request.status === 'new') return true;
-                    return effectiveStatus.toLowerCase() === 'backlog';
-
+                    return request.status === 'new';
+                case 'in_progress':
+                    return request.status === 'in_progress';
+                case 'done':
+                    return request.status === 'done';
+                case 'rejected':
+                    return request.status === 'rejected';
                 default:
                     return false;
             }
         });
     });
-}
-
-/**
- * Get effective status for a request (GitHub takes priority over DB)
- */
-function getEffectiveStatus(
-    request: FeatureRequestClient,
-    githubStatus?: GetGitHubStatusResponse
-): string {
-    if (request.githubProjectItemId && githubStatus?.status) {
-        return githubStatus.status;
-    }
-    return request.status;
 }
 
 /**
@@ -105,36 +63,6 @@ export function filterByPriority(
     return requests.filter((request) => {
         // Include requests that match any of the selected priorities
         return request.priority && priorityFilters.includes(request.priority);
-    });
-}
-
-/**
- * Filter by GitHub linkage
- *
- * Options: has_issue, no_link
- */
-export function filterByGitHubLinkage(
-    requests: FeatureRequestClient[],
-    githubFilters: ('has_issue' | 'no_link')[]
-): FeatureRequestClient[] {
-    // If no GitHub filters active, show all
-    if (githubFilters.length === 0) {
-        return requests;
-    }
-
-    return requests.filter((request) => {
-        return githubFilters.some((filter) => {
-            switch (filter) {
-                case 'has_issue':
-                    return !!request.githubIssueUrl;
-
-                case 'no_link':
-                    return !request.githubIssueUrl;
-
-                default:
-                    return false;
-            }
-        });
     });
 }
 
@@ -186,22 +114,17 @@ export function applyAllFilters(
     filters: {
         statusFilters: string[];
         priorityFilters: FeatureRequestPriority[];
-        githubFilters: ('has_issue' | 'no_link')[];
         activityFilters: ('recent' | 'stale')[];
-    },
-    githubStatusMap: Record<string, GetGitHubStatusResponse | undefined>
+    }
 ): FeatureRequestClient[] {
     // Apply filters in sequence (AND logic between categories)
     let filtered = requests;
 
     // Status filter
-    filtered = filterByGitHubStatus(filtered, filters.statusFilters, githubStatusMap);
+    filtered = filterByStatus(filtered, filters.statusFilters);
 
     // Priority filter
     filtered = filterByPriority(filtered, filters.priorityFilters);
-
-    // GitHub linkage filter
-    filtered = filterByGitHubLinkage(filtered, filters.githubFilters);
 
     // Activity filter
     filtered = filterByActivity(filtered, filters.activityFilters);

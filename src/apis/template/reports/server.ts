@@ -12,7 +12,6 @@ import {
     API_UPDATE_INVESTIGATION,
     API_BATCH_UPDATE_STATUS,
     API_BATCH_DELETE,
-    API_APPROVE_BUG_REPORT
 } from './index';
 
 // Import handlers
@@ -25,7 +24,6 @@ import { deleteAllReports } from './handlers/deleteAllReports';
 import { updateInvestigation } from './handlers/updateInvestigation';
 import { batchUpdateStatus } from './handlers/batchUpdateStatus';
 import { batchDeleteReports } from './handlers/batchDeleteReports';
-import { approveBugReport } from './handlers/approveBugReport';
 
 // Export consolidated handlers object
 export const reportsApiHandlers = {
@@ -38,6 +36,5 @@ export const reportsApiHandlers = {
     [API_UPDATE_INVESTIGATION]: { process: updateInvestigation },
     [API_BATCH_UPDATE_STATUS]: { process: batchUpdateStatus },
     [API_BATCH_DELETE]: { process: batchDeleteReports },
-    [API_APPROVE_BUG_REPORT]: { process: approveBugReport },
 };
 

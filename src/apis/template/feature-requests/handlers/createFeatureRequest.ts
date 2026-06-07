@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { API_CREATE_FEATURE_REQUEST } from '../index';
 import { CreateFeatureRequestRequest, CreateFeatureRequestResponse } from '../types';
 import { featureRequests, users } from '@/server/database';
@@ -8,13 +7,6 @@ import { toDocumentId } from '@/server/template/utils';
 import { sendFeatureRequestNotification } from '@/server/template/telegram';
 import { forwardFeatureRequestToAssistant } from '@/server/template/issue-reporter';
 import type { ObjectId } from 'mongodb';
-
-/**
- * Generate a secure approval token
- */
-function generateApprovalToken(): string {
-    return crypto.randomBytes(32).toString('hex');
-}
 
 export const createFeatureRequest = async (
     request: CreateFeatureRequestRequest,
@@ -34,7 +26,6 @@ export const createFeatureRequest = async (
         }
 
         const now = new Date();
-        const approvalToken = generateApprovalToken();
 
         // Get user info for the request
         const user = await users.findUserById(context.userId);
@@ -49,7 +40,6 @@ export const createFeatureRequest = async (
             requestedBy: toDocumentId(context.userId) as ObjectId,
             requestedByName,
             comments: [],
-            approvalToken,
             source: 'ui' as const,
             createdAt: now,
             updatedAt: now,
@@ -57,7 +47,7 @@ export const createFeatureRequest = async (
 
         const newRequest = await featureRequests.createFeatureRequest(requestData);
 
-        // Send Telegram notification to admin with approval button
+        // Send Telegram notification to admin
         try {
             await sendFeatureRequestNotification(newRequest);
         } catch (notifyError) {

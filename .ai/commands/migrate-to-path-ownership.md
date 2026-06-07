@@ -93,15 +93,7 @@ Write a new `.template-sync.json` with Path Ownership format:
     "src/apis/index.ts",
     "src/apis/index.template.ts",
     "src/pages/api/process/**",
-    "app-guildelines/**",
-    "task-manager/lib/**",
-    "task-manager/tasks-cli.ts",
-    "task-manager/README.md",
-    "task-manager/TASK_FORMAT.md",
-    "task-manager/TASK_COMMANDS.md",
-    "task-manager/SLASH_COMMANDS_README.md",
-    "task-manager/task-management-cli.md",
-    "task-manager/.sync-info.md"
+    "app-guildelines/**"
   ],
 
   "projectOverrides": [],

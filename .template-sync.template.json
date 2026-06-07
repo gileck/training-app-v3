@@ -59,10 +59,7 @@
     "src/pages/api/process/**",
     "src/pages/api/telegram-webhook.ts",
     "src/pages/api/telegram-webhook/**",
-    "src/pages/api/feature-requests/**",
     "src/pages/api/test-telegram.ts",
-    "src/pages/design-mocks/**",
-    "src/agents/**",
     ".template-sync.template.json"
   ],
   "templateIgnoredFiles": [

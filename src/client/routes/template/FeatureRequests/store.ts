@@ -5,7 +5,6 @@ import type { SortMode } from './utils/sortingUtils';
 // Stable fallback references (prevent infinite loops in selectors)
 const EMPTY_STATUS_FILTERS: string[] = [];
 const EMPTY_PRIORITY_FILTERS: FeatureRequestPriority[] = [];
-const EMPTY_GITHUB_FILTERS: ('has_issue' | 'no_link')[] = [];
 const EMPTY_ACTIVITY_FILTERS: ('recent' | 'stale')[] = [];
 
 /**
@@ -21,11 +20,6 @@ export type FeatureRequestsSortOrder = 'asc' | 'desc';
 export type StatusFilterOption = FeatureRequestStatus | 'all' | 'active';
 
 /**
- * GitHub linkage filter options
- */
-export type GitHubFilterOption = 'has_issue' | 'no_link';
-
-/**
  * Activity filter options
  */
 export type ActivityFilterOption = 'recent' | 'stale';
@@ -38,7 +32,6 @@ interface FeatureRequestsState {
     // New multi-filter state
     statusFilters: string[];
     priorityFilters: FeatureRequestPriority[];
-    githubFilters: GitHubFilterOption[];
     activityFilters: ActivityFilterOption[];
 
     // Sorting
@@ -51,7 +44,6 @@ interface FeatureRequestsState {
     // Actions for multi-filter management
     toggleStatusFilter: (filter: string) => void;
     togglePriorityFilter: (priority: FeatureRequestPriority) => void;
-    toggleGitHubFilter: (filter: GitHubFilterOption) => void;
     toggleActivityFilter: (filter: ActivityFilterOption) => void;
     clearAllFilters: () => void;
 
@@ -78,7 +70,6 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
         // Initialize with stable empty arrays
         statusFilters: EMPTY_STATUS_FILTERS,
         priorityFilters: EMPTY_PRIORITY_FILTERS,
-        githubFilters: EMPTY_GITHUB_FILTERS,
         activityFilters: EMPTY_ACTIVITY_FILTERS,
         sortOrder: 'desc', // Legacy
         sortMode: 'smart', // Default to smart sort
@@ -106,17 +97,6 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
                 };
             }),
 
-        toggleGitHubFilter: (filter: GitHubFilterOption) =>
-            set((state) => {
-                const isActive = state.githubFilters.includes(filter);
-                return {
-                    githubFilters: isActive
-                        ? state.githubFilters.filter((f) => f !== filter)
-                        : [...state.githubFilters, filter],
-                    hasInteractedWithFilters: true,
-                };
-            }),
-
         toggleActivityFilter: (filter: ActivityFilterOption) =>
             set((state) => {
                 const isActive = state.activityFilters.includes(filter);
@@ -132,7 +112,6 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
             set({
                 statusFilters: [],
                 priorityFilters: [],
-                githubFilters: [],
                 activityFilters: [],
                 hasInteractedWithFilters: true,
             }),
@@ -145,7 +124,6 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
         partialize: (state) => ({
             statusFilters: state.statusFilters,
             priorityFilters: state.priorityFilters,
-            githubFilters: state.githubFilters,
             activityFilters: state.activityFilters,
             sortOrder: state.sortOrder,
             sortMode: state.sortMode,
@@ -171,7 +149,6 @@ export const useFeatureRequestsStore = createStore<FeatureRequestsState>({
                 return {
                     statusFilters,
                     priorityFilters,
-                    githubFilters: [],
                     activityFilters: [],
                     sortOrder: (state.sortOrder as FeatureRequestsSortOrder) || 'desc',
                     sortMode: 'smart', // Default to smart sort

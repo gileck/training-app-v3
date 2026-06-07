@@ -1,5 +1,5 @@
 #!/usr/bin/env npx tsx
-import '../../src/agents/shared/loadEnv';
+import '../../src/server/template/loadEnv';
 
 /**
  * GitHub PR Actions CLI

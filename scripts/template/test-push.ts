@@ -13,7 +13,7 @@
  * devices, point MONGO_URI at the production database.
  */
 
-import '../../src/agents/shared/loadEnv';
+import '../../src/server/template/loadEnv';
 
 import { sendPushToUser, isPushConfigured } from '../../src/server/template/push';
 import { closeDbConnection } from '../../src/server/database';

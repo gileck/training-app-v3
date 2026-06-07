@@ -37,10 +37,6 @@ export function toFeatureRequestClient(doc: FeatureRequestDocument): FeatureRequ
         adminNotes: doc.adminNotes,
         priority: doc.priority,
         source: doc.source,
-        // GitHub integration fields
-        githubIssueUrl: doc.githubIssueUrl,
-        githubIssueNumber: doc.githubIssueNumber,
-        githubProjectItemId: doc.githubProjectItemId,
         createdAt: doc.createdAt.toISOString(),
         updatedAt: doc.updatedAt.toISOString(),
     };

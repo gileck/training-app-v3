@@ -1,9 +1,8 @@
 import { DeleteReportRequest, DeleteReportResponse } from '../types';
-import { findReportById } from '@/server/database/collections/template/reports';
+import { findReportById, deleteReport as deleteReportFromDb } from '@/server/database/collections/template/reports';
 import { ApiHandlerContext } from '@/apis/types';
 import { isObjectIdFormat } from '@/server/template/utils';
 import { fileStorageAPI } from '@/server/template/blob';
-import { deleteWorkflowItem } from '@/server/template/workflow-service';
 
 export const deleteReport = async (
     request: DeleteReportRequest,
@@ -31,10 +30,10 @@ export const deleteReport = async (
             }
         }
 
-        const result = await deleteWorkflowItem({ id: reportId, type: 'bug' }, { force: true });
+        const deleted = await deleteReportFromDb(reportId);
 
-        if (!result.success) {
-            return { error: result.error || 'Failed to delete report' };
+        if (!deleted) {
+            return { error: 'Failed to delete report' };
         }
 
         console.log(`Report ${reportId} deleted by user ${context.userId || 'anonymous'}`);
