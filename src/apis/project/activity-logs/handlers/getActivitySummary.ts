@@ -1,9 +1,23 @@
 import type { ApiHandlerContext } from '@/apis/types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
 import type { GetActivitySummaryRequest, GetActivitySummaryResponse, DailySummary } from '../types';
 import * as setLogs from '@/server/database/collections/project/setLogs';
 import * as planExercises from '@/server/database/collections/project/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import { toStringId, toQueryId, toDocumentId } from '@/server/template/utils';
+
+export const apiMeta = defineApiMeta<GetActivitySummaryRequest>()({
+    description: "Get the user's training volume summarized per day, week, or month (aggregated activity). Use for 'how active was I this week/month' questions and trend analysis.",
+    inputSchema: {
+        period: z.enum(['day', 'week', 'month']).describe('Aggregation period for the summary.'),
+        planId: z.string().optional().describe('Filter to a specific plan (optional).'),
+        startDate: z.string().optional().describe('ISO date string — start of range (optional).'),
+        endDate: z.string().optional().describe('ISO date string — end of range (optional).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 /**
  * Get date key for grouping based on aggregation period

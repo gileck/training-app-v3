@@ -5,7 +5,19 @@ import {
 } from '../types';
 import { planExercises, setLogs, trainingPlans } from '@/server/database';
 import type { ApiHandlerContext } from '@/apis/types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
 import { toStringId, toQueryId } from '@/server/template/utils';
+
+export const apiMeta = defineApiMeta<GetExerciseHistoryRequest>()({
+    description: "Get the user's logged history for one specific exercise over time (e.g. to see how a lift has progressed). Look up exerciseDefId via exercise-definitions/list.",
+    inputSchema: {
+        exerciseDefId: z.string().describe('Exercise definition id (from exercise-definitions/list).'),
+        limit: z.number().int().optional().describe('Max entries to return (default 20).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export async function getExerciseHistory(
     request: GetExerciseHistoryRequest,

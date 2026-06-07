@@ -1,10 +1,24 @@
 import type { ApiHandlerContext } from '@/apis/types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
 import type { GetActivityRequest, GetActivityResponse, ActivityLogEntry } from '../types';
 import * as setLogs from '@/server/database/collections/project/setLogs';
 import * as planExercises from '@/server/database/collections/project/planExercises';
 import * as exerciseDefinitions from '@/server/database/collections/project/exerciseDefinitions';
 import * as trainingPlans from '@/server/database/collections/project/trainingPlans';
 import { toStringId, toQueryId, toDocumentId } from '@/server/template/utils';
+
+export const apiMeta = defineApiMeta<GetActivityRequest>()({
+    description: "Get the user's recent workout activity log (completed sets per exercise over time). Use to review training history; optionally filter by plan or date range.",
+    inputSchema: {
+        planId: z.string().optional().describe('Filter to a specific plan (optional).'),
+        startDate: z.string().optional().describe('ISO date string — only activity on/after this date (optional).'),
+        endDate: z.string().optional().describe('ISO date string — only activity on/before this date (optional).'),
+        limit: z.number().int().optional().describe('Max entries to return (default 50).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 export async function getActivity(
     request: GetActivityRequest,

@@ -1,7 +1,20 @@
 import type { GetRecoveryScoreRequest, GetRecoveryScoreResponse } from '../types';
 import type { ApiHandlerContext } from '@/apis/types';
+import { defineApiMeta } from '@/apis/types';
+import { z } from 'zod';
 import { getActivitySummary } from './getActivitySummary';
 import { calculateRecoveryScore } from '@/shared/utils/recoveryScore';
+
+export const apiMeta = defineApiMeta<GetRecoveryScoreRequest>()({
+    description: "Get the user's recovery score, derived from recent training volume vs a longer baseline. Use to advise on readiness, fatigue, and whether to push or deload.",
+    inputSchema: {
+        planId: z.string().optional().describe('Filter to a specific plan (optional).'),
+        lookbackDays: z.number().int().optional().describe('Days of recent load for the weighted score (default 10).'),
+        baselineDays: z.number().int().optional().describe('Days used for the baseline (default 30).'),
+    },
+    agentExposed: true,
+    mutates: false,
+});
 
 /**
  * Calculate recovery score based on recent training volume

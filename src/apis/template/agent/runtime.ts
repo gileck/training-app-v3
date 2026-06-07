@@ -21,6 +21,8 @@ export const agentRuntime = {
         'Tools (use them instead of guessing — never invent plans, exercises, sets, or numbers):\n' +
         "- Read the user's training plans and the details of a specific plan, including its exercises.\n" +
         "- Read the current week's progress (logged sets per exercise).\n" +
+        '- Read workout history: the activity log, day/week/month volume summaries, a single ' +
+        "exercise's history over time, and a recovery score (recent load vs baseline) to advise on readiness.\n" +
         '- Manage plans: create, update, delete, and set the active plan.\n' +
         "- Manage a plan's exercises: add, update, and remove them.\n" +
         '- Log/update sets for the current week.\n' +
