@@ -28,12 +28,16 @@ import { getModelById } from '@/common/ai/models';
 import { toQueryId, toStringId } from '@/server/template/utils';
 import type { ApiHandlerContext } from '@/apis/types';
 import type { SendMessageRequest, SendMessageResponse } from '../types';
-// Agent runtime override point (which handler runs + its default system
-// prompt). Ships template defaults; `build-app-agent` customizes it and
-// adds it to the project's `projectOverrides` so sync keeps the change.
-import { agentRuntime } from '../runtime';
 
 const RPC_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Convention: every app's agent lives at this path. The daemon resolves
+// it at runtime (it's a string, not a static import), so the agent is
+// 100% project-owned under src/server/project/agent/** with no synced
+// override seam. The agent's identity (system prompt) lives in its
+// handler via createAgentHandler({ systemPrompt }). `build-app-agent`
+// builds the agent here.
+const AGENT_HANDLER_PATH = 'src/server/project/agent/handler';
 
 function getModelProvider(modelId: string): string | null {
     try {
@@ -233,13 +237,15 @@ export const sendMessage = async (
               ].join('\n');
 
         await createRpcJob({
-            handlerPath: agentRuntime.handlerPath,
+            handlerPath: AGENT_HANDLER_PATH,
             args: {
                 userId: userIdStr,
                 conversationId: toStringId(conversationId),
                 sourceMessageId: toStringId(assistantMessage._id),
                 modelId: request.modelId,
-                systemPrompt: request.systemPrompt ?? agentRuntime.systemPrompt,
+                // Per-turn override only; the default lives in the
+                // project handler (createAgentHandler({ systemPrompt })).
+                systemPrompt: request.systemPrompt,
                 userText: enrichedUserText,
                 userImageUrls: imageAttachments.map((a) => a.url),
                 history,

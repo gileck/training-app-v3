@@ -37,6 +37,11 @@ export interface AgentHandlerConfig<TData> {
     /** Stable agent slug — same value used in the adapter config. Used
      *  in error-log prefixes and arg-validation error messages. */
     agentName: string;
+    /** The agent's default system prompt — its identity + tool cues.
+     *  The per-turn `systemPrompt` arg (from the API) overrides it when
+     *  provided; otherwise this is used. This is where each app encodes
+     *  who its agent is. */
+    systemPrompt: string;
     /** The tool list the model can call. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous tool shapes
     tools: readonly AgenticTool<any, TData>[];
@@ -57,7 +62,9 @@ interface HandlerArgs {
     conversationId: string;
     sourceMessageId: string;
     modelId: string;
-    systemPrompt: string;
+    /** Optional per-turn override. When absent, the handler falls back
+     *  to `config.systemPrompt`. */
+    systemPrompt?: string;
     userText: string;
     userImageUrls?: string[];
     history: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>;
@@ -90,7 +97,7 @@ function isHistoryEntry(v: unknown): v is { role: 'user' | 'assistant'; content:
 }
 
 function parseArgs(agentName: string, raw: Record<string, unknown>): HandlerArgs {
-    const required = ['userId', 'conversationId', 'sourceMessageId', 'modelId', 'systemPrompt', 'userText'] as const;
+    const required = ['userId', 'conversationId', 'sourceMessageId', 'modelId', 'userText'] as const;
     for (const k of required) {
         if (typeof raw[k] !== 'string' || !raw[k]) {
             throw new Error(`${agentName} handler requires string "${k}"`);
@@ -107,7 +114,10 @@ function parseArgs(agentName: string, raw: Record<string, unknown>): HandlerArgs
         conversationId: raw.conversationId as string,
         sourceMessageId: raw.sourceMessageId as string,
         modelId: raw.modelId as string,
-        systemPrompt: raw.systemPrompt as string,
+        systemPrompt:
+            typeof raw.systemPrompt === 'string' && raw.systemPrompt
+                ? (raw.systemPrompt as string)
+                : undefined,
         userText: raw.userText as string,
         userImageUrls:
             Array.isArray(raw.userImageUrls) &&
@@ -203,7 +213,7 @@ export function createAgentHandler<TData>(
 
         const runOpts: AgenticRunOptions<TData> = {
             modelId: args.modelId,
-            systemPrompt: args.systemPrompt,
+            systemPrompt: args.systemPrompt ?? config.systemPrompt,
             history: args.history,
             userText: args.userText,
             userImageUrls: args.userImageUrls,

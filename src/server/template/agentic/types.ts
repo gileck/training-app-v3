@@ -241,8 +241,10 @@ export interface AgenticAdapterConfig {
      * Absolute path to the project's codex-mcp-server.ts bootstrap.
      * Codex spawns this file as a subprocess per turn.
      *
-     * Defaults to `<cwd>/src/server/project/${agentName}-agent/adapters/codex-mcp-server.ts`.
-     * Override only if your project doesn't follow that convention.
+     * Defaults to the agent convention path
+     * `src/server/project/agent/adapters/codex-mcp-server.ts` — the same
+     * folder the daemon resolves the handler from. Override only if your
+     * project's Codex bootstrap lives elsewhere.
      */
     codexMcpServerPath?: string;
 
@@ -257,10 +259,11 @@ export interface AgenticAdapterConfig {
     codexMcpInstruction?: string;
 }
 
-/** Default Codex MCP server path convention. Exposed so adapters and
- *  tests can use the same derivation. */
-export function defaultCodexMcpServerPath(agentName: string): string {
-    return `src/server/project/${agentName}-agent/adapters/codex-mcp-server.ts`;
+/** Default Codex MCP server path — the agent convention path. Constant
+ *  (not derived from agentName) so it matches the single
+ *  `src/server/project/agent/` folder the handler also lives in. */
+export function defaultCodexMcpServerPath(): string {
+    return 'src/server/project/agent/adapters/codex-mcp-server.ts';
 }
 
 /** Codex requires `mcp_servers` keys to be identifier-safe; Claude Code

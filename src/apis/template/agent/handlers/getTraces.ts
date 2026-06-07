@@ -78,7 +78,7 @@ function synthesizeRpcJobEntries(input: {
             message: 'rpc-job.failed',
             data: {
                 error: rpcJob.error ?? 'unknown error',
-                hint: 'The daemon failed before our handler ran — usually a module-import error in src/server/project/demo-agent/handler.ts. Check the daemon console.',
+                hint: 'The daemon failed before our handler ran — usually a module-import error in src/server/project/agent/handler.ts. Check the daemon console.',
             },
         });
     }

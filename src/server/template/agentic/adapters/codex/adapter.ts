@@ -260,7 +260,7 @@ export class CodexAgenticAdapter implements AgenticAdapter {
     private buildCodexConfig(opts: AgenticRunOptions<any>): NonNullable<CodexOptions['config']> {
         const mcpServerPath = path.resolve(
             process.cwd(),
-            this.config.codexMcpServerPath ?? defaultCodexMcpServerPath(this.config.agentName)
+            this.config.codexMcpServerPath ?? defaultCodexMcpServerPath()
         );
         return {
             model_provider: 'openai',

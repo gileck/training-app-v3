@@ -51,7 +51,7 @@
     "test-all-adapters": "tsx scripts/template/test-all-adapters.ts",
     "test-clarification-flow": "tsx scripts/template/test-clarification-flow.ts",
     "task": "tsx task-manager/tasks-cli.ts",
-    "build:claude": "tsx scripts/build-claude-md.ts CLAUDE.md",
+    "build:claude": "tsx scripts/template/build-claude-md.ts CLAUDE.md",
     "agent-workflow": "tsx src/agents/cli/index.ts",
     "telegram-bot": "tsx scripts/poc/telegram-claude-bot.ts",
     "check:circular": "madge --circular --extensions ts,tsx --ts-config tsconfig.json src/",

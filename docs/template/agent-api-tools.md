@@ -72,14 +72,14 @@ That's it. The next time the agent's RPC daemon reloads (`yarn daemon:dev` does 
 
 - **`buildAgentToolsFromApis`** (`src/server/template/agentic/apiTools.ts`) — walks the merged registry, filters by `meta.agentExposed === true`, emits one `AgenticTool` per opted-in endpoint. Used in the project's agent handler.
 
-- **Demo agent** (`src/server/project/demo-agent/handler.ts` and `…/adapters/codex-mcp-server.ts`) — calls `buildAgentToolsFromApis({ handlers: apiHandlers })` and concats the result with its own hand-rolled tools.
+- **Demo agent** (`src/server/project/agent/handler.ts` and `…/adapters/codex-mcp-server.ts`) — calls `buildAgentToolsFromApis({ handlers: apiHandlers })` and concats the result with its own hand-rolled tools.
 
 ### Flow at runtime
 
 1. Project's API handler file exports `apiMeta` alongside the handler function.
 2. Domain's `server.ts` wires `meta:` into each registry entry.
 3. `apis/apis.ts` merges template + project registries into a single `apiHandlers` object.
-4. The demo-agent handler (`src/server/project/demo-agent/handler.ts`) imports `apiHandlers` and calls `buildAgentToolsFromApis(...)` at module load.
+4. The demo agent handler (`src/server/project/agent/handler.ts`) imports `apiHandlers` and calls `buildAgentToolsFromApis(...)` at module load.
 5. The agent's RPC handler is invoked per turn with `tools: [...DEMO_AGENT_TOOLS, ...apiTools]`.
 6. Both adapters (Claude Code via in-process MCP, Codex via stdio subprocess) see the same tool list — the Codex subprocess script (`codex-mcp-server.ts`) calls the same helper.
 7. When the model invokes a tool, `buildAgentToolsFromApis`'s synthesized handler:
@@ -172,7 +172,7 @@ If you opt in a new API and the agent claims it can't see the tool, **start a ne
 ## Related
 
 - [agentic engine commit notes][agentic-commit] — the underlying `AgenticTool` / `createAgentHandler` surface.
-- `src/server/project/demo-agent/` — reference project agent that uses this pattern.
+- `src/server/project/agent/` — reference agent that uses this pattern.
 - `docs/template/api-endpoint-format.md` — how project APIs are structured.
 
 [agentic-commit]: ../../src/server/template/agentic/index.ts
