@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/client/components/template/ui/card';
 import { Button } from '@/client/components/template/ui/button';
-import { Plus, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Dumbbell, ChevronDown, ChevronUp, CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
 import { ExerciseCardGrid, ExerciseCardList } from './ExerciseCard';
 import type { ExerciseWeekProgressFromStore } from '@/client/features/project/plan-data';
@@ -18,6 +18,8 @@ interface ExercisesTabContentProps {
     onCompleteAll: (exercise: ExerciseWeekProgressFromStore) => void;
     onOpenDetails: (exercise: ExerciseWeekProgressFromStore) => void;
     onNavigateToAddExercises: () => void;
+    onAddToWeek: () => void;
+    weekNumber: number;
 }
 
 export function ExercisesTabContent({
@@ -33,6 +35,8 @@ export function ExercisesTabContent({
     onCompleteAll,
     onOpenDetails,
     onNavigateToAddExercises,
+    onAddToWeek,
+    weekNumber,
 }: ExercisesTabContentProps) {
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral UI state
     const [completedExpanded, setCompletedExpanded] = useState(false);
@@ -50,10 +54,16 @@ export function ExercisesTabContent({
                         <p className="text-sm text-muted-foreground mb-4 text-center">
                             Add exercises to start tracking your workouts
                         </p>
-                        <Button onClick={onNavigateToAddExercises}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Exercises
-                        </Button>
+                        <div className="flex flex-col items-stretch gap-2 w-full max-w-xs">
+                            <Button onClick={onAddToWeek}>
+                                <CalendarPlus className="mr-2 h-4 w-4" />
+                                Add to week {weekNumber}
+                            </Button>
+                            <Button variant="outline" onClick={onNavigateToAddExercises}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add to whole plan
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -187,6 +197,18 @@ export function ExercisesTabContent({
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Add exercise to this week (when there are already exercises) */}
+            {exercises.length > 0 && (
+                <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={onAddToWeek}
+                >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Add exercise to week {weekNumber}
+                </Button>
             )}
         </div>
     );

@@ -54,8 +54,12 @@ export const getWeekProgress = async (
             return { error: 'Week number exceeds plan duration' };
         }
 
-        // Get all exercises in the plan
-        const exerciseList = await planExercises.findExercisesByPlanId(request.planId);
+        // Get exercises visible in this week: plan-wide exercises plus
+        // exercises scoped to this specific week.
+        const exerciseList = await planExercises.findExercisesByPlanIdForWeek(
+            request.planId,
+            request.weekNumber
+        );
 
         if (exerciseList.length === 0) {
             return {
@@ -145,6 +149,7 @@ export const getWeekProgress = async (
                     durationSeconds: exercise.durationSeconds,
                     comments: exercise.comments,
                     order: exercise.order,
+                    weekNumber: exercise.weekNumber,
                     createdAt: exercise.createdAt.toISOString(),
                     updatedAt: exercise.updatedAt.toISOString(),
                 },

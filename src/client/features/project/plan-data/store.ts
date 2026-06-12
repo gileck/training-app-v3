@@ -288,6 +288,7 @@ export const usePlanDataStore = createStore<PlanDataState>({
                     durationSeconds: exercise.durationSeconds || 0,
                     comments: exercise.comments || '',
                     order: plan.exercises.length,
+                    weekNumber: exercise.weekNumber,
                     createdAt: now,
                     updatedAt: now,
                     exerciseDef: exercise.exerciseDef,

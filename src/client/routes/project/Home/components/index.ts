@@ -8,3 +8,4 @@ export { WeekNavigator } from './WeekNavigator';
 export { SelectionBar } from './SelectionBar';
 export { ExercisesTabContent } from './ExercisesTabContent';
 export { WorkoutsTabContent } from './WorkoutsTabContent';
+export { AddExerciseToWeekDialog } from './AddExerciseToWeekDialog';

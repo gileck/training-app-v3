@@ -46,6 +46,7 @@ import {
     SelectionBar,
     ExercisesTabContent,
     WorkoutsTabContent,
+    AddExerciseToWeekDialog,
 } from './components';
 import { getFirstWorkoutWithCapacity, getLastWorkoutWithSets } from './utils/setAllocation';
 import { useDeleteActivity } from '@/client/routes/project/Progress/hooks';
@@ -112,6 +113,8 @@ export function Home() {
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog context
     const [exerciseToEdit, setExerciseToEdit] = useState<PlanExerciseWithDefinition | null>(null);
+    // eslint-disable-next-line state-management/prefer-state-architecture -- ephemeral dialog state
+    const [addToWeekOpen, setAddToWeekOpen] = useState(false);
 
     // Skip toggle + single-exercise edit mutation
     const toggleSkipExercise = usePlanDataStore((s) => s.toggleSkipExercise);
@@ -559,6 +562,8 @@ export function Home() {
                         onCompleteAll={handleCompleteAll}
                         onOpenDetails={handleOpenExerciseDetails}
                         onNavigateToAddExercises={() => navigate(`/training-plans/${activePlanId}`)}
+                        onAddToWeek={() => setAddToWeekOpen(true)}
+                        weekNumber={currentWeek}
                     />
                 </TabsContent>
 
@@ -619,6 +624,15 @@ export function Home() {
                 comments={selectedExerciseForDetails?.planExercise.comments}
                 planId={activePlanId || undefined}
                 weekNumber={currentWeek}
+            />
+
+            {/* Add Exercise to this Week Dialog */}
+            <AddExerciseToWeekDialog
+                open={addToWeekOpen}
+                onOpenChange={setAddToWeekOpen}
+                planId={activePlanId}
+                weekNumber={currentWeek}
+                addedExerciseIds={new Set(exercises.map((e) => e.planExercise.exerciseDefId))}
             />
         </div>
     );

@@ -8,7 +8,7 @@
  * The sync to server happens in the background via debounced sync.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { usePlanDataStore } from './store';
 import { loadPlan, syncPlanToServer, syncFromCloud, loadWeekProgress } from './sync';
@@ -137,13 +137,22 @@ export function useLoadWeekProgress(planId: string | null, weekNumber: number) {
 // ============================================================================
 
 /**
- * Get exercises for a plan from the store
+ * Get exercises for a plan from the store.
+ *
+ * Returns only plan-wide exercises (weekNumber == null). Week-scoped
+ * exercises live on the Home week view and must not leak into the plan
+ * template editor (ManagePlan). Filtering is memoized so the returned
+ * array keeps a stable reference between renders (avoids render loops).
  */
 export function usePlanExercisesFromStore(planId: string | null): PlanExerciseWithDefinition[] {
-    return usePlanDataStore((s) => {
+    const allExercises = usePlanDataStore((s) => {
         if (!planId) return EMPTY_EXERCISES;
         return s.plans[planId]?.exercises ?? EMPTY_EXERCISES;
     });
+    return useMemo(
+        () => allExercises.filter((ex) => ex.weekNumber == null),
+        [allExercises]
+    );
 }
 
 /**
@@ -186,14 +195,16 @@ export function useAddPlanExerciseAdapter(
                 durationSeconds?: number;
                 comments?: string;
                 exerciseDef?: NewExercise['exerciseDef'];
+                /** When set, scope the exercise to this week only. */
+                weekNumber?: number;
             },
             options?: { onSuccess?: () => void; onError?: (error: Error) => void }
         ) => {
             try {
                 // Get exerciseDef from params or look up from library
-                const exerciseDef = params.exerciseDef || 
+                const exerciseDef = params.exerciseDef ||
                     exerciseLibrary?.find((e) => e._id === params.exerciseDefId);
-                
+
                 if (!exerciseDef) {
                     throw new Error('Exercise definition not found');
                 }
@@ -206,6 +217,7 @@ export function useAddPlanExerciseAdapter(
                     weight: params.weight,
                     durationSeconds: params.durationSeconds,
                     comments: params.comments,
+                    weekNumber: params.weekNumber,
                 });
                 syncPlanToServer(planId);
                 options?.onSuccess?.();
@@ -235,15 +247,17 @@ export function useBulkAddPlanExercisesAdapter(
         (
             params: { 
                 planId: string;
-                exercises: Array<{ 
-                    exerciseDefId: string; 
-                    sets: number; 
-                    reps: number; 
+                exercises: Array<{
+                    exerciseDefId: string;
+                    sets: number;
+                    reps: number;
                     weight?: number;
                     durationSeconds?: number;
                     comments?: string;
                     exerciseDef?: NewExercise['exerciseDef'];
                 }>;
+                /** When set, scope every added exercise to this week only. */
+                weekNumber?: number;
             },
             options?: { 
                 onSuccess?: (response?: { addedCount?: number }) => void; 
@@ -266,6 +280,7 @@ export function useBulkAddPlanExercisesAdapter(
                             weight: ex.weight,
                             durationSeconds: ex.durationSeconds,
                             comments: ex.comments,
+                            weekNumber: params.weekNumber,
                         });
                         addedCount++;
                     }
@@ -512,6 +527,8 @@ export interface ExerciseWeekProgressFromStore {
         durationSeconds: number;
         comments: string;
         order: number;
+        /** Optional week scoping. Undefined = plan-wide; N = week N only. */
+        weekNumber?: number;
         createdAt: string;
         updatedAt: string;
     };
@@ -529,7 +546,7 @@ export function useWeekProgressFromStoreData(
     planId: string | null,
     weekNumber: number
 ): WeekProgressDataFromStore | null {
-    const exercises = usePlanDataStore((s) => {
+    const allExercises = usePlanDataStore((s) => {
         if (!planId) return EMPTY_EXERCISES;
         return s.plans[planId]?.exercises ?? EMPTY_EXERCISES;
     });
@@ -537,6 +554,13 @@ export function useWeekProgressFromStoreData(
         if (!planId) return EMPTY_PROGRESS;
         return s.plans[planId]?.weekProgress?.[weekNumber] ?? EMPTY_PROGRESS;
     });
+
+    // Show plan-wide exercises (no weekNumber) plus exercises scoped to this
+    // exact week. This is the single client-side gate that keeps a
+    // week-scoped exercise visible only in its own week.
+    const exercises = allExercises.filter(
+        (ex) => ex.weekNumber == null || ex.weekNumber === weekNumber
+    );
 
     if (!planId || exercises.length === 0) {
         return null;
@@ -574,6 +598,7 @@ export function useWeekProgressFromStoreData(
                 durationSeconds: ex.durationSeconds,
                 comments: ex.comments,
                 order: ex.order,
+                weekNumber: ex.weekNumber,
                 createdAt: ex.createdAt,
                 updatedAt: ex.updatedAt,
             },

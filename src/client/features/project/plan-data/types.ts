@@ -94,4 +94,6 @@ export interface NewExercise {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    /** Optional week scoping. Undefined = plan-wide; N = week N only. */
+    weekNumber?: number;
 }

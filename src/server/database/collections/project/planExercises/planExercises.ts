@@ -1,4 +1,4 @@
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, Filter } from 'mongodb';
 import { getDb } from '@/server/database/connection';
 import { PlanExercise, PlanExerciseCreate, PlanExerciseUpdate } from './types';
 import { toQueryId } from '@/server/template/utils';
@@ -20,6 +20,30 @@ export const findExercisesByPlanId = async (
     const collection = await getCollection();
     const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
     return collection.find({ planId: planIdQuery as ObjectId }).sort({ order: 1 }).toArray();
+};
+
+/**
+ * Find exercises visible in a specific week: plan-wide exercises (no weekNumber)
+ * plus exercises scoped to that exact week.
+ */
+export const findExercisesByPlanIdForWeek = async (
+    planId: ObjectId | string,
+    weekNumber: number
+): Promise<PlanExercise[]> => {
+    const collection = await getCollection();
+    const planIdQuery = typeof planId === 'string' ? toQueryId(planId) : planId;
+    // Plan-wide exercises store no weekNumber field at all (the sync handler
+    // $unsets it and addPlanExercise omits it), so they appear in every week.
+    // `{ weekNumber: null }` matches both an explicit null and a missing field,
+    // covering any legacy docs as well.
+    const filter: Filter<PlanExercise> = {
+        planId: planIdQuery as ObjectId,
+        $or: [
+            { weekNumber: null as unknown as number },
+            { weekNumber },
+        ],
+    };
+    return collection.find(filter).sort({ order: 1 }).toArray();
 };
 
 /**

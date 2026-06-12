@@ -145,6 +145,17 @@ async function syncExercises(
                 unsetFields.overrides = '';
             }
         }
+        // Week scoping mirrors the overrides handling:
+        //   - `weekNumber` present and numeric → $set it (scope to that week).
+        //   - `weekNumber` present but null/undefined → $unset (plan-wide).
+        //   - key absent (stale client) → leave stored value alone.
+        if ('weekNumber' in ex) {
+            if (ex.weekNumber != null) {
+                setFields.weekNumber = ex.weekNumber;
+            } else {
+                unsetFields.weekNumber = '';
+            }
+        }
         const update: Record<string, unknown> = {
             $set: setFields,
             $setOnInsert: { createdAt: now },

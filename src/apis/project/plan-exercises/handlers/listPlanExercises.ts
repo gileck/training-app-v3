@@ -15,6 +15,12 @@ export const apiMeta = defineApiMeta<ListPlanExercisesRequest>()({
     description: "List the exercises in a training plan, with their effective sets/reps/weight and exercise details. Use to see what a plan contains.",
     inputSchema: {
         planId: z.string().describe('The training plan id.'),
+        weekNumber: z
+            .number()
+            .optional()
+            .describe(
+                'Optional week number. When provided, returns only exercises visible in that week (plan-wide exercises plus exercises scoped to that week). Omit to return all exercises across all weeks.'
+            ),
     },
     agentExposed: true,
     mutates: false,
@@ -39,8 +45,13 @@ export const listPlanExercises = async (
             return { error: 'Plan not found' };
         }
 
-        // Get all exercises in this plan
-        const exerciseList = await planExercises.findExercisesByPlanId(request.planId);
+        // Get exercises in this plan. When a week is specified, restrict to
+        // exercises visible in that week (plan-wide + week-scoped); otherwise
+        // return the full list across all weeks.
+        const exerciseList =
+            request.weekNumber != null
+                ? await planExercises.findExercisesByPlanIdForWeek(request.planId, request.weekNumber)
+                : await planExercises.findExercisesByPlanId(request.planId);
 
         // Get exercise definitions for all exercises
         const exerciseDefIds = exerciseList.map((e) => e.exerciseDefId);
@@ -95,6 +106,7 @@ export const listPlanExercises = async (
                     strippedOverrides && Object.keys(strippedOverrides).length > 0
                         ? strippedOverrides
                         : undefined,
+                weekNumber: exercise.weekNumber,
                 createdAt: exercise.createdAt.toISOString(),
                 updatedAt: exercise.updatedAt.toISOString(),
                 exerciseDef: mergedDef,

@@ -256,6 +256,9 @@ async function doSyncToServer(planId: string, forceSync: boolean = false): Promi
                 comments: ex.comments,
                 order: ex.order,
                 overrides: ex.overrides ?? {},
+                // Always include weekNumber so clearing a week scope (back to
+                // plan-wide) round-trips: the server $unsets it when null.
+                weekNumber: ex.weekNumber ?? null,
             })),
             weekProgress: plan.weekProgress,
             clientLastSyncedAt: plan.lastSyncedAt,

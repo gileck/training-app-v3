@@ -28,6 +28,9 @@ export interface PlanExerciseWithDefinition extends PlanExerciseClient {
 // List plan exercises
 export interface ListPlanExercisesRequest {
     planId: string;
+    // Optional: when set, return only exercises visible in that week
+    // (plan-wide exercises plus exercises scoped to the week).
+    weekNumber?: number;
 }
 
 export interface ListPlanExercisesResponse {
@@ -45,6 +48,8 @@ export interface AddPlanExerciseRequest {
     weight?: number;
     durationSeconds?: number;
     comments?: string;
+    // Optional: scope this exercise to a single week. Undefined = plan-wide.
+    weekNumber?: number;
 }
 
 export interface AddPlanExerciseResponse {

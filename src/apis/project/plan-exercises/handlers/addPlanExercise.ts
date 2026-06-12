@@ -18,6 +18,13 @@ export const apiMeta = defineApiMeta<AddPlanExerciseRequest>()({
         weight: z.number().optional().describe('Weight in kg (optional).'),
         durationSeconds: z.number().int().optional().describe('Duration in seconds for timed exercises (optional).'),
         comments: z.string().optional().describe('Optional notes for this exercise.'),
+        weekNumber: z
+            .number()
+            .int()
+            .optional()
+            .describe(
+                'Optional week number. When set, the exercise is scoped to that week only and will not appear in other weeks. Omit to add a plan-wide exercise that appears in every week.'
+            ),
     },
     agentExposed: true,
     mutates: true,
@@ -79,6 +86,9 @@ export const addPlanExercise = async (
             durationSeconds: request.durationSeconds || 0,
             comments: request.comments || '',
             order: nextOrder,
+            // Only persist weekNumber when scoping to a week; omitting it
+            // keeps the exercise plan-wide (the default).
+            ...(request.weekNumber != null ? { weekNumber: request.weekNumber } : {}),
             createdAt: now,
             updatedAt: now,
         };
@@ -97,6 +107,7 @@ export const addPlanExercise = async (
             durationSeconds: newExercise.durationSeconds,
             comments: newExercise.comments,
             order: newExercise.order,
+            weekNumber: newExercise.weekNumber,
             createdAt: newExercise.createdAt.toISOString(),
             updatedAt: newExercise.updatedAt.toISOString(),
             exerciseDef: {

@@ -31,6 +31,12 @@ export interface ExerciseSyncData {
      * the field and the server preserves whatever is already stored.
      */
     overrides?: ExerciseDefinitionOverrides;
+    /**
+     * Optional week scoping. Undefined/null = plan-wide (appears in every week);
+     * N = the exercise belongs to week N only. Mirrors the overrides field:
+     * older clients that omit it have their stored value preserved.
+     */
+    weekNumber?: number;
 }
 
 // ============================================================================

@@ -80,6 +80,11 @@ export function ExerciseCardGrid({
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <h3 className="font-bold text-lg truncate">{exercise.exerciseDef.name}</h3>
+                                {exercise.planExercise.weekNumber != null && (
+                                    <Badge variant="outline" className="text-info border-info/40 bg-info/10 shrink-0">
+                                        Week {exercise.planExercise.weekNumber} only
+                                    </Badge>
+                                )}
                                 {exercise.isSkipped && (
                                     <Badge variant="outline" className="text-warning border-warning/40 bg-warning/10 shrink-0">
                                         Skipped
@@ -237,6 +242,11 @@ export function ExerciseCardList({
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                             <h3 className="font-semibold truncate">{exercise.exerciseDef.name}</h3>
+                            {exercise.planExercise.weekNumber != null && (
+                                <Badge variant="outline" className="text-info border-info/40 bg-info/10 shrink-0 text-[10px] px-1.5 py-0">
+                                    Week {exercise.planExercise.weekNumber} only
+                                </Badge>
+                            )}
                             {exercise.isSkipped && (
                                 <Badge variant="outline" className="text-warning border-warning/40 bg-warning/10 shrink-0 text-[10px] px-1.5 py-0">
                                     Skipped

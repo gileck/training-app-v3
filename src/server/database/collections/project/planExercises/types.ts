@@ -36,6 +36,12 @@ export interface PlanExercise {
      * Empty/undefined means "no customization — use the base def as-is".
      */
     overrides?: PlanExerciseOverrides;
+    /**
+     * Optional week scoping. When undefined the exercise is plan-wide and
+     * appears in every week (this is the default for all existing exercises).
+     * When set to N, the exercise belongs to week N only.
+     */
+    weekNumber?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -70,6 +76,8 @@ export interface PlanExerciseClient {
     order: number;
     /** Optional per-instance overrides of the base exercise definition. */
     overrides?: PlanExerciseOverrides;
+    /** Optional week scoping. Undefined = plan-wide; N = week N only. */
+    weekNumber?: number;
     createdAt: string;
     updatedAt: string;
 }
